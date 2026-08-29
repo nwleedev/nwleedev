@@ -1,149 +1,152 @@
-# 2026년 3년차 이상 프론트엔드 채용공고 자격요건과 우대사항 조사
+# 2026년 3년차 이상 프론트엔드 채용공고 조사
 
-결론은 2026년에 확인된 대기업, 유니콘과 중견 규모 프론트엔드 공고들이 공통적으로 React와 TypeScript 중심의 웹 기초, 사용자 맥락을 이해한 서비스 판단, 협업과 코드 품질, 성능과 운영 경험을 요구한다는 것이다. 우대사항은 도메인별 차이가 있지만 대체로 실험 문화, 테스트 자동화, 대규모 서비스 운영, 디자인 시스템이나 공통 컴포넌트, SSR과 모노레포, 모바일 웹뷰, 그리고 AI 도구 활용 경험으로 수렴한다. 이 문서는 [요구사항](../requirements.md)의 채용공고 조사 대상을 구체화하려는 사람을 위해 표본 기준, 확인된 사실, 해석과 남은 불확실성을 구분해 기록한다.
+결론은 2026년에 게시 또는 재게시된 대기업, 대기업 계열사, 유니콘과 중견 플랫폼 기업의 공고 10건이 React와 TypeScript만 확인하지 않는다는 것이다. 자격요건은 운영 중인 웹 서비스의 품질, 사용자 문제를 기술 선택으로 바꾸는 판단, 협업과 프론트엔드 인접 영역에 대한 이해를 함께 요구했다. 우대사항은 테스트와 배포 자동화, 성능과 관측성, 디자인 시스템, SSR과 웹뷰, 도메인 경험으로 넓어졌다. AI 도구는 10건 중 4건에서 자격요건 또는 우대사항으로 직접 등장했지만 아직 모든 기업의 공통 조건은 아니다.
 
-## 조사 질문과 표본 기준
+이 문서는 [요구사항](../requirements.md)의 2026년 채용공고 조사 범위를 검증하기 위해 작성했다. 공고에 적힌 사실, 여러 공고를 비교한 분석과 포트폴리오에 적용할 제안을 구분한다.
 
-이번 조사의 질문은 두 가지다.
+## 조사 질문과 판정 기준
 
-- 2026년에 등록되었거나 모집 시작이 확인되는 3년차 이상 프론트엔드 직무 공고에서 어떤 자격요건이 반복되는가.
-- 같은 공고들에서 어떤 우대사항이 반복되며, 회사나 도메인에 따라 무엇이 달라지는가.
+조사 질문은 2026년에 등록된 3년차 이상 프론트엔드 직무 공고가 요구하는 자격요건과 우대사항이 무엇인지, 그리고 회사와 도메인에 따라 무엇이 달라지는지다.
 
-표본에는 2026년 날짜와 경력 기준을 확인할 수 있는 공고만 넣었다. 공식 채용 페이지를 우선했고, 종료되어 공식 상세가 사라졌을 때에는 회사가 연결한 채용 플랫폼 보존본을 보조 표본으로 분리했다. 검색 결과 요약만으로는 포함 여부를 결정하지 않았다. 모든 링크는 2026년 8월 29일에 검토했다.
+- 조사 기준일은 2026년 8월 29일이다.
+- 대기업, 대기업 계열사, 유니콘과 중견 규모 플랫폼 기업을 대상으로 삼고 중소기업은 제외했다.
+- 프론트엔드 또는 프론트엔드 중심 역할이며 경력 3년 이상을 숫자로 확인할 수 있는 공고만 포함했다.
+- 공식 페이지의 `datePosted`나 모집 기간, 또는 보존된 채용 플랫폼의 2026년 게시 기록을 확인했다. 공식 페이지의 2026년 수정일만 확인되는 경우에는 그것만으로 포함하지 않았다.
+- 같은 제목의 재게시 공고는 한 건으로 계산하고, 확인된 최초 2026년 게시일과 이후 재게시 또는 수정일을 함께 기록했다.
+- 현재 공고와 종료 공고를 모두 포함했다. 채널별 모집 상태나 경력 기준이 다르면 하나로 추정하지 않고 차이를 기록했다.
+- 자격요건과 우대사항의 반복 횟수는 자격요건 절과 우대사항 절에 직접 적힌 항목만 계산했다. 담당 업무와 팀 소개는 역할을 해석하는 보조 근거로만 사용했다.
+- 출처 우선순위는 회사 공식 상세와 목록, 회사 공고를 보존한 채용 플랫폼, 공고 수집 서비스 순이다. 검색 결과 요약만으로는 표본을 확정하지 않았다.
 
-## 공식 채용 페이지로 확인한 표본
-
-### 당근, Software Engineer, Frontend - Cross Product Growth (Engagement Part)
-
-- **2026년 등록 근거:** 당근 공식 채용 페이지의 구조화 데이터에 `datePosted`가 `2026-08-28`로 포함되어 있다. [당근 공식 공고](https://careers.daangn.com/jobs/role/7668837003/)
-- **상태:** 공식 페이지에서 모집 중으로 열려 있었다. [당근 공식 공고](https://careers.daangn.com/jobs/role/7668837003/)
-- **요구 경력:** 프론트엔드 개발 경력 3년 이상이다. [당근 공식 공고](https://careers.daangn.com/jobs/role/7668837003/)
-- **자격요건:** 사용자 흐름과 상호작용 품질을 개선한 경험, 서비스 목표와 사용자 맥락을 기술 선택에 연결하는 판단, 빠른 실험 환경에서 품질과 속도를 함께 다룬 경험, 복잡한 상태와 플로우를 단순하게 설계하는 능력, 협업 커뮤니케이션을 요구한다. [당근 공식 공고](https://careers.daangn.com/jobs/role/7668837003/)
-- **우대사항:** Push, Chat, Feed, CRM 같은 참여형 서비스 경험, A/B 테스트 문화, 여러 서비스에 걸친 프론트엔드 플랫폼 성격의 문제 해결, 대규모 상태 관리와 성능 최적화, 상호작용과 모션 세부 품질이 포함된다. [당근 공식 공고](https://careers.daangn.com/jobs/role/7668837003/)
-
-### 당근페이, Frontend Engineer
-
-- **2026년 등록 근거:** 당근 공식 채용 페이지의 구조화 데이터에 `datePosted`가 `2026-08-28`로 포함되어 있다. [당근페이 공식 공고](https://careers.daangn.com/jobs/role/5919465003/)
-- **상태:** 공식 페이지에서 모집 중으로 열려 있었다. [당근페이 공식 공고](https://careers.daangn.com/jobs/role/5919465003/)
-- **요구 경력:** 프론트엔드 개발 경력 5년 이상이다. [당근페이 공식 공고](https://careers.daangn.com/jobs/role/5919465003/)
-- **자격요건:** React 기반 SPA 개발 경험, HTML, CSS와 JavaScript 생태계 이해, 읽기 쉬운 코드와 토론 가능한 개발 문화, 사업 요구를 기술 결정으로 연결하는 능력, 문제를 스스로 정의하고 해결하는 태도를 요구한다. [당근페이 공식 공고](https://careers.daangn.com/jobs/role/5919465003/)
-- **우대사항:** 대규모 핀테크 서비스 운영, 결제와 송금 및 포인트 거래 UI, 서비스 오너십, 모바일 인앱 웹뷰, 리팩터링과 테스트, 프론트엔드 아키텍처 결정, AI 도구로 생산성을 높인 경험이 포함된다. [당근페이 공식 공고](https://careers.daangn.com/jobs/role/5919465003/)
-
-### 당근, Software Engineer, Frontend - Local Jobs
-
-- **2026년 등록 근거:** 당근 공식 채용 페이지의 구조화 데이터에 `datePosted`가 `2026-08-28`로 포함되어 있다. [당근 공식 공고](https://careers.daangn.com/jobs/role/6081125003/)
-- **상태:** 공식 페이지에서 모집 중으로 열려 있었다. [당근 공식 공고](https://careers.daangn.com/jobs/role/6081125003/)
-- **요구 경력:** React 기반 사용자용 서비스를 3년 이상 개발했거나 그에 준하는 경험을 요구한다. [당근 공식 공고](https://careers.daangn.com/jobs/role/6081125003/)
-- **자격요건:** UI 바깥의 사용자 문제를 함께 고민하는 태도, 선언적 개발과 에이전트 친화적 테스트 기반, 데이터에 근거한 반복 실험, AI 도구를 포함한 업무 방식 개선이 포함된다. [당근 공식 공고](https://careers.daangn.com/jobs/role/6081125003/)
-- **우대사항:** 신사업과 0 to 1 경험, 결제와 구독 및 광고처럼 돈이 오가는 제품 경험, GraphQL 클라이언트 경험, 린트 규칙과 CI 워크플로 설계가 포함된다. [당근 공식 공고](https://careers.daangn.com/jobs/role/6081125003/)
-
-### 당근, Software Engineer, Frontend - Community
-
-- **2026년 등록 근거:** 당근 공식 채용 페이지의 구조화 데이터에 `datePosted`가 `2026-08-28`로 포함되어 있다. [당근 공식 공고](https://careers.daangn.com/jobs/role/7689088003/)
-- **상태:** 공식 페이지에서 모집 중으로 열려 있었다. [당근 공식 공고](https://careers.daangn.com/jobs/role/7689088003/)
-- **요구 경력:** 개발 경력 3년 이상이다. [당근 공식 공고](https://careers.daangn.com/jobs/role/7689088003/)
-- **자격요건:** React 기반 SSR 웹 서비스 경험, JavaScript와 TypeScript에 대한 깊은 이해, 질문을 통해 문제의 본질을 찾아 끝까지 해결하는 태도, 사용자 중심의 서비스 경험을 요구한다. [당근 공식 공고](https://careers.daangn.com/jobs/role/7689088003/)
-- **우대사항:** 모바일 웹뷰 경험, 코딩 에이전트를 포함한 AI 기반 업무 방식, A/B 테스트 설계와 해석, 모니터링과 주요 지표 개선 경험이 포함된다. [당근 공식 공고](https://careers.daangn.com/jobs/role/7689088003/)
-
-### LINE Pay, Frontend Engineer
-
-- **2026년 등록 근거:** 공식 채용 페이지가 모집 기간을 `May 8, 2026 ~ Until filled`로 제시한다. [LINE Pay 공식 공고](https://careers.linecorp.com/ko/jobs/3005/)
-- **상태:** 공식 페이지에서 Open 상태였고 조기 마감 가능성을 함께 안내했다. [LINE Pay 공식 공고](https://careers.linecorp.com/ko/jobs/3005/)
-- **요구 경력:** 프론트엔드 개발과 운영 경력 3년 이상이다. [LINE Pay 공식 공고](https://careers.linecorp.com/ko/jobs/3005/)
-- **자격요건:** TypeScript, JavaScript, HTML과 CSS 및 웹 내부 동작에 대한 이해, React와 Next.js, 기본적인 백엔드와 네트워크 및 데이터베이스 이해, AI 개발 도구 활용, Git과 코드 리뷰, 해외 출장과 근무 가능 조건이 포함된다. [LINE Pay 공식 공고](https://careers.linecorp.com/ko/jobs/3005/)
-- **우대사항:** Node.js, SSR, 오픈소스 기여, Lerna, Nx와 Turborepo 같은 모노레포, Playwright와 Cypress 기반 E2E 테스트, GitHub Actions CI/CD, 글로벌 서비스 경험과 외국어가 포함된다. [LINE Pay 공식 공고](https://careers.linecorp.com/ko/jobs/3005/)
-
-### 쿠팡페이, Staff Front-end Engineer, New Fintech Product
-
-- **2026년 등록 근거:** 공식 채용 페이지가 `2026. 8. 12.` 업데이트 일자를 표시한다. 2026년 최초 등록일과 동일하다고 단정하지는 않지만, 2026년 내 모집 중인 상세 공고라는 점은 공식 페이지로 확인된다. [쿠팡페이 공식 공고](https://www.coupang.jobs/kr/jobs/8054705/coupang-pay-staff-front-end-engineer-new-fintech-product/)
-- **상태:** 공식 페이지에서 모집 중으로 열려 있었다. [쿠팡페이 공식 공고](https://www.coupang.jobs/kr/jobs/8054705/coupang-pay-staff-front-end-engineer-new-fintech-product/)
-- **요구 경력:** 웹 프론트엔드 경력 8년 이상이다. [쿠팡페이 공식 공고](https://www.coupang.jobs/kr/jobs/8054705/coupang-pay-staff-front-end-engineer-new-fintech-product/)
-- **자격요건:** JavaScript ES6, TypeScript, HTML5, CSS와 React, Redux, Vue, Angular 중 하나 이상의 숙련, Webpack, Babel, Jest와 Storybook 같은 개발 도구, 웹 표준과 브라우저 호환성, 재사용 가능하고 확장 가능한 UI 컴포넌트 설계, 복잡한 코드베이스 분석, 사용성, Lean UX와 개념 모델링 이해를 요구한다. [쿠팡페이 공식 공고](https://www.coupang.jobs/kr/jobs/8054705/coupang-pay-staff-front-end-engineer-new-fintech-product/)
-- **우대사항:** 서비스 개선 태도, 협업과 애자일, 브라우저 로드와 렌더링 최적화, SPA와 SSR 및 인앱 브라우저, Node.js와 Express 및 NestJS, 대규모 서비스, Git 기반 CI/CD, Spring, MSA, Open API SDK나 라이브러리 개발이 포함된다. [쿠팡페이 공식 공고](https://www.coupang.jobs/kr/jobs/8054705/coupang-pay-staff-front-end-engineer-new-fintech-product/)
-
-### 쿠팡이츠, Staff Front-end Engineer, Eats Web
-
-- **2026년 등록 근거:** 공식 채용 페이지가 `2026. 8. 14.` 업데이트 일자를 표시한다. 최초 등록일은 별도로 드러나지 않아 2026년 업데이트가 확인된 공고로 분류한다. [쿠팡이츠 공식 공고](https://www.coupang.jobs/kr/jobs/8093378/staff-front-end-engineer-eats-web/)
-- **상태:** 공식 페이지에서 모집 중으로 열려 있었다. [쿠팡이츠 공식 공고](https://www.coupang.jobs/kr/jobs/8093378/staff-front-end-engineer-eats-web/)
-- **요구 경력:** 프론트엔드 엔지니어링 경력 7년 이상과 웹 아키텍처 설계 및 구현 경력 2년 이상을 요구한다. [쿠팡이츠 공식 공고](https://www.coupang.jobs/kr/jobs/8093378/staff-front-end-engineer-eats-web/)
-- **자격요건:** React, Vue와 Node.js, 모바일과 PC 웹 사용자 경험, 웹 애플리케이션 성능과 개발 생산성 개선, 컴포넌트화와 모듈화 경험이 포함된다. [쿠팡이츠 공식 공고](https://www.coupang.jobs/kr/jobs/8093378/staff-front-end-engineer-eats-web/)
-- **우대사항:** 빠르게 변하는 환경에서 우선순위를 다루는 능력과 이커머스 또는 O2O 도메인 경험이 포함된다. [쿠팡이츠 공식 공고](https://www.coupang.jobs/kr/jobs/8093378/staff-front-end-engineer-eats-web/)
-
-### 쿠팡플레이, Staff Front-end Engineer, CX
-
-- **2026년 등록 근거:** 공식 채용 페이지가 `2026. 7. 27.` 업데이트 일자를 표시한다. 최초 등록일은 별도로 드러나지 않아 2026년 업데이트가 확인된 공고로 분류한다. [쿠팡플레이 공식 공고](https://www.coupang.jobs/kr/jobs/6918738/staff-front-end-engineer-cx-coupang-play/)
-- **상태:** 공식 페이지에서 모집 중으로 열려 있었다. [쿠팡플레이 공식 공고](https://www.coupang.jobs/kr/jobs/6918738/staff-front-end-engineer-cx-coupang-play/)
-- **요구 경력:** 프론트엔드 경력 7년 이상이다. [쿠팡플레이 공식 공고](https://www.coupang.jobs/kr/jobs/6918738/staff-front-end-engineer-cx-coupang-play/)
-- **자격요건:** TypeScript와 React, Next.js 같은 SSR 프레임워크, 반응형과 적응형 웹 및 크로스브라우저, UI와 UX 원칙과 디자인 시스템 적용 경험을 요구한다. [쿠팡플레이 공식 공고](https://www.coupang.jobs/kr/jobs/6918738/staff-front-end-engineer-cx-coupang-play/)
-- **우대사항:** webOS와 Tizen 같은 스마트 TV 환경, A/B 테스트 플랫폼, 대규모 트래픽의 OTT, 미디어 또는 이커머스 서비스, 서버 주도 UI, Jest와 Cypress 기반 테스트가 포함된다. [쿠팡플레이 공식 공고](https://www.coupang.jobs/kr/jobs/6918738/staff-front-end-engineer-cx-coupang-play/)
-
-## 보조 표본
+## 조사한 공고
 
 ### 네이버랩스, Frontend Developer
 
-- **2026년 등록 근거:** 채용 플랫폼 보존본의 구조화 데이터에 `datePosted`가 `2026-05-15T08:02:32.000Z`, `validThrough`가 `2026-05-28T23:59:59+09:00`로 포함되어 있다. 공고명과 회사 링크가 네이버랩스 채용 사이트를 가리킨다. [캐치 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/551924)
-- **상태:** 보존본에서 마감 공고로 표시된다. [캐치 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/551924)
-- **요구 경력:** TypeScript를 사용한 프로덕션 개발 경력 3년 이상이다. [캐치 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/551924)
-- **자격요건:** React 기반 클라이언트 애플리케이션 설계와 운영, NestJS 또는 그에 준하는 Node.js 서버 이해를 요구한다. 업무는 로봇 관리자용 실시간 웹 애플리케이션, 로봇 사용자 상호작용 화면, 맵 에디터를 포함한다. [캐치 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/551924)
-- **우대사항:** GraphQL 스키마와 Apollo Server 및 Client, 공통 컴포넌트와 디자인 시스템, Canvas 2D와 Three.js 계열 렌더링, OpenLayers와 Mapbox 및 Leaflet 같은 지도 라이브러리가 포함된다. [캐치 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/551924)
+- **게시일과 상태:** CATCH 구조화 데이터의 게시일은 2026년 5월 15일, 마감일은 5월 28일이다. 링커리어에는 모집 시작일이 5월 13일로 기록되어 있어 이틀 차이가 난다. 검토일에는 종료 상태였다.
+- **경력 기준:** TypeScript 프로덕션 개발 3년 이상이다.
+- **자격요건:** React 클라이언트 애플리케이션 설계와 운영, NestJS 또는 비슷한 Node.js 서버 프레임워크 경험을 요구한다.
+- **우대사항:** GraphQL과 Apollo, 공통 컴포넌트나 디자인 시스템, Canvas와 Three.js 계열 렌더링, 지도 라이브러리 경험을 제시한다.
+- **출처:** [CATCH 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/551924), [링커리어 보존 공고](https://linkareer.com/activity/322776), [공고 내용 보존본](https://www.nklcb.net/jobList/post/6a5f94eada5c2d5f64523049). 2026년 8월 29일 검토.
 
-### 카카오페이손해보험, Frontend Engineer
+### 카카오페이, 프론트엔드 개발자 - 스테이블코인 서비스
 
-- **2026년 등록 근거:** 채용 플랫폼 보존본의 구조화 데이터에 `datePosted`가 `2026-03-27T02:51:50.000Z`, `validThrough`가 `2026-04-26T23:59:59+09:00`로 포함되어 있다. [캐치 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/544911)
-- **상태:** 보존본에서 마감 공고로 표시된다. [캐치 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/544911)
-- **요구 경력:** 프론트엔드 경력 5년 이상 10년 이하를 요구한다. [캐치 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/544911)
-- **자격요건:** React 기반 웹 서비스, 보험 도메인을 단순하고 확장 가능하게 만드는 설계, 기획, 디자인과 QA 협업, 데이터와 사용자 피드백에 근거한 실험과 개선, 웹 표준과 HTML 및 CSS, 사용자 관점의 문제 정의와 커뮤니케이션, 빠르게 바뀌는 우선순위 대응이 포함된다. [캐치 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/544911)
-- **우대사항:** iOS와 Android 웹뷰 및 멀티디바이스 경험, 렌더링과 번들 및 로드 성능 개선, 공통 컴포넌트, 단위 테스트와 E2E 테스트, 코드 리뷰와 기술 공유 및 자동화, 웹 접근성이 포함된다. [캐치 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/544911)
+- **게시일과 상태:** 보존본의 게시일은 2026년 3월 26일이고 검토일에는 종료 상태였다.
+- **경력 기준:** 프론트엔드 경력 5년 이상이다.
+- **자격요건:** React, Next.js, TypeScript와 TanStack Query 기반 웹뷰, SSR과 CSR, 대규모 트래픽, Grafana와 Sentry를 이용한 관측, E2E와 단위 테스트 환경, LLM 기반 AI 도구와 협업 역량을 요구한다.
+- **우대사항:** 핀테크나 블록체인 도메인, 번들 최적화, 프론트엔드 CI/CD, web3.js나 ethers.js, 모바일 웹뷰, 서비스 개선 제안과 업무 영어를 제시한다.
+- **출처:** [직행 보존 공고](https://zighang.com/recruitment/7b7ad5f9-1661-44f8-b982-837bac58ff61). 2026년 8월 29일 검토. 공식 상세는 종료되어 보존본으로 날짜와 내용을 확인했다.
 
-보조 표본은 공식 상세가 아니라 플랫폼 보존본이므로, 표현 누락 가능성과 포맷 변형 가능성을 감안해야 한다. 다만 구조화 데이터의 날짜와 회사 연결 정보가 남아 있어 2026년 게시 여부와 주요 자격요건을 복원하는 근거로는 쓸 수 있다.
+### LINE Pay Plus, LINE Pay Frontend Engineer
+
+- **게시일과 상태:** 공식 목록의 모집 시작일은 2026년 5월 8일이고 검토일에는 채용 시까지 모집하는 `Open` 상태였다.
+- **경력 기준:** 프론트엔드 개발과 운영 경력 3년 이상이다.
+- **자격요건:** TypeScript, JavaScript, HTML과 CSS의 내부 동작, React와 Next.js, 백엔드와 네트워크 및 데이터베이스 기초, AI 개발 도구, Git과 코드 리뷰 경험을 요구한다.
+- **우대사항:** Node.js와 SSR, 오픈소스 기여, 모노레포, Playwright나 Cypress E2E 테스트, GitHub Actions CI/CD, 글로벌 서비스와 외국어 경험을 제시한다.
+- **출처:** [LINE 공식 목록](https://careers.linecorp.com/ko/jobs/?ca=Engineering&ci=Bundang), [LINE 공식 상세](https://careers.linecorp.com/ko/jobs/3005/). 2026년 8월 29일 검토.
+
+### 쿠팡페이, Staff Front-end Engineer - New Fintech Product
+
+- **게시일과 상태:** 공고 수집본에서 같은 제목이 2026년 1월 5일과 7월 10일에 게시된 기록을 확인했다. 공식 상세의 수정일은 8월 12일이고 검토일에는 모집 중이었다. 같은 역할의 반복 게시이므로 한 건으로 계산했다.
+- **경력 기준:** 웹 프론트엔드 경력 8년 이상이다.
+- **자격요건:** JavaScript, TypeScript, HTML과 CSS, React 계열 프레임워크, Webpack과 Babel 및 Jest와 Storybook, 웹 표준과 브라우저 호환성, 재사용 가능한 UI 컴포넌트, 복잡한 코드 분석, 사용성과 Lean UX 이해를 요구한다.
+- **우대사항:** 협업과 애자일, 브라우저 로딩과 렌더링 최적화, SPA와 SSR 및 인앱 브라우저, Node.js, 대규모 서비스, CI/CD, MSA와 SDK 개발 경험을 제시한다.
+- **출처:** [쿠팡 공식 상세](https://www.coupang.jobs/kr/jobs/8054705/coupang-pay-staff-front-end-engineer-new-fintech-product/), [Startup Jobs 2026년 수집 기록](https://startup.jobs/locations/south-korea/front-end-engineer), [Startup Jobs 2026년 1월 보존 목록](https://startup.jobs/locations/south-korea?c=Full-Time&page=12). 2026년 8월 29일 검토. 게시일은 보존 기록, 내용과 현재 상태는 공식 상세를 기준으로 삼았다.
+
+### 당근, Software Engineer, Frontend - 커뮤니티 모임
+
+- **게시일과 상태:** 공식 페이지 구조화 데이터의 게시일은 2026년 8월 28일이고 검토일에는 모집 중이었다.
+- **경력 기준:** 개발 경력 3년 이상이다.
+- **자격요건:** React 기반 SSR, JavaScript와 TypeScript에 대한 깊은 이해, 사용자가 겪는 문제가 무엇인지 질문으로 확인하고 끝까지 해결한 경험, 사용자 관점에서 서비스를 개발한 경험을 요구한다.
+- **우대사항:** 모바일 웹뷰, Claude Code나 Codex 같은 코딩 에이전트를 활용한 업무 방식, A/B 테스트 설계와 분석, 모니터링과 중요 지표 개선 경험을 제시한다.
+- **출처:** [당근 공식 공고](https://careers.daangn.com/jobs/role/7689088003/). 2026년 8월 29일 검토.
+
+### 컬리, 풀필먼트 주니어 프론트엔드 개발자
+
+- **게시일과 상태:** 공식 채용 데이터의 모집 시작 시각은 2026년 5월 6일이고 보존본은 5월 7일 게시로 기록한다. 검토일에 공식 데이터는 `OPEN`, 보존본은 종료로 표시되어 상태가 서로 달랐다.
+- **경력 기준:** 프론트엔드 경력 4년 이상이다.
+- **자격요건:** React와 TypeScript 서비스 운영, 상태 관리, REST API와 비동기 처리, Git 브랜치와 코드 리뷰, 단위 및 컴포넌트 테스트 경험을 요구한다.
+- **우대사항:** Webpack이나 Vite 설정, 모노레포, 디자인 시스템 컴포넌트, CI/CD, 물류나 이커머스 도메인 경험을 제시한다.
+- **출처:** [컬리 공식 상세](https://kurly.career.greetinghr.com/ko/o/215234), [직행 보존 공고](https://zighang.com/recruitment/7309b7f6-6448-4515-99c3-acdad90f1dcd). 2026년 8월 29일 검토.
+
+### 42dot, Frontend Developer - Autonomous Driving
+
+- **게시일과 상태:** 공식 페이지의 게시일은 2026년 7월 20일이고 검토일에는 모집 중이었다.
+- **경력 기준:** 웹 애플리케이션 개발 경력 3년 이상이다.
+- **자격요건:** React, Next.js, TypeScript와 REST API, Figma를 사용한 서비스 기획과 개선, Docker와 CI/CD 또는 클라우드, 테스트와 디버깅, Git 코드 리뷰, 협업과 요구사항이 바뀌었을 때 이를 이해하고 개발에 반영하는 능력을 요구한다.
+- **우대사항:** WebGL과 Three.js, 자율주행이나 로봇 및 드론 데이터 시각화, 센서와 궤적 및 주석 데이터, Rerun과 Foxglove 및 WebViz 확장, WebSocket과 gRPC 및 SSE 경험을 제시한다.
+- **출처:** [42dot 공식 공고](https://42dot.ai/ko/careers/open-roles/19dec71f-7057-4009-af45-bad61c73e113). 2026년 8월 29일 검토.
+
+### NHN Dooray, 협업 서비스 프론트엔드 개발
+
+- **게시일과 상태:** 보존본의 게시일은 2026년 7월 6일이다. 검토일에 사람인은 모집 중, 비즈니스피플은 종료로 표시해 상태가 서로 달랐다.
+- **경력 기준:** 비즈니스피플 원문 보존본과 사람인 요약은 6년 이상으로 표시하지만 사람인 상세 본문은 3년 이상으로 표시한다. 어느 쪽이 최신인지 확정할 수 없지만 두 기준 모두 이번 조사의 3년 이상 조건을 충족한다.
+- **자격요건:** 컴퓨터공학 지식, React와 Vue 또는 Angular를 사용한 SPA, TypeScript, 협업과 커뮤니케이션을 요구한다.
+- **우대사항:** 성능과 코드 품질 개선, 협업 시스템 사용, 빌드 과정 구축, AI 적용, 학습 내용을 적용하고 공유한 경험을 제시한다.
+- **출처:** [비즈니스피플 보존 공고](https://www.bzpp.co.kr/biz/businessDetailView/BR260706A00055), [사람인 공고](https://www.saramin.co.kr/zf_user/jobs/view?rec_idx=54742604), [NHN Careers](https://careers.nhn.com/). 2026년 8월 29일 검토.
+
+### CJ올리브영, Front-end Engineer - 광고 DSP
+
+- **게시일과 상태:** 원티드 기반 보존본은 2026년 6월 2일, 비즈니스피플은 6월 10일, 직행 재게시본은 8월 25일을 제시한다. 검토일에 원티드는 상시채용, 8월 재게시본은 종료로 표시해 상태가 서로 달랐다. 같은 역할의 반복 게시이므로 한 건으로 계산했다.
+- **경력 기준:** 프론트엔드 경력 5년 이상이다.
+- **자격요건:** 현대적인 프론트엔드 프레임워크, JavaScript와 TypeScript, 모듈과 컴포넌트 설계, 웹 표준과 크로스브라우저 및 ARIA 접근성, 가설과 A/B 테스트 또는 사용자 피드백을 통한 개선을 요구한다.
+- **우대사항:** 리테일 미디어나 데이터 대시보드, Node.js SSR 또는 BFF, 대규모 서비스의 성능과 모니터링, Jest와 Cypress, 디자인 시스템과 Storybook 및 Figma, 애자일 협업과 주도적인 의사결정을 제시한다.
+- **출처:** [원티드 공고](https://www.wanted.co.kr/wd/365604), [2026년 6월 직행 보존본](https://zighang.com/recruitment/2f8824c2-cd55-464b-9ed7-75cf07efe01f), [비즈니스피플 보존 공고](https://www.bzpp.co.kr/biz/businessDetailView/BR260610A00287), [2026년 8월 직행 재게시본](https://zighang.com/recruitment/689b0108-e657-4ae8-a0a6-c471cca6aa4a). 2026년 8월 29일 검토.
+
+### 현대오토에버, SDx 웹 프론트엔드 개발자
+
+- **게시일과 상태:** 원티드 구조화 데이터의 최초 게시일은 2025년 11월 6일이고 직행은 같은 역할의 2026년 1월 12일 재게시를 기록한다. 검토일에는 종료 상태였다. 2026년 재게시 표본으로 포함하고 한 건으로 계산했다.
+- **경력 기준:** 원티드와 직행의 공고 분류는 경력 4년 이상이다.
+- **자격요건:** React 서비스 개발과 운영, Redux 계열 상태 관리, CSS 전처리기, HTML과 CSS 웹 표준, REST API와 HTTP 기반 서버 연동, 여러 브라우저에서 호환되도록 개발한 경험을 요구한다.
+- **우대사항:** 웹 표준과 접근성 및 반응형 화면 구현, 여러 이해관계자와 문제를 정의하고 해결하는 커뮤니케이션을 제시한다.
+- **출처:** [원티드 공고](https://www.wanted.co.kr/wd/320530), [직행 재게시 기록](https://zighang.com/recruitment/02079fdb-5ee0-4a88-b675-7cb0fe13b319), [LinkedIn 보존 공고](https://kr.linkedin.com/jobs/view/sdx-frontend-developer-%EC%9B%B9-%ED%94%84%EB%A1%A0%ED%8A%B8%EC%97%94%EB%93%9C-%EA%B0%9C%EB%B0%9C%EC%9E%90-at-hyundai-autoever-4322040387). 2026년 8월 29일 검토.
 
 ## 반복되는 자격요건
 
-공식 채용 페이지로 확인한 표본 8건과 보조 표본 2건을 함께 보면 다음 요건이 반복된다.
+다음 횟수는 위 10건의 `자격요건` 절을 같은 기준으로 다시 분류해 센 값이다.
 
-- **React와 TypeScript 중심의 웹 기초:** 모든 표본이 React 또는 이에 준하는 현대 프론트엔드 프레임워크 경험을 요구했고, 대부분이 TypeScript를 직접 명시했다. JavaScript, HTML, CSS, 브라우저 이해, 크로스브라우저와 웹 표준도 반복된다. [당근 Community 공고](https://careers.daangn.com/jobs/role/7689088003/), [LINE Pay 공고](https://careers.linecorp.com/ko/jobs/3005/), [쿠팡페이 공고](https://www.coupang.jobs/kr/jobs/8054705/coupang-pay-staff-front-end-engineer-new-fintech-product/)
-- **사용자 문제를 서비스 판단으로 연결하는 능력:** 당근, 카카오페이손해보험, 쿠팡 계열 공고들은 화면 구현만이 아니라 사용자 흐름, 서비스 목표, 실험에서 확인한 변화, 사업 요구를 기술 선택과 연결하는 능력을 요구한다. [당근 Cross Product Growth 공고](https://careers.daangn.com/jobs/role/7668837003/), [당근페이 공고](https://careers.daangn.com/jobs/role/5919465003/), [카카오페이손해보험 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/544911)
-- **협업과 코드 품질:** 코드 리뷰, 읽기 쉬운 코드, 토론 가능한 의사결정, 기획과 디자인 및 QA 협업이 반복된다. 단순 구현자보다 서비스 개발 조직 안에서 설득하고 유지보수하는 역할을 기대한다는 뜻이다. [당근페이 공고](https://careers.daangn.com/jobs/role/5919465003/), [LINE Pay 공고](https://careers.linecorp.com/ko/jobs/3005/), [카카오페이손해보험 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/544911)
-- **성능과 운영 경험:** SSR, 웹 성능, 브라우저 렌더링, 운영 중인 서비스의 품질 관리가 반복된다. 3년차 이상이라도 구현만이 아니라 운영 결과까지 책임지는 역할을 전제로 한다. [당근 Community 공고](https://careers.daangn.com/jobs/role/7689088003/), [쿠팡이츠 공고](https://www.coupang.jobs/kr/jobs/8093378/staff-front-end-engineer-eats-web/), [쿠팡페이 공고](https://www.coupang.jobs/kr/jobs/8054705/coupang-pay-staff-front-end-engineer-new-fintech-product/)
-- **프론트엔드 바깥과 연결되는 기술 이해:** Node.js, 기본 백엔드, 네트워크, 데이터베이스, 서버 렌더링, GraphQL 같은 연결 지식이 자격요건 또는 우대사항에 자주 등장한다. [LINE Pay 공고](https://careers.linecorp.com/ko/jobs/3005/), [네이버랩스 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/551924), [쿠팡페이 공고](https://www.coupang.jobs/kr/jobs/8054705/coupang-pay-staff-front-end-engineer-new-fintech-product/)
+- **현대 프론트엔드 기술과 웹 기초, 10건:** 모든 공고가 React 또는 비슷한 프레임워크와 JavaScript나 TypeScript 실무 경험을 요구했다. 다만 라이브러리 이름만 아는 수준이 아니라 SSR, 브라우저 동작, 웹 표준, 상태 관리나 렌더링 방식을 역할에 맞게 다루는 조건이 붙었다.
+- **운영 품질과 검증, 7건:** 서비스 운영, 테스트, 디버깅, 관측, 코드 리뷰, 재사용 가능한 컴포넌트 중 하나 이상을 직접 요구했다. 3년차 이상을 화면과 기능을 만든 횟수보다 운영 중 품질을 유지한 경험으로 확인하는 공고가 많았다.
+- **협업 또는 사용자 문제 해결, 7건:** 코드 리뷰와 협업 도구, 여러 직군과의 소통, 사용자 관점의 문제 정의, 요구가 바뀌었을 때 이를 이해하고 개발에 반영한 경험이 반복됐다. 공고마다 표현은 달라도 기술 선택을 설명하고 다른 역할과 조정할 책임을 포함했다.
+- **프론트엔드 인접 영역, 5건:** Node.js, REST API, 네트워크와 데이터베이스, CI/CD 또는 클라우드를 자격요건에 포함했다. 프론트엔드만 분리해 구현하기보다 배포와 서버 통신까지 이해하는 역할이 많았다.
+- **제품 판단과 실험, 4건:** 사용자 문제, Figma 기반 개선, Lean UX, A/B 테스트나 사용자 피드백을 자격요건으로 명시했다. 모든 직무의 공통 조건은 아니지만 성장, 커머스와 도구형 제품에서 분명하게 나타났다.
 
 ## 반복되는 우대사항
 
-우대사항은 도메인 특화 항목이 섞여 있지만 몇 가지 흐름은 뚜렷하다.
+- **도메인 경험, 7건:** 핀테크, 물류와 이커머스, 광고, 협업 도구, 자율주행 데이터, 지도와 로봇처럼 각 팀이 다루는 제약을 이미 경험했는지 확인했다. 특정 프레임워크보다 실제 데이터와 운영 제약을 이해한 경험이 차이를 만들었다.
+- **테스트, 빌드와 배포 체계, 6건:** E2E와 단위 테스트, CI/CD, 번들 최적화, 모노레포와 빌드 과정이 반복됐다. 개인 구현을 넘어 팀이 반복해서 안전하게 배포할 수 있게 만든 경험을 우대했다.
+- **SSR, 웹뷰와 여러 실행 환경, 5건:** 서버 렌더링, 인앱 브라우저, 모바일 웹뷰와 여러 기기 경험이 주로 결제, 커뮤니티와 광고 서비스에서 나타났다.
+- **디자인 시스템과 공통 컴포넌트, 3건:** 공통 UI와 디자인 시스템, Storybook, 공유 라이브러리 경험을 우대했다. 조직 규모가 커질수록 화면 한 개보다 여러 팀이 재사용하는 기반을 다룬 경험을 확인했다.
+- **AI 도구, 우대사항 2건과 자격요건 2건:** 당근과 NHN Dooray는 우대사항으로, 카카오페이와 LINE Pay는 자격요건으로 명시했다. 표본의 40%에서 보였지만 도구 이름 자체보다 업무 생산성, 테스트와 서비스 개선에 적용한 결과를 함께 요구했다.
+- **접근성, 자격요건 1건과 우대사항 1건:** CJ올리브영은 자격요건, 현대오토에버는 우대사항으로 직접 언급했다. 중요하지 않다는 뜻이 아니라 이번 표본에서 모든 회사의 공통 문구는 아니었다.
 
-- **실험 문화와 지표 개선:** A/B 테스트, 데이터 기반 실험, 주요 지표 개선 경험이 당근과 쿠팡플레이에서 반복된다. 서비스 성장이나 참여도 개선 팀일수록 더 직접적이다. [당근 Cross Product Growth 공고](https://careers.daangn.com/jobs/role/7668837003/), [당근 Community 공고](https://careers.daangn.com/jobs/role/7689088003/), [쿠팡플레이 공고](https://www.coupang.jobs/kr/jobs/6918738/staff-front-end-engineer-cx-coupang-play/)
-- **테스트 자동화와 개발 시스템:** Playwright, Cypress, Jest, Testing Library, CI/CD, 린트 규칙, 워크플로 자동화, 모노레포 같은 개발 시스템 경험이 자주 등장한다. 프론트엔드 구현보다 팀 생산성까지 확장한 경험을 우대하는 흐름이다. [당근 Local Jobs 공고](https://careers.daangn.com/jobs/role/6081125003/), [LINE Pay 공고](https://careers.linecorp.com/ko/jobs/3005/), [카카오페이손해보험 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/544911)
-- **공통 컴포넌트와 디자인 시스템:** 디자인 시스템, 공통 컴포넌트, 재사용 가능한 UI 아키텍처가 네이버랩스, 카카오페이손해보험, 쿠팡 계열 공고에서 반복된다. 규모가 큰 조직일수록 개별 화면보다 시스템화 경험을 높게 본다. [네이버랩스 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/551924), [카카오페이손해보험 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/544911), [쿠팡페이 공고](https://www.coupang.jobs/kr/jobs/8054705/coupang-pay-staff-front-end-engineer-new-fintech-product/)
-- **모바일 웹뷰와 멀티플랫폼:** 핀테크와 커뮤니티 서비스에서는 모바일 인앱 웹뷰, 멀티디바이스, 스마트 TV 같은 환경 특화 경험을 우대한다. 브라우저 화면 하나보다 모바일 인앱 웹뷰, 데스크톱 웹, 스마트 TV처럼 서로 다른 실행 환경에서의 품질을 본다는 신호다. [당근페이 공고](https://careers.daangn.com/jobs/role/5919465003/), [당근 Community 공고](https://careers.daangn.com/jobs/role/7689088003/), [쿠팡플레이 공고](https://www.coupang.jobs/kr/jobs/6918738/staff-front-end-engineer-cx-coupang-play/)
-- **AI 도구 활용:** 당근 3건과 LINE Pay, 당근페이 공고는 AI 도구나 코딩 에이전트를 활용한 업무 방식을 직접 언급한다. 2026년 공고에서 새로 강해진 신호로 보이며, 단순 사용 경험보다 생산성 개선과 품질 유지의 맥락이 붙는다. [당근 Local Jobs 공고](https://careers.daangn.com/jobs/role/6081125003/), [당근 Community 공고](https://careers.daangn.com/jobs/role/7689088003/), [LINE Pay 공고](https://careers.linecorp.com/ko/jobs/3005/)
+## 경력 수준과 역할에 따른 차이
 
-## 도메인별 차이
+- 3년 이상 공고는 React와 TypeScript의 실무 적용뿐 아니라 운영, 문제 해결과 협업을 이미 경험했는지 확인했다.
+- 4년에서 5년 이상 공고는 테스트, 성능, 웹뷰, 도메인 지식과 사용자 피드백을 제품 개선으로 연결한 경험을 더 구체적으로 요구했다.
+- 6년에서 8년 이상 또는 Staff 공고는 아키텍처, 공통 컴포넌트, 개발 생산성, 대규모 운영과 다른 엔지니어가 일할 기반을 만드는 책임까지 넓어졌다.
+- 연차 숫자는 회사마다 역할 등급을 나누는 방식이 달라 직접 비교 점수로 사용할 수 없다. NHN Dooray처럼 같은 공고의 보존 채널 사이에서도 3년과 6년이 다르게 남아 있다.
 
-- **핀테크:** 당근페이, 카카오페이손해보험, 쿠팡페이는 결제, 보험, 포인트, 거래 UI, 보안과 신뢰에 가까운 복잡한 흐름을 다룬다. 웹뷰, 접근성, 성능, 테스트와 운영 품질이 더 자주 붙는다. [당근페이 공고](https://careers.daangn.com/jobs/role/5919465003/), [카카오페이손해보험 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/544911), [쿠팡페이 공고](https://www.coupang.jobs/kr/jobs/8054705/coupang-pay-staff-front-end-engineer-new-fintech-product/)
-- **성장과 커뮤니티 서비스:** 당근 Cross Product Growth, Local Jobs, Community는 사용자 참여, 실험, 지표 개선, 문제 정의 능력을 더 직접적으로 요구한다. 서비스 감각과 빠른 학습 속도가 가장 두드러진 차이점이다. [당근 Cross Product Growth 공고](https://careers.daangn.com/jobs/role/7668837003/), [당근 Local Jobs 공고](https://careers.daangn.com/jobs/role/6081125003/), [당근 Community 공고](https://careers.daangn.com/jobs/role/7689088003/)
-- **플랫폼과 특수 인터페이스:** 네이버랩스와 쿠팡플레이는 지도, 로봇 상호작용, OTT, 스마트 TV처럼 브라우저 기본 폼보다 특수 인터페이스나 플랫폼 제약을 더 강조한다. Canvas, 3D, 지도, 서버 주도 UI 같은 기술이 이 분류에 들어간다. [네이버랩스 보존 공고](https://www.catch.co.kr/NCS/RecruitInfoDetails/551924), [쿠팡플레이 공고](https://www.coupang.jobs/kr/jobs/6918738/staff-front-end-engineer-cx-coupang-play/)
+## 제외하거나 집계하지 않은 공고
 
-## 제외한 공고와 이유
+- **우아한형제들, 배민장부 웹 프론트엔드 개발자:** 경력 3년 이상 내용은 남아 있지만 원티드 구조화 데이터의 게시일이 2020년이라 2026년 표본에서 제외했다. [원티드 보존 공고](https://www.wanted.co.kr/wd/41692)
+- **토스페이먼츠, Frontend Developer 4년 이상:** 2026년 LinkedIn에 다시 게시된 흔적이 있었지만 확인 가능한 원 공고 게시일이 2025년 12월 10일이고 2026년 재게시 날짜를 확정하지 못해 제외했다. [직행 보존 공고](https://zighang.com/recruitment/e6da1cc1-1d58-4988-83d6-aa695649c53f)
+- **무신사, Frontend Engineer - Core Ads Platform:** 2026년 게시와 프론트엔드 역할은 확인했지만 자격요건 본문에 경력 연차 숫자가 없어 집계하지 않았다. [LinkedIn 보존 공고](https://kr.linkedin.com/jobs/view/frontend-engineer-core-ads-platform-at-musinsa-%EB%AC%B4%EC%8B%A0%EC%82%AC-4429925305)
+- **LINE Pay Hybrid Engineer:** 네이티브 개발에는 3년을 요구하지만 프론트엔드에는 1년만 요구해 제외했다. 역할 전체가 3년차 이상이라는 이유로 프론트엔드 기준을 바꾸지 않았다.
+- 네이버 본사, 카카오 본사와 우아한형제들은 이번 조사에서 `2026년 게시일`, `프론트엔드 중심 역할`, `경력 3년 이상`을 동시에 확인한 공식 상세 공고를 추가로 확보하지 못했다. 이는 세 기업에 공고가 없었다는 뜻이 아니라 이번 조사에서 포함 근거를 확인하지 못했다는 뜻이다.
 
-- **우아한형제들, 프론트엔드 개발자:** 확인 가능한 보존 공고가 있었지만 구조화 데이터의 `datePosted`가 `2020-12-15`여서 2026년 표본에 넣지 않았다. [원티드 보존 공고](https://www.wanted.co.kr/wd/41692)
-- **토스, Senior Frontend Developer:** 공식 상세에서 자격요건은 확인되지만 2026년 등록일이나 모집 시작일을 현재 확보한 출처로 확정하지 못해 이번 표본에서는 제외했다. [토스 공식 공고](https://toss.im/career/job-detail?job_id=6028262003)
-- **카카오헬스케어 등 추가 후보:** 검색 결과로는 2026년 경력 공고 흔적이 있었지만 공식 상세나 신뢰 가능한 보존본에서 자격요건과 날짜를 함께 복원하지 못해 제외했다.
+## 한계와 해석
 
-## 해석과 요구사항에 미치는 영향
+- 이 조사는 2026년 8월 29일까지 확인한 10개 공고의 목적 표본이며 국내 채용시장 전체를 대표하는 통계 표본이 아니다.
+- 종료 공고는 공식 상세가 사라져 채용 플랫폼 보존본을 사용했다. 보존 과정에서 문구가 줄거나 상태가 늦게 반영될 수 있다.
+- 상시채용 공고는 같은 제목으로 여러 번 게시되고 내용이 바뀐다. 쿠팡페이, CJ올리브영과 현대오토에버는 반복 게시를 한 건으로 셌고 확인한 날짜를 모두 남겼다.
+- 카카오페이증권의 같은 제목 공고가 보존본에서는 5년 이상, 현재 공식 상세에서는 7년 이상으로 바뀐 사례가 있었다. 따라서 현재 페이지의 연차를 과거 게시 시점에도 같았다고 소급하지 않았다. [2026년 2월 보존본](https://zighang.com/recruitment/8912d5c7-80cf-466f-9a6d-7b11cb540645), [현재 공식 상세](https://career.kakaopaysec.com/job_posting/l0cjzR3F)
+- 기업 규모는 대기업 집단 소속, 상장사 또는 국내 대형 플랫폼으로 이미 알려진 회사만 포함하는 선별 조건으로 사용했다. 기업 가치나 직원 수를 이 조사에서 새로 산정하지 않았다.
 
-- **신뢰도 높음:** React, TypeScript, 웹 기초, 사용자 맥락, 협업, 품질과 운영 경험이 반복된다는 결론은 표본 10건 전반에서 직접 확인된다.
-- **신뢰도 중간:** AI 도구 활용이 2026년 우대 또는 자격요건의 새 흐름이라는 해석은 여러 공고에서 직접 보이지만, 이번 표본이 특정 회사군에 치우쳐 있어 시장 전체로 일반화하기는 이르다.
-- **신뢰도 중간:** 포트폴리오 사례를 설계할 때 단순 페이지 구현보다 실험, 성능, 테스트 자동화, 공통 컴포넌트, 멀티환경 품질을 드러내는 구성이 더 채용공고와 맞는다는 해석은 표본과 잘 맞지만, 실제 서류 평가 기준을 직접 검증한 것은 아니다.
+## 요구사항과 후속 결정에 미치는 영향
 
-이번 조사만으로 특정 기술 스택을 요구사항으로 확정할 수는 없다. 다만 포트폴리오 사례가 다음 질문에 답하지 못하면 2026년 상위권 회사 공고에 맞춘 근거가 약해진다는 점은 분명하다.
+다음 항목은 조사에서 도출한 제안이며 아직 구현 요구사항으로 승인되지 않았다.
 
-- 사용자 문제를 어떤 기준으로 정의했는가.
-- React와 TypeScript 수준의 현대 웹 개발 역량을 어떤 구현과 품질 기준으로 보여주는가.
-- 성능, 테스트, 운영, 접근성, 실험 가운데 무엇을 책임졌고 어떻게 검증했는가.
-- 공통 컴포넌트나 시스템화 경험, 또는 서비스 맥락의 기술 판단을 어떻게 드러내는가.
-
-## 남은 불확실성과 다음 조사
-
-- 쿠팡 계열 공고는 공식 페이지가 2026년 업데이트 일자를 보여주지만 최초 등록일은 숨겨져 있어, 엄밀하게는 `2026년 내 활성 상세가 확인된 공고`와 `2026년 최초 등록이 구조화 데이터로 확인된 공고`를 나눠 읽어야 한다.
-- 네이버, 카카오, 우아한형제들의 2026년 공식 상세는 일부가 이미 종료되어 보존본 의존도가 높다.
-- 다음 조사는 경력 3년 이상 프론트엔드 공고에서 실제 과제나 면접 질문으로 연결되는 항목을 회사 기술 블로그, 채용 설명회 자료, 엔지니어 인터뷰로 교차 검증하는 것이다. 이 단계가 현재 가장 큰 불확실성인 `공고 문구와 실제 평가 항목의 차이`를 줄이는 가장 직접적인 방법이다.
+- 포트폴리오 사례는 React와 TypeScript 사용 사실보다 어떤 사용자 문제와 운영 제약 때문에 구조를 선택했는지 보여주는 편이 좋다.
+- 테스트, 성능, 접근성, 관측, 배포 자동화 중 각 사례에 필요한 품질 책임을 정하고 재현 가능한 결과를 남기는 편이 좋다.
+- 디자인 시스템, 공통 컴포넌트나 도구를 만들었다면 재사용 수보다 어떤 중복과 오류를 줄였는지 설명해야 한다.
+- AI 도구 사용은 도구 이름이나 생성량보다 검토 방법, 실패를 잡은 과정과 품질 변화로 설명해야 한다.
+- 3D, 지도, 데이터 시각화처럼 역할별 우대사항은 모든 미니 애플리케이션에 넣지 않고 사용자 과업에 3D 모델, 지도 정보나 시각화할 값이 실제로 필요한 후보에서만 채택해야 한다.
