@@ -126,7 +126,7 @@ Documentation explains a rule. Tooling, execution evidence, and responsible revi
 
 ## Repository Guidance
 
-- [개인 메모 애플리케이션 기술 안티패턴](personal-notes-app/anti-patterns.md) (`proposed`): 로컬 실행과 계정 동기화 실행이 같은 UI를 공유할 때 렌더링과 effect, cache와 hydration, mutation, FSD 실행 환경 분리, 입력 검증, 의존성 연결, worker, 브라우저 저장소와 PostgreSQL에서 피해야 할 구현을 설명합니다.
+- [개인 메모 애플리케이션 기술 안티패턴](personal-notes-app/anti-patterns.md) (`proposed`): 로컬 실행, 계정 동기화, 독립 실행과 포트폴리오 라우트용 라이브러리가 같은 UI를 공유할 때 렌더링과 effect, cache와 hydration, mutation, FSD 및 패키지 실행 환경 분리, 입력 검증, 의존성 연결, Worker, 브라우저 저장소와 PostgreSQL에서 피해야 할 구현을 설명합니다.
 
 ## Update and Maintain Guidance
 

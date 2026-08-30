@@ -1,12 +1,12 @@
 # 개인 메모 애플리케이션 기술 안티패턴
 
-이 애플리케이션은 실행 모드별 구현을 조립 지점에서 선택하고, 사용자 입력과 저장소 사이의 모든 경계를 런타임에 검증하며, 변경 직후의 일관성이 필요한 데이터에는 명시적인 무효화와 동시성 제어를 적용해야 한다. 페이지 전체를 Client Component로 만드는 방식, React 내부 상태를 `useEffect`로 맞추는 방식, 두 캐시를 같은 데이터의 원본으로 쓰는 방식, 범용 Service Locator, 역할이 드러나지 않는 port와 adapter 이름, 서버 및 브라우저 코드를 함께 내보내는 FSD public API, 수명과 버전이 없는 worker 메시지, IndexedDB를 영구 보관소로 간주하는 방식, 애플리케이션 검사만 믿고 PostgreSQL 제약을 생략하는 방식은 채택하지 않는다.
+이 애플리케이션은 실행 모드별 구현을 조립 지점에서 선택하고, 사용자 입력과 저장소 사이의 모든 경계를 런타임에 검증하며, 변경 직후의 일관성이 필요한 데이터에는 명시적인 무효화와 동시성 제어를 적용해야 한다. 페이지 전체를 Client Component로 만드는 방식, React 내부 상태를 `useEffect`로 맞추는 방식, 두 캐시를 같은 데이터의 원본으로 쓰는 방식, 범용 Service Locator, 역할이 드러나지 않는 port와 adapter 이름, 서버 및 브라우저 코드를 함께 내보내는 FSD public API, React를 중복으로 포함하거나 클라이언트 및 서버 진입점을 하나로 합친 라이브러리, 수명과 버전이 없는 worker 메시지, IndexedDB를 영구 보관소로 간주하는 방식, 애플리케이션 검사만 믿고 PostgreSQL 제약을 생략하는 방식은 채택하지 않는다.
 
 이 문서의 상태는 `proposed`다. 구현자와 리뷰어가 개인 메모 애플리케이션의 기술 구조를 선택할 때 사용하는 제안 지침이며, 승인된 기술 스택이나 현재 구현을 설명하지 않는다.
 
 ## 적용 범위와 현재 근거
 
-[요구사항](../../designs/personal-notes-app-8fd/requirements.md)은 백엔드 없는 로컬 실행과 계정 동기화 실행이 같은 UI를 사용하도록 정한다. [실행 모드와 아키텍처 조사](../../designs/personal-notes-app-8fd/references/runtime-modes-and-architecture.md)는 포트와 어댑터, 조립 지점, 브라우저 저장소와 서버 저장소의 교체 가능성을 제안한다. [데이터 구조 초안](../../designs/personal-notes-app-8fd/references/data-model-draft.md)은 메모 revision, 사용 횟수, 줄 단위 분석과 알고리즘 version을 구분한다.
+[요구사항](../../designs/personal-notes-app-8fd/requirements.md)은 백엔드 없는 로컬 실행과 계정 동기화 실행이 같은 UI를 사용하고, 개인 메모 애플리케이션을 독립 실행 결과와 포트폴리오 웹 애플리케이션이 라우트에서 불러오는 라이브러리로 모두 제공하도록 정한다. [실행 모드와 독립 실행 및 라이브러리 배포 구조 조사](../../designs/personal-notes-app-8fd/references/runtime-modes-and-architecture.md)는 port와 adapter, 조립 지점, 브라우저 및 서버 저장소의 교체 가능성과 호스트가 정하는 라우트 및 패키지 진입점 분리를 제안한다. [데이터 구조 초안](../../designs/personal-notes-app-8fd/references/data-model-draft.md)은 메모 revision, 사용 횟수, 줄 단위 분석과 알고리즘 version을 구분한다.
 
 2026년 8월 30일 현재 저장소에는 패키지 매니페스트, 잠금 파일, TypeScript 설정, Next.js 설정, 애플리케이션 소스와 테스트가 없다. 따라서 아래 규칙은 도달 가능한 실패를 미리 제한하는 제안이며 현재 준수 여부를 검사할 수 없다. 구현을 시작하기 전에 결정 책임자가 정확한 버전을 승인하고 잠금 파일로 고정해야 한다.
 
@@ -22,6 +22,10 @@
 - TanStack Query를 채택할지 여부, 적용할 원격 데이터, 정확한 버전, query key와 Next.js cache 사이의 책임
 - FSD를 채택할 근거, 실제로 필요한 layer와 slice, Next.js route 디렉터리와 구분할 이름, 환경별 public API 규칙
 - 정적 로컬 배포가 정적 export인지 정적 호스팅의 클라이언트 애플리케이션인지, 계정 동기화 배포와 빌드 결과물을 나눌지 여부
+- 패키지 관리자와 workspace 사용 여부, 독립 실행 호스트 및 포트폴리오 호스트가 공유할 패키지 위치
+- 라이브러리를 호스트가 변환하는 소스 패키지로 제공할지 ESM 및 타입 선언을 포함한 산출물로 제공할지, 선택한 빌드 도구와 공개 subpath
+- 포트폴리오 호스트가 연결할 단일 라우트 또는 하위 라우트 구조, 모듈이 받을 라우트 접두어와 탐색 interface
+- React, React DOM 및 Next.js의 peer dependency 범위, CSS와 Worker asset 제공 방식
 - 지원 브라우저와 최소 버전, SharedWorker 미지원 시 Dedicated Worker 또는 main thread로 대체할 범위
 - 로그인, 계정과 메모 단위의 권한 검사 방식
 - 메모 충돌 정책, HTTP ETag와 메모 revision을 연결하는 방식
@@ -778,6 +782,111 @@ export { NotesProvider } from './ui/notes-provider'
 
 FSD를 승인한 뒤 Steiger 같은 구조 검사 도구를 추가할지는 정확한 버전과 dependency 조사를 거쳐 결정한다. 최소 검사는 layer 역방향 import, 같은 layer의 slice 간 deep import, public API 우회와 server 및 client 진입점 교차 import를 구분해야 한다. Next.js의 local 및 sync production build로 환경 오염 오류와 client bundle을 확인하고, 정적 로컬 산출물에 PostgreSQL client, server action과 비밀 환경변수 접근 코드가 없는지 검사한다. 파일명이 맞는지만으로 통과시키지 않는다.
 
+## 라이브러리 빌드에서 호스트와 실행 환경을 다시 묶지 않는다
+
+### 막으려는 실패
+
+독립 실행 Next.js 애플리케이션 전체를 하나의 구성요소 라이브러리처럼 묶으면 라우트, root layout, 환경변수와 서버 코드가 패키지 호스트에게 새어 나온다. 반대로 공통 root entry가 Client Component, IndexedDB adapter, PostgreSQL query와 Server Action을 모두 다시 내보내면 포트폴리오 호스트가 클라이언트 진입점 하나를 가져왔는데도 서버 모듈을 해석하거나 비밀 환경변수 접근을 브라우저 graph에 포함할 수 있다.
+
+라이브러리 bundle 안에 React를 포함하면 호스트의 React와 서로 다른 사본이 생길 수 있다. React 공식 문서는 애플리케이션 코드와 React DOM이 서로 다른 React export를 해석할 때 Hook 호출이 실패할 수 있으며, 라이브러리가 React를 일반 dependency로 잘못 선언한 경우를 원인으로 든다.
+
+Client Component 소스에 `'use client'`가 있어도 번들러가 배포 진입점에서 지시문을 제거하면 Next.js 호스트는 그 component를 Server Component처럼 해석한다. Vercel Analytics는 사용하는 애플리케이션이 App Router에서 별도 client wrapper를 만들지 않도록 빌드 뒤 React 진입점 맨 앞에 지시문을 넣었다. 변경 이유는 [PR #37](https://github.com/vercel/analytics/pull/37), 병합 결과는 [554bb2c](https://github.com/vercel/analytics/commit/554bb2c6e0ee6e30cf6f576ccd820cbcc8a37af3)에서 확인했다.
+
+### 적용 규칙
+
+- 독립 실행용 `app/` 라우트와 root layout은 호스트 연결 코드로 유지하고, 재사용할 use case, UI 및 환경별 조립 진입점을 라이브러리 패키지로 분리한다. [Next.js의 `output` 문서](https://nextjs.org/docs/app/api-reference/config/next-config-js/output)에 따른 `standalone`은 서버 배포 산출물이므로 라이브러리 빌드로 취급하지 않는다.
+- 포트폴리오 호스트가 원하는 `app/<segment>/page.tsx`에서 라이브러리 진입점을 가져온다. 패키지 설치만으로 라우트가 자동 등록된다고 가정하거나 패키지 안에 `/notes` 같은 절대 라우트를 고정하지 않는다.
+- `package.json`의 `exports`에는 호스트가 사용할 subpath만 명시한다. `./client`, `./server`, `./shared`와 style 진입점처럼 실행 환경과 역할을 import 경로에서 구분하고 private 소스 deep import를 허용하지 않는다.
+- 일반 root entry는 클라이언트와 서버 모듈을 함께 다시 내보내지 않는다. 환경 중립 type과 순수 함수만 제공할 근거가 없다면 root entry를 생략한다.
+- 클라이언트 진입점은 배포된 JavaScript의 첫 지시문으로 `'use client'`를 보존한다. 소스 파일만 확인하지 않고 빌드 산출물을 검사한다.
+- 서버 진입점과 database access module은 `server-only` 표시와 환경별 import 제한을 함께 적용한다. 파일 suffix만으로 Next.js가 환경을 자동 선택한다고 가정하지 않는다.
+- React와 React DOM은 승인된 호환 범위의 peer dependency로 검토하고 라이브러리 bundle에서 external 처리한다. 패키지 자체가 Next.js API를 공개 진입점에서 사용한다면 Next.js의 peer 호환 범위도 명시한다.
+- 라이브러리 모듈을 import하는 순간 `process.env`, `window`, IndexedDB 또는 Worker를 읽지 않는다. 호스트 composition root가 검증한 실행 모드, 라우트와 어댑터를 명시적으로 전달하고 브라우저 API는 클라이언트 event 또는 lifecycle 안에서 시작한다.
+- component style은 호스트의 `html`, `body`, reset과 포트폴리오 라우트를 바꾸지 않도록 범위를 제한한다. 별도 stylesheet를 내보내면 `exports`에 공개하고 호스트가 정해진 위치에서 한 번 가져오게 한다.
+- Worker 소스와 asset은 패키지 archive에 포함되는 이름과 호스트 빌드가 해석할 URL을 검증한다. 소스 workspace에서만 우연히 찾을 수 있는 상대 경로를 배포 규칙으로 삼지 않는다.
+- workspace 소스 패키지와 미리 compile한 ESM 패키지 가운데 어느 쪽을 쓰더라도 독립 실행 호스트와 포트폴리오 호스트가 같은 공개 진입점을 사용하게 한다. 두 호스트를 위해 내부 소스를 복제하지 않는다.
+
+안티패턴:
+
+```ts
+// package root entry
+export * from './client/note-board'
+export * from './browser/indexed-db-note-repository'
+export * from './server/postgres-note-repository'
+export * from './server/note-actions'
+```
+
+```tsx
+// portfolio host
+import NotesPage from '@portfolio/personal-notes/internal/app/page'
+
+export default NotesPage
+```
+
+권장 패턴:
+
+```tsx
+// client entry emitted by the library build
+'use client'
+
+export { PersonalNotesApplication } from './ui/personal-notes-application'
+export { PersonalNotesProvider } from './ui/personal-notes-provider'
+```
+
+```ts
+// server entry emitted separately
+import 'server-only'
+
+export { createAccountNotesDependencies } from './server/create-account-notes-dependencies'
+```
+
+```json
+{
+  "exports": {
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    },
+    "./shared": {
+      "types": "./dist/shared.d.ts",
+      "import": "./dist/shared.js"
+    },
+    "./styles.css": "./dist/styles.css"
+  }
+}
+```
+
+```tsx
+// route owned by the portfolio host
+import { PersonalNotesApplication } from '@portfolio/personal-notes/client'
+
+export default function Page() {
+  return <PersonalNotesApplication />
+}
+```
+
+예시는 실행 환경과 호스트 라우트의 책임 구분만 보여준다. 패키지 이름, component props, 공개 subpath, 서버 어댑터와 style 진입점은 실행 구조 결정 뒤 확정한다.
+
+### 검증
+
+공개 subpath가 확정되면 `no-restricted-imports`나 패키지 경계 검사로 private deep import와 클라이언트에서 서버 진입점을 가져오는 코드를 막을 수 있다. 정적 검사는 빌드 도구가 지시문을 제거했는지, dependency tree에 React가 두 개 있는지, CSS가 다른 라우트에 영향을 주는지 또는 Worker asset URL이 유효한지 판단하지 못한다.
+
+패키지 관리자와 저장소 명령을 정한 뒤 다음 증거를 함께 확인한다.
+
+- 라이브러리 빌드 산출물의 각 진입점, 타입 선언, 지시문, CSS와 Worker 파일 목록
+- 패키지 archive만 설치한 깨끗한 Next.js 호스트의 production build
+- 승인된 실행 모드별 독립 실행 빌드와 포트폴리오 라우트 빌드의 성공
+- 클라이언트에서 서버 진입점을 가져오고 서버에서 브라우저 어댑터를 가져오는 위반 fixture의 빌드 실패
+- 패키지 관리자 dependency tree에서 호스트와 라이브러리가 공유하는 React 사본이 하나라는 결과
+- 서로 다른 라우트 접두어에서 탐색, 새로고침, style과 Worker 동작이 유지되는 실제 브라우저 결과
+- 정적 로컬 호스트의 클라이언트 bundle과 archive에 계정 서버 코드, PostgreSQL client와 비밀 환경변수 접근이 없다는 검사
+
+현재는 패키지 관리자, 소스, 빌드 설정과 명령이 없으므로 위 검사를 실행할 수 없다. 구현 전 결정이 끝나면 실제 명령과 위반 fixture를 이 절에 추가하거나 저장소 tooling으로 옮겨야 한다.
+
 ## Worker를 원본 저장소나 순서가 보장된 함수처럼 다루지 않는다
 
 ### 막으려는 실패
@@ -788,7 +897,7 @@ HTML Living Standard는 worker가 시작 비용과 instance별 memory 비용이 
 
 ### 적용 규칙
 
-- 줄 단위 겹침 분석은 명시적 사용자 요청 후 실행하고, feature composition root가 소유한 장기 실행 Worker adapter를 재사용한다.
+- 줄 단위 겹침 분석은 명시적 사용자 요청 후 실행하고, feature composition root에서 생성한 장기 실행 Worker adapter를 재사용한다.
 - SharedWorker는 여러 탭의 분석 queue나 IndexedDB 접근을 조정할 필요가 있고 지원 브라우저가 확정된 경우에만 사용한다. 그렇지 않으면 Dedicated Worker가 더 단순하다.
 - `SharedWorker` 지원 여부를 runtime에 확인하고 승인된 fallback을 제공한다. 지원 여부만으로 모드나 데이터 원본을 바꾸지 않는다.
 - request와 response는 discriminated union으로 정의하고 `requestId`, note id와 revision, algorithm type과 version을 포함한다.
@@ -970,13 +1079,14 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 
 기술 스택과 도구가 승인된 뒤 다음 순서로 가장 싼 검사부터 구성한다. 현재는 실행할 명령이 없으므로 명령 이름을 추정하지 않는다.
 
-- TypeScript compile: `strict`, 외부 입력의 `unknown`, worker message union과 server/client 진입점의 import 방향
+- TypeScript compile: `strict`, 외부 입력의 `unknown`, worker message union, library declaration과 server/client 진입점의 import 방향
 - Zod schema 검사: form input과 output, Server Action, Route Handler, mutation variable, worker message와 IndexedDB record
-- 정적 분석: hooks dependency, effect 안의 동기 state 변경, FSD layer 및 public API 우회, client module의 server-only import와 composition root 밖의 generic locator import
+- 정적 분석: hooks dependency, effect 안의 동기 state 변경, FSD layer 및 public API 우회, library private deep import, client module의 server-only import와 composition root 밖의 generic locator import
 - 단위 검사: cache tag와 query key 생성, DTO 변환, stale worker response 폐기와 revision conflict 결과
 - database 통합 검사: constraint, atomic count, 병렬 update와 transaction 재시도
 - 실제 browser 검사: Strict Mode의 effect cleanup, hydration 직후 요청 수, mutation별 pending 상태, clipboard 권한, IndexedDB upgrade와 quota, Worker와 SharedWorker lifecycle, form render 비용
-- 모드별 build 및 browser 검사: local UI에 account 기능이 없고 sync mode UI가 같은 component를 사용하며 환경별 FSD 진입점과 adapter만 달라지는지 확인
+- 모드 및 제공 형태별 build와 browser 검사: local UI에 account 기능이 없고 sync mode UI가 같은 component를 사용하며 독립 실행 host와 portfolio host가 같은 library entry를 조립하는지 확인
+- package 검사: 공개 entry와 declaration의 일치, `'use client'` 보존, React 단일 사본, CSS 범위와 Worker asset
 
 정적 규칙을 추가할 때에는 위반 예시와 정상 예시가 실제로 구분되는지 먼저 검사한다. 인증, authorization, cache freshness, transaction lifetime, browser 권한, 사용자 경험과 성능은 lint로 판정하지 않는다.
 
@@ -984,8 +1094,9 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 
 공식 자료는 2026년 8월 30일에 다시 확인했다.
 
-- [Next.js v16.3.3 release](https://github.com/vercel/next.js/releases/tag/v16.3.3)와 해당 release의 [Server and Client Components](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/05-server-and-client-components.mdx), [Server and Client Boundary](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/02-guides/server-and-client-boundary.mdx), [Fetching Data](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/06-fetching-data.mdx), [Caching](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/08-caching.mdx), [Revalidating](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/09-revalidating.mdx), [Route Handlers](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/15-route-handlers.mdx), [Data Security](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/02-guides/data-security.mdx), [Environment Variables](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/02-guides/environment-variables.mdx)
-- React 19.2 [hydrateRoot](https://react.dev/reference/react-dom/client/hydrateRoot), [useSyncExternalStore](https://react.dev/reference/react/useSyncExternalStore), [useEffect](https://react.dev/reference/react/useEffect), [Effect가 필요하지 않을 수 있는 경우](https://react.dev/learn/you-might-not-need-an-effect), [`exhaustive-deps`](https://react.dev/reference/eslint-plugin-react-hooks/lints/exhaustive-deps), [`set-state-in-effect`](https://react.dev/reference/eslint-plugin-react-hooks/lints/set-state-in-effect), [useContext](https://react.dev/reference/react/useContext), [Context 사용 전 고려 사항](https://react.dev/learn/passing-data-deeply-with-context#before-you-use-context)
+- [Next.js v16.3.3 release](https://github.com/vercel/next.js/releases/tag/v16.3.3)와 해당 release의 [Project Structure](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/02-project-structure.mdx), [Server and Client Components](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/05-server-and-client-components.mdx), [CSS](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/11-css.mdx), [Server and Client Boundary](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/02-guides/server-and-client-boundary.mdx), [Fetching Data](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/06-fetching-data.mdx), [Caching](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/08-caching.mdx), [Revalidating](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/09-revalidating.mdx), [Route Handlers](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/15-route-handlers.mdx), [`transpilePackages`](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/03-api-reference/05-config/01-next-config-js/transpilePackages.mdx), [Data Security](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/02-guides/data-security.mdx), [Environment Variables](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/02-guides/environment-variables.mdx)
+- React 19.2 [hydrateRoot](https://react.dev/reference/react-dom/client/hydrateRoot), [useSyncExternalStore](https://react.dev/reference/react/useSyncExternalStore), [useEffect](https://react.dev/reference/react/useEffect), [Effect가 필요하지 않을 수 있는 경우](https://react.dev/learn/you-might-not-need-an-effect), [`exhaustive-deps`](https://react.dev/reference/eslint-plugin-react-hooks/lints/exhaustive-deps), [`set-state-in-effect`](https://react.dev/reference/eslint-plugin-react-hooks/lints/set-state-in-effect), [useContext](https://react.dev/reference/react/useContext), [Context 사용 전 고려 사항](https://react.dev/learn/passing-data-deeply-with-context#before-you-use-context), [중복 React 경고](https://react.dev/warnings/invalid-hook-call-warning#duplicate-react)
+- Node.js 26.8.1 [package entry point와 `exports`](https://nodejs.org/api/packages.html#package-entry-points), npm [peer dependency](https://docs.npmjs.com/files/package.json/#peerdependencies)와 TypeScript 7.0.2 [package `exports` resolution](https://www.typescriptlang.org/docs/handbook/modules/reference#packagejson-exports). Node.js와 npm 문서는 package 형식 조사 기준이며 runtime 채택 버전이 아니다.
 - [TypeScript의 erased types](https://www.typescriptlang.org/docs/handbook/typescript-from-scratch.html#erased-types), [strict](https://www.typescriptlang.org/tsconfig/strict.html), [noUncheckedIndexedAccess](https://www.typescriptlang.org/tsconfig/noUncheckedIndexedAccess.html), [exactOptionalPropertyTypes](https://www.typescriptlang.org/tsconfig/exactOptionalPropertyTypes.html), [moduleSuffixes](https://www.typescriptlang.org/tsconfig/moduleSuffixes.html)
 - React Hook Form 문서 고정 revision `e739aea`: [useForm](https://github.com/react-hook-form/documentation/blob/e739aea29ff1f13a272b3aae99e9af257e218e6a/src/content/docs/useform.mdx), [watch](https://github.com/react-hook-form/documentation/blob/e739aea29ff1f13a272b3aae99e9af257e218e6a/src/content/docs/useform/watch.mdx), [useWatch](https://github.com/react-hook-form/documentation/blob/e739aea29ff1f13a272b3aae99e9af257e218e6a/src/content/docs/usewatch.mdx), [formState](https://github.com/react-hook-form/documentation/blob/e739aea29ff1f13a272b3aae99e9af257e218e6a/src/content/docs/useform/formstate.mdx)
 - [Zod 4 Basic usage](https://zod.dev/basics)와 [Zod 4 schema API](https://zod.dev/api)
@@ -1010,5 +1121,6 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 - Webiny Service Locator 제거와 직접 DI: [PR #5387](https://github.com/webiny/webiny-js/pull/5387), [573e347](https://github.com/webiny/webiny-js/commit/573e347c7ab5f027b9c367dd133b2469b9d97e1e)
 - FSD 환경별 public API 지침: [PR #924](https://github.com/feature-sliced/documentation/pull/924), [4f5ae68](https://github.com/feature-sliced/documentation/commit/4f5ae6875bb53b3b0a72ddaa527002ba8d86dd6a)
 - FSD Next.js layer 이름 구분: [PR #927](https://github.com/feature-sliced/documentation/pull/927), [4c6bf39](https://github.com/feature-sliced/documentation/commit/4c6bf392db230c710e8183f423108ca503f0053a)
+- Vercel Analytics client entry directive 보존: [PR #37](https://github.com/vercel/analytics/pull/37), [554bb2c](https://github.com/vercel/analytics/commit/554bb2c6e0ee6e30cf6f576ccd820cbcc8a37af3)
 - Actual Budget SharedWorker 탭 조정: [PR #7172](https://github.com/actualbudget/actual/pull/7172), [4f7c3c5](https://github.com/actualbudget/actual/commit/4f7c3c51a58fc4e70b8d2d79bf80397d3235392b)
 - Actual Budget persistent storage 요청: [PR #8667](https://github.com/actualbudget/actual/pull/8667), [4dedf88](https://github.com/actualbudget/actual/commit/4dedf88e58a5c92478ac1d8eb909d216b242a59f)
