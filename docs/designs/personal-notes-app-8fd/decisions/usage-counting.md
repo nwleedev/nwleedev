@@ -17,6 +17,7 @@
 
 - 초기 권장안은 메모 ID, revision과 복사 당시 원문으로 집계하고 성공한 동작만 증가시키는 것이었다.
 - 재검토에서는 전체 revision이 geometry 변경에도 증가할 수 있으므로 같은 원문의 통계가 갈라진다는 문제가 확인됐다.
+- 누적 패널 검토에서는 결합된 전체 텍스트 복사를 일반 메모 복사나 누적 추가로 잘못 집계할 여지가 확인됐다.
 - 현재 결정은 `note.id`, `note.contentRevision`과 `textSnapshot`을 집계 단위로 사용하고 두 종류 횟수만 저장하는 것이다.
 
 ## 승인된 결정과 이유
@@ -28,6 +29,7 @@
 - 누적 항목 추가와 누적 횟수 증가는 같은 transaction에서 완료한다.
 - 실패한 Clipboard 쓰기와 실패한 누적 transaction은 횟수에 포함하지 않는다.
 - 제거, 순서 변경, undo와 redo는 횟수를 바꾸지 않는다. 같은 원문을 다시 누적하면 성공한 누적을 한 번 더 기록한다.
+- 누적 패널의 결합된 전체 텍스트 복사는 일반 메모 복사와 누적 추가 어느 쪽도 아니므로 두 횟수를 모두 바꾸지 않는다. Clipboard 성공과 실패는 패널의 동작 결과로만 알린다.
 
 [Clipboard API의 `writeText`](https://www.w3.org/TR/clipboard-apis/#dom-clipboard-writetext)는 쓰기 절차가 성공한 뒤 promise를 resolve한다. IndexedDB transaction 완료는 개별 request 성공과 별도로 확인해야 한다.
 
