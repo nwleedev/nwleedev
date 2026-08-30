@@ -10,7 +10,6 @@ import {
 } from "react"
 
 import type { Note, NoteRepository } from "@/entities/note"
-import { DatabaseUpgradeBlockedError } from "@/shared/lib/indexed-db"
 
 import type { NoteStorageMonitor } from "./NoteStorageMonitor"
 
@@ -35,11 +34,8 @@ async function readNotes(repository: NoteRepository): Promise<NotesDataState> {
     return notes.length === 0
       ? { status: "empty" }
       : { notes, status: "ready" }
-  } catch (error) {
-    return {
-      status:
-        error instanceof DatabaseUpgradeBlockedError ? "blocked" : "failure",
-    }
+  } catch {
+    return { status: "failure" }
   }
 }
 
@@ -60,6 +56,11 @@ export function NotesDataProvider({
     let active = true
     const sequence = ++readSequence.current
     const unsubscribe = storageMonitor.subscribe((event) => {
+      if (event === "blocked") {
+        setState({ status: event })
+        return
+      }
+
       readSequence.current += 1
       setState({ status: event })
     })

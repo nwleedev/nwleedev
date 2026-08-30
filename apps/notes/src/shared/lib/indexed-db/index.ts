@@ -1,5 +1,4 @@
 export {
-  DatabaseUpgradeBlockedError,
   abortTransaction,
   openIndexedDatabase,
   readRequest,

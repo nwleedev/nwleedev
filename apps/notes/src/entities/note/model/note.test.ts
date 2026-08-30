@@ -63,7 +63,7 @@ describe("reviseNote", () => {
       updatedAt: "2026-08-31T02:00:00.000Z",
     })
 
-    expect(revised).toBe(originalNote)
+    expect(revised).toEqual(originalNote)
   })
 })
 

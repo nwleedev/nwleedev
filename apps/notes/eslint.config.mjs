@@ -182,7 +182,6 @@ export default defineConfig([
   },
   {
     files: ["**/*.{test,spec}.{ts,tsx}"],
-    ignores: ["**/*.browser.test.{ts,tsx}"],
     plugins: {
       vitest,
     },

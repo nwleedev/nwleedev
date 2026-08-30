@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { IndexedDbAccumulationWriter } from "@/_pages/notes/composition"
 import {
+  ACCUMULATOR_STORE_NAME,
   IndexedDbAccumulatorRepository,
   type AccumulatedTextItem,
 } from "@/entities/accumulator"
@@ -13,18 +14,24 @@ import {
 } from "@/entities/template"
 import {
   IndexedDbUsageRepository,
+  USAGE_BY_NOTE_CONTENT_INDEX,
   USAGE_STORE_NAME,
   parseTextUsageRecord,
 } from "@/entities/usage"
-import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
 import {
-  DatabaseUpgradeBlockedError,
+  CryptoEntityIdGenerator,
+  type EntityIdGenerator,
+} from "@/shared/lib/id-generation"
+import {
   openIndexedDatabase,
   readRequest,
   waitForTransaction,
 } from "@/shared/lib/indexed-db"
 
-import { PersonalNotesDatabase } from "./PersonalNotesDatabase"
+import {
+  DatabaseConnectionClosedError,
+  PersonalNotesDatabase,
+} from "./PersonalNotesDatabase"
 import {
   PERSONAL_NOTES_DATABASE_NAME,
   PERSONAL_NOTES_DATABASE_VERSION,
@@ -67,6 +74,31 @@ function deleteDatabase(name: string) {
     request.onblocked = () =>
       reject(new Error("Database deletion was blocked"))
   })
+}
+
+function openDatabase(name: string, version: number) {
+  return new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open(name, version)
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () =>
+      reject(request.error ?? new Error("Database could not be opened"))
+    request.onblocked = () =>
+      reject(new Error("Database open request was blocked"))
+  })
+}
+
+function startDatabaseDeletion(name: string) {
+  const request = indexedDB.deleteDatabase(name)
+  const blocked = new Promise<void>((resolve) => {
+    request.onblocked = () => resolve()
+  })
+  const completed = new Promise<void>((resolve, reject) => {
+    request.onsuccess = () => resolve()
+    request.onerror = () =>
+      reject(request.error ?? new Error("Database could not be deleted"))
+  })
+
+  return { blocked, completed }
 }
 
 describe("personal notes IndexedDB storage", () => {
@@ -185,6 +217,70 @@ describe("personal notes IndexedDB storage", () => {
     })
   })
 
+  it("rolls back an accumulator write when the following usage write fails", async () => {
+    const databaseName = "personal-notes-atomic-write-check"
+    const failureIndexName = "usage-by-unique-updated-at"
+    await deleteDatabase(databaseName)
+    const database = await openIndexedDatabase({
+      name: databaseName,
+      upgrade: (upgradedDatabase) => {
+        upgradedDatabase.createObjectStore(ACCUMULATOR_STORE_NAME, {
+          keyPath: "id",
+        })
+        const usageStore = upgradedDatabase.createObjectStore(
+          USAGE_STORE_NAME,
+          { keyPath: "id" },
+        )
+        usageStore.createIndex(
+          USAGE_BY_NOTE_CONTENT_INDEX,
+          ["note.id", "note.contentRevision", "textSnapshot"],
+          { unique: true },
+        )
+        usageStore.createIndex(failureIndexName, "updatedAt", {
+          unique: true,
+        })
+      },
+      version: 1,
+    })
+    const connection = { get: () => Promise.resolve(database) }
+    const identifiers: EntityIdGenerator = {
+      create: () => "usage-created-after-accumulator",
+    }
+    const existingUsage = {
+      counts: { accumulation: 1, ordinaryCopy: 0 },
+      id: "usage-existing",
+      note: { contentRevision: 0, id: "note-existing" },
+      textSnapshot: "기존 사용 기록",
+      updatedAt: timestamp,
+    }
+    const seedTransaction = database.transaction(
+      USAGE_STORE_NAME,
+      "readwrite",
+    )
+    const seeded = waitForTransaction(seedTransaction)
+    seedTransaction.objectStore(USAGE_STORE_NAME).put(existingUsage)
+    await seeded
+    const accumulation = new IndexedDbAccumulationWriter(
+      connection,
+      identifiers,
+    )
+    const accumulators = new IndexedDbAccumulatorRepository(connection)
+    const usage = new IndexedDbUsageRepository(
+      connection,
+      identifiers,
+      () => timestamp,
+    )
+
+    await expect(
+      accumulation.addAndRecordUsage(accumulatedItem),
+    ).rejects.toThrow()
+    expect(await accumulators.get()).toBeNull()
+    expect(await usage.getAll()).toEqual([existingUsage])
+
+    database.close()
+    await deleteDatabase(databaseName)
+  })
+
   it("closes the current connection when another version opens", async () => {
     const connection = createConnection()
     const event = new Promise<string>((resolve) => {
@@ -206,30 +302,65 @@ describe("personal notes IndexedDB storage", () => {
     upgraded.close()
   })
 
-  it("reports an upgrade blocked by an older open connection", async () => {
+  it("continues an upgrade after the blocking connection closes", async () => {
     const databaseName = "personal-notes-blocked-check"
     await deleteDatabase(databaseName)
-    const blocker = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = indexedDB.open(databaseName, 1)
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () =>
-        reject(request.error ?? new Error("Blocking database could not open"))
+    const blocker = await openDatabase(databaseName, 1)
+    let resolveBlocked: () => void = () => undefined
+    const blockedEvent = new Promise<void>((resolve) => {
+      resolveBlocked = resolve
     })
-    let blocked = false
+    let settled = false
+    const opening = openIndexedDatabase({
+      name: databaseName,
+      onBlocked: resolveBlocked,
+      upgrade: () => undefined,
+      version: 2,
+    })
+    void opening.then(
+      () => {
+        settled = true
+      },
+      () => {
+        settled = true
+      },
+    )
 
-    await expect(
-      openIndexedDatabase({
-        name: databaseName,
-        onBlocked: () => {
-          blocked = true
-        },
-        upgrade: () => undefined,
-        version: 2,
-      }),
-    ).rejects.toBeInstanceOf(DatabaseUpgradeBlockedError)
-    expect(blocked).toBe(true)
+    await blockedEvent
+    expect(settled).toBe(false)
 
     blocker.close()
+    const upgraded = await opening
+    expect(upgraded.version).toBe(2)
+    upgraded.close()
     await deleteDatabase(databaseName)
+  })
+
+  it("discards an open result invalidated by close", async () => {
+    const blocker = await openDatabase(PERSONAL_NOTES_DATABASE_NAME, 1)
+    const deletion = startDatabaseDeletion(PERSONAL_NOTES_DATABASE_NAME)
+    await deletion.blocked
+    const connection = createConnection()
+    const staleOpening = connection.get()
+
+    connection.close()
+    const currentOpening = connection.get()
+    blocker.close()
+    await deletion.completed
+
+    await expect(staleOpening).rejects.toBeInstanceOf(
+      DatabaseConnectionClosedError,
+    )
+    await currentOpening
+    const notes = new IndexedDbNoteRepository(connection)
+    expect(await notes.getAll()).toEqual([])
+
+    connection.close()
+    const upgraded = await openDatabase(
+      PERSONAL_NOTES_DATABASE_NAME,
+      PERSONAL_NOTES_DATABASE_VERSION + 1,
+    )
+    expect(upgraded.version).toBe(PERSONAL_NOTES_DATABASE_VERSION + 1)
+    upgraded.close()
   })
 })

@@ -2,13 +2,6 @@ export interface IndexedDbConnection {
   get(): Promise<IDBDatabase>
 }
 
-export class DatabaseUpgradeBlockedError extends Error {
-  constructor() {
-    super("A previous database connection is blocking the upgrade")
-    this.name = "DatabaseUpgradeBlockedError"
-  }
-}
-
 type OpenIndexedDatabaseOptions = {
   name: string
   onBlocked?(): void
@@ -34,11 +27,6 @@ export function openIndexedDatabase({
 
     request.onblocked = () => {
       onBlocked?.()
-
-      if (!settled) {
-        settled = true
-        reject(new DatabaseUpgradeBlockedError())
-      }
     }
 
     request.onerror = () => {

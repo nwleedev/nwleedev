@@ -3,6 +3,13 @@ import type { IndexedDbConnection } from "@/shared/lib/indexed-db"
 
 import { openPersonalNotesDatabase } from "./openPersonalNotesDatabase"
 
+export class DatabaseConnectionClosedError extends Error {
+  constructor() {
+    super("Database connection was closed before opening completed")
+    this.name = "DatabaseConnectionClosedError"
+  }
+}
+
 export class PersonalNotesDatabase
   implements IndexedDbConnection, NoteStorageMonitor
 {
@@ -10,6 +17,7 @@ export class PersonalNotesDatabase
     (event: "blocked" | "version-changed") => void
   >()
   #database: IDBDatabase | null = null
+  #generation = 0
   #opening: Promise<IDBDatabase> | null = null
 
   get() {
@@ -21,25 +29,44 @@ export class PersonalNotesDatabase
       return this.#opening
     }
 
-    this.#opening = openPersonalNotesDatabase({
-      onBlocked: () => this.#emit("blocked"),
+    const generation = this.#generation
+    const opening = openPersonalNotesDatabase({
+      onBlocked: () => {
+        if (generation === this.#generation) {
+          this.#emit("blocked")
+        }
+      },
       onVersionChange: () => {
+        if (generation !== this.#generation) {
+          return
+        }
+
+        this.#generation += 1
         this.#database = null
         this.#opening = null
         this.#emit("version-changed")
       },
     })
       .then((database) => {
+        if (generation !== this.#generation) {
+          database.close()
+          throw new DatabaseConnectionClosedError()
+        }
+
         this.#database = database
         this.#opening = null
         return database
       })
       .catch((error: unknown) => {
-        this.#opening = null
+        if (generation === this.#generation) {
+          this.#opening = null
+        }
+
         throw error
       })
 
-    return this.#opening
+    this.#opening = opening
+    return opening
   }
 
   subscribe(listener: (event: "blocked" | "version-changed") => void) {
@@ -48,6 +75,7 @@ export class PersonalNotesDatabase
   }
 
   close() {
+    this.#generation += 1
     this.#database?.close()
     this.#database = null
     this.#opening = null

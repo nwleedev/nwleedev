@@ -9,7 +9,7 @@ export default defineConfig({
     },
   },
   test: {
-    exclude: ["src/**/*.indexeddb.test.ts"],
+    exclude: ["src/**/*.{browser,indexeddb}.test.{ts,tsx}"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
   },
 })

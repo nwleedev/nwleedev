@@ -4,10 +4,14 @@ import { playwright } from "@vitest/browser-playwright"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
+  optimizeDeps: {
+    include: ["react", "react-dom", "react-dom/client"],
+  },
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
+    dedupe: ["react", "react-dom"],
   },
   test: {
     browser: {
@@ -21,6 +25,6 @@ export default defineConfig({
       provider: playwright(),
       screenshotFailures: false,
     },
-    include: ["src/**/*.indexeddb.test.ts"],
+    include: ["src/**/*.{browser,indexeddb}.test.{ts,tsx}"],
   },
 })
