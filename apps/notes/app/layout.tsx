@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import type { ReactNode } from "react"
 
-import { PersonalNotesProvider } from "@/_app"
+import { ApplicationFrame, PersonalNotesProvider } from "@/_app"
 import "@/_app/styles/globals.css"
 
 export const metadata: Metadata = {
@@ -17,7 +17,9 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ko">
       <body>
-        <PersonalNotesProvider>{children}</PersonalNotesProvider>
+        <PersonalNotesProvider>
+          <ApplicationFrame>{children}</ApplicationFrame>
+        </PersonalNotesProvider>
       </body>
     </html>
   )

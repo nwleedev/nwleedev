@@ -45,6 +45,7 @@ export type LocalApplication = {
     storageMonitor: NoteStorageMonitor
   }
   preferences: {
+    now(): string
     repository: InteractionPreferencesRepository
   }
   templates: {
@@ -61,10 +62,11 @@ export function createLocalApplication(): LocalApplication {
   const identifiers = new CryptoEntityIdGenerator()
   const database = new PersonalNotesDatabase()
   const analyzer = new WorkerTextAnalyzer(identifiers)
+  const now = () => new Date().toISOString()
   const usage = new IndexedDbUsageRepository(
     database,
     identifiers,
-    () => new Date().toISOString(),
+    now,
   )
 
   return {
@@ -82,6 +84,7 @@ export function createLocalApplication(): LocalApplication {
       storageMonitor: database,
     },
     preferences: {
+      now,
       repository: new IndexedDbInteractionPreferencesRepository(database),
     },
     templates: {

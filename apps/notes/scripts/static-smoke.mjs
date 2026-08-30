@@ -80,9 +80,11 @@ async function verifyOrigin(browser, origin) {
     /^text\/javascript/u,
   )
 
-  await page.getByRole("link").click()
+  await page.getByRole("link", { exact: true, name: "메모" }).click()
   await page.getByRole("heading", { level: 1 }).waitFor()
-  await page.getByRole("link").click()
+  await page
+    .getByRole("link", { exact: true, name: "텍스트 분석" })
+    .click()
   await expect(page.getByRole("status")).toHaveText(completedStatus ?? "")
 
   await page.reload()

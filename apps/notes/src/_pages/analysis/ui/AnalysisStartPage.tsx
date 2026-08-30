@@ -1,6 +1,8 @@
 "use client"
 
-import Link from "next/link"
+import { Button } from "@/shared/ui/button"
+import { PageHeading } from "@/shared/ui/page-heading"
+import { StatusNotice } from "@/shared/ui/status-notice"
 
 import { useTextAnalysis } from "../model/TextAnalysisProvider"
 
@@ -21,36 +23,31 @@ export function AnalysisStartPage() {
   }[analysis.status]
 
   return (
-    <main className="min-h-screen bg-canvas px-5 py-10 text-ink sm:px-10 sm:py-16">
-      <section className="mx-auto max-w-2xl rounded-paper border border-line bg-paper p-7 shadow-paper sm:p-11">
-        <h1 className="text-3xl font-semibold tracking-[-0.025em] sm:text-4xl">
-          텍스트 분석
-        </h1>
-        <div className="mt-7 flex flex-wrap items-center gap-4">
-          <button
-            className="min-h-11 rounded-control bg-action px-5 py-2.5 font-semibold text-white transition-colors hover:bg-action-hover disabled:cursor-wait disabled:opacity-60"
+    <main
+      className="min-h-screen px-4 py-7 sm:px-7 sm:py-10 xl:px-10"
+      id="main-content"
+    >
+      <PageHeading
+        action={
+          <Button
             disabled={analysis.status === "running"}
             onClick={runAnalysis}
-            type="button"
           >
             분석 실행
-          </button>
-          <Link
-            className="rounded-control px-2 py-2 font-semibold text-action underline decoration-2 underline-offset-4"
-            href="/"
-          >
-            메모로 돌아가기
-          </Link>
-        </div>
+          </Button>
+        }
+        title="텍스트 분석"
+      />
+      <section className="mt-6 min-h-[32rem] border border-line bg-surface p-5 sm:p-7">
         {statusText ? (
-          <p
-            aria-live={analysis.status === "failure" ? "assertive" : "polite"}
-            className="mt-6 border-l-4 border-action pl-4 leading-6"
-            role={analysis.status === "failure" ? "alert" : "status"}
+          <StatusNotice
+            kind={analysis.status === "failure" ? "error" : "status"}
           >
             {statusText}
-          </p>
-        ) : null}
+          </StatusNotice>
+        ) : (
+          <p className="text-sm text-soft-ink">아직 분석하지 않았습니다.</p>
+        )}
       </section>
     </main>
   )

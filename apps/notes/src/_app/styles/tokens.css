@@ -1,0 +1,51 @@
+:root {
+  --notes-color-action: oklch(48% 0.145 35deg);
+  --notes-color-action-hover: oklch(42% 0.15 35deg);
+  --notes-color-action-ink: oklch(98% 0.012 82deg);
+  --notes-color-canvas: oklch(94% 0.027 82deg);
+  --notes-color-danger: oklch(48% 0.16 25deg);
+  --notes-color-ink: oklch(23% 0.035 48deg);
+  --notes-color-line: oklch(78% 0.035 75deg);
+  --notes-color-line-strong: oklch(51% 0.045 58deg);
+  --notes-color-notice: oklch(62% 0.12 82deg);
+  --notes-color-paper: oklch(98% 0.035 91deg);
+  --notes-color-rail: oklch(25% 0.04 48deg);
+  --notes-color-rail-ink: oklch(94% 0.025 84deg);
+  --notes-color-soft-ink: oklch(47% 0.035 54deg);
+  --notes-color-surface: oklch(97% 0.018 82deg);
+  --notes-focus-ring: oklch(61% 0.18 255deg);
+  --notes-font-display: "Iowan Old Style", "AppleMyungjo", "Noto Serif KR", ui-serif, Georgia, serif;
+  --notes-font-ui: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
+  --notes-control-size: 2.75rem;
+  --notes-motion-fast: 120ms;
+  --notes-motion-panel: 180ms;
+  --notes-radius-control: 0.4rem;
+  --notes-radius-note: 0.25rem;
+  --notes-radius-panel: 0.75rem;
+  --notes-shadow-floating: 0 1.25rem 3rem -1.5rem oklch(20% 0.035 48deg / 45%);
+  --notes-shadow-note: 0.38rem 0.42rem 0 oklch(35% 0.04 53deg / 23%);
+}
+
+@theme inline {
+  --color-action: var(--notes-color-action);
+  --color-action-hover: var(--notes-color-action-hover);
+  --color-action-ink: var(--notes-color-action-ink);
+  --color-canvas: var(--notes-color-canvas);
+  --color-danger: var(--notes-color-danger);
+  --color-ink: var(--notes-color-ink);
+  --color-line: var(--notes-color-line);
+  --color-line-strong: var(--notes-color-line-strong);
+  --color-notice: var(--notes-color-notice);
+  --color-paper: var(--notes-color-paper);
+  --color-rail: var(--notes-color-rail);
+  --color-rail-ink: var(--notes-color-rail-ink);
+  --color-soft-ink: var(--notes-color-soft-ink);
+  --color-surface: var(--notes-color-surface);
+  --font-display: var(--notes-font-display);
+  --font-ui: var(--notes-font-ui);
+  --radius-control: var(--notes-radius-control);
+  --radius-note: var(--notes-radius-note);
+  --radius-panel: var(--notes-radius-panel);
+  --shadow-floating: var(--notes-shadow-floating);
+  --shadow-note: var(--notes-shadow-note);
+}
