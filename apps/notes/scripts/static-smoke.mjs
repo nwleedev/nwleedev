@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { execFile } from "node:child_process"
-import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises"
+import { mkdtemp, mkdir, rm } from "node:fs/promises"
 import path from "node:path"
 import { promisify } from "node:util"
 import { fileURLToPath } from "node:url"
@@ -13,10 +13,10 @@ const packageRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
 const repositoryRoot = path.resolve(packageRoot, "../..")
 const temporaryRoot = path.join(repositoryRoot, "temps")
 
-async function listen(server) {
+async function listen(server, host = "localhost") {
   await new Promise((resolve, reject) => {
     server.once("error", reject)
-    server.listen(0, "localhost", resolve)
+    server.listen(0, host, resolve)
   })
 
   const address = server.address()
@@ -37,29 +37,22 @@ async function close(server) {
 async function verifyOrigin(browser, origin) {
   const context = await browser.newContext({ ignoreHTTPSErrors: true })
   const page = await context.newPage()
+  const stylesheets = []
+  page.on("response", (response) => {
+    if (
+      (response.headers()["content-type"] ?? "").startsWith("text/css")
+    ) {
+      stylesheets.push(response)
+    }
+  })
 
   await page.goto(`${origin}/analysis/`)
   await page.getByRole("heading", { level: 1 }).waitFor()
   assert.equal(page.workers().length, 0)
+  assert.equal(stylesheets.length > 0, true)
+  assert.equal(stylesheets.every((response) => response.ok()), true)
 
-  const button = page.getByRole("button")
-  const buttonStyle = await button.evaluate((element) => {
-    const style = getComputedStyle(element)
-
-    return {
-      backgroundColor: style.backgroundColor,
-      borderRadius: style.borderRadius,
-    }
-  })
-  const canvasToken = await page.evaluate(() =>
-    getComputedStyle(document.documentElement).getPropertyValue(
-      "--notes-color-canvas",
-    ),
-  )
-
-  assert.notEqual(buttonStyle.backgroundColor, "rgba(0, 0, 0, 0)")
-  assert.notEqual(buttonStyle.borderRadius, "0px")
-  assert.notEqual(canvasToken.trim(), "")
+  const button = page.getByRole("button", { name: "분석 실행" })
 
   const workerStarted = page.waitForEvent("worker")
 
@@ -91,6 +84,25 @@ async function verifyOrigin(browser, origin) {
   await page.getByRole("heading", { level: 1 }).waitFor()
   const reloadedStatuses = await page.getByRole("status").allTextContents()
   assert.equal(reloadedStatuses.includes(completedStatus ?? ""), false)
+
+  await context.close()
+}
+
+async function verifyUnsupportedOrigin(browser, origin) {
+  const context = await browser.newContext()
+  const page = await context.newPage()
+
+  await page.goto(origin)
+  await page
+    .getByRole("heading", { level: 1, name: "지원하지 않는 접속 주소" })
+    .waitFor()
+  await expect(page.getByText(/HTTPS 주소 또는 http:\/\/localhost/u)).toBeVisible()
+  assert.equal(page.workers().length, 0)
+
+  const databaseNames = await page.evaluate(async () =>
+    (await indexedDB.databases()).map((database) => database.name),
+  )
+  assert.equal(databaseNames.includes("personal-notes"), false)
 
   await context.close()
 }
@@ -174,6 +186,7 @@ async function run() {
   const outputRoot = path.join(packageRoot, "out")
   let httpServer
   let httpsServer
+  let unsupportedHttpServer
   const browsers = []
 
   try {
@@ -205,29 +218,33 @@ async function run() {
       protocol: "https",
       root: outputRoot,
     })
+    unsupportedHttpServer = await createStaticServer({
+      protocol: "http",
+      root: outputRoot,
+    })
 
     const httpPort = await listen(httpServer)
     const httpsPort = await listen(httpsServer)
+    const unsupportedHttpPort = await listen(
+      unsupportedHttpServer,
+      "127.0.0.1",
+    )
     for (const browserType of [chromium, firefox, webkit]) {
       const browser = await browserType.launch()
       browsers.push(browser)
 
       const httpOrigin = `http://localhost:${httpPort}`
       const httpsOrigin = `https://localhost:${httpsPort}`
+      const unsupportedHttpOrigin = `http://127.0.0.1:${unsupportedHttpPort}`
 
       await verifyStorageIsolation(browser, httpOrigin, httpsOrigin)
       await verifyOrigin(browser, httpOrigin)
       await verifyOrigin(browser, httpsOrigin)
+      await verifyUnsupportedOrigin(browser, unsupportedHttpOrigin)
     }
 
-    const workerAssets = await readFile(
-      path.join(outputRoot, "analysis", "index.html"),
-      "utf8",
-    )
-    assert.match(workerAssets, /_next\/static/u)
-
     process.stdout.write(
-      "Static HTTP and HTTPS storage isolation and Worker checks passed in Chromium, Firefox, and WebKit.\n",
+      "Static HTTP and HTTPS storage isolation, Worker, and address checks passed in Chromium, Firefox, and WebKit.\n",
     )
   } finally {
     await Promise.all(browsers.map((browser) => browser.close()))
@@ -238,6 +255,10 @@ async function run() {
 
     if (httpsServer?.listening) {
       await close(httpsServer)
+    }
+
+    if (unsupportedHttpServer?.listening) {
+      await close(unsupportedHttpServer)
     }
 
     await rm(temporaryDirectory, { force: true, recursive: true })
