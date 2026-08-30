@@ -126,7 +126,9 @@ Documentation explains a rule. Tooling, execution evidence, and responsible revi
 
 ## Repository Guidance
 
-- [개인 메모 애플리케이션 기술 안티패턴](personal-notes-app/anti-patterns.md) (`proposed`): 로컬 실행과 계정 동기화가 같은 UI를 공유할 때 렌더링과 effect, cache와 hydration, mutation, FSD, 입력 검증, 의존성 연결, Worker, 브라우저 저장소와 PostgreSQL에서 피해야 할 구현을 설명합니다. 패키지 실행 환경 분리는 라이브러리와 포트폴리오 연결 백로그를 시작할 때 적용합니다.
+- [개인 메모 애플리케이션 기술 안티패턴](personal-notes-app/anti-patterns.md) (`proposed`): 현재 로컬 애플리케이션의 렌더링, effect, 입력 검증, 의존성 연결, Worker와 브라우저 저장소에서 피해야 할 구현을 설명합니다. 계정 동기화, 서버 cache, hydration, mutation과 PostgreSQL 관련 지침은 최우선 계정 및 동기화 백로그를 시작할 때 적용하고, 패키지 실행 환경 분리는 라이브러리와 포트폴리오 연결 백로그를 시작할 때 적용합니다.
+- [개인 메모 애플리케이션 테스트 전략](personal-notes-app/testing-strategy.md) (`current`): 승인된 모듈별 TDD 분류를 적용하고, 내부 구현을 고정하는 테스트 대신 사용자 결과, 저장 불변 조건과 실제 브라우저 동작을 검증하는 방법을 설명합니다.
+- [개인 메모 애플리케이션 테스트 안티패턴](personal-notes-app/test-anti-patterns.md) (`current`): 테스트가 이름, 문자열, 모의 구현, 스냅샷과 DOM 구조만 고정하지 않도록 검토하는 기준과 향후 테스트 도구 선택 때 검증할 ESLint 규칙 후보를 설명합니다.
 
 ## Update and Maintain Guidance
 

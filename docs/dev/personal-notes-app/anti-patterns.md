@@ -1,12 +1,14 @@
 # 개인 메모 애플리케이션 기술 안티패턴
 
-이 애플리케이션은 실행 모드별 구현을 조립 지점에서 선택하고, 사용자 입력과 저장소 사이의 모든 경계를 런타임에 검증하며, 변경 직후의 일관성이 필요한 데이터에는 명시적인 무효화와 동시성 제어를 적용해야 한다. 페이지 전체를 Client Component로 만드는 방식, React 내부 상태를 `useEffect`로 맞추는 방식, 두 캐시를 같은 데이터의 원본으로 쓰는 방식, 범용 Service Locator, 역할이 드러나지 않는 port와 adapter 이름, 서버 및 브라우저 코드를 함께 내보내는 FSD public API, 수명과 버전이 없는 worker 메시지, IndexedDB를 영구 보관소로 간주하는 방식, 애플리케이션 검사만 믿고 PostgreSQL 제약을 생략하는 방식은 채택하지 않는다. 라이브러리 제공 백로그를 시작할 때에는 React를 중복으로 포함하거나 클라이언트 및 서버 진입점을 하나로 합치는 방식도 피해야 한다.
+현재 로컬 애플리케이션은 브라우저 구현을 한 조립 지점에서 연결하고, 사용자 입력과 저장소 사이의 모든 경계를 런타임에 검증해야 한다. 페이지 전체를 Client Component로 만드는 방식, React 내부 상태를 `useEffect`로 맞추는 방식, 범용 Service Locator, 역할이 드러나지 않는 port와 adapter 이름, 서버 및 브라우저 코드를 함께 내보내는 FSD public API, 수명과 버전이 없는 worker 메시지와 IndexedDB를 영구 보관소로 간주하는 방식은 채택하지 않는다. 테스트의 선후 관계와 완료 증거는 [개인 메모 애플리케이션 테스트 전략](testing-strategy.md)을 따른다. 두 cache를 같은 데이터의 원본으로 쓰는 방식과 PostgreSQL 제약을 생략하는 방식은 최우선 계정 및 동기화 백로그를 시작할 때 적용할 금지 사항이다. 라이브러리 제공 백로그를 시작할 때에는 React를 중복으로 포함하거나 클라이언트 및 서버 진입점을 하나로 합치는 방식도 피해야 한다.
 
 이 문서의 상태는 `proposed`다. 구현자와 리뷰어가 개인 메모 애플리케이션의 기술 구조를 선택할 때 사용하는 제안 지침이며, 승인된 기술 스택이나 현재 구현을 설명하지 않는다.
 
 ## 적용 범위와 현재 근거
 
-[요구사항](../../designs/personal-notes-app-8fd/requirements.md)은 백엔드 없는 로컬 실행과 계정 동기화 실행이 같은 UI를 사용하도록 정하며, 라이브러리 패키지와 포트폴리오 라우트 연결은 백로그로 둔다. [실행 모드와 라이브러리 배포 백로그 구조 조사](../../designs/personal-notes-app-8fd/references/runtime-modes-and-architecture.md)는 현재 독립 실행 단계에 적용할 port와 adapter, 조립 지점 및 브라우저와 서버 저장소의 교체 가능성을 제안하고, 호스트 라우트와 패키지 진입점 분리는 백로그 조사로 남긴다. [데이터 구조 초안](../../designs/personal-notes-app-8fd/references/data-model-draft.md)은 메모 revision, 사용 횟수, 줄 단위 분석과 알고리즘 version을 구분한다.
+[요구사항](../../designs/personal-notes-app-8fd/requirements.md)은 현재 백엔드 없는 로컬 애플리케이션을 완성하고, 계정 및 동기화를 모든 백로그 가운데 가장 먼저 진행하도록 정한다. 라이브러리 패키지와 포트폴리오 라우트 연결은 그보다 뒤의 백로그다.
+
+[로컬 실행 구조와 계정 및 라이브러리 백로그 조사](../../designs/personal-notes-app-8fd/references/runtime-modes-and-architecture.md)는 현재 독립 실행 단계에 적용할 책임별 interface와 조립 지점을 제안하고, 서버 저장소 교체와 패키지 진입점 분리는 각각의 백로그 조사로 남긴다. [데이터 구조 초안](../../designs/personal-notes-app-8fd/references/data-model-draft.md)은 메모의 전체 revision과 content revision, 사용 횟수, 줄 단위 분석과 알고리즘 version을 구분한다.
 
 2026년 8월 30일 현재 저장소에는 패키지 매니페스트, 잠금 파일, TypeScript 설정, Next.js 설정, 애플리케이션 소스와 테스트가 없다. 따라서 아래 규칙은 도달 가능한 실패를 미리 제한하는 제안이며 현재 준수 여부를 검사할 수 없다. 구현을 시작하기 전에 결정 책임자가 정확한 버전을 승인하고 잠금 파일로 고정해야 한다.
 
@@ -18,17 +20,22 @@
 
 다음 항목이 확정되지 않으면 관련 모듈 구현을 시작하지 않는다.
 
-- Next.js와 React의 정확한 버전, App Router 사용 여부, `cacheComponents` 설정 여부
-- TanStack Query를 채택할지 여부, 적용할 원격 데이터, 정확한 버전, query key와 Next.js cache 사이의 책임
+- Next.js와 React의 정확한 버전 및 App Router 사용 여부
 - FSD를 채택할 근거, 실제로 필요한 layer와 slice, Next.js route 디렉터리와 구분할 이름, 환경별 public API 규칙
-- 정적 로컬 배포가 정적 export인지 정적 호스팅의 클라이언트 애플리케이션인지, 계정 동기화 배포와 빌드 결과물을 나눌지 여부
+- 정적 로컬 배포가 정적 export인지 정적 호스팅의 클라이언트 애플리케이션인지 여부
 - 로컬 정적 결과물을 제공할 HTTPS 호스팅과 localhost HTTP 서버의 구현 및 실행 방식
-- 지원 브라우저와 최소 버전, SharedWorker 미지원 시 Dedicated Worker 또는 main thread로 대체할 범위
+- Clipboard, IndexedDB, Dedicated Worker와 필요한 Intl API를 제공하는 지원 브라우저 및 최소 버전
+- IndexedDB schema version, 업그레이드 중 다른 탭을 닫도록 안내하는 UI, 내보내기와 복구 정책
+- React Hook Form과 Zod를 연결하는 방식을 직접 작성할지 검토된 resolver를 추가할지 여부
+
+최우선 계정 및 동기화 백로그를 시작하기 전에는 다음 항목을 별도로 확정해야 한다. 이 항목은 현재 로컬 애플리케이션 구현의 선행 조건이 아니다.
+
+- `cacheComponents` 설정 여부
+- TanStack Query를 채택할지 여부, 적용할 원격 데이터, 정확한 버전, query key와 Next.js cache 사이의 책임
+- 로컬과 계정 실행 형태의 빌드 결과물을 나눌지 여부
 - 로그인, 계정과 메모 단위의 권한 검사 방식
 - 메모 충돌 정책, HTTP ETag와 메모 revision을 연결하는 방식
-- IndexedDB schema version, 업그레이드 중 다른 탭을 닫도록 안내하는 UI, 내보내기와 복구 정책
 - PostgreSQL의 정확한 버전, 연결 방식, migration 도구와 transaction 재시도 책임
-- React Hook Form과 Zod를 연결하는 방식을 직접 작성할지 검토된 resolver를 추가할지 여부
 
 라이브러리 패키지와 포트폴리오 연결 백로그를 시작하기 전에는 다음 항목을 별도로 확정해야 한다. 이 항목은 현재 독립 실행 구현의 선행 조건이 아니다.
 
@@ -97,7 +104,7 @@ export function NoteBoard({ initialViewport }: NoteBoardProps) {
 
 ### 검증
 
-리뷰어는 `'use client'` 파일마다 브라우저 상호작용이 필요한 가장 가까운 경계인지 확인한다. TypeScript와 lint는 서버 HTML과 브라우저 HTML이 같은지 판단하지 못한다. 개발 환경의 hydration 경고, 느린 네트워크에서의 첫 화면, 프로덕션 build의 client bundle 구성과 실제 브라우저 렌더링을 검사한다. cache하지 않은 조회 하나가 전체 경로를 막는지도 Next.js 개발 overlay와 streaming 응답으로 확인한다. 정적 로컬 빌드와 계정 동기화 빌드를 각각 열어 서버 전용 기능이 로컬 UI에 나타나지 않는지도 확인한다.
+리뷰어는 `'use client'` 파일마다 브라우저 상호작용이 필요한 가장 가까운 경계인지 확인한다. TypeScript와 lint는 서버 HTML과 브라우저 HTML이 같은지 판단하지 못한다. 개발 환경의 hydration 경고, 느린 네트워크에서의 첫 화면, 프로덕션 build의 client bundle 구성과 실제 브라우저 렌더링을 검사한다. cache하지 않은 조회 하나가 전체 경로를 막는지도 Next.js 개발 overlay와 streaming 응답으로 확인한다. 현재는 정적 로컬 빌드에 서버 전용 기능과 계정 UI가 포함되지 않는지 확인한다. 최우선 계정 및 동기화 백로그에서는 계정 빌드를 추가해 공통 화면과 실행 환경 분리를 별도로 확인한다.
 
 ## React 내부 상태 흐름을 useEffect로 조정하지 않는다
 
@@ -111,7 +118,7 @@ React 19.2 문서는 effect를 외부 시스템과 React를 동기화하는 탈�
 
 - 메모의 줄 목록, 전체 사용 횟수, 선택된 메모와 template preview처럼 현재 props와 state에서 얻을 수 있는 값은 렌더링 중 계산한다. 계산 비용을 측정한 뒤에만 `useMemo`를 사용한다.
 - 일반 클릭 복사, 누적 복사, 제거, undo, redo와 분석 요청은 해당 event handler가 command를 직접 호출한다. 이 작업을 state 변화 감지 effect로 우회하지 않는다.
-- 계정 동기화 데이터는 Server Component, Route Handler와 승인된 query 도구가 맡는다. loading, 취소, race와 cache 정책을 직접 다시 구현하는 `useEffect` fetch를 기본값으로 삼지 않는다.
+- 최우선 계정 및 동기화 백로그에서 원격 데이터는 Server Component, Route Handler와 승인된 query 도구가 맡는다. loading, 취소, race와 cache 정책을 직접 다시 구현하는 `useEffect` fetch를 기본값으로 삼지 않는다.
 - effect는 Worker 또는 SharedWorker 연결, browser event, `ResizeObserver`와 외부 store 구독처럼 React 밖의 시스템과 component 수명을 맞출 때 사용한다.
 - setup이 listener, timer, observer 또는 connection을 만들면 cleanup이 같은 대상을 해제한다. 개발 환경의 setup, cleanup, setup 순서에서도 사용자가 구분할 수 있는 중복 결과가 없어야 한다.
 - dependency 경고를 주석으로 끄거나 빈 배열로 고정하지 않는다. effect가 정말 필요한지 다시 확인한 뒤 모든 reactive dependency를 포함하거나, event handler와 안정된 adapter API로 책임을 옮긴다.
@@ -170,9 +177,9 @@ Clipboard API 초안은 비동기 clipboard 접근을 permission으로 제어되
 - clipboard 성공 알림과 사용 횟수 증가는 `writeText`가 완료된 뒤 기록한다.
 - 권한 거절, 비보안 환경, API 미지원과 알 수 없는 실패를 구분 가능한 결과로 adapter에서 반환한다.
 - 컴포넌트가 `navigator.clipboard`나 permission API를 직접 호출하지 않게 하고, `ClipboardPort` 구현이 브라우저 차이를 처리한다.
-- 사용할 수 있는 동작은 조립 지점에서 capability로 계산한다. 로컬 모드에 없는 계정 동기화 동작은 렌더링한 뒤 disabled 처리하지 말고 navigation과 command에서 제외한다.
-- 환경변수는 모드별 composition root에서 한 번 검증한다. component는 환경변수 원문이 아니라 검증된 capability와 port를 받는다.
-- `NEXT_PUBLIC_` 값은 build 시점에 브라우저 bundle에 포함되고 build 뒤에는 바뀌지 않는다. 비밀값, runtime authorization 또는 배포 후 바뀌어야 하는 계정 동기화 허용 여부에 사용하지 않는다.
+- 현재 로컬 애플리케이션에는 계정 동기화 동작을 navigation과 command에 만들지 않는다. 최우선 계정 및 동기화 백로그에서 사용할 수 있는 동작을 조립 지점의 capability로 계산한다.
+- 실행 형태를 나누는 환경변수는 최우선 계정 및 동기화 백로그의 composition root에서 한 번 검증한다. component는 환경변수 원문이 아니라 검증된 capability와 port를 받는다.
+- `NEXT_PUBLIC_` 값은 build 시점에 브라우저 bundle에 포함되고 build 뒤에는 바뀌지 않는다. 최우선 계정 및 동기화 백로그에서 비밀값, runtime authorization 또는 배포 후 바뀌어야 하는 동기화 허용 여부에 사용하지 않는다.
 - 로컬 정적 결과물은 HTTPS URL 또는 `location.hostname`이 정확히 `localhost`인 HTTP URL에서만 제공한다. `file://` URL, loopback IP를 포함한 다른 호스트의 HTTP URL과 원격 HTTP URL은 지원 대상으로 간주하지 않는다.
 - 접속 프로토콜과 호스트 이름을 환경변수로 판정하지 않는다. 실행 시점의 `location.protocol`, `location.hostname`과 `isSecureContext`를 검사하고, 지원하지 않는 주소로 접속했을 때 필요한 주소 형식을 알리는 UI를 제공한다.
 - Web API의 rejection을 빈 catch로 삼키지 않는다. 사용자에게 다음 행동이 있는 알림을 제공하고, 실패한 작업의 상태 변경은 되돌린다.
@@ -208,7 +215,7 @@ clipboard 쓰기와 사용 횟수 저장은 하나의 원자적 transaction으�
 
 lint는 권한 요청의 결과와 UI 문구가 일치하는지 판단하지 못한다. 같은 로컬 정적 결과물을 HTTPS와 호스트 이름이 `localhost`인 HTTP에서 각각 제공해 클립보드 쓰기를 확인한다. `file://`와 다른 호스트의 HTTP에서는 지원하지 않는 주소 안내를 확인한다. 각 지원 주소에서 허용, 거절, API 미지원과 write rejection을 재현하고, 실패한 경우 사용 횟수가 늘지 않는지 확인한다. 지원 브라우저가 확정되기 전에는 capability별 expected behavior를 `needs human input`으로 둔다.
 
-## Cache Components와 변경 직후 일관성을 구분한다
+## 최우선 계정 및 동기화 백로그: Cache Components와 변경 직후 일관성을 구분한다
 
 ### 막으려는 실패
 
@@ -278,7 +285,7 @@ export async function createNoteAction(raw: unknown) {
 
 lint는 tag와 query가 같은 계정에 한정되는지, stale 값을 허용하는지 판단할 수 없다. 두 계정으로 같은 URL을 읽어 메모가 섞이지 않는지 확인하고, 메모 생성, 수정, 삭제 직후 현재 사용자와 새 탭에서 올바른 목록이 보이는지 통합 검사한다. Next.js 버전을 변경하거나 `cacheComponents`를 켜고 끌 때 이 절의 공식 문서를 다시 확인한다.
 
-## TanStack Query hydration을 두 번째 원본으로 만들지 않는다
+## 최우선 계정 및 동기화 백로그: TanStack Query hydration을 두 번째 원본으로 만들지 않는다
 
 ### 막으려는 실패
 
@@ -342,7 +349,7 @@ export default async function NotesPage() {
 
 정적 검사는 module 전역 `QueryClient`와 server-only import 일부를 찾을 수 있지만 query key의 의미, cache 소유권과 stale 허용 시간은 판단하지 못한다. 계정 두 개의 동시 요청으로 cache 격리를 확인하고, server prefetch 횟수, hydration 직후 browser 요청 수, query key와 cursor 일치, navigation 뒤 오래된 화면의 점멸을 검사한다. 같은 자료를 Server Component와 Client Component가 함께 렌더링하지 않는지도 리뷰한다. TanStack Query 또는 Next.js 버전을 바꾸면 fixed revision 공식 지침과 migration 문서를 다시 확인한다.
 
-## Server Action과 Route Handler를 내부 함수처럼 믿지 않는다
+## 최우선 계정 및 동기화 백로그: Server Action과 Route Handler를 내부 함수처럼 믿지 않는다
 
 ### 막으려는 실패
 
@@ -515,7 +522,7 @@ function TemplatePreviewField({ control }: { control: Control<TemplateFormValues
 
 RHF API 사용 형태를 금지하는 lint를 새로 추가하지 않는다. 현재 저장소에 lint 체계가 없고, `watch()`가 문제인지 여부는 form 크기와 render 비용에 달려 있다. React Profiler로 입력 한 번에 다시 render되는 component와 commit 시간을 확인하고, 초기 data 재수신 중 dirty value 보존, field 전환과 submit 결과를 browser에서 검사한다.
 
-## useMutation 하나의 상태를 모든 변경 작업의 상태로 쓰지 않는다
+## 최우선 계정 및 동기화 백로그: useMutation 하나의 상태를 모든 변경 작업의 상태로 쓰지 않는다
 
 ### 막으려는 실패
 
@@ -747,7 +754,7 @@ FSD 공식 문서는 모든 layer를 사용할 필요가 없고 모든 상호작
 - 같은 layer의 slice끼리 임의로 import하지 않고 상위 layer에서 조합한다. 다른 slice는 public API로만 접근하며 같은 slice 내부에서는 public API를 역으로 import하지 않고 상대 경로를 사용한다.
 - `export *`로 내부 전체를 public API에 노출하지 않는다. export 목록을 명시하고 server, client와 공통 module을 서로 재수출하지 않는다.
 - FSD는 frontend 구조화 방법이다. PostgreSQL schema, migration, background job과 큰 API 구현을 frontend layer 규칙에 억지로 넣지 않는다.
-- local 및 sync composition root는 각 실행 모드에서 허용된 환경별 진입점만 import한다. 정적 로컬 build가 `index.server.ts`에 도달하거나 sync server graph가 browser adapter를 직접 import하면 실패로 처리한다.
+- 현재 local composition root는 브라우저 진입점만 import하고 정적 build가 `index.server.ts`에 도달하면 실패로 처리한다. 최우선 계정 및 동기화 백로그에서는 sync server graph가 browser adapter를 직접 import하지 않는지도 확인한다.
 
 안티패턴:
 
@@ -899,20 +906,18 @@ export default function Page() {
 
 ### 막으려는 실패
 
-component render마다 Worker를 만들거나 메모별 Worker를 하나씩 만들면 시작 비용과 memory가 늘고 cleanup이 누락된다. request id와 note revision이 없는 메시지는 오래 걸린 이전 분석 결과가 최신 편집 결과를 덮게 한다. SharedWorker가 항상 존재하고 탭이 닫혀도 계속 실행된다고 가정하면 지원하지 않는 환경이나 leader 종료에서 기능이 멈춘다.
+component render마다 Worker를 만들거나 메모별 Worker를 하나씩 만들면 시작 비용과 memory가 늘고 cleanup이 누락된다. request ID와 note content revision이 없는 메시지는 오래 걸린 이전 분석 결과가 최신 편집 결과를 덮게 한다. 현재 요구 없이 SharedWorker를 선택하면 여러 탭의 수명과 조정 실패만 추가된다.
 
 HTML Living Standard는 worker가 시작 비용과 instance별 memory 비용이 큰 장기 실행 객체이며 대량 생성 용도가 아니라고 설명한다. Actual Budget은 탭마다 별도 Worker와 IndexedDB backend를 실행해 sync 충돌이 생기던 구조를 SharedWorker message router와 leader/follower 구조로 바꿨다. leader 종료, heartbeat, 임시 Worker와 failover까지 다룬 이유는 [PR #7172](https://github.com/actualbudget/actual/pull/7172), 병합 결과는 [4f7c3c5](https://github.com/actualbudget/actual/commit/4f7c3c51a58fc4e70b8d2d79bf80397d3235392b)에서 확인했다.
 
 ### 적용 규칙
 
-- 줄 단위 겹침 분석은 명시적 사용자 요청 후 실행하고, feature composition root에서 생성한 장기 실행 Worker adapter를 재사용한다.
-- SharedWorker는 여러 탭의 분석 queue나 IndexedDB 접근을 조정할 필요가 있고 지원 브라우저가 확정된 경우에만 사용한다. 그렇지 않으면 Dedicated Worker가 더 단순하다.
-- `SharedWorker` 지원 여부를 runtime에 확인하고 승인된 fallback을 제공한다. 지원 여부만으로 모드나 데이터 원본을 바꾸지 않는다.
-- request와 response는 discriminated union으로 정의하고 `requestId`, note id와 revision, algorithm type과 version을 포함한다.
-- response의 note revision이 현재 값과 다르면 결과를 폐기한다. 취소는 message 또는 `AbortSignal`을 adapter가 worker protocol로 변환한다.
-- SharedWorker는 조정자일 수 있지만 영구 데이터 원본은 아니다. 탭 종료, worker 종료와 browser restart 뒤 IndexedDB 또는 server에서 복구한다.
+- 줄 단위 겹침 분석은 명시적 사용자 요청 후 실행하고, 분석 책임의 조립 지점에서 지연 생성한 Dedicated Worker 하나를 재사용한다.
+- SharedWorker는 여러 탭의 분석 queue나 IndexedDB 접근을 조정해야 한다는 요구가 생길 때 별도 결정으로 검토한다. 현재 구현에 fallback이나 조건부 분기를 미리 넣지 않는다.
+- request와 response는 discriminated union으로 정의하고 `requestId`, note ID와 content revision, algorithm type과 version을 포함한다.
+- response의 note content revision이 현재 값과 다르면 결과를 폐기한다. 사용자 취소는 실제 분석 시간이 사용 흐름을 방해한다는 측정 결과와 요구가 생긴 뒤 별도 message 규칙으로 검토한다.
 - 큰 binary payload를 반복 전송할 때만 transferable을 검토한다. transfer 뒤 원본 buffer를 다시 사용할 수 없다는 조건을 반영한다. 일반 문자열 목록에는 불필요한 최적화를 적용하지 않는다.
-- Dedicated Worker는 이를 만든 feature scope가 종료될 때 `terminate`하고, SharedWorker의 `MessagePort` listener와 port는 더 이상 사용하지 않을 때 해제한다.
+- Dedicated Worker는 분석 영역의 수명이 끝날 때 listener를 제거하고 `terminate`한다.
 
 안티패턴:
 
@@ -934,11 +939,11 @@ type AnalysisRequest = {
   requestId: string
   note: {
     id: string
-    revision: number
+    contentRevision: number
     lines: string[]
   }
   algorithm: {
-    type: 'lexical'
+    type: 'surface'
     version: string
   }
 }
@@ -948,7 +953,7 @@ type AnalysisResponse = {
   requestId: string
   note: {
     id: string
-    revision: number
+    contentRevision: number
   }
   result: LexicalOverlapResult
 }
@@ -958,7 +963,7 @@ type AnalysisResponse = {
 async function acceptAnalysis(response: AnalysisResponse, notes: NoteReader) {
   const current = await notes.get(response.note.id)
 
-  if (!current || current.revision !== response.note.revision) {
+  if (!current || current.contentRevision !== response.note.contentRevision) {
     return { accepted: false, reason: 'stale-note' } as const
   }
 
@@ -968,7 +973,7 @@ async function acceptAnalysis(response: AnalysisResponse, notes: NoteReader) {
 
 ### 검증
 
-TypeScript는 union의 exhaustiveness와 message shape를 확인하지만 도착 순서와 browser lifecycle은 보장하지 못한다. worker 경계에서 Zod 또는 명시적 validator로 message를 검사한다. 실제 브라우저에서 빠른 연속 수정, 취소, 오래된 response, 두 탭 연결, leader 탭 종료, browser 미지원과 worker runtime error를 재현한다. 분석 크기별 main thread long task, worker 시작 시간과 message 복사 비용도 측정한다.
+TypeScript는 union의 exhaustiveness와 message shape를 확인하지만 도착 순서와 browser lifecycle은 보장하지 못한다. Worker 경계에서 Zod 또는 명시적 validator로 message를 검사한다. 오래된 response를 수락하거나 폐기하는 순수 상태는 TDD로 개발하고, 실제 브라우저에서는 빠른 연속 수정, Worker 실행 오류와 production 정적 결과물의 asset URL, MIME type 및 message 왕복을 확인한다. 분석 크기별 main thread long task, Worker 시작 시간과 message 복사 비용도 측정한다.
 
 ## IndexedDB transaction과 저장 내구성을 과신하지 않는다
 
@@ -984,8 +989,8 @@ IndexedDB 3.0은 transaction이 event dispatch 밖에서 inactive가 되고 짧�
 - transaction을 연 뒤 필요한 IndexedDB request를 같은 task에서 enqueue하고 `complete` 또는 `abort`를 기다린다.
 - 여러 object store를 함께 바꿔야 하는 불변 조건만 한 transaction으로 묶는다. UI 대기나 분석 전체를 transaction 안에 두지 않는다.
 - connection에 `versionchange` handler를 두어 현재 connection을 닫고 새로고침 또는 재시도를 안내한다. open request의 `blocked` 상태는 별도 UI로 알린다.
-- database name과 record key에 애플리케이션, schema와 필요할 때 local profile 범위를 포함한다. 계정 전환만으로 local 데이터가 섞이지 않게 한다.
-- `navigator.storage.persist()`는 결과를 확인하고 거절 가능성을 처리한다. persistence가 승인되어도 export, import와 서버 동기화 정책을 대체하지 않는다.
+- database name과 record key에 애플리케이션과 schema 범위를 포함한다. 최우선 계정 및 동기화 백로그에서 local profile을 도입하면 계정 전환만으로 local 데이터가 섞이지 않게 범위를 추가한다.
+- `navigator.storage.persist()`는 결과를 확인하고 거절 가능성을 처리한다. persistence가 승인되어도 export와 import를 대체하지 않으며, 최우선 계정 및 동기화 백로그에서는 서버 동기화 정책도 대신하지 않는다.
 - quota, transaction abort와 schema migration 실패를 사용자에게 알리고, commit 전 UI를 영구 저장 완료로 표시하지 않는다.
 
 안티패턴:
@@ -1027,7 +1032,7 @@ function observeDatabaseOpen(request: IDBOpenDBRequest) {
 
 lint는 transaction이 event loop에서 언제 inactive가 되는지 판단하지 못한다. 지원 대상의 실제 browser에서 기존 schema upgrade, 두 탭이 열린 상태, quota 부족, abort와 page 종료를 검사한다. 테스트용 IndexedDB 구현을 나중에 선택하더라도 실제 browser 검사를 대체하지 않는다. export한 데이터로 새 profile에서 복원할 수 있는지는 별도 복구 흐름으로 검증한다.
 
-## PostgreSQL을 JSON 저장소나 단일 사용자 저장소처럼 사용하지 않는다
+## 최우선 계정 및 동기화 백로그: PostgreSQL을 JSON 저장소나 단일 사용자 저장소처럼 사용하지 않는다
 
 ### 막으려는 실패
 
@@ -1085,15 +1090,23 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 
 ## 검사 기준선 제안
 
-기술 스택과 도구가 승인된 뒤 다음 순서로 가장 싼 검사부터 구성한다. 현재는 실행할 명령이 없으므로 명령 이름을 추정하지 않는다.
+기술 스택과 도구가 승인된 뒤 [테스트 전략](testing-strategy.md)이 정한 모듈별 검증 방식과 [테스트 안티패턴 지침](test-anti-patterns.md)이 정한 assertion 및 selector 기준을 사용해 다음 순서로 가장 싼 검사부터 구성한다. 현재는 실행할 명령이 없으므로 명령 이름을 추정하지 않는다.
 
-- TypeScript compile: `strict`, 외부 입력의 `unknown`, worker message union, library declaration과 server/client 진입점의 import 방향
-- Zod schema 검사: form input과 output, Server Action, Route Handler, mutation variable, worker message와 IndexedDB record
-- 정적 분석: hooks dependency, effect 안의 동기 state 변경, FSD layer 및 public API 우회, library private deep import, client module의 server-only import와 composition root 밖의 generic locator import
-- 단위 검사: cache tag와 query key 생성, DTO 변환, stale worker response 폐기와 revision conflict 결과
+- TypeScript compile: `strict`, 외부 입력의 `unknown`, worker message union과 client module의 server-only import 방향
+- Zod schema 검사: form input과 output, worker message와 IndexedDB record
+- 정적 분석: hooks dependency, effect 안의 동기 state 변경, FSD layer 및 public API 우회, client module의 server-only import와 composition root 밖의 generic locator import
+- TDD 단위 검사: 승인된 schema 경계, command 및 이력, 사용 빈도 규칙, 분석 알고리즘, 템플릿 생성과 오래된 Worker response 폐기
+- 외부 동작 기준 브라우저 검사: IndexedDB transaction, upgrade, `blocked`, `versionchange`, quota와 새로고침 보존
+- 실제 browser 검사: Strict Mode의 effect cleanup, clipboard 권한, Dedicated Worker lifecycle 및 form render 비용
+- 접속 주소별 build와 browser 검사: 로컬 UI에 계정 기능이 없고 같은 정적 결과물이 HTTPS와 localhost HTTP에서 동작하는지 확인
+
+최우선 계정 및 동기화 백로그를 시작하면 다음 검사를 추가한다.
+
+- Zod schema 검사: Server Action, Route Handler와 mutation variable
+- 단위 검사: cache tag와 query key 생성 및 revision conflict 결과
 - database 통합 검사: constraint, atomic count, 병렬 update와 transaction 재시도
-- 실제 browser 검사: Strict Mode의 effect cleanup, hydration 직후 요청 수, mutation별 pending 상태, clipboard 권한, IndexedDB upgrade와 quota, Worker와 SharedWorker lifecycle, form render 비용
-- 모드 및 접속 주소별 빌드와 브라우저 검사: 로컬 UI에 계정 기능이 없고 동기화 모드 UI가 같은 컴포넌트를 사용하며, 같은 로컬 정적 결과물이 HTTPS와 localhost HTTP에서 동작하는지 확인
+- 실제 browser 검사: 계정별 cache 격리, hydration 직후 요청 수, mutation별 pending 상태와 동기화 충돌
+- 실행 형태별 build와 browser 검사: 로컬 UI에 계정 기능이 없고 계정 실행 형태가 공통 화면을 사용하는지 확인
 
 라이브러리 제공 백로그를 시작하면 다음 검사를 추가한다.
 
