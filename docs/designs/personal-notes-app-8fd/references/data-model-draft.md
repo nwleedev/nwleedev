@@ -2,11 +2,11 @@
 
 ## 결론
 
-로컬 모드와 계정 모드는 같은 논리 객체를 사용하고 저장 방식만 어댑터에서 바꾸는 구성이 적합하다. 메모 원문과 공간 좌표를 기준 정보로 두고, 분석용 줄과 정규화 문자열은 요청할 때 만드는 파생 정보로 다뤄야 한다. 누적 텍스트는 나중의 메모 편집에 따라 뜻하지 않게 바뀌지 않도록 누적 시점의 텍스트 스냅샷을 보관하는 방안을 우선 검토한다.
+현재 로컬 애플리케이션은 메모 원문과 공간 좌표를 기준 정보로 두고, 분석용 줄과 정규화 문자열은 요청할 때 만드는 파생 정보로 다룬다. [로컬 저장과 실행 중 상태 결정](../decisions/local-storage-and-ephemeral-state.md)에 따라 전체 revision과 텍스트 전용 content revision을 구분한다. [누적 순서와 제거 복구 결정](../decisions/accumulator-ordering-and-recovery.md)에 따라 누적 당시 원문 스냅샷을 저장하고 제거 이력은 애플리케이션 실행 중 메모리에 둔다. 최우선 계정 및 동기화 백로그를 시작하면 이 논리 객체를 유지하면서 저장 방식만 원격 어댑터로 바꿀 수 있는지 다시 검증한다.
 
-계정 동기화에 대비해 각 동기화 대상에는 안정적인 ID, revision, 수정 시각과 삭제 표시가 필요하다. 그러나 충돌 해결, 삭제 보존 기간과 계정별 보관 범위가 정해지지 않았으므로 이 초안은 데이터베이스 스키마가 아니다. 아래 TypeScript 형태는 논리 객체와 쟁점을 검토하기 위한 예시이며 승인된 API나 구현이 아니다.
+안정적인 ID와 revision은 로컬 분석 결과가 어떤 메모 상태를 대상으로 했는지 식별하는 데에도 필요하다. 계정 동기화에 필요한 삭제 표시, 충돌 해결, 삭제 보존 기간과 계정별 보관 범위는 최우선 백로그에서 다룬다. 이 초안은 데이터베이스 스키마가 아니며, 아래 TypeScript 형태는 논리 객체와 쟁점을 검토하기 위한 예시일 뿐 승인된 API나 구현이 아니다.
 
-이 문서는 [개인 메모 애플리케이션 요구사항](../requirements.md)의 공간형 메모, 누적과 실행 취소, 사용 빈도, 줄 단위 겹침, 템플릿 및 계정 동기화에 필요한 값을 조사한 참고 자료다. 도메인 설계 담당자와 데이터 설계 담당자가 객체 책임을 검토하고 결정 책임자가 보관 및 동기화 규칙을 승인할 때 사용한다. 공식 문서와 표준은 2026년 8월 30일에 검토했다.
+이 문서는 [개인 메모 애플리케이션 요구사항](../requirements.md)의 공간형 메모, 누적과 실행 취소, 사용 빈도, 줄 단위 겹침과 템플릿에 필요한 값을 조사하고, 최우선 계정 및 동기화 백로그의 추가 쟁점을 구분한 참고 자료다. 도메인 설계 담당자와 데이터 설계 담당자가 객체 책임을 검토하고 결정 책임자가 보관 및 동기화 규칙을 승인할 때 사용한다. 공식 문서와 표준은 2026년 8월 30일에 검토했다.
 
 ## 조사 근거
 
@@ -20,7 +20,7 @@
 
 [PostgreSQL 제약조건 문서](https://www.postgresql.org/docs/current/ddl-constraints.html)는 primary key, unique와 foreign key가 데이터 관계를 검사하는 방식을 설명한다. [PostgreSQL JSON 타입 문서](https://www.postgresql.org/docs/current/datatype-json.html)는 `jsonb`의 처리 및 인덱싱 장점과 일반 관계형 열의 무결성 규칙 차이를 설명한다. 이는 PostgreSQL 선정 근거가 아니라, 계정 데이터베이스에서 엔티티 식별자와 관계를 명시적 열로 두고 형태가 달라지는 분석 세부사항만 JSON 계열 값으로 둘지 비교해야 한다는 근거다.
 
-## 공통 식별자와 실행 모드별 제공 항목
+## 공통 식별자와 제공 항목
 
 실행 모드는 저장 엔티티가 아니라 composition root가 읽는 구성이다. UI에는 환경변수 원문 대신 기능 목록만 전달한다.
 
@@ -34,29 +34,20 @@ interface NoteRef {
   revision: Revision;
 }
 
+interface NoteContentRef {
+  id: EntityId;
+  contentRevision: Revision;
+}
+
 interface AlgorithmRef {
   type: string;
   version: string;
 }
-
-type AppCapabilities =
-  | {
-      runtimeMode: "local";
-      account: false;
-      remoteSync: false;
-      serverAnalysis: false;
-    }
-  | {
-      runtimeMode: "account";
-      account: true;
-      remoteSync: true;
-      serverAnalysis: boolean;
-    };
 ```
 
-`AppCapabilities`는 UI에 표시할 항목과 어댑터 구성을 일치시키기 위한 예시다. 서버 권한을 나타내지 않으며 계정 모드의 인증과 메모 접근 검사를 대신할 수 없다. `serverAnalysis`가 거짓이어도 브라우저 분석기는 제공할 수 있다.
+현재 로컬 애플리케이션은 실행 모드나 기능 목록 객체를 데이터 모델에 두지 않는다. 계정 및 동기화 백로그를 시작할 때 UI에 표시할 항목과 원격 구현 구성을 일치시키는 별도 실행 설정을 검토하되, 설정 이름과 허용 값은 이 데이터 예시에 기록하지 않는다. 실행 설정은 서버 권한을 나타내지 않으며 인증과 메모 접근 검사를 대신할 수 없다.
 
-`NoteRef`처럼 같은 대상을 식별하고 버전을 확인하는 속성은 하나의 값으로 함께 전달한다. `note.id`와 `note.revision`, `algorithm.type`과 `algorithm.version`으로 접근하면 `noteId`, `noteRevision`, `algorithmType`, `algorithmVersion`의 접두어 반복을 줄이고 서로 다른 대상의 값을 잘못 조합할 가능성도 낮출 수 있다. 다만 route parameter가 이미 특정 메모를 가리키거나 속성 하나만 필요한 함수까지 중첩 객체를 강제하지 않는다. 묶음은 같은 불변 조건과 수명으로 이동하는 값에만 사용한다.
+`NoteRef`처럼 같은 대상을 식별하고 버전을 확인하는 속성은 하나의 값으로 함께 전달한다. `note.id`와 `note.revision`, `algorithm.type`과 `algorithm.version`으로 접근하면 `noteId`, `noteRevision`, `algorithmType`, `algorithmVersion`의 접두어 반복을 줄이고 서로 다른 대상의 값을 잘못 조합할 가능성도 낮출 수 있다. 다만 라우트 매개변수가 이미 특정 메모를 가리키거나 속성 하나만 필요한 함수까지 중첩 객체를 강제하지 않는다. 묶음은 같은 불변 조건과 수명으로 이동하는 값에만 사용한다.
 
 ## 메모와 공간 배치
 
@@ -88,6 +79,7 @@ interface Note {
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
   revision: Revision;
+  contentRevision: Revision;
   deletedAt?: IsoDateTime;
 }
 
@@ -102,9 +94,9 @@ interface ViewportState {
 
 `Note.content`가 사용자가 입력한 원문이다. 줄별 객체를 기준 데이터로 저장하면 한 번의 붙여넣기와 편집이 여러 엔티티 변경으로 갈라지고 원문의 줄바꿈을 복원하기 어려워진다. 분석용 줄은 원문에서 파생한다. URL이나 링크처럼 보이는 문자열도 `Note.content`에 일반 텍스트로 보관한다. 별도 링크 기능을 제공하지 않는 초기 범위를 반영해 이 초안에는 링크 객체, 미리보기 정보나 추출한 메타데이터를 추가하지 않는다.
 
-`NoteGeometry`는 화면 픽셀이 아니라 작업 공간 좌표로 해석하는 방안을 제안한다. 그래야 zoom을 바꿔도 메모의 논리 위치와 크기가 바뀌지 않는다. 최소 크기, 최대 크기, 좌표 범위와 z-index 재정렬 규칙은 화면 동작 결정 뒤 정해야 한다.
+`NoteGeometry`는 화면 픽셀이 아니라 작업 공간 좌표로 해석한다. 그래야 zoom을 바꿔도 메모의 논리 위치와 크기가 바뀌지 않는다. `revision`은 원문과 geometry를 포함한 저장 변경에 증가하고, `contentRevision`은 원문이 달라질 때만 증가한다. 이 구분은 위치와 크기만 바꿨을 때 사용 빈도와 분석 결과를 유지한다. 최소 크기, 최대 크기, 좌표 범위와 z-index 재정렬 규칙은 실제 화면과 성능을 검증하면서 정한다.
 
-모바일 기기와 화면 너비가 작은 환경의 목록은 별도 메모 엔티티가 아니라 같은 `Note` 객체를 다른 형태로 표시한다. 목록으로 전환할 때 `Note.geometry`를 수정하지 않는 방안을 제안한다. 목록 정렬을 위한 값을 따로 보관할지는 목록 정렬 규칙이 정해진 뒤 결정해야 한다.
+메모 작업 영역의 너비가 작은 환경의 목록은 별도 메모 엔티티가 아니라 같은 `Note` 객체를 다른 형태로 표시한다. [공간형 보드와 작은 화면 목록 결정](../decisions/responsive-note-presentation.md)에 따라 작업 영역의 inline size가 `48rem` 미만이면 생성 순서로 표시하고, 목록으로 전환할 때 `Note.geometry`를 수정하지 않는다.
 
 `ViewportState`는 기본적으로 기기 로컬에 둔다. 여러 기기에서 같은 보드를 열 때 마지막 pan과 zoom까지 동기화할지는 사용자 기대를 확인한 뒤 결정해야 한다.
 
@@ -115,7 +107,7 @@ interface ViewportState {
 ```ts
 interface AccumulatedTextItem {
   id: EntityId;
-  sourceNote: NoteRef;
+  sourceNote: NoteContentRef;
   textSnapshot: string;
   addedAt: IsoDateTime;
 }
@@ -132,47 +124,53 @@ interface AccumulatorState {
   revision: Revision;
 }
 
-interface HistoryState<T> {
-  past: readonly T[];
-  present: T;
-  future: readonly T[];
+interface RemovedAccumulatorItem {
+  item: AccumulatedTextItem;
+  previousIndex: number;
 }
 
-type AccumulatorHistory = HistoryState<AccumulatorContent>;
+interface AccumulatorRemovalHistory {
+  undo: readonly RemovedAccumulatorItem[];
+  redo: readonly RemovedAccumulatorItem[];
+}
 ```
 
-`textSnapshot`을 두면 메모를 편집하거나 삭제해도 이미 누적한 결과가 갑자기 바뀌지 않는다. 반대로 누적 결과가 항상 최신 메모 내용을 따라야 한다면 스냅샷 대신 참조를 해석해야 한다. 어느 동작이 맞는지는 결정 책임자의 승인이 필요하다.
+`textSnapshot`을 두면 메모를 편집하거나 삭제해도 이미 누적한 결과가 바뀌지 않는다. 같은 텍스트를 다시 누적해도 고유 ID가 다른 항목을 새로 추가한다. `AccumulatorContent.separator`의 기본값은 줄바꿈이다.
 
-[Redux의 실행 취소 이력 설명](https://redux.js.org/usage/implementing-undo-history)은 상태를 `past`, `present`, `future`로 나누고, 실행 취소 뒤 새 변경을 하면 `future`를 비우는 일반 모델을 설명한다. 제거 전 `AccumulatorContent`를 `past`에 두면 항목과 원래 순서를 함께 복원할 수 있다. 서버가 발급한 revision과 수정 시각은 과거 값으로 되돌리지 않고, 복원된 content를 새 변경으로 저장한다. 전체 텍스트를 매번 복제할지, 명령과 역연산만 저장할지는 예상 항목 수와 메모리 측정 뒤 정한다.
+[Redux의 실행 취소 이력 설명](https://redux.js.org/usage/implementing-undo-history)은 과거, 현재와 다시 실행할 상태를 구분하고 실행 취소 뒤 새 변경이 들어오면 다시 실행 목록을 비우는 모델을 설명한다. 현재 요구는 제거만 되돌리므로 전체 누적 내용을 복제하지 않고 제거된 항목과 이전 index를 기록한다. 복원은 현재 내용에 대한 새 변경이며 저장 revision과 수정 시각을 과거 값으로 되돌리지 않는다.
 
-현재 요구사항은 제거한 항목을 실행 취소하고 다시 실행할 수 있어야 한다고 정한다. 순서 변경, 추가, 구분자 변경까지 같은 이력에 넣을지, 페이지 이동이나 브라우저 종료 뒤에도 이력을 보관할지는 아직 정해지지 않았다.
+제거 이력은 애플리케이션 실행 동안 메모리에 두어 라우트 이동 뒤에도 유지하고 새로고침하면 지운다. 실행 취소 뒤 추가, 재정렬 또는 제거가 성공하면 `redo`를 비운다. 추가와 순서 변경 자체는 undo 대상이 아니다.
 
 ## 사용 빈도
 
-합계는 별도 필드로 저장하지 않고 두 횟수에서 계산하는 편이 불일치 가능성을 줄인다. 메모 내용이 바뀌기 전후를 같은 텍스트로 셀지 결정할 수 있도록 revision과 스냅샷을 함께 둔 예시다.
+합계는 별도 필드로 저장하지 않고 두 횟수에서 계산해 불일치 가능성을 줄인다. [텍스트 사용 빈도 집계 결정](../decisions/usage-counting.md)에 따라 메모 ID, 텍스트 전용 revision과 실행 당시 원문 스냅샷을 집계 단위로 사용한다.
 
 ```ts
+interface UsageCounts {
+  ordinaryCopy: number;
+  accumulation: number;
+}
+
 interface TextUsageAggregate {
   id: EntityId;
-  note: NoteRef;
+  note: NoteContentRef;
   textSnapshot: string;
-  ordinaryCopyCount: number;
-  accumulationCount: number;
+  counts: UsageCounts;
   updatedAt: IsoDateTime;
 }
 ```
 
-클립보드 쓰기에 실패한 일반 클릭을 사용으로 셀지, 누적 뒤 제거한 항목의 누적 횟수를 유지할지와 같은 원문을 가진 서로 다른 메모를 합산할지는 사용 횟수 집계 규칙으로 정해야 한다. 이 결정 전에는 집계 키와 서버의 atomic increment 방식을 확정할 수 없다.
+일반 복사는 클립보드 쓰기와 횟수 저장이 완료된 경우에만 집계한다. 클립보드 쓰기는 성공했지만 횟수 저장이 실패하면 복사 성공을 되돌리지 않고 빈도 기록 실패를 별도로 알린다. 누적 항목 추가와 누적 횟수 증가는 `AccumulationWriter`의 한 동작이 같은 IndexedDB transaction으로 완료하며, 제거, 순서 변경, 실행 취소와 다시 실행은 횟수를 바꾸지 않는다. 같은 텍스트를 다시 누적하면 성공한 횟수만큼 증가하고, 서로 다른 메모의 같은 원문은 합치지 않는다.
 
 시간대별 사용 추이나 감사 기록이 요구되지 않는 초기 범위에서는 모든 클릭 이벤트를 영구 저장하기보다 집계 객체를 갱신하는 편이 데이터 양과 개인정보 노출을 줄인다. 나중에 시계열 분석이 승인되면 별도 이벤트 모델과 보존 기간을 설계해야 한다.
 
 ## 줄 단위 겹침 분석
 
-분석 입력은 `Note.content`에서 그때그때 파생하고 원문과 비교용 문자열을 구분한다. 분석 결과가 오래된 메모를 가리키는지 판단할 수 있도록 note revision을 참조한다.
+분석 입력은 `Note.content`에서 요청할 때 파생하고 원문과 비교용 문자열을 구분한다. 분석 결과가 오래된 메모를 가리키는지 판단할 수 있도록 텍스트 전용 revision을 참조한다.
 
 ```ts
 interface AnalysisLineRef {
-  note: NoteRef;
+  note: NoteContentRef;
   lineIndex: number;
 }
 
@@ -181,7 +179,7 @@ interface AnalysisLine extends AnalysisLineRef {
   normalizedText: string;
 }
 
-type OverlapKind = "exact" | "containment" | "lexical";
+type OverlapKind = "exact" | "containment" | "surface";
 
 interface OverlapPair {
   left: AnalysisLineRef;
@@ -191,7 +189,7 @@ interface OverlapPair {
   algorithm: AlgorithmRef;
 }
 
-type AnalysisStatus = "running" | "completed" | "cancelled" | "failed";
+type AnalysisStatus = "running" | "completed" | "failed";
 
 interface AnalysisRun {
   id: EntityId;
@@ -199,20 +197,20 @@ interface AnalysisRun {
   requestedAt: IsoDateTime;
   completedAt?: IsoDateTime;
   status: AnalysisStatus;
-  inputNotes: readonly NoteRef[];
+  inputNotes: readonly NoteContentRef[];
   results: readonly OverlapPair[];
 }
 ```
 
-[Unicode Normalization Forms](https://unicode.org/reports/tr15/)는 시각적으로 같은 문자열이 서로 다른 코드 포인트 배열을 가질 수 있으며 정규화 형식으로 동등한 표현을 만들 수 있음을 정의한다. `normalizedText`는 분석 실행 중 만든 값이며 원문을 덮어쓰지 않는다. 대소문자, 앞뒤 공백, 빈 줄과 문장부호 처리 규칙은 별도 결정이 필요하다.
+[Unicode Normalization Forms](https://unicode.org/reports/tr15/)는 시각적으로 같은 문자열이 서로 다른 코드 포인트 배열을 가질 수 있으며 정규화 형식으로 동등한 표현을 만들 수 있음을 정의한다. `normalizedText`는 분석 실행 중 만든 값이며 원문을 덮어쓰지 않는다. [줄 단위 생김새 겹침 분석 결정](../decisions/surface-overlap-analysis.md)에 따라 CRLF, LF와 CR을 줄바꿈으로 인식하고, 앞뒤 공백 제거, 내부 공백 정리, NFC 정규화와 locale 비의존 소문자 변환을 적용한다. 문장부호는 유지하고 정리한 결과가 빈 줄이면 제외한다.
 
-`lineIndex`는 분석한 스냅샷 안의 0부터 시작하는 줄 위치다. 메모 편집 뒤에는 위치가 달라질 수 있으므로 `note.revision`이 현재 revision과 다르면 결과를 오래된 것으로 표시하거나 다시 분석해야 한다.
+`lineIndex`는 분석한 스냅샷 안의 0부터 시작하는 줄 위치다. 메모 편집 뒤에는 위치가 달라질 수 있으므로 `note.contentRevision`이 현재 content revision과 다르면 결과를 오래된 것으로 표시하거나 다시 분석해야 한다. 위치와 크기만 바뀌면 분석 결과를 폐기하지 않는다.
 
-`score`의 범위와 의미는 `kind`마다 다를 수 있으므로 알고리즘 이름과 버전을 함께 둔다. 분석 결과를 영구 저장할 필요가 없다면 `AnalysisRun`은 메모리에서만 유지할 수 있다. 계정 모드에서 결과를 공유하거나 비교 이력을 보여주기로 승인되면 서버 저장 범위와 삭제 규칙을 다시 정해야 한다.
+정확한 반복과 포함 관계를 먼저 분류한 뒤, 나머지 3 grapheme 이상인 줄은 extended grapheme 3-gram 집합의 Jaccard 점수를 계산한다. 점수가 0보다 큰 후보를 내림차순으로 보여주되 고정 합격 임계값이나 의미가 같다는 판정으로 사용하지 않는다. `score`의 의미를 재현할 수 있도록 알고리즘 이름과 버전을 함께 둔다. `AnalysisRun`은 현재 애플리케이션 실행의 메모리에서만 유지한다. 최우선 계정 및 동기화 백로그에서 결과 공유나 비교 이력을 승인하면 서버 저장 범위와 삭제 규칙을 다시 정해야 한다.
 
 ## 템플릿과 일회성 결과
 
-플레이스홀더를 특수 구분자가 들어간 문자열 하나로 저장하면 사용자가 같은 문자를 원문에 입력했을 때 구분하기 어렵다. literal과 placeholder를 구분하는 union으로 저장하는 방안을 제안한다.
+플레이스홀더를 특수 구분자가 들어간 문자열 하나로 저장하면 사용자가 같은 문자를 원문에 입력했을 때 구분하기 어렵다. 일반 텍스트와 플레이스홀더를 판별 가능한 union으로 저장한다.
 
 ```ts
 interface LiteralSegment {
@@ -240,7 +238,7 @@ interface TextTemplate {
 }
 
 interface TemplateSuggestion {
-  sourceLines: readonly AnalysisLineRef[];
+  sourceLines: readonly [AnalysisLineRef, AnalysisLineRef];
   proposedSegments: readonly TemplateSegment[];
   algorithm: AlgorithmRef;
 }
@@ -248,38 +246,32 @@ interface TemplateSuggestion {
 type TemplateInputValues = Readonly<Record<string, string>>;
 ```
 
-일회성 결과는 `TextTemplate.segments`와 `TemplateInputValues`로 계산하며, 사용자가 별도로 저장하지 않는 한 엔티티로 만들 필요가 없다. placeholder의 key 중복, 빈 값 허용, 필수값, 입력 순서와 형식 검사는 UI 결정과 함께 정해야 한다.
+일회성 결과는 `TextTemplate.segments`와 `TemplateInputValues`로 계산하며, 사용자가 별도로 저장하지 않는 한 엔티티로 만들 필요가 없다. 플레이스홀더 key의 중복을 허용하지 않고 segment 순서로 입력 UI를 만든다. 빈 값 허용과 필수값 표현은 템플릿 작성 화면의 오류 표시를 정할 때 확정한다.
 
-템플릿 제안은 분석 결과를 근거로 하지만 사용자가 승인하기 전에는 `TextTemplate`이 아니다. 분석 실행을 저장하지 않아도 제안 근거를 설명할 수 있도록 원본 줄 참조와 알고리즘 버전을 포함한다. 이 구분은 잘못된 자동 제안이 저장된 템플릿처럼 보이는 일을 막는다.
+템플릿 제안은 [템플릿 제안 생성 결정](../decisions/template-suggestion.md)에 따라 겹침 결과 한 행의 두 원문 줄을 고정된 선택 쌍으로 전달받아 grapheme 단위로 비교한다. 공통 구간은 일반 텍스트로, 붙어 있는 차이 구간은 순서형 플레이스홀더로 제안한다. 의미를 추론한 이름을 만들지 않으며 공통 일반 텍스트가 없거나 두 줄이 같으면 제안하지 않고 수동 작성 동작을 보여준다. 사용자가 명시적으로 저장하기 전에는 `TextTemplate`이 아니다.
 
 ## 상호작용 설정
 
-요구사항은 별도 설정 화면과 대체 누적 조작을 요구하지만 정확한 선택지는 아직 정하지 않았다. 다음 형태는 조사 문서의 화면 제안과 데이터 쟁점을 연결하는 예시다.
+요구사항은 별도 설정 화면과 대체 누적 조작을 요구한다. [메모 누적 실행 동작 결정](../decisions/accumulation-activation.md)에 따라 누적 버튼은 항상 제공하고 설정에는 `Command+클릭` 추가 동작의 사용 여부만 보관한다.
 
 ```ts
-type AccumulationTrigger =
-  | "meta-click"
-  | "visible-button"
-  | "accumulation-mode";
-
 interface InteractionPreferences {
-  accumulationTrigger: AccumulationTrigger;
-  showCopySuccessNotice: boolean;
+  metaClickEnabled: boolean;
   updatedAt: IsoDateTime;
 }
 ```
 
-선택지 이름과 기본값은 [화면 구성과 공간형 메모 상호작용 조사](interface-layout-research.md)의 제안을 검토한 뒤 승인해야 한다. 운영체제 감지 결과를 저장하기보다 사용자가 고른 동작을 저장하고, 지원되지 않는 선택지는 UI에서 설명하는 편이 예측 가능하다. modifier key와 브라우저 충돌은 기기마다 다를 수 있으므로 이 설정은 기본적으로 기기에 보관하고 계정 동기화 여부를 별도로 결정한다.
+운영체제 감지값을 저장하지 않고 사용자가 고른 동작을 저장한다. 다른 보조 키 조합과 누적 모드는 초기 범위에 포함하지 않는다. 보조 키와 브라우저 충돌은 기기마다 다를 수 있으므로 이 설정은 기본적으로 기기에 보관한다. 계정 동기화 여부는 최우선 백로그에서 별도로 결정한다.
 
-## 로컬 저장소와 계정 데이터베이스 구조
+## 로컬 저장 구조와 최우선 계정 데이터베이스 백로그
 
-### 로컬 모드 제안
+### 로컬 저장 구성
 
-IndexedDB object store를 `boards`, `notes`, `accumulators`, `usage`, `templates`, `preferences`로 나누고, 사용자 동작 하나가 여러 store를 바꾸면 하나의 transaction에 묶는다. `analysisLines`는 원문에서 파생하므로 기본 저장 대상에서 제외한다. `analysisRuns`도 결과 이력이 승인되기 전에는 일시 상태로 둔다.
+IndexedDB object store를 `boards`, `notes`, `accumulators`, `usage`, `templates`, `preferences`로 나누고, 사용자 동작 하나가 여러 store를 바꾸면 하나의 transaction에 묶는다. `notes`는 전체 revision과 content revision을 함께 저장한다. 분석용 줄은 원문에서 파생하므로 기본 저장 대상에서 제외하고, 분석 실행과 결과, 제거 이력, 저장 전 템플릿 제안과 일회성 출력은 실행 중 메모리에 둔다.
 
-브라우저 저장 공간은 사용자가 지우거나 저장소 압박으로 정리될 수 있다. [StorageManager.persist 문서](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist)는 영구 저장 요청이 boolean으로 승인 여부를 돌려주며 브라우저가 결정을 내린다고 설명한다. 따라서 로컬 백업과 내보내기 동작을 별도 요구사항으로 정하지 않으면 영구 보관을 보장할 수 없다.
+브라우저 저장 공간은 사용자가 지우거나 저장소 압박으로 정리될 수 있다. [StorageManager.persist 문서](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist)는 영구 저장 요청이 boolean으로 승인 여부를 돌려주며 브라우저가 결정을 내린다고 설명한다. 현재 범위에는 내보내기, 가져오기와 브라우저가 지운 자료의 복구가 없으므로 IndexedDB를 백업이나 영구 보관으로 표현하지 않는다. HTTP와 HTTPS를 포함해 origin이 다르면 저장 자료를 공유하지 않는다는 점도 실행 안내에 반영해야 한다.
 
-### 계정 모드 제안
+### 최우선 백로그: 계정 데이터베이스 제안
 
 계정 데이터베이스에서는 board, note, accumulator item, usage aggregate와 template을 서로 참조하는 엔티티로 두고 account ID는 서버 저장 계층에서 결합한다. 엔티티 ID, account ID, revision과 foreign key는 명시적 열로 검증하고, 템플릿 segment나 알고리즘별 분석 세부처럼 형태가 실제로 달라지는 값만 JSON 계열 저장을 검토한다.
 
@@ -300,7 +292,6 @@ interface NoteRepository {
 
 interface TextOverlapAnalyzer {
   analyze(notes: readonly Note[]): Promise<AnalysisRun>;
-  cancel(runId: EntityId): Promise<void>;
 }
 
 interface AppDependencies {
@@ -309,16 +300,18 @@ interface AppDependencies {
 }
 ```
 
-실제 메서드와 오류 타입은 use case가 정해진 뒤 다듬어야 한다. 이 예시는 로컬과 계정 구현이 같은 책임을 제공해야 한다는 점만 보여준다.
+실제 메서드와 오류 타입은 use case가 정해진 뒤 다듬어야 한다. 현재는 로컬 구현에 필요한 책임만 확정하고, 최우선 계정 및 동기화 백로그에서 원격 구현이 같은 책임을 제공할 수 있는지 다시 검증한다.
 
-## 결정이 필요한 사항
+## 현재 범위의 결정 기록
 
-- 누적 항목이 클릭 당시 텍스트를 유지할지, 원본 메모의 최신 내용을 따라갈지
-- 메모 수정 전후 사용 횟수와 같은 내용의 서로 다른 메모를 어떤 단위로 합칠지
-- 클립보드 쓰기 실패와 나중에 제거한 누적 항목을 사용 횟수에 포함할지
-- 실행 취소 이력에 제거 외의 동작을 포함할지와 이력의 최대 크기 및 보존 기간
-- 빈 줄, 공백, 대소문자, 문장부호와 유니코드 정규화 규칙
-- 분석 결과와 템플릿 제안을 저장할지, 저장한다면 언제 오래된 것으로 처리할지
+- [로컬 저장과 실행 중 상태 결정](../decisions/local-storage-and-ephemeral-state.md)
+- [누적 순서와 제거 복구 결정](../decisions/accumulator-ordering-and-recovery.md)
+- [텍스트 사용 빈도 집계 결정](../decisions/usage-counting.md)
+- [줄 단위 생김새 겹침 분석 결정](../decisions/surface-overlap-analysis.md)
+- [템플릿 제안 생성 결정](../decisions/template-suggestion.md)
+- [메모 누적 실행 동작 결정](../decisions/accumulation-activation.md)
+
+### 최우선 계정 및 동기화 백로그에서 결정할 사항
+
 - viewport를 기기별로 둘지 계정과 함께 동기화할지
-- 계정 모드의 충돌 해결, tombstone 보존, 완전 삭제와 오프라인 동작
-- 로컬 데이터의 내보내기, 가져오기와 저장소 정리 위험을 초기 범위에 포함할지
+- 계정 실행 형태의 충돌 해결, tombstone 보존, 완전 삭제와 오프라인 동작
