@@ -2,13 +2,15 @@
 
 현재 로컬 애플리케이션은 브라우저 구현을 한 조립 지점에서 연결하고, 사용자 입력과 저장소 사이의 모든 경계를 런타임에 검증해야 한다. 페이지 전체를 Client Component로 만드는 방식, React 내부 상태를 `useEffect`로 맞추는 방식, 범용 Service Locator, 역할이 드러나지 않는 port와 adapter 이름, 서버 및 브라우저 코드를 함께 내보내는 FSD public API, 수명과 버전이 없는 worker 메시지와 IndexedDB를 영구 보관소로 간주하는 방식은 채택하지 않는다. 테스트의 선후 관계와 완료 증거는 [개인 메모 애플리케이션 테스트 전략](testing-strategy.md)을 따른다. 두 cache를 같은 데이터의 원본으로 쓰는 방식과 PostgreSQL 제약을 생략하는 방식은 최우선 계정 및 동기화 백로그를 시작할 때 적용할 금지 사항이다. 라이브러리 제공 백로그를 시작할 때에는 React를 중복으로 포함하거나 클라이언트 및 서버 진입점을 하나로 합치는 방식도 피해야 한다.
 
-이 문서의 상태는 `proposed`다. 구현자와 리뷰어가 개인 메모 애플리케이션의 기술 구조를 선택할 때 사용하는 제안 지침이며, 승인된 기술 스택이나 현재 구현을 설명하지 않는다.
+이 문서의 상태는 `proposed`다. 구현자와 리뷰어가 개인 메모 애플리케이션의 기술 구조를 선택할 때 사용하는 제안 지침이며, 승인된 기술 스택이나 현재 구현을 설명하지 않는다. 다만 [애플리케이션 패키지 위치와 FSD 구조 결정](../../designs/personal-notes-app-8fd/decisions/application-package-and-fsd.md)이 확정한 `apps/notes/` 배치와 FSD 계층 규칙은 현재 적용할 결정이다. 구조 검사 도구와 정확한 의존성은 아직 제안 상태다.
 
 ## 적용 범위와 현재 근거
 
 [요구사항](../../designs/personal-notes-app-8fd/requirements.md)은 현재 백엔드 없는 로컬 애플리케이션을 완성하고, 계정 및 동기화를 모든 백로그 가운데 가장 먼저 진행하도록 정한다. 라이브러리 패키지와 포트폴리오 라우트 연결은 그보다 뒤의 백로그다.
 
 [로컬 실행 구조와 계정 및 라이브러리 백로그 조사](../../designs/personal-notes-app-8fd/references/runtime-modes-and-architecture.md)는 현재 독립 실행 단계에 적용할 책임별 interface와 조립 지점을 제안하고, 서버 저장소 교체와 패키지 진입점 분리는 각각의 백로그 조사로 남긴다. [데이터 구조 초안](../../designs/personal-notes-app-8fd/references/data-model-draft.md)은 메모의 전체 revision과 content revision, 사용 횟수, 줄 단위 분석과 알고리즘 version을 구분한다.
+
+[애플리케이션 패키지 위치와 FSD 구조 결정](../../designs/personal-notes-app-8fd/decisions/application-package-and-fsd.md)은 독립 실행 패키지를 `apps/notes/`에 두고, Next.js 라우트는 패키지 루트의 `app/`, FSD 코드는 `src/` 아래의 `_app`, `_pages`와 필요한 하위 계층에 두도록 정한다. 모든 계층을 미리 만들거나 라이브러리 패키지를 함께 구현하는 방식은 승인하지 않았다.
 
 2026년 8월 30일 현재 저장소에는 패키지 매니페스트, 잠금 파일, TypeScript 설정, Next.js 설정, 애플리케이션 소스와 테스트가 없다. 따라서 아래 규칙은 도달 가능한 실패를 미리 제한하는 제안이며 현재 준수 여부를 검사할 수 없다. 구현을 시작하기 전에 결정 책임자가 정확한 버전을 승인하고 잠금 파일로 고정해야 한다.
 
@@ -20,8 +22,8 @@
 
 다음 항목이 확정되지 않으면 관련 모듈 구현을 시작하지 않는다.
 
-- Next.js와 React의 정확한 버전 및 App Router 사용 여부
-- FSD를 채택할 근거, 실제로 필요한 layer와 slice, Next.js route 디렉터리와 구분할 이름, 환경별 public API 규칙
+- Next.js와 React의 정확한 버전 및 선택한 App Router 정적 내보내기의 호환성
+- 작업 단위에서 실제로 만들 FSD layer와 slice, 구조 검사 방법 및 위반 예시와 정상 예시
 - 정적 로컬 배포가 정적 export인지 정적 호스팅의 클라이언트 애플리케이션인지 여부
 - 로컬 정적 결과물을 제공할 HTTPS 호스팅과 localhost HTTP 서버의 구현 및 실행 방식
 - Clipboard, IndexedDB, Dedicated Worker와 필요한 Intl API를 제공하는 지원 브라우저 및 최소 버전
@@ -728,6 +730,8 @@ lint는 `Adapter` suffix를 찾을 수 있지만 이름이 직관적인지 또�
 
 ## FSD 계층과 public API가 Next.js 실행 환경을 섞게 하지 않는다
 
+`apps/notes/` 패키지와 아래 적용 규칙의 FSD 계층 배치는 `current`다. Steiger를 포함한 구조 검사 도구와 환경별 public API 추가 여부는 실제 의존성과 실행 환경을 확인하기 전까지 `proposed`다.
+
 ### 막으려는 실패
 
 FSD의 모든 layer를 소스가 생기기 전에 만들면 하나의 개인 메모 기능이 여러 빈 폴더와 재수출 파일로 흩어진다. Next.js route용 `app` 및 `pages`와 같은 이름을 FSD layer에도 쓰면 import와 파일 탐색이 모호해진다. 더 위험한 경우는 하나의 `index.ts`가 Client Component, IndexedDB adapter, PostgreSQL query와 Server Action을 함께 재수출하여 Client Component의 import가 server-only module을 browser graph로 끌어들이는 것이다.
@@ -748,13 +752,15 @@ FSD 공식 문서는 모든 layer를 사용할 필요가 없고 모든 상호작
 
 ### 적용 규칙
 
-- 현재 저장소에는 소스와 route 구조가 없으므로 FSD 도입 여부는 `needs human input`이다. 먼저 실제 page, 공유되는 사용자 행동과 module 수를 확인하고 가치가 있는 layer만 만든다.
-- App Router를 채택하면 Next.js의 `app/`은 route와 framework file을 얇게 연결하고, FSD를 쓸 경우 내부 layer 이름은 `_app`과 `_pages`로 구분한다.
+- 독립 실행 package는 `apps/notes/`에 두고 `apps/notes/package.json`이 의존성과 실행 명령을 관리한다. package manager, workspace 선언과 잠금 파일 형식은 구현을 시작할 때 별도로 정한다.
+- Next.js의 `apps/notes/app/`은 route와 framework file을 얇게 연결하고, FSD 코드는 `apps/notes/src/`에 둔다. FSD의 App과 Pages 계층은 `_app`과 `_pages`로 구분한다.
+- 모든 layer를 먼저 만들지 않는다. 화면 한 곳에서만 쓰는 조합은 그 화면의 `_pages` slice에 두고, 여러 화면에서 실제로 재사용하는 사용자 동작만 `features`로 옮긴다. 현재 `widgets`와 폐기된 `processes`는 만들지 않는다.
 - slice는 `notes`, `templates`, `usage`처럼 독자가 찾는 업무 용어로 나눈다. `components`, `hooks`와 `types`처럼 파일 종류만 나타내는 이름으로 slice나 shared library를 만들지 않는다.
 - 같은 layer의 slice끼리 임의로 import하지 않고 상위 layer에서 조합한다. 다른 slice는 public API로만 접근하며 같은 slice 내부에서는 public API를 역으로 import하지 않고 상대 경로를 사용한다.
+- Entities slice 사이의 자료 관계를 type으로 직접 표현해야 할 때에만 `@x` public API를 사용한다. 그 밖의 같은 layer import를 예외로 만들지 않는다.
 - `export *`로 내부 전체를 public API에 노출하지 않는다. export 목록을 명시하고 server, client와 공통 module을 서로 재수출하지 않는다.
 - FSD는 frontend 구조화 방법이다. PostgreSQL schema, migration, background job과 큰 API 구현을 frontend layer 규칙에 억지로 넣지 않는다.
-- 현재 local composition root는 브라우저 진입점만 import하고 정적 build가 `index.server.ts`에 도달하면 실패로 처리한다. 최우선 계정 및 동기화 백로그에서는 sync server graph가 browser adapter를 직접 import하지 않는지도 확인한다.
+- 현재 local composition root는 `apps/notes/src/_app/composition/`에 두고 아래 계층의 공개 브라우저 진입점만 가져온다. 아래 계층은 `_app`을 가져오지 않으며, 정적 build가 `index.server.ts`에 도달하면 실패로 처리한다. 최우선 계정 및 동기화 백로그에서는 sync server graph가 browser adapter를 직접 import하지 않는지도 확인한다.
 
 안티패턴:
 
@@ -793,7 +799,7 @@ export { NotesProvider } from './ui/notes-provider'
 
 ### 검증
 
-FSD를 승인한 뒤 Steiger 같은 구조 검사 도구를 추가할지는 정확한 버전과 dependency 조사를 거쳐 결정한다. 최소 검사는 layer 역방향 import, 같은 layer의 slice 간 deep import, public API 우회와 server 및 client 진입점 교차 import를 구분해야 한다. Next.js의 local 및 sync production build로 환경 오염 오류와 client bundle을 확인하고, 정적 로컬 산출물에 PostgreSQL client, server action과 비밀 환경변수 접근 코드가 없는지 검사한다. 파일명이 맞는지만으로 통과시키지 않는다.
+FSD 도입은 승인됐지만 Steiger 같은 구조 검사 도구를 추가할지는 정확한 버전과 dependency 조사를 거쳐 결정한다. U1은 기존 lint, FSD 공식 검사 도구와 내부 검사를 비교하고, layer 역방향 import, 허용된 Entities `@x` 외의 같은 layer import, public API 우회와 server 및 client 진입점 교차 import를 구분하는 방법을 확정해야 한다. Next.js의 local 및 sync production build로 환경 오염 오류와 client bundle을 확인하고, 정적 로컬 산출물에 PostgreSQL client, server action과 비밀 환경변수 접근 코드가 없는지 검사한다. 파일명이 맞는지만으로 통과시키지 않는다.
 
 ## 백로그: 라이브러리 빌드에서 호스트와 실행 환경을 다시 묶지 않는다
 

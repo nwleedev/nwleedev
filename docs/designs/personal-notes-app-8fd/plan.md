@@ -10,6 +10,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 실행 순서는 정적 내보내기와 Dedicated Worker가 실제 배포 결과에서 동작하는지 먼저 확인한 뒤, 자료 형태와 브라우저 저장, 공통 화면 구조, 메모, 복사 및 누적, 사용 빈도, 겹침 분석과 템플릿 순으로 진행한다. 각 단위는 선행 결과와 중단 조건을 만족해야 다음 단위의 완료 근거가 될 수 있다.
 
+독립 실행 애플리케이션은 `apps/notes/package.json`이 관리한다. Next.js 라우트는 `apps/notes/app/`에 두고 FSD 코드는 `apps/notes/src/`에 둔다. 모든 FSD 계층을 먼저 만드는 대신 현재 화면, 메모와 템플릿 자료 및 사용자 동작에 필요한 계층만 추가하고, 계층 의존 방향과 slice public API를 각 작업 단위에서 확인한다.
+
 계정, 로그인, 동기화, 백엔드와 데이터베이스는 이번 계획에서 제외하며 모든 백로그 가운데 우선순위가 가장 높다. 라이브러리 패키지와 포트폴리오 라우트 연결은 그 뒤의 백로그다. 현재 결과물에는 두 백로그를 위한 화면, 서버 코드나 미리 만든 추상화를 포함하지 않는다.
 
 ## 기준선과 문서 책임
@@ -43,6 +45,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 - [템플릿 제안 생성](decisions/template-suggestion.md): 결과 행의 두 원문 전달, 결정적 차이 분석과 범위 선택 기반 수동 작성
 - [로컬 정적 배포와 분석 Worker](decisions/static-export-and-worker.md): Next.js 정적 내보내기와 요청 뒤 만드는 Dedicated Worker
 - [모듈별 TDD와 동작 검증](decisions/verification-strategy.md): 순수 규칙만 TDD로 개발하고 브라우저 기능은 실제 실행 결과로 확인하는 분류
+- [애플리케이션 패키지 위치와 FSD 구조](decisions/application-package-and-fsd.md): `apps/notes/` 패키지, 얇은 Next.js 라우트와 필요한 FSD 계층만 만드는 구조
 
 초기 권장안을 다시 검토하면서 누적 버튼을 설정에 따라 숨기는 방식, viewport `768px` 고정값, 전체 메모 revision만 사용하는 방식과 보편적인 Jaccard 합격 임계값은 채택하지 않았다. 이 네 변경의 근거와 재검토 조건은 각각 연결된 결정 기록에 남아 있다.
 
@@ -64,7 +67,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 - 계정, 로그인, 동기화, 원격 API, PostgreSQL과 그 UI
 - Server Action, 동적 Route Handler, 요청 시점 서버 렌더링과 Next.js 서버 캐시
-- TanStack Query, SharedWorker, FSD와 범용 DI 컨테이너의 선제 도입
+- TanStack Query, SharedWorker, 범용 DI 컨테이너와 실제 코드가 없는 FSD 계층의 선제 도입
 - 의미 유사성 분석과 LLM 사용
 - URL 자동 링크, 이동, 미리보기와 메타데이터
 - 자료 내보내기, 가져오기와 브라우저가 지운 자료의 복구
@@ -72,26 +75,46 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ## 구현 구조
 
-### 책임 흐름
+### 패키지와 계층 배치
 
 ```text
-Next.js route와 공통 화면 구조
-  -> 기능별 화면과 사용자 동작
-    -> application command와 query
-      -> 책임별 TypeScript interface
-        -> 브라우저 구현
-          -> Clipboard API
-          -> IndexedDB
-          -> Dedicated Worker
+apps/notes/
+  package.json
+  app/                         Next.js App Router와 framework 파일
+    layout.tsx
+    page.tsx
+    accumulator/page.tsx
+    usage/page.tsx
+    overlap/page.tsx
+    templates/page.tsx
+    settings/page.tsx
+  src/
+    _app/                      provider, 조립, 전역 스타일
+    _pages/                    화면별 slice
+      notes/
+      accumulator/
+      usage/
+      overlap/
+      templates/
+      settings/
+    features/                  여러 화면에서 재사용하는 사용자 동작만 배치
+    entities/                  메모, 누적, 사용 기록, 템플릿과 사용자 설정 자료 및 규칙
+    shared/                    공통 UI와 브라우저 기술 연결
 ```
 
-브라우저 구현은 한 composition root에서 만들고 명시적인 속성을 가진 의존성 객체로 application 계층에 전달한다. React에서는 책임이 제한된 provider와 기능별 hook으로 이 객체 또는 application facade를 전달해 Props Drilling을 피한다. 문자열 token으로 전역 객체를 찾는 범용 Service Locator는 만들지 않는다. Context는 의존성을 임의 조회하는 저장소가 아니라 composition root에서 이미 만든 명시적 동작만 전달한다.
+`apps/notes/app/`의 route 파일은 `apps/notes/src/_pages/`의 공개 진입점을 연결한다. `apps/notes/app/layout.tsx`는 `apps/notes/src/_app/`의 provider와 전역 스타일을 연결한다. route 파일에 화면 동작, IndexedDB 접근이나 메모, 누적 및 템플릿 규칙을 구현하지 않는다.
+
+FSD 계층 의존 방향은 `_app`, `_pages`, `features`, `entities`, `shared` 순서다. 한 slice는 같은 계층의 다른 slice를 직접 가져오지 않고 더 아래 계층만 가져온다. Entities 사이의 자료 관계를 type으로 직접 표현해야 할 때에만 `@x` public API를 예외로 사용한다. 다른 slice에서는 명시적 export를 둔 public API만 사용하고, 같은 slice 안에서는 자신의 public API를 거치지 않는 상대 경로를 사용한다. 화면 한 곳에서만 쓰는 UI와 동작은 그 화면의 `_pages` slice에 남기고, 여러 화면에서 실제로 다시 사용하는 사용자 동작만 `features`로 분리한다. `widgets`와 폐기된 `processes` 계층은 현재 만들지 않으며, 실제 파일이 없는 계층이나 segment도 만들지 않는다.
+
+브라우저 구현은 `_app/composition`에서 만들고 명시적인 속성을 가진 의존성 객체로 각 책임을 가진 slice의 provider에 전달한다. `_app/providers`의 `PersonalNotesProvider`가 이 provider를 공통 layout 아래에서 한 번 조립하지만, 아래 계층은 `_app`을 가져오지 않는다. React에서는 책임이 제한된 provider와 기능별 hook으로 의존성을 전달해 Props Drilling을 피한다. 문자열 token으로 전역 객체를 찾는 범용 Service Locator는 만들지 않는다. Context는 의존성을 임의 조회하는 저장소가 아니라 조립 지점에서 만든 명시적 동작만 전달한다.
 
 `PersonalNotesProvider`는 명시적인 Client Component 진입점이며 공통 루트 layout의 자식에서 한 번 유지한다. Client Component도 정적 빌드 중 미리 렌더링될 수 있으므로 `createLocalApplication`과 각 브라우저 구현의 생성 과정에서는 `navigator`, `indexedDB`, `window`나 Worker를 읽지 않는다. 이 브라우저 전역은 실제 읽기, 쓰기 또는 분석을 브라우저에서 시작할 때만 접근한다.
 
 `Port`, `Adapter`, `Manager`처럼 역할을 다시 알아내야 하는 이름을 기본값으로 사용하지 않는다. `NoteRepository`, `ClipboardWriter`, `OverlapAnalyzer`처럼 수행하는 책임을 이름에 적고, 브라우저 구현은 `IndexedDbNoteRepository`, `BrowserClipboardWriter`, `WorkerOverlapAnalyzer`처럼 기술과 책임을 함께 나타낸다.
 
-현재 저장소에는 애플리케이션 구조와 패키지 설정이 없으므로 U1에서 독립 실행 프로젝트의 최상위 디렉터리를 정한다. 아래 작업 단위의 `app/`와 `src/`는 그 디렉터리를 기준으로 한 후보 경로다. U1은 저장소 루트에 단일 애플리케이션을 둘지 `apps/personal-notes/`에 독립 프로젝트를 둘지 비교하되, 라이브러리 또는 workspace 백로그를 함께 구현하지 않는다. 선택 결과를 package script와 이 계획의 후속 파일 위치에 일관되게 반영한다.
+현재 저장소에는 애플리케이션 구조와 패키지 설정이 없다. U1은 [애플리케이션 패키지 위치와 FSD 구조 결정](decisions/application-package-and-fsd.md)에 따라 `apps/notes/`를 만들고 package manager, 저장소 workspace 선언과 잠금 파일 형식을 정한다. 이 workspace 설정은 현재 애플리케이션을 저장소에서 실행하기 위한 범위이며 라이브러리 패키지 또는 포트폴리오 연결 백로그를 함께 구현하지 않는다.
+
+각 slice와 slice가 없는 계층의 segment는 필요한 항목만 내보내는 public API를 둔다. 현재 로컬 애플리케이션은 별도 public API가 필요한 server-only 자료 접근이나 실행 시점 서버 구현을 갖지 않으므로 `index.server.ts`와 `index.client.ts`를 대칭으로 만들지 않는다. 이후 실제 server-only export가 일반 `index.ts`를 통해 브라우저 모듈 그래프에 들어가는 문제가 생길 때에만 명시적인 환경별 진입점을 추가한다.
 
 ### 자료와 실행 중 상태
 
@@ -160,24 +183,28 @@ U7과 U9는 U6이 끝난 뒤 병렬로 진행할 수 있다. U8은 U7의 제거 
 
 ### 선행 조건
 
-없다. 현재 저장소에 package manifest, lockfile, 애플리케이션 소스와 실행 명령이 없다는 상태에서 시작한다.
+없다. 현재 저장소에 package manifest, lockfile, workspace 설정, 애플리케이션 소스와 실행 명령이 없다는 상태에서 시작한다. 애플리케이션 위치와 FSD 배치는 [애플리케이션 패키지 위치와 FSD 구조 결정](decisions/application-package-and-fsd.md)으로 확정됐다.
 
 ### 변경 후보
 
-- `package.json`과 선택한 package manager의 lockfile
-- `next.config.*`
-- `tsconfig.json`
-- `eslint.config.*`
-- `app/layout.tsx`
-- `app/page.tsx`
-- `src/browser/analysis/overlap.worker.ts`
+- `apps/notes/package.json`
+- 저장소 루트의 workspace 선언과 선택한 package manager의 lockfile
+- `apps/notes/next.config.*`
+- `apps/notes/tsconfig.json`
+- `apps/notes/eslint.config.*`
+- `apps/notes/app/layout.tsx`
+- `apps/notes/app/page.tsx`
+- `apps/notes/src/_pages/notes/index.ts`
+- `apps/notes/src/_pages/overlap/api/overlap.worker.ts`
 - 필요한 정적 호스팅 및 브라우저 검사 설정
 
 ### 작업
 
 - 구현 시점의 Next.js, React, TypeScript, React Hook Form과 Zod 공식 문서를 다시 확인하고 서로 호환되는 정확한 버전을 고정한다.
 - 각 직접 및 전이 의존성의 기능, 버전, 라이선스, 유지보수 상태, peer 조건, 잠재적 문제와 적용할 작성 방식을 확인한다. TanStack Query, DI 컨테이너, IndexedDB wrapper와 drag library는 현재 필요와 플랫폼 API를 비교해 근거가 없으면 추가하지 않는다.
+- `apps/notes/package.json`을 애플리케이션 매니페스트로 만들고 저장소 루트의 workspace 설정이 이 패키지를 선택해 실행할 수 있게 한다. package manager와 workspace 파일 형식은 의존성 조사 뒤 확정한다.
 - App Router와 정적 내보내기를 구성하고 Server Action, 동적 Route Handler와 요청 시점 서버 기능이 결과물에 들어오지 않게 한다.
+- `apps/notes/app/`에는 framework 진입 파일만 두고 `apps/notes/src/`에는 필요한 FSD 계층만 만든다. `_app`, `_pages`, `features`, `entities`, `shared`의 import 방향, 허용된 Entities `@x`와 public API 우회를 구분할 구조 검사 방법을 정하고 위반 예시와 정상 예시로 판별력을 확인한다. FSD 공식 검사 도구를 추가하려면 정확한 버전과 전체 의존성 조사를 먼저 완료한다.
 - 분석 요청을 흉내 내는 최소 버튼에서 module-relative URL로 Dedicated Worker를 지연 생성하고 ping 및 응답을 주고받는다.
 - 운영용 정적 결과물을 HTTPS와 호스트 이름이 `localhost`인 HTTP에서 제공할 개발 및 검증 방식을 정한다. 현재 로컬 결과물에는 실행 모드 환경변수를 추가하지 않는다.
 - 지원 브라우저와 최소 버전을 정하고 Clipboard, IndexedDB, Dedicated Worker, Pointer Events, container query와 필요한 `Intl` 기능을 실제 지원 범위와 대조한다.
@@ -187,13 +214,15 @@ U7과 U9는 U6이 끝난 뒤 병렬로 진행할 수 있다. U8은 U7의 제거 
 TDD를 적용하지 않는다. 이 단위의 위험은 빌드 도구가 만든 Worker URL, MIME type, 정적 자산과 실행 주소이므로 가짜 Worker 단위 검사보다 운영용 빌드와 실제 브라우저 왕복이 직접적인 근거다.
 
 - package script로 운영용 정적 내보내기가 성공한다.
+- 저장소 루트에서 `apps/notes`만 선택한 실행과 `apps/notes/package.json`의 package script 실행이 같은 애플리케이션을 대상으로 한다.
+- 구조 검사가 계층 역방향 import, 허용되지 않은 같은 계층 import와 public API 우회를 각각 실패로 판정하고 Entities `@x`를 포함한 승인된 import는 통과시킨다.
 - 내보낸 파일을 두 허용 접속 방식에서 열고 첫 분석 요청 전에는 Worker가 없으며, 요청 뒤 Worker 응답이 화면에 표시된다.
 - 잘못된 Worker URL이나 MIME type이면 smoke가 실패한다.
 - 결과물에서 현재 범위에 없는 서버 실행 코드와 계정 UI를 찾을 수 없다.
 
 ### 중단 조건
 
-Worker URL, MIME type 또는 정적 호스팅에서의 메시지 왕복을 확인하지 못하면 U9를 시작하지 않는다. 버전 호환성, 대상 브라우저 또는 package 구조가 결정되지 않으면 의존하는 소스 구조를 만들지 않는다.
+Worker URL, MIME type 또는 정적 호스팅에서의 메시지 왕복을 확인하지 못하면 U9를 시작하지 않는다. 버전 호환성, 대상 브라우저, workspace 설정 또는 FSD 구조 검사 방법이 결정되지 않으면 의존하는 소스 구조를 만들지 않는다.
 
 ## U2. 자료 규칙과 의존성 조립 구조
 
@@ -203,19 +232,20 @@ Worker URL, MIME type 또는 정적 호스팅에서의 메시지 왕복을 확�
 
 ### 선행 조건
 
-U1의 프로젝트 위치, TypeScript 및 Zod 버전과 module 규칙이 확정되어야 한다.
+U1의 `apps/notes` package, TypeScript 및 Zod 버전, module alias와 FSD 구조 검사 방법이 확정되어야 한다.
 
 ### 변경 후보
 
-- `src/model/note.ts`
-- `src/model/accumulator.ts`
-- `src/model/usage.ts`
-- `src/model/analysis.ts`
-- `src/model/template.ts`
-- `src/application/interfaces/*.ts`
-- `src/composition/PersonalNotesProvider.tsx`
-- `src/composition/createLocalApplication.ts`
-- `src/model/*.test.ts`
+- `apps/notes/src/entities/note/model/*`
+- `apps/notes/src/entities/accumulator/model/*`
+- `apps/notes/src/entities/usage/model/*`
+- `apps/notes/src/entities/template/model/*`
+- `apps/notes/src/entities/preference/model/*`
+- `apps/notes/src/_pages/overlap/model/*`
+- 각 책임을 사용하는 slice의 `model/*` interface
+- `apps/notes/src/_app/providers/PersonalNotesProvider.tsx`
+- `apps/notes/src/_app/composition/createLocalApplication.ts`
+- 각 model 파일과 같은 slice의 `*.test.ts`
 
 ### 작업
 
@@ -224,7 +254,9 @@ U1의 프로젝트 위치, TypeScript 및 Zod 버전과 module 규칙이 확정�
 - 외부 입력, IndexedDB record와 Worker message를 `unknown`에서 검증하는 Zod schema를 책임별로 나눈다. React Hook Form 입력, application command와 저장 record를 하나의 만능 schema로 만들지 않는다.
 - 저장, Clipboard, 분석과 ID 생성을 위한 interface는 구체적인 책임을 드러내는 이름으로 정의한다.
 - 누적 스냅샷 추가와 사용 횟수 증가는 `AccumulationWriter`의 한 동작으로 정의해 transaction 책임을 두 repository 호출로 나누지 않는다.
-- composition root가 브라우저 구현과 application 명령 및 조회를 한 번 조립하고, React provider는 명시적인 facade를 전달한다. Provider는 공통 루트 layout 아래에서 라우트 이동에도 유지하며, 생성 과정에서 브라우저 전역을 읽지 않는다. 임의 token 조회나 전역 singleton을 제공하지 않는다.
+- 각 entity, page와 feature slice는 외부에서 사용할 항목만 public API로 명시하며, 같은 slice 안에서는 public API를 역으로 가져오지 않는다. page 전용 동작을 이름만 보고 `features`로 옮기지 않는다.
+- `shared/ui`와 `shared/lib`는 전체를 다시 내보내는 하나의 barrel을 만들지 않는다. 각 구성요소와 내부 라이브러리는 자체 public API를 두고, 내부 라이브러리 README에 허용할 책임과 제외할 책임을 기록한다.
+- composition root가 브라우저 구현과 명령 및 조회를 한 번 조립하고, `_app/providers`는 아래 계층이 정의한 필요한 동작만 제공하는 provider에 명시적인 의존성을 전달한다. Provider는 공통 루트 layout 아래에서 라우트 이동에도 유지하며, 생성 과정에서 브라우저 전역을 읽지 않는다. 아래 계층이 `_app`을 가져오거나 임의 token 조회 및 전역 singleton을 사용하지 않는다.
 
 ### 검증 방식
 
@@ -233,6 +265,7 @@ U1의 프로젝트 위치, TypeScript 및 Zod 버전과 module 규칙이 확정�
 - 원문 변경, geometry 변경과 두 변경의 조합에서 두 revision 결과가 결정과 일치한다.
 - 누락 필드, 잘못된 revision, 빈 식별자와 알 수 없는 Worker message가 schema 경계에서 거절된다.
 - UI 모듈이 IndexedDB, `navigator.clipboard`나 Worker 생성자를 직접 가져오지 않는다.
+- FSD 구조 검사가 역방향 import와 slice 내부 경로를 외부에서 직접 가져오는 코드를 실패로 판정한다.
 - provider 없이 렌더링된 개발 오류는 누락된 조립 책임을 식별할 수 있고, 일반 사용 중 Service Locator 조회 실패가 발생하지 않는다.
 
 ### 중단 조건
@@ -251,15 +284,16 @@ U2의 객체, 레코드 스키마와 책임별 저장 interface가 필요하다.
 
 ### 변경 후보
 
-- `src/browser/storage/openPersonalNotesDatabase.ts`
-- `src/browser/storage/IndexedDbNoteRepository.ts`
-- `src/browser/storage/IndexedDbAccumulatorRepository.ts`
-- `src/browser/storage/IndexedDbAccumulationWriter.ts`
-- `src/browser/storage/IndexedDbUsageRepository.ts`
-- `src/browser/storage/IndexedDbTemplateRepository.ts`
-- `src/browser/storage/IndexedDbPreferenceRepository.ts`
-- `src/browser/storage/*.browser.test.ts`
-- `src/application/session/createSessionState.ts`
+- `apps/notes/src/shared/lib/indexed-db/*`
+- `apps/notes/src/_app/composition/indexed-db/openPersonalNotesDatabase.ts`
+- `apps/notes/src/entities/note/api/IndexedDbNoteRepository.ts`
+- `apps/notes/src/entities/accumulator/api/IndexedDbAccumulatorRepository.ts`
+- `apps/notes/src/_pages/notes/api/IndexedDbAccumulationWriter.ts`
+- `apps/notes/src/entities/usage/api/IndexedDbUsageRepository.ts`
+- `apps/notes/src/entities/template/api/IndexedDbTemplateRepository.ts`
+- `apps/notes/src/entities/preference/api/IndexedDbPreferenceRepository.ts`
+- 각 저장 구현과 같은 slice의 `*.browser.test.ts`
+- `apps/notes/src/_app/providers/session/createSessionState.ts`
 
 ### 작업
 
@@ -299,20 +333,21 @@ U1의 라우트 및 CSS 구성과 U2의 provider가 필요하다.
 
 ### 변경 후보
 
-- `app/page.tsx`
-- `app/accumulator/page.tsx`
-- `app/usage/page.tsx`
-- `app/overlap/page.tsx`
-- `app/templates/page.tsx`
-- `app/settings/page.tsx`
-- `app/globals.css`
-- `src/ui/navigation/*`
-- `src/ui/feedback/*`
-- `src/ui/tokens.css`
+- `apps/notes/app/page.tsx`
+- `apps/notes/app/accumulator/page.tsx`
+- `apps/notes/app/usage/page.tsx`
+- `apps/notes/app/overlap/page.tsx`
+- `apps/notes/app/templates/page.tsx`
+- `apps/notes/app/settings/page.tsx`
+- `apps/notes/src/_pages/{notes,accumulator,usage,overlap,templates,settings}/index.ts`
+- `apps/notes/src/_app/ui/navigation/*`
+- `apps/notes/src/_app/ui/feedback/*`
+- `apps/notes/src/_app/styles/{globals,tokens}.css`
 
 ### 작업
 
 - `/`에는 메모 보드, 나머지 route에는 누적 텍스트, 사용 빈도, 텍스트 겹침, 템플릿과 설정을 배치한다. 계정, 동기화와 서버 상태 route는 만들지 않는다.
+- 각 `app/**/page.tsx`는 같은 라우트를 담당하는 `_pages` slice의 공개 화면만 연결하고, 화면 구성과 상태 처리는 `_pages`에 둔다.
 - 공통 화면 구조는 접을 수 있는 탐색, 페이지 제목과 주요 동작, 주 콘텐츠 및 상태 알림으로 구성한다. 사용자 문구와 문서 이름에도 `공통 화면 구조`라고 쓴다.
 - 메모 영역의 inline size를 기준으로 `48rem` 미만에서 목록 표현을 선택할 자리를 만들고 User-Agent 분기를 두지 않는다.
 - 실제 긴 한국어 메모, 여러 줄, URL 형식 문자열, 빈 화면, 오류, 진행 중과 키보드 포커스 상태로 대표 화면을 만든다.
@@ -345,12 +380,12 @@ U2의 revision 규칙, U3의 메모 저장과 U4의 두 화면 표현이 필요�
 
 ### 변경 후보
 
-- `src/features/notes/NoteBoard.tsx`
-- `src/features/notes/NoteList.tsx`
-- `src/features/notes/NoteCard.tsx`
-- `src/features/notes/NoteEditor.tsx`
-- `src/features/notes/NoteGeometryControls.tsx`
-- `src/features/notes/*.browser.test.ts`
+- `apps/notes/src/_pages/notes/ui/NoteBoard.tsx`
+- `apps/notes/src/_pages/notes/ui/NoteList.tsx`
+- `apps/notes/src/_pages/notes/ui/NoteCard.tsx`
+- `apps/notes/src/_pages/notes/ui/NoteEditor.tsx`
+- `apps/notes/src/_pages/notes/ui/NoteGeometryControls.tsx`
+- `apps/notes/src/_pages/notes/*.browser.test.ts`
 
 ### 작업
 
@@ -389,14 +424,13 @@ U3의 transaction 저장과 U5의 메모 상호작용이 필요하다.
 
 ### 변경 후보
 
-- `src/application/copyNote.ts`
-- `src/application/accumulateNote.ts`
-- `src/application/copyNote.test.ts`
-- `src/application/accumulateNote.test.ts`
-- `src/browser/clipboard/BrowserClipboardWriter.ts`
-- `src/features/settings/InteractionSettingsForm.tsx`
-- `src/features/notes/NoteActions.tsx`
-- `src/features/notes/copy-and-accumulate.browser.test.ts`
+- `apps/notes/src/_pages/notes/model/copyNote.ts`
+- `apps/notes/src/_pages/notes/model/accumulateNote.ts`
+- `apps/notes/src/_pages/notes/model/{copyNote,accumulateNote}.test.ts`
+- `apps/notes/src/shared/lib/clipboard/BrowserClipboardWriter.ts`
+- `apps/notes/src/_pages/settings/ui/InteractionSettingsForm.tsx`
+- `apps/notes/src/_pages/notes/ui/NoteActions.tsx`
+- `apps/notes/src/_pages/notes/copy-and-accumulate.browser.test.ts`
 
 ### 작업
 
@@ -436,14 +470,13 @@ U3의 누적 저장 및 session state와 U6의 누적 command가 필요하다.
 
 ### 변경 후보
 
-- `src/application/accumulatorCommands.ts`
-- `src/application/accumulatorHistory.ts`
-- `src/application/accumulatorCommands.test.ts`
-- `src/application/accumulatorHistory.test.ts`
-- `src/features/accumulator/AccumulatorList.tsx`
-- `src/features/accumulator/AccumulatorItem.tsx`
-- `src/features/accumulator/CombinedTextPreview.tsx`
-- `src/features/accumulator/*.browser.test.ts`
+- `apps/notes/src/_pages/accumulator/model/accumulatorCommands.ts`
+- `apps/notes/src/_pages/accumulator/model/accumulatorHistory.ts`
+- `apps/notes/src/_pages/accumulator/model/{accumulatorCommands,accumulatorHistory}.test.ts`
+- `apps/notes/src/_pages/accumulator/ui/AccumulatorList.tsx`
+- `apps/notes/src/_pages/accumulator/ui/AccumulatorItem.tsx`
+- `apps/notes/src/_pages/accumulator/ui/CombinedTextPreview.tsx`
+- `apps/notes/src/_pages/accumulator/*.browser.test.ts`
 
 ### 작업
 
@@ -482,12 +515,12 @@ U6의 두 횟수 저장이 완료되어야 한다. U7의 제거 및 재정렬이
 
 ### 변경 후보
 
-- `src/application/readUsage.ts`
-- `src/application/usageProjection.ts`
-- `src/application/usageProjection.test.ts`
-- `src/features/usage/UsagePage.tsx`
-- `src/features/usage/UsageRow.tsx`
-- `src/features/usage/usage.browser.test.ts`
+- `apps/notes/src/_pages/usage/model/readUsage.ts`
+- `apps/notes/src/_pages/usage/model/usageProjection.ts`
+- `apps/notes/src/_pages/usage/model/usageProjection.test.ts`
+- `apps/notes/src/_pages/usage/ui/UsagePage.tsx`
+- `apps/notes/src/_pages/usage/ui/UsageRow.tsx`
+- `apps/notes/src/_pages/usage/usage.browser.test.ts`
 
 ### 작업
 
@@ -522,16 +555,16 @@ U1의 운영용 Worker 기본 실행 검사, U2의 메시지 규칙 및 content 
 
 ### 변경 후보
 
-- `src/analysis/normalizeLines.ts`
-- `src/analysis/classifyOverlap.ts`
-- `src/analysis/graphemeNgrams.ts`
-- `src/analysis/*.test.ts`
-- `src/browser/analysis/overlap.worker.ts`
-- `src/browser/analysis/WorkerOverlapAnalyzer.ts`
-- `src/application/analysisRunState.ts`
-- `src/application/analysisRunState.test.ts`
-- `src/features/overlap/OverlapPage.tsx`
-- `src/features/overlap/*.browser.test.ts`
+- `apps/notes/src/_pages/overlap/model/normalizeLines.ts`
+- `apps/notes/src/_pages/overlap/model/classifyOverlap.ts`
+- `apps/notes/src/_pages/overlap/model/graphemeNgrams.ts`
+- `apps/notes/src/_pages/overlap/model/*.test.ts`
+- `apps/notes/src/_pages/overlap/api/overlap.worker.ts`
+- `apps/notes/src/_pages/overlap/api/WorkerOverlapAnalyzer.ts`
+- `apps/notes/src/_pages/overlap/model/analysisRunState.ts`
+- `apps/notes/src/features/suggest-template/model/selectedSourceLines.ts`
+- `apps/notes/src/_pages/overlap/ui/OverlapPage.tsx`
+- `apps/notes/src/_pages/overlap/*.browser.test.ts`
 
 ### 작업
 
@@ -571,14 +604,14 @@ U3의 템플릿 저장, U9의 원문 줄 선택과 U2의 segment schema가 필�
 
 ### 변경 후보
 
-- `src/template/suggestTemplate.ts`
-- `src/template/renderTemplate.ts`
-- `src/template/editSegments.ts`
-- `src/template/*.test.ts`
-- `src/features/templates/TemplatePage.tsx`
-- `src/features/templates/TemplateEditor.tsx`
-- `src/features/templates/TemplateInputForm.tsx`
-- `src/features/templates/*.browser.test.ts`
+- `apps/notes/src/features/suggest-template/model/suggestTemplate.ts`
+- `apps/notes/src/entities/template/model/renderTemplate.ts`
+- `apps/notes/src/entities/template/model/editSegments.ts`
+- 각 model 파일과 같은 slice의 `*.test.ts`
+- `apps/notes/src/_pages/templates/ui/TemplatePage.tsx`
+- `apps/notes/src/_pages/templates/ui/TemplateEditor.tsx`
+- `apps/notes/src/_pages/templates/ui/TemplateInputForm.tsx`
+- `apps/notes/src/_pages/templates/*.browser.test.ts`
 
 ### 작업
 
@@ -631,6 +664,7 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 - 운영용 정적 결과물 하나를 HTTPS와 호스트 이름이 `localhost`인 HTTP에서 각각 제공한다. origin이 다르므로 같은 자료 공유를 기대하지 않고 각 환경에서 새 자료로 전체 흐름을 확인한다.
 - 키보드, 단일 포인터, 터치, 한글 IME, 텍스트 선택, 320 CSS px, `48rem` 전후, 확대, reduced motion과 고대비 상태를 확인한다.
 - Clipboard 거절, IndexedDB transaction 중단, Worker 오류, 오래된 분석 response와 읽을 수 없는 저장 record에서 사용자가 보존된 결과와 다음 동작을 알 수 있는지 확인한다.
+- U1에서 확정한 FSD 구조 검사를 최종 `apps/notes/src/` 전체에 다시 실행하고, `apps/notes/app/`의 route 파일이 `_pages` 및 `_app` public API만 연결하는지 확인한다.
 - 운영용 JavaScript 묶음과 라우트 목록에 계정, 동기화, 서버 실행, PostgreSQL, 라이브러리 제공 코드와 환경변수 예시 값이 없는지 검사한다.
 - 대표 자료 규모에서 Worker 분석 중 main thread 반응, 메모 수 증가에 따른 보드 조작과 IndexedDB 읽기 및 쓰기 시간을 측정해 기준선을 남긴다. 측정 전 임의 성능 합격값을 만들지 않는다.
 
@@ -643,6 +677,7 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 - 사용 빈도, 줄 단위 겹침, 템플릿 제안, 수동 플레이스홀더와 일회성 결과가 요구사항의 예시 값을 만든다.
 - 작은 화면 목록에서 작성, 편집, 복사와 누적을 완료하고 넓은 화면으로 돌아오면 geometry가 복원된다.
 - HTTPS와 localhost HTTP에서 각각 Clipboard와 IndexedDB를 포함한 전체 과업을 완료한다.
+- `apps/notes/package.json`의 빌드 명령이 정적 결과물을 만들고, FSD 구조 검사에서 허용된 Entities `@x` 외의 같은 계층 import, 역방향 import와 public API 우회가 발견되지 않는다.
 - 화면 읽기 프로그램이 버튼 이름, 상태 알림, 분석 관계와 사용 횟수의 의미를 읽을 수 있고, keyboard focus가 가려지지 않는다.
 
 ### 중단 조건
@@ -671,7 +706,7 @@ TDD 여부는 파일 종류나 모듈 크기가 아니라 구현 전에 사용�
 
 다음 항목은 사용자 동작을 바꾸는 미해결 요구사항이 아니라 구현을 시작할 때 실제 저장소와 배포 환경을 확인해 정할 기술 선택이다.
 
-- U1은 독립 실행 프로젝트의 디렉터리, package manager, 정확한 의존성 버전, lockfile, 지원 브라우저와 HTTPS 및 localhost HTTP 제공 방식을 정해야 한다.
+- U1은 package manager, 저장소 workspace 선언, 정확한 의존성 버전, lockfile, FSD 구조 검사 방법, 지원 브라우저와 HTTPS 및 localhost HTTP 제공 방식을 정해야 한다. 애플리케이션 디렉터리는 `apps/notes/`로 확정됐다.
 - U1은 브라우저 기본 IndexedDB와 wrapper, 기본 Pointer Events와 드래그 라이브러리를 각각 비교하고 직접 및 전이 의존성 검토 없이 새 package를 추가하지 않는다.
 - U4는 대표 화면으로 시각 token과 밀도를 검토할 담당자를 확인해야 한다. 이 결정이 없으면 기능 기준선은 진행할 수 있지만 최종 시각 완료는 판정할 수 없다.
 - 현재 로컬 애플리케이션에는 실행 모드를 선택하는 환경변수가 필요하지 않다. 계정 및 동기화 백로그를 시작할 때만 실행 구성 방식을 다시 결정한다.
