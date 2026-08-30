@@ -124,6 +124,10 @@ For every changed guidance document, read the final form as a future contributor
 
 Documentation explains a rule. Tooling, execution evidence, and responsible review determine whether a change follows it.
 
+## Repository Guidance
+
+- [개인 메모 애플리케이션 기술 안티패턴](personal-notes-app/anti-patterns.md) (`proposed`): 로컬 실행과 계정 동기화 실행이 같은 UI를 공유할 때 렌더링과 effect, cache와 hydration, mutation, FSD 실행 환경 분리, 입력 검증, 의존성 연결, worker, 브라우저 저장소와 PostgreSQL에서 피해야 할 구현을 설명합니다.
+
 ## Update and Maintain Guidance
 
 When a guidance update is authorized, inspect current evidence, decide whether the finding is current, proposed, deprecated, or task-specific, check material external claims against current official sources and repository versions, give the rule one owner, and connect it to a reliable check. Remove copied framework material, internal task wording, private details, placeholders, duplicate rules, and stale claims.
