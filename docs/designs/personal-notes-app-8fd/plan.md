@@ -38,8 +38,9 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 - U1은 로컬 모드를 정적 HTML과 동일시하지 않고, 현재 정적 내보내기를 과업에 필요한 서버 기능이 없는 동안의 배포 선택으로 다룬다. FSD 위반 판정은 커밋된 별도 검사 스크립트 대신 ESLint가 맡는다.
 - U2와 U4는 자료형, 화면과 공개 진입점에서 `analysis`를 사용한다. U9는 분석 slice, Worker, 메시지와 결과 자료의 이름을 같은 용어로 맞춘다.
 - U11은 별도의 백엔드와 데이터베이스 없이 사용자 과업이 완료되는지를 확인한다. 현재 정적 내보내기는 HTTP와 HTTPS에서 따로 검증하지만, 이 결과가 로컬 모드의 영구적인 실행 형식을 정하지 않는다.
-- U3, U5, U6, U7, U8과 U10의 사용자 동작 및 자료 규칙은 바뀌지 않는다. U10이 참조하는 입력 화면의 이름만 텍스트 분석으로 맞춘다.
+- 로컬 실행 형식과 분석 명칭 정정은 U3, U5, U6, U7, U8과 U10의 사용자 동작 및 자료 규칙을 바꾸지 않는다. U10이 참조하는 입력 화면의 이름만 텍스트 분석으로 맞춘다.
 - 설정 판정만을 위한 fixture와 일회용 검사 스크립트는 저장소에 추가하지 않는다. 임시 입력이 필요한 한 번의 ESLint 설정 검증은 Git이 무시하는 `temps/`에서 수행하고, 이후에는 실제 소스의 lint와 운영용 빌드를 반복 검증 근거로 사용한다.
+- 누적 기능 위치 변경은 독립 route와 `_pages/accumulator` slice를 제거하고 메모 route의 보조 패널을 추가한다. U4, U6, U7과 U11이 영향을 받으며, 나머지 작업 단위의 자료 규칙과 사용자 동작은 바뀌지 않는다.
 
 ## 결정 이력과 현재 선택
 
@@ -49,6 +50,7 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 - [메모 누적 실행 동작](decisions/accumulation-activation.md): 항상 보이는 누적 버튼과 설정 가능한 `Command+클릭` 추가 동작
 - [공간형 보드와 작은 화면 목록](decisions/responsive-note-presentation.md): 메모 영역의 inline size `48rem`을 기준으로 한 두 표현과 geometry 보존
 - [누적 순서와 제거 복구](decisions/accumulator-ordering-and-recovery.md): 클릭 시점 원문, 중복 허용, 줄바꿈 결합과 제거 전용 실행 취소 및 다시 실행
+- [메모 화면의 누적 작업 패널](decisions/accumulator-workspace-panel.md): 누적 전용 route 없이 같은 메모 화면에서 전환하는 나란한 패널과 모달 패널
 - [로컬 저장과 실행 중 상태](decisions/local-storage-and-ephemeral-state.md): IndexedDB와 실행 중 상태의 수명, 공통 Provider, 초기 복원 상태와 다중 저장 transaction 책임
 - [텍스트 사용 빈도 집계](decisions/usage-counting.md): 메모 ID, content revision과 원문 상태별 두 횟수 및 성공 조건
 - [줄 단위 텍스트 분석](decisions/text-analysis.md): 줄 정규화, 정확한 반복, 포함 관계와 grapheme 3-gram Jaccard 정렬
@@ -95,7 +97,6 @@ apps/notes/
   app/                         Next.js App Router와 framework 파일
     layout.tsx
     page.tsx
-    accumulator/page.tsx
     usage/page.tsx
     analysis/page.tsx
     templates/page.tsx
@@ -104,7 +105,6 @@ apps/notes/
     _app/                      provider, 조립, 전역 스타일
     _pages/                    화면별 slice
       notes/
-      accumulator/
       usage/
       analysis/
       templates/
@@ -349,7 +349,7 @@ transaction 일부 성공을 사용자가 성공으로 보거나 스키마 upgra
 
 ### 목적과 기준
 
-개인 메모의 공간 작업 특성을 반영한 고유 디자인 시스템을 대표 화면에서 확정하고, 그 토큰과 구성요소로 로컬 애플리케이션의 여섯 페이지, 공통 탐색, 알림과 반응형 화면 구조를 만든다. [개인 메모 디자인 시스템과 UI 기반 결정](decisions/application-design-system.md), [화면 구성 조사](references/interface-layout-research.md), [시각 디자인 조사](references/web-visual-design-research-2026.md)와 [공간형 보드와 작은 화면 목록 결정](decisions/responsive-note-presentation.md)이 기준이다.
+개인 메모의 공간 작업 특성을 반영한 고유 디자인 시스템을 대표 화면에서 확정하고, 그 토큰과 구성요소로 로컬 애플리케이션의 다섯 route, 메모 화면의 누적 패널, 공통 탐색, 알림과 반응형 화면 구조를 만든다. [개인 메모 디자인 시스템과 UI 기반 결정](decisions/application-design-system.md), [메모 화면의 누적 작업 패널 결정](decisions/accumulator-workspace-panel.md), [화면 구성 조사](references/interface-layout-research.md), [시각 디자인 조사](references/web-visual-design-research-2026.md)와 [공간형 보드와 작은 화면 목록 결정](decisions/responsive-note-presentation.md)이 기준이다.
 
 ### 선행 조건
 
@@ -358,12 +358,11 @@ U1의 라우트, Tailwind CSS 및 운영용 CSS 확인과 U2의 provider가 필�
 ### 변경 후보
 
 - `apps/notes/app/page.tsx`
-- `apps/notes/app/accumulator/page.tsx`
 - `apps/notes/app/usage/page.tsx`
 - `apps/notes/app/analysis/page.tsx`
 - `apps/notes/app/templates/page.tsx`
 - `apps/notes/app/settings/page.tsx`
-- `apps/notes/src/_pages/{notes,accumulator,usage,analysis,templates,settings}/index.ts`
+- `apps/notes/src/_pages/{notes,usage,analysis,templates,settings}/index.ts`
 - `apps/notes/src/_app/ui/navigation/*`
 - `apps/notes/src/_app/ui/feedback/*`
 - `apps/notes/src/_app/styles/{globals,tokens}.css`
@@ -372,7 +371,7 @@ U1의 라우트, Tailwind CSS 및 운영용 CSS 확인과 U2의 provider가 필�
 
 ### 작업
 
-- `/`에는 메모 보드, 나머지 route에는 누적 텍스트, 사용 빈도, 텍스트 겹침, 템플릿과 설정을 배치한다. 계정, 동기화와 서버 상태 route는 만들지 않는다.
+- `/`에는 메모 보드 또는 목록과 열고 닫는 누적 작업 패널을 배치하고, 나머지 route에는 사용 빈도, 텍스트 분석, 템플릿과 설정을 배치한다. 누적 텍스트, 계정, 동기화와 서버 상태 전용 route는 만들지 않는다.
 - 각 `app/**/page.tsx`는 같은 라우트를 담당하는 `_pages` slice의 공개 화면만 연결하고, 화면 구성과 상태 처리는 `_pages`에 둔다.
 - 공통 화면 구조는 접을 수 있는 탐색, 페이지 제목과 주요 동작, 주 콘텐츠 및 상태 알림으로 구성한다. 사용자 문구와 문서 이름에도 `공통 화면 구조`라고 쓴다.
 - 색, 글자, 간격, 모서리, 테두리, 깊이, motion, 포커스, 제어 요소 크기와 화면 밀도를 용도별 디자인 토큰으로 정의한다. 화면에서 같은 임의 값을 반복하거나 색 이름을 업무 상태 이름처럼 사용하지 않는다.
@@ -381,6 +380,7 @@ U1의 라우트, Tailwind CSS 및 운영용 CSS 확인과 U2의 provider가 필�
 - Dialog, Menu와 Tooltip처럼 폼 입력값을 만들지 않는 복합 상호작용이 실제 화면에 필요하면 네이티브 HTML 및 Web API로 충족할 수 있는지 먼저 확인한다. 외부 접근성 부품이 필요하면 정확한 package와 전체 의존성을 검토하고, import 및 API 변환을 외부 부품을 감싸는 `shared/ui` 구성요소 안에 둔다.
 - 각 `shared/ui` 구성요소는 자체 public API를 두고 전체 UI를 한 번에 다시 내보내는 barrel을 만들지 않는다. 화면과 업무 동작을 구현하는 모듈은 외부 UI 패키지를 직접 가져오지 않는다.
 - 메모 영역의 inline size를 기준으로 `48rem` 미만에서 목록 표현을 선택할 자리를 만들고 User-Agent 분기를 두지 않는다.
+- 메모와 누적 작업 패널의 실제 inline size를 기준으로 나란한 패널과 같은 route의 모달 패널을 전환한다. 나란한 표현은 두 영역을 동시에 조작할 수 있어야 하고, 모달 표현은 바깥 메모 영역을 inert 상태로 만들며 열기 및 닫기 포커스를 관리해야 한다.
 - 실제 긴 한국어 메모, 여러 줄, URL 형식 문자열, 빈 화면, 오류, 진행 중과 키보드 포커스 상태로 대표 화면을 만든다.
 - 공통 자료 상태 영역은 초기 불러오기, 사용 가능한 빈 상태, 자료 표시, 읽기 실패와 다른 탭 대기를 구분하며 각 상태에서 가능한 다음 동작을 보여준다.
 - 기본, hover, `focus-visible`, pressed, disabled, 오류, 진행 중, 고대비와 reduced motion 가운데 대표 구성요소에 적용 가능한 상태를 확인한다. 상태는 색 하나에 의존하지 않고 네이티브 의미, 문구와 형태를 함께 사용한다.
@@ -390,11 +390,12 @@ U1의 라우트, Tailwind CSS 및 운영용 CSS 확인과 U2의 provider가 필�
 
 TDD를 적용하지 않는다. 디자인 토큰, 구성요소 외형, 라우트 구성, container query, 읽기 흐름과 시각적 위계는 class 이름이나 DOM 내부 구조를 고정하는 단위 검사보다 실제 렌더링, 접근성 검사와 담당자 검토가 직접적인 근거다.
 
-- 여섯 route를 직접 열고 새로고침해도 정적 hosting에서 화면이 열린다.
+- 다섯 route를 직접 열고 새로고침해도 정적 hosting에서 화면이 열리며 `/accumulator` route는 존재하지 않는다.
 - 로컬 탐색에는 계정과 동기화 항목이 없다.
 - DOM 검사에서 단순 폼 제어가 승인된 네이티브 HTML 요소로 렌더링되고, 이름, 설명, 오류, 키보드 포커스와 네이티브 폼 참여가 유지된다.
 - 같은 역할의 버튼, 입력과 알림을 여러 route에서 실행했을 때 같은 디자인 토큰, 상태 규칙과 `shared/ui` 구성요소를 사용한다. 이 검사는 class 문자열이 아니라 렌더링된 사용자 상태와 동작으로 판정한다.
 - 320 CSS px, `48rem` 직전과 직후, 200% 및 400% zoom과 화면 분할에서 핵심 동작 영역이 가려지지 않는다.
+- 비어 있는 누적 패널을 나란한 표현과 모달 표현으로 각각 열어 제목, 닫기 동작과 사용 가능한 빈 상태를 확인하고, 모달 표현을 `Escape`와 닫기 버튼으로 닫은 뒤 포커스가 실행 버튼으로 돌아온다. 실제 항목, 결합 미리보기와 이력의 공유는 U7에서 확인한다.
 - 키보드 포커스, 오류, 성공, 빈 상태와 진행 상태가 색 하나에만 의존하지 않는다.
 - 고대비와 reduced motion 설정에서도 포커스, 선택, 오류와 진행 상태를 구분할 수 있다.
 - 외부 접근성 부품을 추가했다면 승인된 폼과 무관한 구성요소에서만 import하고 외부 기본 테마가 실제 화면에 나타나지 않는다. 추가하지 않았다면 불필요한 package가 lockfile에 없다.
@@ -477,6 +478,7 @@ U3의 transaction 저장과 U5의 메모 상호작용이 필요하다.
 - 누적 버튼은 설정과 입력 장치에 관계없이 항상 제공한다.
 - `Command+클릭`은 설정이 켜진 읽기 본문의 주 포인터 클릭에만 적용한다. 다른 보조 키 조합, 탐색, 버튼과 편집 상태에는 적용하지 않는다.
 - 누적 항목과 누적 횟수를 한 IndexedDB transaction으로 저장한다. 실패하면 둘 다 반영하지 않는다.
+- 누적 성공 뒤 현재 포커스를 옮기거나 패널을 강제로 열지 않고, 누적 작업 패널 버튼의 항목 수와 상태 알림을 갱신한다.
 - Clipboard 거절과 쓰기 실패는 실패 원인, 다시 시도와 설정 확인 동작을 가진 지속 알림으로 보여준다. 성공 알림은 focus를 옮기지 않는다.
 
 ### 검증 방식
@@ -487,6 +489,7 @@ application 명령에는 TDD를 적용한다. 성공, Clipboard 실패, 복사 �
 - Clipboard 쓰기가 실패하면 횟수가 증가하지 않고 원인 및 다음 동작이 표시된다.
 - Clipboard는 성공하고 횟수 저장만 실패하면 붙여넣기는 가능하며 기록 실패 알림이 따로 표시된다.
 - 누적 transaction을 중단하면 누적 항목과 횟수가 모두 바뀌지 않는다.
+- 누적에 성공하면 같은 메모 화면의 항목 수와 상태 알림이 갱신되고, 닫힌 누적 작업 패널과 현재 포커스는 그대로 유지된다.
 - 읽기 본문을 일반 클릭하면 원문 전체를 실제 Clipboard에 쓰고, 텍스트 범위를 선택하면 선택을 유지하며 전체 원문을 쓰지 않는다.
 - 설정을 꺼도 누적 버튼은 동작하고 `Command+클릭`만 일반 복사로 돌아간다.
 - `Ctrl`, `Shift`, `Alt+클릭`, 다른 버튼과 탐색 항목에는 누적이 발생하지 않는다.
@@ -499,7 +502,7 @@ application 명령에는 TDD를 적용한다. 성공, Clipboard 실패, 복사 �
 
 ### 목적과 기준
 
-클릭 순서의 원문 스냅샷을 줄바꿈으로 결합하고, 사용자가 순서를 바꾸거나 목록 밖에 놓아 제거한 뒤 제거만 실행 취소 및 다시 실행할 수 있게 한다. [누적 순서와 제거 복구 결정](decisions/accumulator-ordering-and-recovery.md)이 이력 범위와 수명을 정한다.
+클릭 순서의 원문 스냅샷을 메모 화면의 누적 작업 패널에서 줄바꿈으로 결합하고, 사용자가 순서를 바꾸거나 목록 밖에 놓아 제거한 뒤 제거만 실행 취소 및 다시 실행할 수 있게 한다. [누적 순서와 제거 복구 결정](decisions/accumulator-ordering-and-recovery.md)이 이력 범위와 수명을 정하고 [메모 화면의 누적 작업 패널 결정](decisions/accumulator-workspace-panel.md)이 표시 위치와 반응형 표현을 정한다.
 
 ### 선행 조건
 
@@ -507,13 +510,14 @@ U3의 누적 저장 및 session state와 U6의 누적 command가 필요하다.
 
 ### 변경 후보
 
-- `apps/notes/src/_pages/accumulator/model/accumulatorCommands.ts`
-- `apps/notes/src/_pages/accumulator/model/accumulatorHistory.ts`
-- `apps/notes/src/_pages/accumulator/model/{accumulatorCommands,accumulatorHistory}.test.ts`
-- `apps/notes/src/_pages/accumulator/ui/AccumulatorList.tsx`
-- `apps/notes/src/_pages/accumulator/ui/AccumulatorItem.tsx`
-- `apps/notes/src/_pages/accumulator/ui/CombinedTextPreview.tsx`
-- `apps/notes/src/_pages/accumulator/*.browser.test.ts`
+- `apps/notes/src/_pages/notes/model/accumulatorCommands.ts`
+- `apps/notes/src/_pages/notes/model/accumulatorHistory.ts`
+- `apps/notes/src/_pages/notes/model/{accumulatorCommands,accumulatorHistory}.test.ts`
+- `apps/notes/src/_pages/notes/ui/accumulator/AccumulatorPanel.tsx`
+- `apps/notes/src/_pages/notes/ui/accumulator/AccumulatorList.tsx`
+- `apps/notes/src/_pages/notes/ui/accumulator/AccumulatorItem.tsx`
+- `apps/notes/src/_pages/notes/ui/accumulator/CombinedTextPreview.tsx`
+- `apps/notes/src/_pages/notes/accumulator.browser.test.ts`
 
 ### 작업
 
@@ -524,6 +528,8 @@ U3의 누적 저장 및 session state와 U6의 누적 command가 필요하다.
 - 제거 command는 항목과 이전 index를 이력에 넣는다. 실행 취소는 이전 index에 복원하고 다시 실행은 같은 ID를 제거한다.
 - 실행 취소 뒤 추가, 재정렬 또는 제거가 성공하면 redo를 비운다. 추가와 재정렬 자체는 undo 대상에 넣지 않는다.
 - 메모 편집기에 focus가 있으면 애플리케이션 이력 단축키가 편집기 undo를 가로채지 않는다.
+- 누적 전용 route로 이동하지 않고 메모 화면의 버튼에서 패널을 연다. 누적 성공은 패널을 강제로 열지 않으며 항목 수와 상태 알림만 갱신한다.
+- 나란한 표현과 모달 표현은 같은 누적 자료와 제거 이력을 사용한다. 패널을 닫거나 표현이 바뀌어도 자료와 이력을 지우지 않는다.
 
 ### 검증 방식
 
@@ -535,6 +541,7 @@ U3의 누적 저장 및 session state와 U6의 누적 command가 필요하다.
 - 목록 밖으로 나갔다가 `Escape` 또는 `pointercancel`하면 항목과 이력이 바뀌지 않는다.
 - drag와 버튼이 같은 최종 순서를 만들고 제거, 재정렬, undo 및 redo는 사용 횟수를 바꾸지 않는다.
 - 다른 route를 다녀오면 제거 이력을 사용할 수 있고 새로고침하면 사용할 수 없다.
+- 나란한 패널과 모달 패널을 오가거나 패널을 닫았다 다시 열어도 항목 순서와 제거 이력이 유지된다.
 
 ### 중단 조건
 
@@ -703,7 +710,7 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 - 운영용 정적 결과물 하나를 HTTPS와 호스트 이름이 `localhost`인 HTTP에서 각각 제공한다. origin이 다르므로 같은 자료 공유를 기대하지 않고 각 환경에서 새 자료로 전체 흐름을 확인한다.
 - 키보드, 단일 포인터, 터치, 한글 IME, 텍스트 선택, 320 CSS px, `48rem` 전후, 확대, reduced motion과 고대비 상태를 확인한다.
 - Clipboard 거절, IndexedDB transaction 중단, Worker 오류, 오래된 분석 response와 읽을 수 없는 저장 record에서 사용자가 보존된 결과와 다음 동작을 알 수 있는지 확인한다.
-- 여섯 화면의 실제 한국어 콘텐츠로 대표 구성요소에 적용 가능한 기본, hover, `focus-visible`, pressed, disabled, 오류와 진행 상태를 확인하고, 같은 역할의 구성요소가 U4에서 승인한 디자인 토큰과 `shared/ui`를 사용하는지 담당자가 검토한다.
+- 다섯 route와 메모 화면의 누적 패널에 실제 한국어 콘텐츠를 넣어 대표 구성요소에 적용 가능한 기본, hover, `focus-visible`, pressed, disabled, 오류와 진행 상태를 확인하고, 같은 역할의 구성요소가 U4에서 승인한 디자인 토큰과 `shared/ui`를 사용하는지 담당자가 검토한다.
 - 단순 폼 제어가 네이티브 HTML 요소와 React Hook Form의 직접 등록 방식을 유지하는지 확인한다. 외부 접근성 부품을 추가했다면 폼과 무관한 승인된 `shared/ui` 구성요소에만 격리되고 외부 기본 테마가 화면에 나타나지 않는지 import, lockfile과 실제 화면을 함께 확인한다.
 - U1에서 확정한 FSD ESLint 검사를 최종 `apps/notes/src/` 전체에 다시 실행하고, `apps/notes/app/`의 route 파일이 `_pages` 및 `_app` public API만 연결하는지 확인한다.
 - 운영용 JavaScript 묶음과 라우트 목록에 계정, 동기화, 서버 실행, PostgreSQL, 라이브러리 제공 코드와 환경변수 예시 값이 없는지 검사한다.
@@ -714,13 +721,14 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 이 단위 자체에는 TDD를 적용하지 않는다. 구현이 끝난 사용자 흐름과 실제 배포 동작을 확인하는 단계이며, 내부 함수나 구성요소 구조를 먼저 고정할 이유가 없다. 앞선 단위에서 TDD로 만든 순수 규칙 테스트와 실제 브라우저, 빌드, 접근성 및 시각 검토 증거를 함께 사용한다.
 
 - 사용자가 메모 두 개를 만들고 붙여넣기, 편집, 위치 및 크기 변경, 복사와 누적을 완료한다.
-- 누적 순서 변경, 목록 밖 제거, 실행 취소, 다시 실행과 라우트 이동 및 새로고침 수명이 결정대로 동작한다.
+- 메모 화면의 누적 패널에서 순서 변경, 목록 밖 제거, 실행 취소와 다시 실행을 완료하고, 패널 열기 및 닫기, 다른 route 이동과 새로고침에 따른 수명이 결정대로 동작한다.
 - 사용 빈도, 줄 단위 텍스트 분석, 템플릿 제안, 수동 플레이스홀더와 일회성 결과가 요구사항의 예시 값을 만든다.
 - 작은 화면 목록에서 작성, 편집, 복사와 누적을 완료하고 넓은 화면으로 돌아오면 geometry가 복원된다.
 - HTTPS와 localhost HTTP에서 각각 Clipboard와 IndexedDB를 포함한 전체 과업을 완료한다.
 - `apps/notes/package.json`의 빌드 명령이 실행 가능한 결과물을 만들고, FSD ESLint 검사에서 허용된 Entities `@x` 외의 같은 계층 import, 역방향 import와 public API 우회가 발견되지 않는다.
 - 화면 읽기 프로그램이 버튼 이름, 상태 알림, 분석 관계와 사용 횟수의 의미를 읽을 수 있고, keyboard focus가 가려지지 않는다.
-- 같은 역할의 버튼, 입력과 알림이 여섯 화면에서 같은 디자인 규칙을 사용하고 포커스 표현도 같은 규칙을 따른다. 외부 UI 라이브러리의 기본 테마가 개인 메모 디자인 시스템을 대신하지 않는다.
+- 같은 역할의 버튼, 입력과 알림이 다섯 route와 메모 화면의 누적 패널에서 같은 디자인 규칙을 사용하고 포커스 표현도 같은 규칙을 따른다. 외부 UI 라이브러리의 기본 테마가 개인 메모 디자인 시스템을 대신하지 않는다.
+- 누적 전용 route와 탐색 항목이 없고, 넓은 작업 영역의 나란한 패널과 좁은 작업 영역의 모달 패널이 같은 항목, 결합 결과와 제거 이력을 사용한다.
 
 ### 중단 조건
 

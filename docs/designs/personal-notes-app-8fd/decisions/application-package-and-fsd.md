@@ -20,13 +20,14 @@
 - FSD를 처음부터 적용하되 실제 코드가 없는 계층과 slice는 미리 만들지 않기로 했다. 화면 하나에서만 쓰는 조합은 그 화면의 Pages slice에 두고, 여러 화면에서 반복해 사용하는 사용자 동작이 확인될 때 Features slice로 옮긴다.
 - 현재 결정은 Next.js 라우트를 패키지 루트의 `app/`에 두고, FSD 계층을 `src/`에 분리하며, 라이브러리 빌드는 기존 백로그에 남기는 것이다.
 - 구조 검사 재검토에서는 별도 검사 스크립트보다 ESLint 실행 안에서 import 방향과 public API를 검사하기로 했다. 화면과 모듈 이름은 일부 계산 방식이 아니라 전체 작업을 나타내는 `analysis`를 사용한다.
+- 누적 기능의 위치 재검토에서는 독립 route와 Pages slice를 만들지 않고 메모 화면의 보조 패널로 구성하기로 했다.
 
 ## 승인된 결정과 이유
 
 - 독립 실행 애플리케이션의 패키지 루트는 `apps/notes/`다. 애플리케이션 의존성과 실행 명령은 `apps/notes/package.json`이 관리한다. 저장소 전체 package manager, workspace 선언과 잠금 파일 형식은 U1의 의존성 조사에서 정한다.
 - Next.js의 특별 디렉터리는 `apps/notes/app/`에 둔다. 라우트의 `page.tsx`는 `apps/notes/src/_pages/`의 공개 진입점을 연결하고, 공통 `layout.tsx`는 `apps/notes/src/_app/`의 provider와 전역 스타일을 연결하는 데 집중한다.
 - FSD App과 Pages 계층은 Next.js의 `app` 및 `pages` 이름과 구분하기 위해 `_app`과 `_pages`로 쓴다. [FSD의 Next.js 가이드](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/guides/tech/with-nextjs.mdx)는 두 계층 이름을 구분하고 Next.js 라우트 디렉터리를 프로젝트 루트에 두면 `src/`를 FSD 코드에만 사용할 수 있다고 설명한다.
-- `_pages`는 `notes`, `accumulator`, `usage`, `analysis`, `templates`와 `settings` 화면 slice를 둔다. 한 화면에서만 쓰는 UI와 동작은 그 화면 slice 안에 유지한다.
+- `_pages`는 `notes`, `usage`, `analysis`, `templates`와 `settings` 화면 slice를 둔다. 누적 패널의 UI와 화면 전용 동작은 `notes` slice에 두고, 저장되는 누적 자료와 규칙은 `entities/accumulator`가 맡는다. 한 화면에서만 쓰는 UI와 동작은 그 화면 slice 안에 유지한다.
 - `features`는 여러 화면에서 다시 사용하는 사용자 동작이 실제로 생길 때만 만든다. `entities`는 메모, 누적 항목, 사용 기록, 템플릿과 사용자 설정처럼 개인 메모 애플리케이션이 식별하는 자료와 규칙을 두고, `shared`는 개인 메모 업무 의미가 없는 공통 UI, 브라우저 연결과 제한된 내부 라이브러리를 둔다. [FSD Layers](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/layers.mdx)는 필요한 계층만 만들고 Pages에 화면 전용 코드를 유지하며 여러 화면에서 재사용하는 동작을 Features로 분리하라고 설명한다.
 - `widgets`는 현재 화면에서 재사용할 독립 UI 블록이 확인되지 않았으므로 만들지 않는다. 폐기된 `processes` 계층도 만들지 않는다. 이후 필요가 확인되면 같은 결정 기준으로 다시 검토한다.
 - slice와 slice가 없는 계층의 segment는 필요한 항목만 명시적으로 내보내는 public API를 둔다. 다른 slice는 public API로만 가져오고 같은 slice 안에서는 자신의 `index.ts`를 거치지 않는 상대 경로를 사용한다. `export *`는 사용하지 않는다. Entities slice 사이의 자료 관계를 type으로 직접 표현해야 할 때에만 FSD의 `@x` public API를 사용하고, 그 밖의 같은 계층 import는 허용하지 않는다. 이 규칙은 [FSD의 slice와 segment 규칙](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/slices-segments.mdx)과 [public API 지침](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/public-api.mdx)을 따른다.
