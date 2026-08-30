@@ -1,75 +1,27 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
+
+import { useTextAnalyzer } from "../model/TextAnalysisProvider"
 
 type AnalysisStatus = "idle" | "running" | "success" | "failure"
 
-type AnalysisResponse = {
-  lineCount: number
-  requestId: string
-  type: "analysis-result"
-}
+const algorithm = { type: "surface-v1", version: "1" } as const
 
-function isAnalysisResponse(value: unknown): value is AnalysisResponse {
-  if (typeof value !== "object" || value === null) {
-    return false
-  }
-
-  const candidate = value as Record<string, unknown>
-
-  return (
-    candidate.type === "analysis-result" &&
-    typeof candidate.requestId === "string" &&
-    Number.isInteger(candidate.lineCount) &&
-    Number(candidate.lineCount) >= 0
-  )
-}
-
-export function WorkerProbe() {
-  const workerRef = useRef<Worker | null>(null)
+export function AnalysisStartPage() {
+  const textAnalyzer = useTextAnalyzer()
   const [status, setStatus] = useState<AnalysisStatus>("idle")
 
-  useEffect(() => {
-    return () => workerRef.current?.terminate()
-  }, [])
-
-  function runAnalysis() {
+  async function runAnalysis() {
     setStatus("running")
 
-    const worker =
-      workerRef.current ??
-      new Worker(new URL("../api/analysis.worker.ts", import.meta.url), {
-        name: "notes-analysis",
-        type: "module",
-      })
-
-    workerRef.current = worker
-
-    const requestId = crypto.randomUUID()
-
-    const handleMessage = (event: MessageEvent<unknown>) => {
-      if (
-        !isAnalysisResponse(event.data) ||
-        event.data.requestId !== requestId
-      ) {
-        return
-      }
-
-      worker.removeEventListener("message", handleMessage)
-      worker.removeEventListener("error", handleError)
+    try {
+      await textAnalyzer.analyze({ algorithm, notes: [] })
       setStatus("success")
-    }
-
-    const handleError = () => {
-      worker.removeEventListener("message", handleMessage)
-      worker.removeEventListener("error", handleError)
+    } catch {
       setStatus("failure")
     }
-
-    worker.addEventListener("message", handleMessage)
-    worker.addEventListener("error", handleError)
-    worker.postMessage({ lines: [], requestId, type: "analyze" })
   }
 
   const statusText = {

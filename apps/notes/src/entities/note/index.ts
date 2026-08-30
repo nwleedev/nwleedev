@@ -1,0 +1,15 @@
+export {
+  NoteContentReferenceSchema,
+  NoteGeometrySchema,
+  NoteRecordSchema,
+  NoteReferenceSchema,
+  createNoteReference,
+  parseNoteRecord,
+  reviseNote,
+  type Note,
+  type NoteContentReference,
+  type NoteGeometry,
+  type NoteReference,
+  type NoteRepository,
+  type NoteRevision,
+} from "./model/note"

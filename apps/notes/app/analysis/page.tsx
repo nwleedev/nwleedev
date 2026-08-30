@@ -1,5 +1,5 @@
-import { WorkerProbe } from "@/_pages/analysis"
+import { AnalysisStartPage } from "@/_pages/analysis"
 
 export default function Page() {
-  return <WorkerProbe />
+  return <AnalysisStartPage />
 }

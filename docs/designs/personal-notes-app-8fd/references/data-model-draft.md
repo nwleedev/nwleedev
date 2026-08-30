@@ -27,7 +27,7 @@
 ```ts
 type EntityId = string;
 type IsoDateTime = string;
-type Revision = string;
+type Revision = number;
 
 interface NoteRef {
   id: EntityId;
@@ -48,6 +48,8 @@ interface AlgorithmRef {
 현재 로컬 애플리케이션은 실행 모드나 기능 목록 객체를 데이터 모델에 두지 않는다. 계정 및 동기화 백로그를 시작할 때 UI에 표시할 항목과 원격 구현 구성을 일치시키는 별도 실행 설정을 검토하되, 설정 이름과 허용 값은 이 데이터 예시에 기록하지 않는다. 실행 설정은 서버 권한을 나타내지 않으며 인증과 메모 접근 검사를 대신할 수 없다.
 
 `NoteRef`처럼 같은 대상을 식별하고 버전을 확인하는 속성은 하나의 값으로 함께 전달한다. `note.id`와 `note.revision`, `algorithm.type`과 `algorithm.version`으로 접근하면 `noteId`, `noteRevision`, `algorithmType`, `algorithmVersion`의 접두어 반복을 줄이고 서로 다른 대상의 값을 잘못 조합할 가능성도 낮출 수 있다. 다만 라우트 매개변수가 이미 특정 메모를 가리키거나 속성 하나만 필요한 함수까지 중첩 객체를 강제하지 않는다. 묶음은 같은 불변 조건과 수명으로 이동하는 값에만 사용한다.
+
+U2의 로컬 구현에서는 `Revision`을 0부터 단조 증가하는 JavaScript 안전 정수로 확정했다. 로컬 저장과 Worker 메시지가 같은 수치 비교 규칙을 사용하고, 문자열 정렬이나 암묵적 변환 없이 오래된 자료를 판별하기 위한 선택이다. 계정 및 동기화 백로그에서 서버 ETag나 분산 revision을 도입하면 외부 표현과 로컬 수치 revision을 같은 타입으로 합치지 않고 연결 지점의 변환 책임을 다시 정한다.
 
 ## 메모와 공간 배치
 

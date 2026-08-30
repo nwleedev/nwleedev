@@ -1,5 +1,6 @@
 import { defineConfig, globalIgnores } from "eslint/config"
 import boundaries from "@boundaries/eslint-plugin"
+import vitest from "@vitest/eslint-plugin"
 import nextVitals from "eslint-config-next/core-web-vitals"
 import nextTypeScript from "eslint-config-next/typescript"
 
@@ -37,6 +38,7 @@ const dependencyPolicies = [
     allow: {
       to: [
         element("page", publicEntryPoint),
+        element("app", publicEntryPoint),
         element("app", "styles/globals.css"),
       ],
     },
@@ -141,8 +143,8 @@ export default defineConfig([
         },
         {
           type: "shared",
-          pattern: "src/shared/*",
-          capture: ["module"],
+          pattern: "src/shared/*/*",
+          capture: ["segment", "module"],
           partialMatch: false,
         },
       ],
@@ -172,6 +174,24 @@ export default defineConfig([
             "공개 진입점에는 필요한 이름을 명시해 의도하지 않은 API 확장을 방지하세요.",
         },
       ],
+    },
+  },
+  {
+    files: ["**/*.{test,spec}.{ts,tsx}"],
+    ignores: ["**/*.browser.test.{ts,tsx}"],
+    plugins: {
+      vitest,
+    },
+    rules: {
+      "vitest/expect-expect": "error",
+      "vitest/no-commented-out-tests": "error",
+      "vitest/no-conditional-expect": "error",
+      "vitest/no-conditional-in-test": "error",
+      "vitest/no-disabled-tests": "error",
+      "vitest/no-focused-tests": "error",
+      "vitest/no-large-snapshots": "error",
+      "vitest/no-standalone-expect": "error",
+      "vitest/valid-expect": "error",
     },
   },
   globalIgnores([".next/**", "out/**", "next-env.d.ts", "temps/**"]),
