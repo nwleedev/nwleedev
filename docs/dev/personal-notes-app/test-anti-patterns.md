@@ -2,7 +2,7 @@
 
 테스트는 함수, 변수, React 내부 상태, CSS와 DOM 구조가 아니라 사용자가 확인할 결과, 저장 불변 조건, 외부 시스템과 정한 동작 또는 순수 알고리즘 결과를 검증해야 한다. ESLint는 정적으로 식별할 수 있는 일부 위반만 차단하며, 문자열과 모의 구현이 실제 요구사항을 나타내는지는 구현 담당자와 검토자가 요구사항 근거로 판정한다.
 
-이 지침의 상태는 `current`다. [모듈별 TDD 결정](../../designs/personal-notes-app-8fd/decisions/verification-strategy.md)과 [테스트 전략](testing-strategy.md)에 따라 테스트를 작성하고 검토할 때 적용한다. 현재 저장소에는 애플리케이션 소스, `package.json`, lockfile, 테스트 실행기와 ESLint 설정이 없다. 아래 ESLint 조합은 2026년 8월 30일의 조사 결과이며 설치나 버전 선택을 승인하지 않는다. U1에서 실행기와 의존성을 정할 때 실제 설치 결과의 의존성 그래프, 지원 Node.js 및 ESLint 버전과 위반 및 정상 사례를 다시 확인해야 한다.
+이 지침의 상태는 `current`다. [모듈별 TDD 결정](../../designs/personal-notes-app-8fd/decisions/verification-strategy.md)과 [테스트 전략](testing-strategy.md)에 따라 테스트를 작성하고 검토할 때 적용한다. U1과 U2에서 Vitest 4.1.11 및 `@vitest/eslint-plugin` 1.6.27을 선택하고 위반 및 정상 사례를 확인했다. U3의 IndexedDB 검사는 `@vitest/browser-playwright` 4.1.11로 운영 모듈을 실제 브라우저에서 실행한다. 아래 후보 가운데 설치하지 않은 플러그인은 채택된 설정이 아니다.
 
 ## 판정 이력
 
@@ -301,7 +301,7 @@ Jest와 Vitest의 `no-duplicate-hooks` 및 hook 순서 규칙은 setup 형태만
 
 ### 조사한 버전과 호환 조건
 
-2026년 8월 30일에 다음 공식 release와 package 정보를 확인했다. 모두 MIT license다.
+2026년 8월 31일에 다음 공식 release와 package 정보를 다시 확인했다. 모두 MIT license다.
 
 - ESLint `10.9.1`: Node.js `^20.19.0`, `^22.13.0` 또는 `>=24`
 - `eslint-plugin-testing-library` `7.16.2`: ESLint `^8.57.0`, `^9.0.0` 또는 `^10.0.0`; Node.js `^18.18.0`, `^20.9.0` 또는 `>=21.1.0`
@@ -309,7 +309,7 @@ Jest와 Vitest의 `no-duplicate-hooks` 및 hook 순서 규칙은 setup 형태만
 - `@vitest/eslint-plugin` `1.6.27`: ESLint `>=8.57.0`; Node.js `>=18`
 - `eslint-plugin-playwright` `2.11.0`: ESLint `>=8.40.0`; Node.js `>=16.9.0`
 
-현재 직접 또는 전이 의존성이 없으므로 이 버전을 manifest에 고정하지 않는다. U1에서 Jest와 Vitest 가운데 실제 실행기 하나를 고른 뒤 그 실행기에 맞는 플러그인 하나만 선택한다. Playwright를 브라우저 테스트에 채택할 때만 Playwright 플러그인을 추가한다. `eslint-plugin-jest`는 TypeScript 규칙을 사용할 때 `@typescript-eslint/eslint-plugin` `^8.0.0`과 TypeScript `>=4.8.4 <8.0.0`을 선택적 peer로 제시하고, `@vitest/eslint-plugin`은 TypeScript `>=5.0.0`과 `@typescript-eslint/eslint-plugin`을 선택적 peer로 제시한다. 설치 전에는 선택한 패키지와 모든 전이 의존성의 실제 설치 버전, 라이선스, peer 조건, 유지보수 및 보안 상태를 다시 기록한다.
+현재 `@vitest/eslint-plugin` 1.6.27만 테스트 문법 검사에 사용한다. `@vitest/browser-playwright`는 Vitest Browser Mode의 실행 provider이며 테스트 파일은 Vitest API를 사용하므로 `eslint-plugin-playwright`를 적용하지 않는다. Testing Library와 Jest 플러그인도 설치하지 않는다. 새 테스트 문법이나 실행기를 도입하면 해당 플러그인의 정확한 버전, peer 조건, 전이 의존성과 규칙 적용 대상을 다시 확인한다.
 
 ### Testing Library를 선택했을 때의 제안
 

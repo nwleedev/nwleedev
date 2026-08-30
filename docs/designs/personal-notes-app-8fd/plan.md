@@ -42,6 +42,8 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 - U11은 별도의 백엔드와 데이터베이스 없이 사용자 과업이 완료되는지를 확인한다. 현재 정적 내보내기는 HTTP와 HTTPS에서 따로 검증하지만, 이 결과가 로컬 모드의 영구적인 실행 형식을 정하지 않는다.
 - 로컬 실행 형식과 분석 명칭 정정은 U3, U5, U6, U7, U8과 U10의 사용자 동작 및 자료 규칙을 바꾸지 않는다. U10이 참조하는 입력 화면의 이름만 텍스트 분석으로 맞춘다.
 - 설정 판정만을 위한 fixture와 일회용 검사 스크립트는 저장소에 추가하지 않는다. 임시 입력이 필요한 한 번의 ESLint 설정 검증은 Git이 무시하는 `temps/`에서 수행하고, 이후에는 실제 소스의 lint와 운영용 빌드를 반복 검증 근거로 사용한다.
+- `static-smoke.mjs`는 Next.js 운영 산출물의 Worker URL과 MIME type, CSS, HTTP 및 HTTPS 접속과 origin별 저장 분리를 다른 검사 도구가 확인하지 못하는 동안만 유지한다. Vitest Browser Mode가 같은 산출물을 직접 확인하게 되거나 검사 책임이 겹치면 이 스크립트를 제거하며, 같은 목적의 일회용 스크립트를 추가하지 않는다.
+- U3 브라우저 검사에서 `_pages` slice의 하나뿐인 `index.ts`가 route UI와 조립용 IndexedDB 구현을 함께 다시 내보내면 저장 검사만 가져와도 `next/link`가 평가되는 문제가 확인됐다. route는 `index.ts`, `_app` 조립 지점은 같은 slice의 명시적 `composition.ts`를 가져오도록 public API 책임을 나눈다. 이는 server 및 client 환경 분리가 아니므로 대칭적인 `index.server.ts`와 `index.client.ts`를 만들지 않는다.
 - 누적 기능 위치 변경은 독립 route와 `_pages/accumulator` slice를 제거하고 메모 route의 보조 패널을 추가한다. U4, U6, U7과 U11이 영향을 받으며, 나머지 작업 단위의 자료 규칙과 사용자 동작은 바뀌지 않는다.
 - 화면 문구 제한은 U1의 최소 화면, U4의 공통 화면 구조와 U5부터 U10까지 추가할 모든 사용자 문구에 적용한다. U11은 보이는 문자열의 역할과 중복을 최종 확인하며, 자료 규칙과 라우트 수는 바뀌지 않는다.
 
@@ -117,7 +119,7 @@ apps/notes/
     shared/                    공통 UI와 브라우저 기술 연결
 ```
 
-`apps/notes/app/`의 route 파일은 `apps/notes/src/_pages/`의 공개 진입점을 연결한다. `apps/notes/app/layout.tsx`는 `apps/notes/src/_app/`의 provider와 전역 스타일을 연결한다. route 파일에 화면 동작, IndexedDB 접근이나 메모, 누적 및 템플릿 규칙을 구현하지 않는다.
+`apps/notes/app/`의 route 파일은 `apps/notes/src/_pages/`의 `index.ts`를 연결한다. `apps/notes/app/layout.tsx`는 `apps/notes/src/_app/`의 provider와 전역 스타일을 연결한다. route 파일에 화면 동작, IndexedDB 접근이나 메모, 누적 및 템플릿 규칙을 구현하지 않는다. `_app/composition`이 화면 slice의 provider, 책임별 interface와 브라우저 구현을 가져올 때에는 그 slice의 `composition.ts`를 사용해 route UI를 조립 모듈 그래프에 함께 넣지 않는다.
 
 FSD 계층 의존 방향은 `_app`, `_pages`, `features`, `entities`, `shared` 순서다. 한 slice는 같은 계층의 다른 slice를 직접 가져오지 않고 더 아래 계층만 가져온다. Entities 사이의 자료 관계를 type으로 직접 표현해야 할 때에만 `@x` public API를 예외로 사용한다. 다른 slice에서는 명시적 export를 둔 public API만 사용하고, 같은 slice 안에서는 자신의 public API를 거치지 않는 상대 경로를 사용한다. 화면 한 곳에서만 쓰는 UI와 동작은 그 화면의 `_pages` slice에 남기고, 여러 화면에서 실제로 다시 사용하는 사용자 동작만 `features`로 분리한다. `widgets`와 폐기된 `processes` 계층은 현재 만들지 않으며, 실제 파일이 없는 계층이나 segment도 만들지 않는다.
 
@@ -129,7 +131,7 @@ FSD 계층 의존 방향은 `_app`, `_pages`, `features`, `entities`, `shared` �
 
 현재 저장소에는 애플리케이션 구조와 패키지 설정이 없다. U1은 [애플리케이션 패키지 위치와 FSD 구조 결정](decisions/application-package-and-fsd.md)에 따라 `apps/notes/`를 만들고 package manager, 저장소 workspace 선언과 잠금 파일 형식을 정한다. 이 workspace 설정은 현재 애플리케이션을 저장소에서 실행하기 위한 범위이며 라이브러리 패키지 또는 포트폴리오 연결 백로그를 함께 구현하지 않는다.
 
-각 slice와 slice가 없는 계층의 segment는 필요한 항목만 내보내는 public API를 둔다. 현재 로컬 애플리케이션은 별도 public API가 필요한 server-only 자료 접근이나 실행 시점 서버 구현을 갖지 않으므로 `index.server.ts`와 `index.client.ts`를 대칭으로 만들지 않는다. 이후 실제 server-only export가 일반 `index.ts`를 통해 브라우저 모듈 그래프에 들어가는 문제가 생길 때에만 명시적인 환경별 진입점을 추가한다.
+각 slice와 slice가 없는 계층의 segment는 필요한 항목만 내보내는 public API를 둔다. `_pages`의 `index.ts`는 route UI만 내보내고, `_app`이 조립할 provider, interface와 브라우저 구현이 있으면 `composition.ts`가 그 항목만 내보낸다. 현재 로컬 애플리케이션은 server-only 자료 접근이나 실행 시점 서버 구현을 갖지 않으므로 `index.server.ts`와 `index.client.ts`를 대칭으로 만들지 않는다. 이후 실제 server-only export가 공통 진입점을 통해 브라우저 모듈 그래프에 들어가는 문제가 생길 때에만 명시적인 환경별 진입점을 추가한다.
 
 ### 디자인 시스템과 UI 구성 원칙
 
@@ -335,6 +337,7 @@ U2의 객체, 레코드 스키마와 책임별 저장 interface가 필요하다.
 - transaction의 개별 request가 아니라 `complete`를 성공 기준으로 사용한다.
 - 애플리케이션 실행 동안 유지할 session state에 제거 이력, 분석 상태, 저장 전 제안과 일회성 출력을 두고 라우트 구성요소가 없어져도 유지한다.
 - 영구 저장 요청이 승인되더라도 백업 완료로 표시하지 않는다.
+- IndexedDB 통합 검사는 Vitest Browser Mode에서 운영 repository를 직접 가져와 실행한다. `_app` 검사는 화면 slice의 `composition.ts`만 가져오고 route UI를 함께 평가하지 않으며, 테스트용 route나 운영 코드 분기를 만들지 않는다.
 
 ### 검증 방식
 

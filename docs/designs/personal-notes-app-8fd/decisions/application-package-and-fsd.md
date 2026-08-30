@@ -21,6 +21,7 @@
 - 현재 결정은 Next.js 라우트를 패키지 루트의 `app/`에 두고, FSD 계층을 `src/`에 분리하며, 라이브러리 빌드는 기존 백로그에 남기는 것이다.
 - 구조 검사 재검토에서는 별도 검사 스크립트보다 ESLint 실행 안에서 import 방향과 public API를 검사하기로 했다. 화면과 모듈 이름은 일부 계산 방식이 아니라 전체 작업을 나타내는 `analysis`를 사용한다.
 - 누적 기능의 위치 재검토에서는 독립 route와 Pages slice를 만들지 않고 메모 화면의 보조 패널로 구성하기로 했다.
+- U3 브라우저 통합 검사에서는 Pages slice의 `index.ts`가 route UI와 IndexedDB 조립 항목을 함께 다시 내보내 저장 검사에서 필요하지 않은 `next/link`까지 평가되는 문제가 확인됐다. 실행 환경 이름을 붙인 대칭 진입점 대신 사용 목적이 분명한 route용 `index.ts`와 조립용 `composition.ts`로 나누기로 했다.
 
 ## 승인된 결정과 이유
 
@@ -33,6 +34,7 @@
 - slice와 slice가 없는 계층의 segment는 필요한 항목만 명시적으로 내보내는 public API를 둔다. 다른 slice는 public API로만 가져오고 같은 slice 안에서는 자신의 `index.ts`를 거치지 않는 상대 경로를 사용한다. `export *`는 사용하지 않는다. Entities slice 사이의 자료 관계를 type으로 직접 표현해야 할 때에만 FSD의 `@x` public API를 사용하고, 그 밖의 같은 계층 import는 허용하지 않는다. 이 규칙은 [FSD의 slice와 segment 규칙](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/slices-segments.mdx)과 [public API 지침](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/public-api.mdx)을 따른다.
 - `shared/ui`와 `shared/lib`는 하나의 전체 barrel을 만들지 않는다. 각 UI 구성요소와 내부 라이브러리가 자체 public API를 두고, 내부 라이브러리는 허용할 책임과 제외할 책임을 짧은 README에 기록한다.
 - `_app`은 아래 계층의 공개 진입점을 가져와 브라우저 구현과 provider를 조립한다. 아래 계층은 `_app`을 가져오지 않는다. 각 화면 또는 사용자 동작에 필요한 의존성은 그 책임을 가진 slice가 필요한 메서드만 포함한 interface와 Context를 정의하고, `_app`이 구현을 제공한다.
+- `_pages` slice의 `index.ts`는 Next.js route가 사용할 화면 UI만 내보낸다. `_app`이 가져올 provider, 책임별 interface와 브라우저 구현은 필요한 slice에만 `composition.ts`를 두어 명시적으로 내보낸다. 두 진입점은 서로의 항목을 다시 내보내지 않으며 ESLint는 route가 `composition.ts`를 가져오거나 다른 slice가 내부 파일을 우회하는 import를 거절한다.
 - 현재 로컬 애플리케이션에는 별도 public API가 필요한 server-only 자료 접근이나 실행 시점 서버 구현이 없으므로 환경별 진입점을 대칭으로 만들지 않는다. 실제 server-only export가 생겨 일반 `index.ts`가 브라우저 모듈 그래프를 오염시키는 경우에만 명시적인 `index.server.ts`를 추가한다.
 - U1의 의존성 조사에서 `@feature-sliced/eslint-config`, Steiger, 범용 ESLint 구조 플러그인과 내부 검사 스크립트를 비교했다. 현재 flat config와 TypeScript alias를 사용하면서 정적 및 동적 import를 함께 검사할 수 있는 `@boundaries/eslint-plugin` 7.2.0과 `eslint-import-resolver-typescript` 4.4.5를 선택한다. ESLint의 `boundaries/dependencies`에서 계층 역방향 import, 허용된 Entities `@x` 외의 같은 계층 import와 public API 우회를 검사하고, core 규칙으로 `export *`를 막는다. Next.js 라우트의 연결 대상과 실행 환경이 다른 진입점의 혼입도 ESLint에서 판정할 수 있는 import에는 같은 실행에서 적용한다.
 - ESLint 설정의 판별력을 확인하려고 영구 fixture나 별도 검사 스크립트를 만들지 않는다. 구현 중 저장소의 무시된 임시 파일로 정상 및 위반 import를 한 번 확인한 뒤 실제 소스의 lint를 반복 검증 명령으로 사용한다. 브라우저와 서버 모듈 그래프의 실제 번들 포함 여부처럼 ESLint가 판정할 수 없는 항목은 Next.js 운영용 빌드로 확인한다.

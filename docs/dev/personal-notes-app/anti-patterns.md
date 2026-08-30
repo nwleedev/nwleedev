@@ -757,10 +757,11 @@ FSD 공식 문서는 모든 layer를 사용할 필요가 없고 모든 상호작
 - 모든 layer를 먼저 만들지 않는다. 화면 한 곳에서만 쓰는 조합은 그 화면의 `_pages` slice에 두고, 여러 화면에서 실제로 재사용하는 사용자 동작만 `features`로 옮긴다. 현재 `widgets`와 폐기된 `processes`는 만들지 않는다.
 - slice는 `notes`, `templates`, `usage`처럼 독자가 찾는 업무 용어로 나눈다. `components`, `hooks`와 `types`처럼 파일 종류만 나타내는 이름으로 slice나 shared library를 만들지 않는다.
 - 같은 layer의 slice끼리 임의로 import하지 않고 상위 layer에서 조합한다. 다른 slice는 public API로만 접근하며 같은 slice 내부에서는 public API를 역으로 import하지 않고 상대 경로를 사용한다.
+- Pages slice의 route UI와 `_app` 조립용 브라우저 구현을 하나의 루트 public API에서 함께 다시 내보내지 않는다. route는 `index.ts`, composition root는 필요한 slice의 `composition.ts`를 명시적으로 가져온다. 이는 server 및 client 환경 분리와 다른 책임 분리이므로 `index.server.ts`와 `index.client.ts`를 근거 없이 대칭으로 만들지 않는다.
 - Entities slice 사이의 자료 관계를 type으로 직접 표현해야 할 때에만 `@x` public API를 사용한다. 그 밖의 같은 layer import를 예외로 만들지 않는다.
 - `export *`로 내부 전체를 public API에 노출하지 않는다. export 목록을 명시하고 server, client와 공통 module을 서로 재수출하지 않는다.
 - FSD는 frontend 구조화 방법이다. PostgreSQL schema, migration, background job과 큰 API 구현을 frontend layer 규칙에 억지로 넣지 않는다.
-- 현재 local composition root는 `apps/notes/src/_app/composition/`에 두고 아래 계층의 공개 브라우저 진입점만 가져온다. 아래 계층은 `_app`을 가져오지 않으며, 정적 build가 `index.server.ts`에 도달하면 실패로 처리한다. 최우선 계정 및 동기화 백로그에서는 sync server graph가 browser adapter를 직접 import하지 않는지도 확인한다.
+- 현재 local composition root는 `apps/notes/src/_app/composition/`에 두고 Pages slice의 `composition.ts` 및 아래 계층의 명시적인 public API만 가져온다. 아래 계층은 `_app`을 가져오지 않으며, route가 Pages slice의 `composition.ts`에 도달하거나 정적 build가 `index.server.ts`에 도달하면 실패로 처리한다. 최우선 계정 및 동기화 백로그에서는 sync server graph가 browser adapter를 직접 import하지 않는지도 확인한다.
 
 안티패턴:
 
