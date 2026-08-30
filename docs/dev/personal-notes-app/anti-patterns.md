@@ -1,12 +1,12 @@
 # 개인 메모 애플리케이션 기술 안티패턴
 
-이 애플리케이션은 실행 모드별 구현을 조립 지점에서 선택하고, 사용자 입력과 저장소 사이의 모든 경계를 런타임에 검증하며, 변경 직후의 일관성이 필요한 데이터에는 명시적인 무효화와 동시성 제어를 적용해야 한다. 페이지 전체를 Client Component로 만드는 방식, React 내부 상태를 `useEffect`로 맞추는 방식, 두 캐시를 같은 데이터의 원본으로 쓰는 방식, 범용 Service Locator, 역할이 드러나지 않는 port와 adapter 이름, 서버 및 브라우저 코드를 함께 내보내는 FSD public API, React를 중복으로 포함하거나 클라이언트 및 서버 진입점을 하나로 합친 라이브러리, 수명과 버전이 없는 worker 메시지, IndexedDB를 영구 보관소로 간주하는 방식, 애플리케이션 검사만 믿고 PostgreSQL 제약을 생략하는 방식은 채택하지 않는다.
+이 애플리케이션은 실행 모드별 구현을 조립 지점에서 선택하고, 사용자 입력과 저장소 사이의 모든 경계를 런타임에 검증하며, 변경 직후의 일관성이 필요한 데이터에는 명시적인 무효화와 동시성 제어를 적용해야 한다. 페이지 전체를 Client Component로 만드는 방식, React 내부 상태를 `useEffect`로 맞추는 방식, 두 캐시를 같은 데이터의 원본으로 쓰는 방식, 범용 Service Locator, 역할이 드러나지 않는 port와 adapter 이름, 서버 및 브라우저 코드를 함께 내보내는 FSD public API, 수명과 버전이 없는 worker 메시지, IndexedDB를 영구 보관소로 간주하는 방식, 애플리케이션 검사만 믿고 PostgreSQL 제약을 생략하는 방식은 채택하지 않는다. 라이브러리 제공 백로그를 시작할 때에는 React를 중복으로 포함하거나 클라이언트 및 서버 진입점을 하나로 합치는 방식도 피해야 한다.
 
 이 문서의 상태는 `proposed`다. 구현자와 리뷰어가 개인 메모 애플리케이션의 기술 구조를 선택할 때 사용하는 제안 지침이며, 승인된 기술 스택이나 현재 구현을 설명하지 않는다.
 
 ## 적용 범위와 현재 근거
 
-[요구사항](../../designs/personal-notes-app-8fd/requirements.md)은 백엔드 없는 로컬 실행과 계정 동기화 실행이 같은 UI를 사용하고, 개인 메모 애플리케이션을 독립 실행 결과와 포트폴리오 웹 애플리케이션이 라우트에서 불러오는 라이브러리로 모두 제공하도록 정한다. [실행 모드와 독립 실행 및 라이브러리 배포 구조 조사](../../designs/personal-notes-app-8fd/references/runtime-modes-and-architecture.md)는 port와 adapter, 조립 지점, 브라우저 및 서버 저장소의 교체 가능성과 호스트가 정하는 라우트 및 패키지 진입점 분리를 제안한다. [데이터 구조 초안](../../designs/personal-notes-app-8fd/references/data-model-draft.md)은 메모 revision, 사용 횟수, 줄 단위 분석과 알고리즘 version을 구분한다.
+[요구사항](../../designs/personal-notes-app-8fd/requirements.md)은 백엔드 없는 로컬 실행과 계정 동기화 실행이 같은 UI를 사용하도록 정하며, 라이브러리 패키지와 포트폴리오 라우트 연결은 백로그로 둔다. [실행 모드와 라이브러리 배포 백로그 구조 조사](../../designs/personal-notes-app-8fd/references/runtime-modes-and-architecture.md)는 현재 독립 실행 단계에 적용할 port와 adapter, 조립 지점 및 브라우저와 서버 저장소의 교체 가능성을 제안하고, 호스트 라우트와 패키지 진입점 분리는 백로그 조사로 남긴다. [데이터 구조 초안](../../designs/personal-notes-app-8fd/references/data-model-draft.md)은 메모 revision, 사용 횟수, 줄 단위 분석과 알고리즘 version을 구분한다.
 
 2026년 8월 30일 현재 저장소에는 패키지 매니페스트, 잠금 파일, TypeScript 설정, Next.js 설정, 애플리케이션 소스와 테스트가 없다. 따라서 아래 규칙은 도달 가능한 실패를 미리 제한하는 제안이며 현재 준수 여부를 검사할 수 없다. 구현을 시작하기 전에 결정 책임자가 정확한 버전을 승인하고 잠금 파일로 고정해야 한다.
 
@@ -22,10 +22,7 @@
 - TanStack Query를 채택할지 여부, 적용할 원격 데이터, 정확한 버전, query key와 Next.js cache 사이의 책임
 - FSD를 채택할 근거, 실제로 필요한 layer와 slice, Next.js route 디렉터리와 구분할 이름, 환경별 public API 규칙
 - 정적 로컬 배포가 정적 export인지 정적 호스팅의 클라이언트 애플리케이션인지, 계정 동기화 배포와 빌드 결과물을 나눌지 여부
-- 패키지 관리자와 workspace 사용 여부, 독립 실행 호스트 및 포트폴리오 호스트가 공유할 패키지 위치
-- 라이브러리를 호스트가 변환하는 소스 패키지로 제공할지 ESM 및 타입 선언을 포함한 산출물로 제공할지, 선택한 빌드 도구와 공개 subpath
-- 포트폴리오 호스트가 연결할 단일 라우트 또는 하위 라우트 구조, 모듈이 받을 라우트 접두어와 탐색 interface
-- React, React DOM 및 Next.js의 peer dependency 범위, CSS와 Worker asset 제공 방식
+- 로컬 정적 결과물을 제공할 HTTPS 호스팅과 localhost HTTP 서버의 구현 및 실행 방식
 - 지원 브라우저와 최소 버전, SharedWorker 미지원 시 Dedicated Worker 또는 main thread로 대체할 범위
 - 로그인, 계정과 메모 단위의 권한 검사 방식
 - 메모 충돌 정책, HTTP ETag와 메모 revision을 연결하는 방식
@@ -33,13 +30,20 @@
 - PostgreSQL의 정확한 버전, 연결 방식, migration 도구와 transaction 재시도 책임
 - React Hook Form과 Zod를 연결하는 방식을 직접 작성할지 검토된 resolver를 추가할지 여부
 
+라이브러리 패키지와 포트폴리오 연결 백로그를 시작하기 전에는 다음 항목을 별도로 확정해야 한다. 이 항목은 현재 독립 실행 구현의 선행 조건이 아니다.
+
+- 패키지 관리자와 workspace 사용 여부, 독립 실행 호스트 및 포트폴리오 호스트가 공유할 패키지 위치
+- 라이브러리를 호스트가 변환하는 소스 패키지로 제공할지 ESM 및 타입 선언을 포함한 산출물로 제공할지, 선택한 빌드 도구와 공개 subpath
+- 포트폴리오 호스트가 연결할 단일 라우트 또는 하위 라우트 구조, 모듈이 받을 라우트 접두어와 탐색 interface
+- React, React DOM 및 Next.js의 peer dependency 범위, CSS와 Worker asset 제공 방식
+
 TanStack Query, `@hookform/resolvers`, IndexedDB wrapper, DI container, PostgreSQL client, ORM, FSD 구조 검사 도구와 React hooks lint 설정은 이 조사에서 채택하지 않았다. 해당 의존성이나 설정을 추가하려면 목적, 정확한 버전, peer dependency, 전이 의존성, 라이선스, 유지보수 상태와 플랫폼 API 또는 내부 구현을 별도로 비교해야 한다.
 
 ## 서버와 브라우저 실행 책임을 한 컴포넌트에 섞지 않는다
 
 ### 막으려는 실패
 
-페이지나 layout 최상단에 `'use client'`를 선언하면 그 모듈 그래프가 클라이언트 번들에 포함된다. 서버 전용 저장소 접근과 정적 shell의 이점을 잃고, 브라우저 API를 초기 렌더링에서 읽으면 서버 HTML과 첫 클라이언트 렌더링이 달라져 hydration 오류가 발생한다. React는 이 불일치를 버그로 다루며, 일부 오류에서는 event handler가 잘못된 element에 연결될 수 있다고 설명한다.
+페이지나 layout 최상단에 `'use client'`를 선언하면 그 모듈 그래프가 클라이언트 번들에 포함된다. 서버 전용 저장소 접근과 서버에서 미리 만든 정적 화면의 이점을 잃고, 브라우저 API를 초기 렌더링에서 읽으면 서버 HTML과 첫 클라이언트 렌더링이 달라져 hydration 오류가 발생한다. React는 이 불일치를 버그로 다루며, 일부 오류에서는 event handler가 잘못된 element에 연결될 수 있다고 설명한다.
 
 Cal.com은 root layout에서 `visibility`의 기본값이 서버와 클라이언트 사이에서 달라 발생한 hydration 오류를 수정했다. 변경 이유와 화면 증거는 [PR #20312](https://github.com/calcom/cal.diy/pull/20312), 병합 결과는 [0eb4e6c](https://github.com/calcom/cal.diy/commit/0eb4e6c7d439ef55e6da89d26be452325670ef8f)에서 확인했다.
 
@@ -50,7 +54,7 @@ Cal.com은 root layout에서 `visibility`의 기본값이 서버와 클라이언
 - `window`, `document`, `navigator`, IndexedDB와 Worker 생성은 렌더링 중에 실행하지 않는다. event handler, effect 또는 브라우저 어댑터에서 실행한다.
 - Server Component에서 Client Component로 함수, repository, 데이터베이스 row 또는 class instance를 넘기지 않는다. 필요한 최소 DTO와 primitive만 직렬화한다.
 - `suppressHydrationWarning`은 시간 표시처럼 차이를 피할 수 없는 한 element에만 예외적으로 사용한다. 브라우저 API 접근이나 데이터 불일치를 숨기는 용도로 사용하지 않는다.
-- `cacheComponents`를 켠 계정 동기화 모드에서는 request 시점의 사용자 정보나 cache하지 않은 조회를 가장 가까운 `<Suspense>` 안으로 옮긴다. 정적 navigation과 보드 shell까지 느린 조회 하나에 묶지 않는다.
+- `cacheComponents`를 켠 계정 동기화 모드에서는 request 시점의 사용자 정보나 cache하지 않은 조회를 가장 가까운 `<Suspense>` 안으로 옮긴다. 정적 탐색 영역과 보드 바탕 화면까지 느린 조회 하나에 묶지 않는다.
 - 서로 의존하지 않는 서버 조회를 연속 `await`로 시작하지 않는다. 먼저 Promise를 만들고 함께 기다리거나 각 조회 component를 별도 `<Suspense>`로 나눈다.
 - fallback은 실제 panel과 비슷한 공간을 차지하게 만들어 streaming 완료 때 메모 보드가 이동하지 않게 한다.
 
@@ -169,6 +173,8 @@ Clipboard API 초안은 비동기 clipboard 접근을 permission으로 제어되
 - 사용할 수 있는 동작은 조립 지점에서 capability로 계산한다. 로컬 모드에 없는 계정 동기화 동작은 렌더링한 뒤 disabled 처리하지 말고 navigation과 command에서 제외한다.
 - 환경변수는 모드별 composition root에서 한 번 검증한다. component는 환경변수 원문이 아니라 검증된 capability와 port를 받는다.
 - `NEXT_PUBLIC_` 값은 build 시점에 브라우저 bundle에 포함되고 build 뒤에는 바뀌지 않는다. 비밀값, runtime authorization 또는 배포 후 바뀌어야 하는 계정 동기화 허용 여부에 사용하지 않는다.
+- 로컬 정적 결과물은 HTTPS URL 또는 `location.hostname`이 정확히 `localhost`인 HTTP URL에서만 제공한다. `file://` URL, loopback IP를 포함한 다른 호스트의 HTTP URL과 원격 HTTP URL은 지원 대상으로 간주하지 않는다.
+- 접속 프로토콜과 호스트 이름을 환경변수로 판정하지 않는다. 실행 시점의 `location.protocol`, `location.hostname`과 `isSecureContext`를 검사하고, 지원하지 않는 주소로 접속했을 때 필요한 주소 형식을 알리는 UI를 제공한다.
 - Web API의 rejection을 빈 catch로 삼키지 않는다. 사용자에게 다음 행동이 있는 알림을 제공하고, 실패한 작업의 상태 변경은 되돌린다.
 
 안티패턴:
@@ -200,7 +206,7 @@ clipboard 쓰기와 사용 횟수 저장은 하나의 원자적 transaction으�
 
 ### 검증
 
-lint는 권한 요청의 결과와 UI 문구가 일치하는지 판단하지 못한다. 브라우저 검사에서 허용, 거절, 비보안 환경, API 미지원과 write rejection을 재현하고, 실패한 경우 사용 횟수가 늘지 않는지 확인한다. 지원 브라우저가 확정되기 전에는 capability별 expected behavior를 `needs human input`으로 둔다.
+lint는 권한 요청의 결과와 UI 문구가 일치하는지 판단하지 못한다. 같은 로컬 정적 결과물을 HTTPS와 호스트 이름이 `localhost`인 HTTP에서 각각 제공해 클립보드 쓰기를 확인한다. `file://`와 다른 호스트의 HTTP에서는 지원하지 않는 주소 안내를 확인한다. 각 지원 주소에서 허용, 거절, API 미지원과 write rejection을 재현하고, 실패한 경우 사용 횟수가 늘지 않는지 확인한다. 지원 브라우저가 확정되기 전에는 capability별 expected behavior를 `needs human input`으로 둔다.
 
 ## Cache Components와 변경 직후 일관성을 구분한다
 
@@ -782,7 +788,9 @@ export { NotesProvider } from './ui/notes-provider'
 
 FSD를 승인한 뒤 Steiger 같은 구조 검사 도구를 추가할지는 정확한 버전과 dependency 조사를 거쳐 결정한다. 최소 검사는 layer 역방향 import, 같은 layer의 slice 간 deep import, public API 우회와 server 및 client 진입점 교차 import를 구분해야 한다. Next.js의 local 및 sync production build로 환경 오염 오류와 client bundle을 확인하고, 정적 로컬 산출물에 PostgreSQL client, server action과 비밀 환경변수 접근 코드가 없는지 검사한다. 파일명이 맞는지만으로 통과시키지 않는다.
 
-## 라이브러리 빌드에서 호스트와 실행 환경을 다시 묶지 않는다
+## 백로그: 라이브러리 빌드에서 호스트와 실행 환경을 다시 묶지 않는다
+
+이 절은 라이브러리 패키지와 포트폴리오 라우트 연결 백로그를 시작할 때 적용한다. 현재 독립 실행 애플리케이션 구현의 선행 조건이나 완료 기준이 아니다.
 
 ### 막으려는 실패
 
@@ -1085,7 +1093,11 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 - 단위 검사: cache tag와 query key 생성, DTO 변환, stale worker response 폐기와 revision conflict 결과
 - database 통합 검사: constraint, atomic count, 병렬 update와 transaction 재시도
 - 실제 browser 검사: Strict Mode의 effect cleanup, hydration 직후 요청 수, mutation별 pending 상태, clipboard 권한, IndexedDB upgrade와 quota, Worker와 SharedWorker lifecycle, form render 비용
-- 모드 및 제공 형태별 build와 browser 검사: local UI에 account 기능이 없고 sync mode UI가 같은 component를 사용하며 독립 실행 host와 portfolio host가 같은 library entry를 조립하는지 확인
+- 모드 및 접속 주소별 빌드와 브라우저 검사: 로컬 UI에 계정 기능이 없고 동기화 모드 UI가 같은 컴포넌트를 사용하며, 같은 로컬 정적 결과물이 HTTPS와 localhost HTTP에서 동작하는지 확인
+
+라이브러리 제공 백로그를 시작하면 다음 검사를 추가한다.
+
+- 제공 형태별 build와 browser 검사: 독립 실행 host와 portfolio host가 같은 library entry를 조립하는지 확인
 - package 검사: 공개 entry와 declaration의 일치, `'use client'` 보존, React 단일 사본, CSS 범위와 Worker asset
 
 정적 규칙을 추가할 때에는 위반 예시와 정상 예시가 실제로 구분되는지 먼저 검사한다. 인증, authorization, cache freshness, transaction lifetime, browser 권한, 사용자 경험과 성능은 lint로 판정하지 않는다.
