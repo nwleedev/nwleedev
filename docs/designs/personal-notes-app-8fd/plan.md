@@ -8,9 +8,11 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 현재 작업은 백엔드와 계정 없이 동작하는 정적 개인 메모 애플리케이션을 모듈별로 완성하는 것이다. 사용자 동작과 저장 규칙을 구현 전에 안정적으로 설명할 수 있는 모듈에만 TDD를 적용하고, Clipboard, IndexedDB, Worker 산출물, 공간형 화면과 드래그처럼 실제 브라우저가 결과를 결정하는 모듈은 브라우저 통합 검사와 담당자 검토로 확인한다. 모든 모듈에 같은 테스트 방식을 강제하지 않는다.
 
-실행 순서는 정적 내보내기와 Dedicated Worker가 실제 배포 결과에서 동작하는지 먼저 확인한 뒤, 자료 형태와 브라우저 저장, 공통 화면 구조, 메모, 복사 및 누적, 사용 빈도, 겹침 분석과 템플릿 순으로 진행한다. 각 단위는 선행 결과와 중단 조건을 만족해야 다음 단위의 완료 근거가 될 수 있다.
+실행 순서는 정적 내보내기와 Dedicated Worker가 실제 배포 결과에서 동작하는지 먼저 확인한 뒤, 자료 형태와 브라우저 저장, 디자인 시스템과 공통 화면 구조, 메모, 복사 및 누적, 사용 빈도, 겹침 분석과 템플릿 순으로 진행한다. 각 단위는 선행 결과와 중단 조건을 만족해야 다음 단위의 완료 근거가 될 수 있다.
 
 독립 실행 애플리케이션은 `apps/notes/package.json`이 관리한다. Next.js 라우트는 `apps/notes/app/`에 두고 FSD 코드는 `apps/notes/src/`에 둔다. 모든 FSD 계층을 먼저 만드는 대신 현재 화면, 메모와 템플릿 자료 및 사용자 동작에 필요한 계층만 추가하고, 계층 의존 방향과 slice public API를 각 작업 단위에서 확인한다.
+
+UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으로 개인 메모 애플리케이션 고유의 디자인 시스템을 만든다. 네이티브 요소의 의미와 기본 동작을 유지하면서 고유 외형과 상태를 적용하고, 폼과 무관한 복합 상호작용만 실제 필요가 확인된 범위에서 외부 접근성 부품을 사용할 수 있다.
 
 계정, 로그인, 동기화, 백엔드와 데이터베이스는 이번 계획에서 제외하며 모든 백로그 가운데 우선순위가 가장 높다. 라이브러리 패키지와 포트폴리오 라우트 연결은 그 뒤의 백로그다. 현재 결과물에는 두 백로그를 위한 화면, 서버 코드나 미리 만든 추상화를 포함하지 않는다.
 
@@ -46,6 +48,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 - [로컬 정적 배포와 분석 Worker](decisions/static-export-and-worker.md): Next.js 정적 내보내기와 요청 뒤 만드는 Dedicated Worker
 - [모듈별 TDD와 동작 검증](decisions/verification-strategy.md): 순수 규칙만 TDD로 개발하고 브라우저 기능은 실제 실행 결과로 확인하는 분류
 - [애플리케이션 패키지 위치와 FSD 구조](decisions/application-package-and-fsd.md): `apps/notes/` 패키지, 얇은 Next.js 라우트와 필요한 FSD 계층만 만드는 구조
+- [개인 메모 디자인 시스템과 UI 기반](decisions/application-design-system.md): Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`, 그리고 폼과 무관한 접근성 부품의 제한적 사용
 
 초기 권장안을 다시 검토하면서 누적 버튼을 설정에 따라 숨기는 방식, viewport `768px` 고정값, 전체 메모 revision만 사용하는 방식과 보편적인 Jaccard 합격 임계값은 채택하지 않았다. 이 네 변경의 근거와 재검토 조건은 각각 연결된 결정 기록에 남아 있다.
 
@@ -62,6 +65,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 - 사용자가 명시적으로 요청하는 줄 단위 생김새 겹침 분석
 - 자동 제안과 수동 플레이스홀더를 모두 지원하는 템플릿 및 일회성 결과
 - 지원하지 않는 접속 주소와 Clipboard 실패를 설명하는 알림
+- Tailwind CSS, 의미 기반 디자인 토큰과 자체 `shared/ui`로 만든 개인 메모 디자인 시스템
 
 ### 이번 계획에서 제외하는 결과
 
@@ -116,6 +120,14 @@ FSD 계층 의존 방향은 `_app`, `_pages`, `features`, `entities`, `shared` �
 
 각 slice와 slice가 없는 계층의 segment는 필요한 항목만 내보내는 public API를 둔다. 현재 로컬 애플리케이션은 별도 public API가 필요한 server-only 자료 접근이나 실행 시점 서버 구현을 갖지 않으므로 `index.server.ts`와 `index.client.ts`를 대칭으로 만들지 않는다. 이후 실제 server-only export가 일반 `index.ts`를 통해 브라우저 모듈 그래프에 들어가는 문제가 생길 때에만 명시적인 환경별 진입점을 추가한다.
 
+### 디자인 시스템과 UI 구성 원칙
+
+[개인 메모 디자인 시스템과 UI 기반 결정](decisions/application-design-system.md)에 따라 `_app/styles`는 전역 CSS, Tailwind CSS 연결과 의미 기반 디자인 토큰을 관리한다. `shared/ui`에는 개인 메모 업무 자료를 알지 못하는 네이티브 폼 제어와 상태 표현을 두고, 승인받은 외부 접근성 부품이 있다면 폼과 무관한 구성요소로 감싼다. `_app/ui`에는 탐색처럼 애플리케이션 전체 조립 위치를 알아야 하는 UI만 둔다.
+
+단순 폼 구성요소는 실제 `button`, `input`, `textarea`와 `select`를 렌더링하고 checkbox는 `input[type="checkbox"]`로 렌더링하며, 네이티브 속성과 ref를 전달한다. Tailwind CSS로 고유 외형을 적용하므로 네이티브 요소 선택을 브라우저 기본 스타일 사용으로 해석하지 않는다. 외부 접근성 부품은 폼 입력값을 만들지 않는 복합 상호작용에 필요성이 확인된 경우에만 외부 부품을 감싸는 `shared/ui` 구성요소 안에서 가져온다. 화면과 업무 동작을 구현하는 모듈은 외부 UI 패키지를 직접 가져오지 않는다.
+
+디자인 토큰은 색, 글자, 간격, 모서리, 테두리, 깊이, motion, 포커스와 제어 요소 크기의 용도를 나타낸다. 각 구성요소에 적용 가능한 기본, hover, `focus-visible`, pressed, disabled, 오류, 진행 중, 고대비와 reduced motion 상태를 정의한다. 실제 콘텐츠와 대표 상태를 담당자가 승인하기 전에는 화면마다 임의 값이나 외부 기본 테마로 스타일을 확장하지 않는다.
+
 ### 자료와 실행 중 상태
 
 ```text
@@ -166,7 +178,7 @@ undo 뒤 목록 변경 --추가, 재정렬 또는 제거--> redo 비우기
 U1 기반 및 배포 확인
   -> U2 자료 규칙과 조립 구조
     -> U3 브라우저 저장
-      -> U4 공통 화면 구조
+      -> U4 디자인 시스템과 공통 화면 구조
         -> U5 메모 작성 및 공간 배치
           -> U6 복사, 누적 시작과 집계 저장
             |-> U7 누적 편집과 제거 복구 -> U8 사용 빈도 화면 -|
@@ -179,31 +191,34 @@ U7과 U9는 U6이 끝난 뒤 병렬로 진행할 수 있다. U8은 U7의 제거 
 
 ### 목적과 기준
 
-정확한 도구와 버전을 선택하고 최소 정적 결과물에서 Dedicated Worker가 실제로 실행되는지 먼저 확인한다. [로컬 정적 배포와 분석 Worker 결정](decisions/static-export-and-worker.md)과 [요구사항의 로컬 실행 조건](requirements.md#반드시-지킬-조건)이 기준이다.
+정확한 도구와 버전을 선택하고 Tailwind CSS 및 최소 Dedicated Worker가 운영용 정적 결과물에서 실제로 동작하는지 먼저 확인한다. [로컬 정적 배포와 분석 Worker 결정](decisions/static-export-and-worker.md), [개인 메모 디자인 시스템과 UI 기반 결정](decisions/application-design-system.md)과 [요구사항의 로컬 실행 조건](requirements.md#반드시-지킬-조건)이 기준이다.
 
 ### 선행 조건
 
-없다. 현재 저장소에 package manifest, lockfile, workspace 설정, 애플리케이션 소스와 실행 명령이 없다는 상태에서 시작한다. 애플리케이션 위치와 FSD 배치는 [애플리케이션 패키지 위치와 FSD 구조 결정](decisions/application-package-and-fsd.md)으로 확정됐다.
+없다. 현재 저장소에 package manifest, lockfile, workspace 설정, 애플리케이션 소스와 실행 명령이 없다는 상태에서 시작한다. 애플리케이션 위치와 FSD 배치는 [애플리케이션 패키지 위치와 FSD 구조 결정](decisions/application-package-and-fsd.md)으로, UI 기반은 [개인 메모 디자인 시스템과 UI 기반 결정](decisions/application-design-system.md)으로 확정됐다.
 
 ### 변경 후보
 
 - `apps/notes/package.json`
 - 저장소 루트의 workspace 선언과 선택한 package manager의 lockfile
 - `apps/notes/next.config.*`
+- `apps/notes/postcss.config.*`
 - `apps/notes/tsconfig.json`
 - `apps/notes/eslint.config.*`
 - `apps/notes/app/layout.tsx`
 - `apps/notes/app/page.tsx`
+- `apps/notes/src/_app/styles/globals.css`
 - `apps/notes/src/_pages/notes/index.ts`
 - `apps/notes/src/_pages/overlap/api/overlap.worker.ts`
 - 필요한 정적 호스팅 및 브라우저 검사 설정
 
 ### 작업
 
-- 구현 시점의 Next.js, React, TypeScript, React Hook Form과 Zod 공식 문서를 다시 확인하고 서로 호환되는 정확한 버전을 고정한다.
-- 각 직접 및 전이 의존성의 기능, 버전, 라이선스, 유지보수 상태, peer 조건, 잠재적 문제와 적용할 작성 방식을 확인한다. TanStack Query, DI 컨테이너, IndexedDB wrapper와 drag library는 현재 필요와 플랫폼 API를 비교해 근거가 없으면 추가하지 않는다.
+- 구현 시점의 Next.js, React, TypeScript, React Hook Form, Zod, Tailwind CSS와 필요한 PostCSS 연결의 공식 문서를 다시 확인하고 서로 호환되는 정확한 버전을 고정한다.
+- 각 직접 및 전이 의존성의 기능, 버전, 라이선스, 유지보수 상태, peer 조건, 잠재적 문제와 적용할 작성 방식을 확인한다. TanStack Query, DI 컨테이너, IndexedDB wrapper, drag library와 외부 접근성 부품은 현재 필요와 플랫폼 API를 비교해 근거가 없으면 추가하지 않는다. U4에서 실제 필요가 확인되지 않은 외부 접근성 부품을 U1에서 미리 설치하지 않는다.
 - `apps/notes/package.json`을 애플리케이션 매니페스트로 만들고 저장소 루트의 workspace 설정이 이 패키지를 선택해 실행할 수 있게 한다. package manager와 workspace 파일 형식은 의존성 조사 뒤 확정한다.
 - App Router와 정적 내보내기를 구성하고 Server Action, 동적 Route Handler와 요청 시점 서버 기능이 결과물에 들어오지 않게 한다.
+- Tailwind CSS와 전역 스타일을 루트 layout에서 한 번 연결하고, 의미 기반 디자인 토큰과 utility class가 운영용 정적 CSS에 포함되는 최소 화면을 만든다. 완성형 UI 라이브러리나 외부 기본 테마를 함께 설치하지 않는다.
 - `apps/notes/app/`에는 framework 진입 파일만 두고 `apps/notes/src/`에는 필요한 FSD 계층만 만든다. `_app`, `_pages`, `features`, `entities`, `shared`의 import 방향, 허용된 Entities `@x`와 public API 우회를 구분할 구조 검사 방법을 정하고 위반 예시와 정상 예시로 판별력을 확인한다. FSD 공식 검사 도구를 추가하려면 정확한 버전과 전체 의존성 조사를 먼저 완료한다.
 - 분석 요청을 흉내 내는 최소 버튼에서 module-relative URL로 Dedicated Worker를 지연 생성하고 ping 및 응답을 주고받는다.
 - 운영용 정적 결과물을 HTTPS와 호스트 이름이 `localhost`인 HTTP에서 제공할 개발 및 검증 방식을 정한다. 현재 로컬 결과물에는 실행 모드 환경변수를 추가하지 않는다.
@@ -214,6 +229,7 @@ U7과 U9는 U6이 끝난 뒤 병렬로 진행할 수 있다. U8은 U7의 제거 
 TDD를 적용하지 않는다. 이 단위의 위험은 빌드 도구가 만든 Worker URL, MIME type, 정적 자산과 실행 주소이므로 가짜 Worker 단위 검사보다 운영용 빌드와 실제 브라우저 왕복이 직접적인 근거다.
 
 - package script로 운영용 정적 내보내기가 성공한다.
+- 운영용 CSS 파일에 Tailwind CSS utility와 의미 기반 디자인 토큰이 포함되고, 최소 네이티브 제어 요소에 고유 스타일이 적용된다. 개발 실행과 운영용 빌드의 CSS 순서 차이로 외형이 바뀌지 않는다.
 - 저장소 루트에서 `apps/notes`만 선택한 실행과 `apps/notes/package.json`의 package script 실행이 같은 애플리케이션을 대상으로 한다.
 - 구조 검사가 계층 역방향 import, 허용되지 않은 같은 계층 import와 public API 우회를 각각 실패로 판정하고 Entities `@x`를 포함한 승인된 import는 통과시킨다.
 - 내보낸 파일을 두 허용 접속 방식에서 열고 첫 분석 요청 전에는 Worker가 없으며, 요청 뒤 Worker 응답이 화면에 표시된다.
@@ -222,7 +238,7 @@ TDD를 적용하지 않는다. 이 단위의 위험은 빌드 도구가 만든 W
 
 ### 중단 조건
 
-Worker URL, MIME type 또는 정적 호스팅에서의 메시지 왕복을 확인하지 못하면 U9를 시작하지 않는다. 버전 호환성, 대상 브라우저, workspace 설정 또는 FSD 구조 검사 방법이 결정되지 않으면 의존하는 소스 구조를 만들지 않는다.
+Worker URL, MIME type 또는 정적 호스팅에서의 메시지 왕복을 확인하지 못하면 U9를 시작하지 않는다. Tailwind CSS가 내보낸 CSS 파일에 포함되지 않거나 버전 호환성, 대상 브라우저, workspace 설정 또는 FSD 구조 검사 방법이 결정되지 않으면 의존하는 소스 구조를 만들지 않는다.
 
 ## U2. 자료 규칙과 의존성 조립 구조
 
@@ -321,15 +337,15 @@ TDD를 적용하지 않는다. IndexedDB의 transaction 수명, upgrade와 origi
 
 transaction 일부 성공을 사용자가 성공으로 보거나 스키마 upgrade가 조용히 멈추면 U5와 U6을 시작하지 않는다. 첫 스키마 버전 뒤 자료 형태를 바꾸면 migration과 이전 레코드 fixture를 함께 추가하기 전에는 변경을 완료하지 않는다.
 
-## U4. 공통 화면 구조와 작은 화면 표현 기준선
+## U4. 개인 메모 디자인 시스템과 공통 화면 구조
 
 ### 목적과 기준
 
-로컬 애플리케이션의 여섯 페이지와 공통 탐색, 알림 및 반응형 화면 뼈대를 만든다. [화면 구성 조사](references/interface-layout-research.md), [시각 디자인 조사](references/web-visual-design-research-2026.md)와 [공간형 보드와 작은 화면 목록 결정](decisions/responsive-note-presentation.md)이 기준이다.
+개인 메모의 공간 작업 특성을 반영한 고유 디자인 시스템을 대표 화면에서 확정하고, 그 토큰과 구성요소로 로컬 애플리케이션의 여섯 페이지, 공통 탐색, 알림과 반응형 화면 구조를 만든다. [개인 메모 디자인 시스템과 UI 기반 결정](decisions/application-design-system.md), [화면 구성 조사](references/interface-layout-research.md), [시각 디자인 조사](references/web-visual-design-research-2026.md)와 [공간형 보드와 작은 화면 목록 결정](decisions/responsive-note-presentation.md)이 기준이다.
 
 ### 선행 조건
 
-U1의 라우트 및 CSS 구성과 U2의 provider가 필요하다.
+U1의 라우트, Tailwind CSS 및 운영용 CSS 확인과 U2의 provider가 필요하다.
 
 ### 변경 후보
 
@@ -343,30 +359,42 @@ U1의 라우트 및 CSS 구성과 U2의 provider가 필요하다.
 - `apps/notes/src/_app/ui/navigation/*`
 - `apps/notes/src/_app/ui/feedback/*`
 - `apps/notes/src/_app/styles/{globals,tokens}.css`
+- `apps/notes/src/shared/ui/{button,icon-button,text-field,textarea,native-select,checkbox,field-message}/*`
+- 실제 필요가 승인된 폼과 무관한 접근성 구성요소의 `apps/notes/src/shared/ui/*`
 
 ### 작업
 
 - `/`에는 메모 보드, 나머지 route에는 누적 텍스트, 사용 빈도, 텍스트 겹침, 템플릿과 설정을 배치한다. 계정, 동기화와 서버 상태 route는 만들지 않는다.
 - 각 `app/**/page.tsx`는 같은 라우트를 담당하는 `_pages` slice의 공개 화면만 연결하고, 화면 구성과 상태 처리는 `_pages`에 둔다.
 - 공통 화면 구조는 접을 수 있는 탐색, 페이지 제목과 주요 동작, 주 콘텐츠 및 상태 알림으로 구성한다. 사용자 문구와 문서 이름에도 `공통 화면 구조`라고 쓴다.
+- 색, 글자, 간격, 모서리, 테두리, 깊이, motion, 포커스, 제어 요소 크기와 화면 밀도를 용도별 디자인 토큰으로 정의한다. 화면에서 같은 임의 값을 반복하거나 색 이름을 업무 상태 이름처럼 사용하지 않는다.
+- 자체 `shared/ui`의 단순 폼 구성요소는 실제 `button`, `input`, `textarea`와 `select`를 렌더링하고 checkbox는 `input[type="checkbox"]`로 렌더링하며, 네이티브 속성, `name`, 이벤트와 ref를 전달한다. Tailwind CSS로 고유 외형을 적용하며 브라우저 기본 스타일에 완성도를 맡기지 않는다.
+- 단순 입력은 React Hook Form의 `register`로 연결할 수 있게 하고 자체 폼 구성요소가 `Controller` 또는 `useController`를 요구하지 않게 한다. 폼 입력값을 만드는 새로운 복합 제어가 필요하면 자체 구현이나 외부 부품을 추가하기 전에 디자인 시스템 결정을 다시 검토한다.
+- Dialog, Menu와 Tooltip처럼 폼 입력값을 만들지 않는 복합 상호작용이 실제 화면에 필요하면 네이티브 HTML 및 Web API로 충족할 수 있는지 먼저 확인한다. 외부 접근성 부품이 필요하면 정확한 package와 전체 의존성을 검토하고, import 및 API 변환을 외부 부품을 감싸는 `shared/ui` 구성요소 안에 둔다.
+- 각 `shared/ui` 구성요소는 자체 public API를 두고 전체 UI를 한 번에 다시 내보내는 barrel을 만들지 않는다. 화면과 업무 동작을 구현하는 모듈은 외부 UI 패키지를 직접 가져오지 않는다.
 - 메모 영역의 inline size를 기준으로 `48rem` 미만에서 목록 표현을 선택할 자리를 만들고 User-Agent 분기를 두지 않는다.
 - 실제 긴 한국어 메모, 여러 줄, URL 형식 문자열, 빈 화면, 오류, 진행 중과 키보드 포커스 상태로 대표 화면을 만든다.
 - 공통 자료 상태 영역은 초기 불러오기, 사용 가능한 빈 상태, 자료 표시, 읽기 실패와 다른 탭 대기를 구분하며 각 상태에서 가능한 다음 동작을 보여준다.
-- 시각 조사에서 제안한 글꼴, 색, 모서리, 깊이와 motion 후보를 대표 상태에만 적용해 담당자 검토를 받는다. 승인 전에는 모든 화면에 세부 스타일을 확장하지 않는다.
+- 기본, hover, `focus-visible`, pressed, disabled, 오류, 진행 중, 고대비와 reduced motion 가운데 대표 구성요소에 적용 가능한 상태를 확인한다. 상태는 색 하나에 의존하지 않고 네이티브 의미, 문구와 형태를 함께 사용한다.
+- 시각 조사에서 제안한 글꼴, 색, 모서리, 깊이와 motion 후보를 실제 콘텐츠가 있는 대표 화면에 적용해 담당자 검토를 받는다. 개인 메모의 공간 작업 특성, 정보 위계와 상태 식별이 승인되기 전에는 모든 화면에 세부 스타일을 확장하지 않는다.
 
 ### 검증 방식
 
-TDD를 적용하지 않는다. 라우트 구성, container query, 읽기 흐름과 시각적 위계는 DOM 내부 구조를 고정하는 단위 검사보다 실제 렌더링과 담당자 검토가 직접적인 근거다.
+TDD를 적용하지 않는다. 디자인 토큰, 구성요소 외형, 라우트 구성, container query, 읽기 흐름과 시각적 위계는 class 이름이나 DOM 내부 구조를 고정하는 단위 검사보다 실제 렌더링, 접근성 검사와 담당자 검토가 직접적인 근거다.
 
 - 여섯 route를 직접 열고 새로고침해도 정적 hosting에서 화면이 열린다.
 - 로컬 탐색에는 계정과 동기화 항목이 없다.
+- DOM 검사에서 단순 폼 제어가 승인된 네이티브 HTML 요소로 렌더링되고, 이름, 설명, 오류, 키보드 포커스와 네이티브 폼 참여가 유지된다.
+- 같은 역할의 버튼, 입력과 알림을 여러 route에서 실행했을 때 같은 디자인 토큰, 상태 규칙과 `shared/ui` 구성요소를 사용한다. 이 검사는 class 문자열이 아니라 렌더링된 사용자 상태와 동작으로 판정한다.
 - 320 CSS px, `48rem` 직전과 직후, 200% 및 400% zoom과 화면 분할에서 핵심 동작 영역이 가려지지 않는다.
 - 키보드 포커스, 오류, 성공, 빈 상태와 진행 상태가 색 하나에만 의존하지 않는다.
+- 고대비와 reduced motion 설정에서도 포커스, 선택, 오류와 진행 상태를 구분할 수 있다.
+- 외부 접근성 부품을 추가했다면 승인된 폼과 무관한 구성요소에서만 import하고 외부 기본 테마가 실제 화면에 나타나지 않는다. 추가하지 않았다면 불필요한 package가 lockfile에 없다.
 - 범용 카드 격자, 장식용 그라데이션과 hover 전용 동작이 정보 구조를 대신하지 않는지 담당자가 검토한다.
 
 ### 중단 조건
 
-공통 화면 구조가 작은 화면에서 주 콘텐츠를 가리거나 시각 기준선의 책임자가 정해지지 않으면 세부 스타일 확대를 중단한다. 기능 모듈은 무채색 기준선으로 계속할 수 있지만 U11의 시각 완료 판정은 담당자 검토 전까지 완료하지 않는다.
+대표 화면의 정보 위계, 디자인 토큰 역할, 네이티브 폼 구성요소와 사용자가 반드시 구분해야 하는 상태를 담당자가 승인하지 않으면 U5를 시작하지 않는다. 공통 화면 구조가 작은 화면에서 주 콘텐츠를 가리거나, 단순 입력이 불필요하게 제어 상태를 강제하거나, 외부 기본 테마가 화면에 드러나면 이 문제를 고치기 전에는 디자인 시스템을 다른 화면으로 확장하지 않는다.
 
 ## U5. 메모 작성, 편집과 공간 배치
 
@@ -390,6 +418,7 @@ U2의 revision 규칙, U3의 메모 저장과 U4의 두 화면 표현이 필요�
 ### 작업
 
 - 메모 생성, 붙여넣기, 편집 완료와 `Escape` 종료가 현재 입력을 보존해 IndexedDB에 저장되게 한다.
+- 메모 입력, 위치와 크기 조절에는 U4에서 승인한 네이티브 기반 `shared/ui` 구성요소를 사용한다. 화면 전용 편집 상태와 업무 동작을 `shared/ui`로 옮기지 않는다.
 - 읽기 본문, 이동 손잡이, 복사, 누적 및 편집 버튼과 크기 조절 손잡이를 형제 동작으로 분리한다.
 - 읽기 본문에서 텍스트 범위를 선택할 수 있게 하고 포인터 선택이 메모 이동이나 편집 전환으로 이어지지 않게 한다.
 - 보드는 메모 외곽 범위에 따라 확장하고 pan, zoom과 모든 메모 맞춤을 제공한다. 내용이 사용자가 정한 크기를 넘으면 메모 안에서 스크롤한다.
@@ -623,6 +652,7 @@ U3의 템플릿 저장, U9의 원문 줄 선택과 U2의 segment schema가 필�
 - 플레이스홀더를 만들면 이름 입력으로 포커스를 옮기고, 각 플레이스홀더에 이름 변경과 일반 텍스트로 되돌리기를 제공한다. 빈 이름과 중복 이름이 있으면 저장할 수 없다.
 - 제안은 저장 전 상태로 유지하고 사용자가 명시적으로 저장한 경우에만 IndexedDB 템플릿에 추가한다.
 - React Hook Form은 템플릿 메타데이터와 입력값처럼 제출 단위가 있는 범위에만 사용하고, segment 편집과 분석 상태를 form 전체 상태로 만들지 않는다.
+- React Hook Form이 관리하는 단순 입력은 U4의 네이티브 기반 `shared/ui` 구성요소와 `register`로 연결한다. 승인된 복합 폼 제어가 없는 현재 범위에서는 `Controller`와 `useController`를 사용하지 않는다.
 - 입력값으로 만든 일회성 결과와 복사 동작을 제공하되 결과를 자동 저장하지 않는다.
 
 ### 검증 방식
@@ -636,6 +666,7 @@ U3의 템플릿 저장, U9의 원문 줄 선택과 U2의 segment schema가 필�
 - 여러 플레이스홀더를 직접 만들고 이름을 바꾼 뒤 저장하면 새로고침 후 다시 사용할 수 있다.
 - 필요한 값을 입력하면 순서대로 치환한 일회성 결과가 생기고, 저장하지 않은 결과는 새로고침 뒤 사라진다.
 - 저장 전 제안은 템플릿 목록과 사용 빈도를 바꾸지 않는다.
+- DOM에서 템플릿 메타데이터와 플레이스홀더 값 입력이 네이티브 폼 요소로 남고, 키보드 제출과 오류 포커스 동작을 유지한다.
 
 ### 중단 조건
 
@@ -664,6 +695,8 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 - 운영용 정적 결과물 하나를 HTTPS와 호스트 이름이 `localhost`인 HTTP에서 각각 제공한다. origin이 다르므로 같은 자료 공유를 기대하지 않고 각 환경에서 새 자료로 전체 흐름을 확인한다.
 - 키보드, 단일 포인터, 터치, 한글 IME, 텍스트 선택, 320 CSS px, `48rem` 전후, 확대, reduced motion과 고대비 상태를 확인한다.
 - Clipboard 거절, IndexedDB transaction 중단, Worker 오류, 오래된 분석 response와 읽을 수 없는 저장 record에서 사용자가 보존된 결과와 다음 동작을 알 수 있는지 확인한다.
+- 여섯 화면의 실제 한국어 콘텐츠로 대표 구성요소에 적용 가능한 기본, hover, `focus-visible`, pressed, disabled, 오류와 진행 상태를 확인하고, 같은 역할의 구성요소가 U4에서 승인한 디자인 토큰과 `shared/ui`를 사용하는지 담당자가 검토한다.
+- 단순 폼 제어가 네이티브 HTML 요소와 React Hook Form의 직접 등록 방식을 유지하는지 확인한다. 외부 접근성 부품을 추가했다면 폼과 무관한 승인된 `shared/ui` 구성요소에만 격리되고 외부 기본 테마가 화면에 나타나지 않는지 import, lockfile과 실제 화면을 함께 확인한다.
 - U1에서 확정한 FSD 구조 검사를 최종 `apps/notes/src/` 전체에 다시 실행하고, `apps/notes/app/`의 route 파일이 `_pages` 및 `_app` public API만 연결하는지 확인한다.
 - 운영용 JavaScript 묶음과 라우트 목록에 계정, 동기화, 서버 실행, PostgreSQL, 라이브러리 제공 코드와 환경변수 예시 값이 없는지 검사한다.
 - 대표 자료 규모에서 Worker 분석 중 main thread 반응, 메모 수 증가에 따른 보드 조작과 IndexedDB 읽기 및 쓰기 시간을 측정해 기준선을 남긴다. 측정 전 임의 성능 합격값을 만들지 않는다.
@@ -679,6 +712,7 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 - HTTPS와 localhost HTTP에서 각각 Clipboard와 IndexedDB를 포함한 전체 과업을 완료한다.
 - `apps/notes/package.json`의 빌드 명령이 정적 결과물을 만들고, FSD 구조 검사에서 허용된 Entities `@x` 외의 같은 계층 import, 역방향 import와 public API 우회가 발견되지 않는다.
 - 화면 읽기 프로그램이 버튼 이름, 상태 알림, 분석 관계와 사용 횟수의 의미를 읽을 수 있고, keyboard focus가 가려지지 않는다.
+- 같은 역할의 버튼, 입력과 알림이 여섯 화면에서 같은 디자인 규칙을 사용하고 포커스 표현도 같은 규칙을 따른다. 외부 UI 라이브러리의 기본 테마가 개인 메모 디자인 시스템을 대신하지 않는다.
 
 ### 중단 조건
 
@@ -691,7 +725,7 @@ TDD 여부는 파일 종류나 모듈 크기가 아니라 구현 전에 사용�
 - U1은 TDD를 적용하지 않고 운영용 빌드 및 Worker 기본 실행 검사를 사용한다.
 - U2는 content revision과 외부 schema 규칙에만 TDD를 적용하고 조립 wiring에는 적용하지 않는다.
 - U3은 TDD를 적용하지 않고 실제 브라우저 IndexedDB 통합 검사를 사용한다.
-- U4는 TDD를 적용하지 않고 라우트, 반응형 렌더링과 담당자 검토를 사용한다.
+- U4는 TDD를 적용하지 않고 운영용 CSS, 네이티브 폼 동작, 라우트, 반응형 렌더링, 접근성 검사와 담당자 검토를 사용한다.
 - U5는 TDD를 적용하지 않고 U2의 content revision TDD 결과를 재사용한다. 본문 클릭, 텍스트 선택, 보조 키, 보드, 편집, focus와 drag는 실제 브라우저에서 확인한다.
 - U6은 복사 및 누적 command의 성공과 실패 규칙에 TDD를 적용하고 실제 Clipboard에는 적용하지 않는다.
 - U7은 누적 명령과 제거 이력에 TDD를 적용하고 드래그 이벤트 및 시각 상태에는 적용하지 않는다.
@@ -706,9 +740,10 @@ TDD 여부는 파일 종류나 모듈 크기가 아니라 구현 전에 사용�
 
 다음 항목은 사용자 동작을 바꾸는 미해결 요구사항이 아니라 구현을 시작할 때 실제 저장소와 배포 환경을 확인해 정할 기술 선택이다.
 
-- U1은 package manager, 저장소 workspace 선언, 정확한 의존성 버전, lockfile, FSD 구조 검사 방법, 지원 브라우저와 HTTPS 및 localhost HTTP 제공 방식을 정해야 한다. 애플리케이션 디렉터리는 `apps/notes/`로 확정됐다.
+- U1은 package manager, 저장소 workspace 선언, Tailwind CSS와 PostCSS 연결을 포함한 정확한 의존성 버전, lockfile, FSD 구조 검사 방법, 지원 브라우저와 HTTPS 및 localhost HTTP 제공 방식을 정해야 한다. 애플리케이션 디렉터리와 UI 기반 조합은 확정됐다.
 - U1은 브라우저 기본 IndexedDB와 wrapper, 기본 Pointer Events와 드래그 라이브러리를 각각 비교하고 직접 및 전이 의존성 검토 없이 새 package를 추가하지 않는다.
-- U4는 대표 화면으로 시각 token과 밀도를 검토할 담당자를 확인해야 한다. 이 결정이 없으면 기능 기준선은 진행할 수 있지만 최종 시각 완료는 판정할 수 없다.
+- U4는 실제 콘텐츠가 있는 대표 화면으로 글꼴, 색, 모서리, 깊이, motion, 화면 밀도와 상태 조합의 구체적인 값을 검토할 담당자를 확인해야 한다. Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui` 조합은 다시 선택하지 않는다.
+- 외부 접근성 부품 package는 미리 정하지 않는다. U4에서 폼과 무관한 복합 상호작용의 실제 필요와 네이티브 Web API의 한계를 확인한 경우에만 정확한 버전과 전체 의존성을 조사해 선택한다.
 - 현재 로컬 애플리케이션에는 실행 모드를 선택하는 환경변수가 필요하지 않다. 계정 및 동기화 백로그를 시작할 때만 실행 구성 방식을 다시 결정한다.
 
 이 선택이 해당 작업 단위의 중단 조건에 걸리면 추정으로 넘기지 않는다. 결정되지 않은 부분만 `needs human input`으로 남기고, 그 선택과 독립적인 앞선 작업만 계속한다.
