@@ -2,7 +2,8 @@
 
 import { useEffect, useState, type PropsWithChildren } from "react"
 
-import { TextAnalysisProvider } from "@/_pages/analysis"
+import { TextAnalysisProvider } from "@/_pages/analysis/composition"
+import { NotesDataProvider } from "@/_pages/notes/composition"
 
 import { createLocalApplication } from "../composition/createLocalApplication"
 
@@ -15,7 +16,12 @@ export function PersonalNotesProvider({ children }: PropsWithChildren) {
 
   return (
     <TextAnalysisProvider analyzer={application.analysis.analyzer}>
-      {children}
+      <NotesDataProvider
+        repository={application.notes.repository}
+        storageMonitor={application.notes.storageMonitor}
+      >
+        {children}
+      </NotesDataProvider>
     </TextAnalysisProvider>
   )
 }

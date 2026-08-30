@@ -21,6 +21,7 @@
     "serve:https": "node scripts/static-server.mjs --root out --protocol https --host localhost --port 4174",
     "smoke:static": "node scripts/static-smoke.mjs",
     "test": "vitest run --passWithNoTests",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -37,6 +38,7 @@
     "@types/node": "24.13.3",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
+    "@vitest/browser-playwright": "4.1.11",
     "@vitest/eslint-plugin": "1.6.27",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.3",

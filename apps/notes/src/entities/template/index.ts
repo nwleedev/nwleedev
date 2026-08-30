@@ -1,4 +1,8 @@
 export {
+  IndexedDbTemplateRepository,
+  TEMPLATE_STORE_NAME,
+} from "./api/IndexedDbTemplateRepository"
+export {
   TemplateRecordSchema,
   TemplateSegmentSchema,
   parseTemplateRecord,

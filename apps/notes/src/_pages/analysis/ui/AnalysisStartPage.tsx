@@ -1,27 +1,16 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
 
-import { useTextAnalyzer } from "../model/TextAnalysisProvider"
-
-type AnalysisStatus = "idle" | "running" | "success" | "failure"
+import { useTextAnalysis } from "../model/TextAnalysisProvider"
 
 const algorithm = { type: "surface-v1", version: "1" } as const
 
 export function AnalysisStartPage() {
-  const textAnalyzer = useTextAnalyzer()
-  const [status, setStatus] = useState<AnalysisStatus>("idle")
+  const analysis = useTextAnalysis()
 
-  async function runAnalysis() {
-    setStatus("running")
-
-    try {
-      await textAnalyzer.analyze({ algorithm, notes: [] })
-      setStatus("success")
-    } catch {
-      setStatus("failure")
-    }
+  function runAnalysis() {
+    void analysis.run({ algorithm, notes: [] })
   }
 
   const statusText = {
@@ -29,7 +18,7 @@ export function AnalysisStartPage() {
     idle: null,
     running: "분석 중",
     success: "분석할 텍스트가 없습니다.",
-  }[status]
+  }[analysis.status]
 
   return (
     <main className="min-h-screen bg-canvas px-5 py-10 text-ink sm:px-10 sm:py-16">
@@ -40,7 +29,7 @@ export function AnalysisStartPage() {
         <div className="mt-7 flex flex-wrap items-center gap-4">
           <button
             className="min-h-11 rounded-control bg-action px-5 py-2.5 font-semibold text-white transition-colors hover:bg-action-hover disabled:cursor-wait disabled:opacity-60"
-            disabled={status === "running"}
+            disabled={analysis.status === "running"}
             onClick={runAnalysis}
             type="button"
           >
@@ -55,9 +44,9 @@ export function AnalysisStartPage() {
         </div>
         {statusText ? (
           <p
-            aria-live={status === "failure" ? "assertive" : "polite"}
+            aria-live={analysis.status === "failure" ? "assertive" : "polite"}
             className="mt-6 border-l-4 border-action pl-4 leading-6"
-            role={status === "failure" ? "alert" : "status"}
+            role={analysis.status === "failure" ? "alert" : "status"}
           >
             {statusText}
           </p>

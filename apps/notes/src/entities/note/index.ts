@@ -1,4 +1,9 @@
 export {
+  IndexedDbNoteRepository,
+  NOTE_STORE_NAME,
+  StaleNoteRevisionError,
+} from "./api/IndexedDbNoteRepository"
+export {
   NoteContentReferenceSchema,
   NoteGeometrySchema,
   NoteRecordSchema,

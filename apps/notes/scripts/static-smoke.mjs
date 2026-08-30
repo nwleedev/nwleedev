@@ -67,6 +67,7 @@ async function verifyOrigin(browser, origin) {
   const worker = await workerStarted
   await expect(button).toBeEnabled()
   await page.getByRole("status").waitFor()
+  const completedStatus = await page.getByRole("status").textContent()
   assert.equal(page.workers().length, 1)
 
   const workerUrl = worker.url()
@@ -78,6 +79,85 @@ async function verifyOrigin(browser, origin) {
     workerResponse.headers()["content-type"] ?? "",
     /^text\/javascript/u,
   )
+
+  await page.getByRole("link").click()
+  await page.getByRole("heading", { level: 1 }).waitFor()
+  await page.getByRole("link").click()
+  await expect(page.getByRole("status")).toHaveText(completedStatus ?? "")
+
+  await page.reload()
+  await page.getByRole("heading", { level: 1 }).waitFor()
+  const reloadedStatuses = await page.getByRole("status").allTextContents()
+  assert.equal(reloadedStatuses.includes(completedStatus ?? ""), false)
+
+  await context.close()
+}
+
+async function readNoteCount(page) {
+  return page.evaluate(
+    () =>
+      new Promise((resolve, reject) => {
+        const request = indexedDB.open("personal-notes", 1)
+        request.onerror = () => reject(request.error)
+        request.onsuccess = () => {
+          const database = request.result
+          const transaction = database.transaction("notes", "readonly")
+          const count = transaction.objectStore("notes").count()
+          count.onerror = () => reject(count.error)
+          count.onsuccess = () => resolve(count.result)
+          transaction.oncomplete = () => database.close()
+        }
+      }),
+  )
+}
+
+async function verifyStorageIsolation(browser, httpOrigin, httpsOrigin) {
+  const context = await browser.newContext({ ignoreHTTPSErrors: true })
+  const page = await context.newPage()
+
+  await page.goto(httpOrigin)
+  await page.getByRole("status").waitFor()
+  await page.evaluate(
+    () =>
+      new Promise((resolve, reject) => {
+        const request = indexedDB.open("personal-notes", 1)
+        request.onerror = () => reject(request.error)
+        request.onsuccess = () => {
+          const database = request.result
+          const transaction = database.transaction("notes", "readwrite")
+          transaction.objectStore("notes").put({
+            content: "origin marker",
+            contentRevision: 0,
+            createdAt: "2026-08-31T01:00:00.000Z",
+            geometry: {
+              height: 240,
+              width: 320,
+              x: 0,
+              y: 0,
+              zIndex: 0,
+            },
+            id: "origin-marker",
+            revision: 0,
+            updatedAt: "2026-08-31T01:00:00.000Z",
+          })
+          transaction.onabort = () => reject(transaction.error)
+          transaction.oncomplete = () => {
+            database.close()
+            resolve()
+          }
+        }
+      }),
+  )
+  await page.reload()
+  await expect(page.getByRole("status")).toContainText(/1/u)
+
+  await page.goto(httpsOrigin)
+  await page.getByRole("status").waitFor()
+  assert.equal(await readNoteCount(page), 0)
+
+  await page.goto(httpOrigin)
+  await page.getByRole("status").waitFor()
+  assert.equal(await readNoteCount(page), 1)
 
   await context.close()
 }
@@ -130,8 +210,12 @@ async function run() {
       const browser = await browserType.launch()
       browsers.push(browser)
 
-      await verifyOrigin(browser, `http://localhost:${httpPort}`)
-      await verifyOrigin(browser, `https://localhost:${httpsPort}`)
+      const httpOrigin = `http://localhost:${httpPort}`
+      const httpsOrigin = `https://localhost:${httpsPort}`
+
+      await verifyStorageIsolation(browser, httpOrigin, httpsOrigin)
+      await verifyOrigin(browser, httpOrigin)
+      await verifyOrigin(browser, httpsOrigin)
     }
 
     const workerAssets = await readFile(
@@ -141,7 +225,7 @@ async function run() {
     assert.match(workerAssets, /_next\/static/u)
 
     process.stdout.write(
-      "Static HTTP and HTTPS Worker smoke check passed in Chromium, Firefox, and WebKit.\n",
+      "Static HTTP and HTTPS storage isolation and Worker checks passed in Chromium, Firefox, and WebKit.\n",
     )
   } finally {
     await Promise.all(browsers.map((browser) => browser.close()))

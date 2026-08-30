@@ -2,13 +2,31 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
+  useState,
   type PropsWithChildren,
 } from "react"
 
-import type { TextAnalyzer } from "./analysisMessage"
+import type {
+  AnalysisInput,
+  AnalysisResponseMessage,
+  TextAnalyzer,
+} from "./analysisMessage"
 
-const TextAnalyzerContext = createContext<TextAnalyzer | null>(null)
+type TextAnalysisState =
+  | { status: "idle" }
+  | { status: "running" }
+  | { result: AnalysisResponseMessage; status: "success" }
+  | { status: "failure" }
+
+type TextAnalysisContextValue = TextAnalysisState & {
+  run(input: AnalysisInput): Promise<void>
+}
+
+const TextAnalysisContext = createContext<TextAnalysisContextValue | null>(
+  null,
+)
 
 type TextAnalysisProviderProps = PropsWithChildren<{
   analyzer: TextAnalyzer
@@ -18,19 +36,36 @@ export function TextAnalysisProvider({
   analyzer,
   children,
 }: TextAnalysisProviderProps) {
+  const [state, setState] = useState<TextAnalysisState>({ status: "idle" })
+  const run = useCallback(
+    async (input: AnalysisInput) => {
+      setState({ status: "running" })
+
+      try {
+        const result = await analyzer.analyze(input)
+        setState({ result, status: "success" })
+      } catch {
+        setState({ status: "failure" })
+      }
+    },
+    [analyzer],
+  )
+
   return (
-    <TextAnalyzerContext value={analyzer}>{children}</TextAnalyzerContext>
+    <TextAnalysisContext value={{ ...state, run }}>
+      {children}
+    </TextAnalysisContext>
   )
 }
 
-export function useTextAnalyzer() {
-  const analyzer = useContext(TextAnalyzerContext)
+export function useTextAnalysis() {
+  const context = useContext(TextAnalysisContext)
 
-  if (analyzer === null) {
+  if (context === null) {
     throw new Error(
-      "useTextAnalyzer must be used within TextAnalysisProvider",
+      "useTextAnalysis must be used within TextAnalysisProvider",
     )
   }
 
-  return analyzer
+  return context
 }

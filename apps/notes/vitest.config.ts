@@ -8,4 +8,8 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  test: {
+    exclude: ["src/**/*.indexeddb.test.ts"],
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+  },
 })

@@ -6,6 +6,7 @@ import nextTypeScript from "eslint-config-next/typescript"
 
 const sourceFiles = ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"]
 const publicEntryPoint = "index.{ts,tsx}"
+const pagePublicEntryPoint = "{composition,index}.{ts,tsx}"
 
 const element = (type, fileInternalPath) => ({
   element: {
@@ -46,7 +47,10 @@ const dependencyPolicies = [
   {
     from: element("app"),
     allow: {
-      to: allowPublicEntries(["page", "feature", "entity", "shared"]),
+      to: [
+        element("page", pagePublicEntryPoint),
+        ...allowPublicEntries(["feature", "entity", "shared"]),
+      ],
     },
   },
   {
@@ -94,7 +98,7 @@ const dependencyPolicies = [
     disallow: {
       to: {
         element: {
-          fileInternalPath: publicEntryPoint,
+          fileInternalPath: pagePublicEntryPoint,
         },
       },
     },
