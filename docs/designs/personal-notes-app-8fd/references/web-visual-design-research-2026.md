@@ -357,7 +357,7 @@ AI 도구에는 button과 input만 주는 대신 다음처럼 이 애플리케�
 - 읽기, 선택, 편집, drag와 resize 상태를 포함한 note
 - 일반 복사와 누적 결과를 알리는 clipboard status
 - drag 대체 버튼과 undo 상태를 포함한 accumulated item
-- 두 원문 줄, 관계 유형과 원본 이동 동작을 포함한 overlap result
+- 두 원문 줄, 관계 유형과 원본 이동 동작을 포함한 analysis result
 - 현재 범위의 local only와 error를 구분하고, 최우선 계정 및 동기화 백로그에서 sync pending과 conflict를 추가할 수 있는 persistence status
 
 Figma에서는 이름, auto layout, variant, variable과 설명을 정리한 library 또는 Make kit를 제공하고, 코드 생성 도구에는 승인된 registry와 사용 예시를 제공해야 한다. 이 자료가 없으면 생성 결과를 디자인 시스템 준수 결과로 취급하지 않는다.
@@ -382,7 +382,7 @@ Figma에서는 이름, auto layout, variant, variable과 설명을 정리한 lib
 
 1. 탐색과 현재 페이지 상태를 확정한다.
 2. 주 작업 영역의 정보 우선순위와 기본 상호작용을 확정한다.
-3. note, accumulated item, overlap result처럼 반복되는 작업 단위를 상태별로 만든다.
+3. note, accumulated item, analysis result처럼 반복되는 작업 단위를 상태별로 만든다.
 4. popover, dialog, toast와 drag preview가 겹치는 규칙을 검증한다.
 5. 실제 페이지에서 구성요소를 다시 조합하고 전체 keyboard 및 pointer 흐름을 확인한다.
 
@@ -435,7 +435,7 @@ Figma에서는 이름, auto layout, variant, variable과 설명을 정리한 lib
 - 메모의 물성을 표현할 때 종이 질감, tape와 접힌 모서리를 모두 추가하기보다 선택, drag, resize와 겹침 순서를 깊이 및 모션으로 분명히 하는 데 집중한다.
 - 일반 클릭 복사, 누적 클릭과 편집은 색 하나가 아니라 cursor, 테두리, handle, 상태 문구와 keyboard 안내를 함께 사용해 구분한다.
 - 누적 텍스트 화면은 순서와 결합 결과를 한눈에 연결해야 하므로 큰 card 반복보다 항목 목록과 미리보기의 관계를 강조한다.
-- 사용 빈도와 텍스트 겹침 화면은 홍보용 통계 dashboard가 아니라 원문을 비교하고 근거로 돌아갈 수 있는 밀도 높은 작업 화면으로 만든다.
+- 사용 빈도와 텍스트 분석 화면은 홍보용 통계 dashboard가 아니라 원문을 비교하고 근거로 돌아갈 수 있는 밀도 높은 작업 화면으로 만든다.
 - 작은 화면 목록은 같은 token과 글자 체계를 사용하되 자유 배치의 축소판처럼 보이게 만들지 않는다. 복사, 누적과 편집에 필요한 control을 touch에서도 사용할 수 있게 배치한다.
 - URL 형식 문자열은 별도 link 색, 밑줄, preview card나 favicon을 붙이지 않고 메모 원문의 일부로 표시한다.
 - 고유한 시각 성격은 범용 gradient 배경보다 메모 배치, 누적 순서, 분석 관계와 템플릿 placeholder를 표현하는 조형 규칙에서 찾는다.

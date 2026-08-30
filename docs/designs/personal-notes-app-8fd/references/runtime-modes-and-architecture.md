@@ -6,9 +6,9 @@
 
 현재 로컬 애플리케이션은 실행 모드를 선택할 환경변수가 없어도 구성할 수 있다. 최우선 계정 및 동기화 백로그에서는 빌드 시점 환경변수 하나로 로컬 또는 계정 구성을 선택하고, 독립 실행 애플리케이션의 시작 지점에서 이를 capabilities와 어댑터 묶음으로 변환하는 방안을 다시 검토한다. 화면 컴포넌트가 환경변수를 직접 읽거나 제공 항목마다 별도 환경변수를 두는 방식은 피하는 편이 낫다. 라이브러리 제공 형태는 백로그를 시작한 뒤에도 환경변수가 아니라 빌드 대상과 패키지 설정으로 구분해야 한다.
 
-로컬 모드의 줄 단위 텍스트 겹침 분석은 백엔드와 LLM 없이 구현할 수 있다. [줄 단위 생김새 겹침 분석 결정](../decisions/surface-overlap-analysis.md)에 따라 원문을 줄바꿈으로 분리하고, 정규화 뒤 정확한 일치, 포함 관계와 사용자 인식 문자 조각 기반 점수를 계산한다. [로컬 정적 배포와 분석 Worker 결정](../decisions/static-export-and-worker.md)에 따라 사용자가 분석을 요청할 때만 Dedicated Worker에서 실행한다.
+로컬 모드의 줄 단위 텍스트 분석은 별도 백엔드, 데이터베이스와 LLM 없이 구현할 수 있다. [줄 단위 텍스트 분석 결정](../decisions/text-analysis.md)에 따라 원문을 줄바꿈으로 분리하고, 정규화 뒤 정확한 일치, 포함 관계와 사용자 인식 문자 조각 기반 점수를 계산한다. [로컬 실행과 텍스트 분석 Worker 결정](../decisions/local-runtime-and-analysis-worker.md)에 따라 사용자가 분석을 요청할 때만 Dedicated Worker에서 실행한다.
 
-이 문서는 [개인 메모 애플리케이션 요구사항](../requirements.md)의 로컬 독립 실행, 의존성 주입과 백엔드 없는 분석 가능성을 조사하고, 계정 및 동기화와 라이브러리 제공 형태의 후속 구조를 기록한 참고 자료다. 계정 및 동기화와 라이브러리 제공 형태에 관한 절은 현재 구현 입력이 아니라 우선순위가 서로 다른 백로그 조사 기록이다. 제목에 `제안`이나 `백로그`가 붙은 항목은 승인된 구현 결정이 아니며, 현재 범위에서 승인된 결과는 연결된 결정 기록이 관리한다. 공식 문서와 표준은 2026년 8월 30일에 검토했다.
+이 문서는 [개인 메모 애플리케이션 요구사항](../requirements.md)의 로컬 독립 실행, 의존성 주입과 별도 백엔드 없는 분석 가능성을 조사하고, 계정 및 동기화와 라이브러리 제공 형태의 후속 구조를 기록한 참고 자료다. 계정 및 동기화와 라이브러리 제공 형태에 관한 절은 현재 구현 입력이 아니라 우선순위가 서로 다른 백로그 조사 기록이다. 제목에 `제안`이나 `백로그`가 붙은 항목은 승인된 구현 결정이 아니며, 현재 범위에서 승인된 결과는 연결된 결정 기록이 관리한다. 공식 문서와 표준은 2026년 8월 31일에 다시 검토했다.
 
 ## 저장소에서 확인한 전제
 
@@ -20,7 +20,7 @@
 
 [Vite의 환경변수와 모드 문서](https://vite.dev/guide/env-and-mode)는 클라이언트에 노출되는 `import.meta.env` 값이 빌드 시 정적으로 치환된다고 설명한다. [Next.js 환경변수 문서](https://nextjs.org/docs/pages/guides/environment-variables)도 `NEXT_PUBLIC_` 변수가 브라우저 번들에 포함되며 빌드 뒤 값이 고정된다고 설명한다. 두 도구의 공통점은 공개 환경변수가 실행 중 바뀌는 비밀 설정이 아니라 빌드 결과를 만드는 공개 입력이라는 점이다.
 
-[Next.js 정적 내보내기 문서](https://nextjs.org/docs/app/guides/static-exports)는 정적 결과물이 HTML, CSS와 JavaScript 파일로 만들어지며 요청마다 서버가 실행되어야 하는 기능은 지원하지 않는다고 명시한다. 이 사실은 특정 프레임워크 선택과 무관하게, 정적 결과물만 배포하는 로컬 모드가 요청 시점의 서버 기능에 기대면 안 된다는 요구를 뒷받침한다.
+[Next.js SPA 가이드](https://nextjs.org/docs/app/guides/single-page-applications)는 정적 내보내기를 선택 사항으로 설명한다. [Next.js 정적 내보내기 문서](https://nextjs.org/docs/app/guides/static-exports)는 정적 결과물이 HTML, CSS와 JavaScript 파일로 만들어지며 요청마다 서버가 실행되어야 하는 기능은 지원하지 않는다고 명시한다. [Next.js Backend for Frontend 가이드](https://nextjs.org/docs/app/guides/backend-for-frontend)는 Server Actions와 Route Handlers가 Next.js 실행 환경을 사용하고 정적 내보내기에서는 제한된다고 설명한다. 따라서 로컬 모드는 정적 결과물과 같은 뜻이 아니며, 필요한 Next.js 서버 기능을 확인한 뒤 정적 내보내기 또는 Node.js 배포를 선택해야 한다. 현재 과업에는 요청 시점 서버 기능이 필요하지 않아 정적 내보내기를 선택했다.
 
 [Twelve-Factor App의 설정 원칙](https://12factor.net/config)은 배포마다 달라지는 설정을 코드에서 분리해 환경변수로 관리하라고 권한다. 그러나 이 원칙은 UI와 도메인 코드가 환경변수를 직접 읽어도 된다는 뜻이 아니다. 환경변수는 배포 설정을 전달하고, 애플리케이션 내부에서는 타입이 있는 구성 객체로 변환하는 책임을 별도로 두는 편이 역할을 분명히 한다.
 
@@ -29,7 +29,7 @@
 계정 및 동기화 백로그에서 빌드 입력이 필요하면 실행 모드 환경변수 하나로 제한한다. 환경변수 이름과 허용 값은 추적하지 않는 임시 결정 기록에서 관리하며, 독립 실행 애플리케이션의 composition root가 값을 검증한 뒤 다음 두 구성 항목을 만든다.
 
 - `capabilities`: 계정, 원격 동기화, 서버 분석처럼 현재 실행 모드가 제공하는 기능 목록
-- `dependencies`: 저장소, 클립보드, 겹침 분석기와 동기화 서비스의 실제 구현 묶음
+- `dependencies`: 저장소, 클립보드, 텍스트 분석기와 동기화 서비스의 실제 구현 묶음
 
 기능마다 `ENABLE_SYNC`, `ENABLE_ACCOUNT`, `ENABLE_REMOTE_STORAGE` 같은 환경변수를 따로 두면 계정 UI는 보이지만 원격 저장소는 없는 잘못된 조합을 만들 수 있다. 하나의 실행 모드에서 기능 목록을 파생하면 허용된 조합을 한 지점에서 검사할 수 있다.
 
@@ -138,7 +138,7 @@ Web Worker를 `new URL(..., import.meta.url)`로 만드는 코드는 소스 패�
 - 클라이언트 진입점의 `'use client'`와 server-only 표지가 빌드 결과에 남고, 반대 환경 import는 빌드에서 실패한다.
 - dependency graph에는 호스트와 라이브러리가 공유하는 React 사본이 하나만 있으며 호환되지 않는 peer version은 설치 단계에서 드러난다.
 - 라이브러리 style이 호스트의 다른 포트폴리오 라우트를 바꾸지 않고, 호스트 theme와 개인 메모 token의 연결이 확인된다.
-- 정적 로컬 호스트에는 계정 서버 진입점, PostgreSQL client, Server Action과 비밀 환경변수 접근 코드가 포함되지 않는다.
+- 현재 로컬 클라이언트 bundle에는 계정 서버 진입점, PostgreSQL client, 사용하지 않는 Server Actions와 비밀 환경변수 접근 코드가 포함되지 않는다.
 - 패키지에 포함된 Worker가 실제 브라우저에서 시작되고 분석 요청과 오류 처리를 수행한다.
 
 현재는 매니페스트와 명령이 없으므로 구체적인 빌드 명령을 추정하지 않는다. 패키지 관리자를 고른 뒤 `pack --dry-run`에 해당하는 archive 검사, TypeScript 검사, 모드별 production build와 실제 브라우저 검사를 저장소 명령으로 정해야 한다.
@@ -173,7 +173,7 @@ account backlog
 - `AccumulationWriter`: 누적 스냅샷 추가와 사용 횟수 증가를 하나의 저장 동작으로 처리한다.
 - `TemplateRepository`: 템플릿과 플레이스홀더를 저장하고 읽는다.
 - `UsageRepository`: 일반 복사와 누적 조작 횟수를 구분해 기록한다.
-- `TextOverlapAnalyzer`: 줄 단위 겹침을 분석한다.
+- `TextAnalyzer`: 줄 단위의 정확한 반복, 포함 관계와 문자열 근접 점수를 분석한다.
 - `ClipboardWriter`: 클립보드 쓰기 결과를 성공 또는 실패로 돌려준다.
 - `SyncService`: 최우선 계정 및 동기화 백로그에서만 제공하며 로컬 변경을 서버와 맞춘다.
 
@@ -210,7 +210,7 @@ Service Locator처럼 application 동작이 전역 레지스트리에서 의존�
 
 [Secure Contexts 표준](https://www.w3.org/TR/secure-contexts/)은 HTTPS, loopback과 규칙을 지키는 localhost를 잠재적으로 신뢰할 수 있는 출처로 다룬다. `file:`도 기본 알고리즘에서는 신뢰 대상으로 볼 수 있지만 브라우저가 더 엄격하게 제외할 수 있다고 허용한다. [MDN의 secure context 설명](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts)도 일반적인 원격 출처에는 HTTPS가 필요하고 localhost 계열 출처는 잠재적으로 신뢰할 수 있다고 설명한다.
 
-Secure Contexts 표준은 이 프로젝트에서 허용하지 않는 일부 주소도 잠재적으로 신뢰할 수 있다고 판정할 수 있다. 이 프로젝트의 로컬 모드는 HTTPS URL 또는 호스트 이름이 정확히 `localhost`인 HTTP URL로만 접속한다. `file://`, loopback IP를 포함한 다른 호스트 이름의 HTTP URL과 원격 HTTP URL은 지원하지 않는다. [Next.js 정적 내보내기 문서](https://nextjs.org/docs/app/guides/static-exports)에 따라 HTML, CSS와 JavaScript 결과물을 정적 웹 서버에서 제공하며, 파일을 직접 여는 방식을 배포 방법으로 삼지 않는다.
+Secure Contexts 표준은 이 프로젝트에서 허용하지 않는 일부 주소도 잠재적으로 신뢰할 수 있다고 판정할 수 있다. 이 프로젝트의 로컬 모드는 HTTPS URL 또는 호스트 이름이 정확히 `localhost`인 HTTP URL로만 접속한다. `file://`, loopback IP를 포함한 다른 호스트 이름의 HTTP URL과 원격 HTTP URL은 지원하지 않는다. 현재 선택한 Next.js 정적 내보내기는 HTML, CSS와 JavaScript 결과물을 웹 서버에서 제공하며 파일을 직접 열지 않는다. 이후 Next.js 서버 배포를 선택해도 같은 URL 조건을 유지한다.
 
 접속 프로토콜과 호스트 이름은 환경변수로 선택하지 않는다. 배포 구성이 URL을 정하고, 애플리케이션은 실행 시점의 `location.protocol`, `location.hostname`과 `isSecureContext`를 검사해 잘못된 접속 주소를 안내해야 한다. 지원 주소에서도 브라우저 권한과 사용자 활성화 조건이 남으므로 클립보드 성공 여부는 실제 `writeText` 결과로 판정한다.
 
@@ -224,9 +224,9 @@ Secure Contexts 표준은 이 프로젝트에서 허용하지 않는 일부 주�
 
 ## 현재 범위의 결정과 계획 영향
 
-- 로컬 정적 결과물을 제공할 HTTPS 호스팅과 localhost HTTP 서버의 구현 및 실행 방식을 결정해야 배포와 브라우저 검증 명령을 확정할 수 있다.
-- 정적 결과물과 Dedicated Worker 구조는 [로컬 정적 배포와 분석 Worker 결정](../decisions/static-export-and-worker.md)을 따른다. 기능 구현 전에 운영용 결과물에서 Worker URL, MIME type과 메시지 왕복을 검증한다.
-- 정규화, 정확한 반복, 포함 관계와 Jaccard 점수는 [줄 단위 생김새 겹침 분석 결정](../decisions/surface-overlap-analysis.md)을 따른다. 고정 합격 기준을 만들지 않는다.
+- 현재 선택한 정적 결과물을 제공할 HTTPS 호스팅과 localhost HTTP 서버의 구현 및 실행 방식을 결정해야 배포와 브라우저 검증 명령을 확정할 수 있다.
+- 현재 배포 형식과 Dedicated Worker 구조는 [로컬 실행과 텍스트 분석 Worker 결정](../decisions/local-runtime-and-analysis-worker.md)을 따른다. 기능 구현 전에 운영용 결과물에서 Worker URL, MIME type과 메시지 왕복을 검증한다.
+- 정규화, 정확한 반복, 포함 관계와 Jaccard 점수는 [줄 단위 텍스트 분석 결정](../decisions/text-analysis.md)을 따른다. 고정 합격 기준을 만들지 않는다.
 - 현재는 외부 의존성이나 버전을 추가하지 않는다. 기술 스택과 매니페스트가 생긴 뒤 플랫폼 기능, 내부 구현과 후보 패키지의 직접 및 전이 의존성을 다시 비교해야 한다.
 
 ### 최우선 계정 및 동기화 백로그에서 결정할 사항

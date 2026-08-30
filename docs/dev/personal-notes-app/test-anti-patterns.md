@@ -273,7 +273,7 @@ expect(normalizeLine('  A\u030A   B  ')).toEqual({
   original: '  A\u030A   B  ',
   normalized: 'å b',
 })
-expect(classifyOverlap('memo', 'memory')).toMatchObject({
+expect(classifyLineRelation('memo', 'memory')).toMatchObject({
   relation: 'surface',
   score: expect.any(Number),
 })

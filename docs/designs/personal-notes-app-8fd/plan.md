@@ -6,15 +6,15 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ## 결론
 
-현재 작업은 백엔드와 계정 없이 동작하는 정적 개인 메모 애플리케이션을 모듈별로 완성하는 것이다. 사용자 동작과 저장 규칙을 구현 전에 안정적으로 설명할 수 있는 모듈에만 TDD를 적용하고, Clipboard, IndexedDB, Worker 산출물, 공간형 화면과 드래그처럼 실제 브라우저가 결과를 결정하는 모듈은 브라우저 통합 검사와 담당자 검토로 확인한다. 모든 모듈에 같은 테스트 방식을 강제하지 않는다.
+현재 작업은 별도의 백엔드, 데이터베이스와 계정 없이 동작하는 개인 메모 애플리케이션을 모듈별로 완성하는 것이다. 사용자 동작과 저장 규칙을 구현 전에 안정적으로 설명할 수 있는 모듈에만 TDD를 적용하고, Clipboard, IndexedDB, Worker 산출물, 공간형 화면과 드래그처럼 실제 브라우저가 결과를 결정하는 모듈은 브라우저 통합 검사와 담당자 검토로 확인한다. 모든 모듈에 같은 테스트 방식을 강제하지 않는다.
 
-실행 순서는 정적 내보내기와 Dedicated Worker가 실제 배포 결과에서 동작하는지 먼저 확인한 뒤, 자료 형태와 브라우저 저장, 디자인 시스템과 공통 화면 구조, 메모, 복사 및 누적, 사용 빈도, 겹침 분석과 템플릿 순으로 진행한다. 각 단위는 선행 결과와 중단 조건을 만족해야 다음 단위의 완료 근거가 될 수 있다.
+실행 순서는 현재 독립 실행 배포 선택인 정적 내보내기와 Dedicated Worker가 실제 빌드에서 동작하는지 먼저 확인한 뒤, 자료 형태와 브라우저 저장, 디자인 시스템과 공통 화면 구조, 메모, 복사 및 누적, 사용 빈도, 텍스트 분석과 템플릿 순으로 진행한다. 정적 내보내기는 로컬 모드의 정의가 아니며, 이후 작업에 Next.js Server Actions나 Route Handlers가 필요하다고 확인되면 영향을 받는 작업을 멈추고 배포 결정을 갱신한다. 각 단위는 선행 결과와 중단 조건을 만족해야 다음 단위의 완료 근거가 될 수 있다.
 
 독립 실행 애플리케이션은 `apps/notes/package.json`이 관리한다. Next.js 라우트는 `apps/notes/app/`에 두고 FSD 코드는 `apps/notes/src/`에 둔다. 모든 FSD 계층을 먼저 만드는 대신 현재 화면, 메모와 템플릿 자료 및 사용자 동작에 필요한 계층만 추가하고, 계층 의존 방향과 slice public API를 각 작업 단위에서 확인한다.
 
 UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으로 개인 메모 애플리케이션 고유의 디자인 시스템을 만든다. 네이티브 요소의 의미와 기본 동작을 유지하면서 고유 외형과 상태를 적용하고, 폼과 무관한 복합 상호작용만 실제 필요가 확인된 범위에서 외부 접근성 부품을 사용할 수 있다.
 
-계정, 로그인, 동기화, 백엔드와 데이터베이스는 이번 계획에서 제외하며 모든 백로그 가운데 우선순위가 가장 높다. 라이브러리 패키지와 포트폴리오 라우트 연결은 그 뒤의 백로그다. 현재 결과물에는 두 백로그를 위한 화면, 서버 코드나 미리 만든 추상화를 포함하지 않는다.
+계정, 로그인, 동기화, 백엔드와 데이터베이스는 이번 계획에서 제외하며 모든 백로그 가운데 우선순위가 가장 높다. 라이브러리 패키지와 포트폴리오 라우트 연결은 그 뒤의 백로그다. 현재 결과물에는 두 백로그를 위한 화면, 현재 과업에 필요하지 않은 서버 코드나 미리 만든 추상화를 포함하지 않는다.
 
 ## 기준선과 문서 책임
 
@@ -33,6 +33,14 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 
 요구사항 책임자는 사용자에게 필요한 결과와 제외 범위를 관리한다. 결정 책임자는 상호작용, 자료 수명과 검증 방식의 선택을 관리한다. 구현 담당자는 이 계획의 각 작업 단위를 수행하고 관찰 가능한 결과를 남긴다. 시각 및 접근성 담당 검토자는 자동 검사로 결정할 수 없는 읽기 흐름, 조작 가능성과 상태 표현을 판정한다.
 
+### 추가 요구사항의 영향
+
+- U1은 로컬 모드를 정적 HTML과 동일시하지 않고, 현재 정적 내보내기를 과업에 필요한 서버 기능이 없는 동안의 배포 선택으로 다룬다. FSD 위반 판정은 커밋된 별도 검사 스크립트 대신 ESLint가 맡는다.
+- U2와 U4는 자료형, 화면과 공개 진입점에서 `analysis`를 사용한다. U9는 분석 slice, Worker, 메시지와 결과 자료의 이름을 같은 용어로 맞춘다.
+- U11은 별도의 백엔드와 데이터베이스 없이 사용자 과업이 완료되는지를 확인한다. 현재 정적 내보내기는 HTTP와 HTTPS에서 따로 검증하지만, 이 결과가 로컬 모드의 영구적인 실행 형식을 정하지 않는다.
+- U3, U5, U6, U7, U8과 U10의 사용자 동작 및 자료 규칙은 바뀌지 않는다. U10이 참조하는 입력 화면의 이름만 텍스트 분석으로 맞춘다.
+- 설정 판정만을 위한 fixture와 일회용 검사 스크립트는 저장소에 추가하지 않는다. 임시 입력이 필요한 한 번의 ESLint 설정 검증은 Git이 무시하는 `temps/`에서 수행하고, 이후에는 실제 소스의 lint와 운영용 빌드를 반복 검증 근거로 사용한다.
+
 ## 결정 이력과 현재 선택
 
 각 선택의 검토안, 변경 이유, 영향과 다시 검토할 조건은 다음 결정 기록이 관리한다. 계획은 결정의 결과를 연결할 뿐 이력을 다시 요약해 다른 기준을 만들지 않는다.
@@ -43,9 +51,9 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 - [누적 순서와 제거 복구](decisions/accumulator-ordering-and-recovery.md): 클릭 시점 원문, 중복 허용, 줄바꿈 결합과 제거 전용 실행 취소 및 다시 실행
 - [로컬 저장과 실행 중 상태](decisions/local-storage-and-ephemeral-state.md): IndexedDB와 실행 중 상태의 수명, 공통 Provider, 초기 복원 상태와 다중 저장 transaction 책임
 - [텍스트 사용 빈도 집계](decisions/usage-counting.md): 메모 ID, content revision과 원문 상태별 두 횟수 및 성공 조건
-- [줄 단위 생김새 겹침 분석](decisions/surface-overlap-analysis.md): 줄 정규화, 정확한 반복, 포함 관계와 grapheme 3-gram Jaccard 정렬
+- [줄 단위 텍스트 분석](decisions/text-analysis.md): 줄 정규화, 정확한 반복, 포함 관계와 grapheme 3-gram Jaccard 정렬
 - [템플릿 제안 생성](decisions/template-suggestion.md): 결과 행의 두 원문 전달, 결정적 차이 분석과 범위 선택 기반 수동 작성
-- [로컬 정적 배포와 분석 Worker](decisions/static-export-and-worker.md): Next.js 정적 내보내기와 요청 뒤 만드는 Dedicated Worker
+- [로컬 실행과 텍스트 분석 Worker](decisions/local-runtime-and-analysis-worker.md): 별도 백엔드와 데이터베이스 없이 동작하는 로컬 모드, 현재의 Next.js 정적 내보내기와 요청 뒤 만드는 Dedicated Worker
 - [모듈별 TDD와 동작 검증](decisions/verification-strategy.md): 순수 규칙만 TDD로 개발하고 브라우저 기능은 실제 실행 결과로 확인하는 분류
 - [애플리케이션 패키지 위치와 FSD 구조](decisions/application-package-and-fsd.md): `apps/notes/` 패키지, 얇은 Next.js 라우트와 필요한 FSD 계층만 만드는 구조
 - [개인 메모 디자인 시스템과 UI 기반](decisions/application-design-system.md): Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`, 그리고 폼과 무관한 접근성 부품의 제한적 사용
@@ -56,13 +64,13 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 
 ### 이번 계획에 포함하는 결과
 
-- 독립 실행하는 Next.js 정적 결과물
+- 독립 실행하는 Next.js 빌드 결과물
 - HTTPS URL과 호스트 이름이 정확히 `localhost`인 HTTP URL에서의 로컬 실행
 - 공간형 메모 보드와 작은 화면의 생성 순서 목록
 - 메모 작성, 붙여넣기, 편집, 위치 및 크기 변경과 일반 클릭 복사
 - 버튼과 `Command+클릭`을 통한 누적, 순서 변경, 제거와 제거 복구
 - 일반 복사, 누적과 합계로 구분한 사용 빈도
-- 사용자가 명시적으로 요청하는 줄 단위 생김새 겹침 분석
+- 사용자가 명시적으로 요청하는 줄 단위 텍스트 분석
 - 자동 제안과 수동 플레이스홀더를 모두 지원하는 템플릿 및 일회성 결과
 - 지원하지 않는 접속 주소와 Clipboard 실패를 설명하는 알림
 - Tailwind CSS, 의미 기반 디자인 토큰과 자체 `shared/ui`로 만든 개인 메모 디자인 시스템
@@ -70,7 +78,7 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 ### 이번 계획에서 제외하는 결과
 
 - 계정, 로그인, 동기화, 원격 API, PostgreSQL과 그 UI
-- Server Action, 동적 Route Handler, 요청 시점 서버 렌더링과 Next.js 서버 캐시
+- 현재 사용자 과업에 필요하지 않은 Server Actions, 동적 Route Handlers, 요청 시점 서버 렌더링과 Next.js 서버 캐시
 - TanStack Query, SharedWorker, 범용 DI 컨테이너와 실제 코드가 없는 FSD 계층의 선제 도입
 - 의미 유사성 분석과 LLM 사용
 - URL 자동 링크, 이동, 미리보기와 메타데이터
@@ -89,7 +97,7 @@ apps/notes/
     page.tsx
     accumulator/page.tsx
     usage/page.tsx
-    overlap/page.tsx
+    analysis/page.tsx
     templates/page.tsx
     settings/page.tsx
   src/
@@ -98,7 +106,7 @@ apps/notes/
       notes/
       accumulator/
       usage/
-      overlap/
+      analysis/
       templates/
       settings/
     features/                  여러 화면에서 재사용하는 사용자 동작만 배치
@@ -114,7 +122,7 @@ FSD 계층 의존 방향은 `_app`, `_pages`, `features`, `entities`, `shared` �
 
 `PersonalNotesProvider`는 명시적인 Client Component 진입점이며 공통 루트 layout의 자식에서 한 번 유지한다. Client Component도 정적 빌드 중 미리 렌더링될 수 있으므로 `createLocalApplication`과 각 브라우저 구현의 생성 과정에서는 `navigator`, `indexedDB`, `window`나 Worker를 읽지 않는다. 이 브라우저 전역은 실제 읽기, 쓰기 또는 분석을 브라우저에서 시작할 때만 접근한다.
 
-`Port`, `Adapter`, `Manager`처럼 역할을 다시 알아내야 하는 이름을 기본값으로 사용하지 않는다. `NoteRepository`, `ClipboardWriter`, `OverlapAnalyzer`처럼 수행하는 책임을 이름에 적고, 브라우저 구현은 `IndexedDbNoteRepository`, `BrowserClipboardWriter`, `WorkerOverlapAnalyzer`처럼 기술과 책임을 함께 나타낸다.
+`Port`, `Adapter`, `Manager`처럼 역할을 다시 알아내야 하는 이름을 기본값으로 사용하지 않는다. `NoteRepository`, `ClipboardWriter`, `TextAnalyzer`처럼 수행하는 책임을 이름에 적고, 브라우저 구현은 `IndexedDbNoteRepository`, `BrowserClipboardWriter`, `WorkerTextAnalyzer`처럼 기술과 책임을 함께 나타낸다.
 
 현재 저장소에는 애플리케이션 구조와 패키지 설정이 없다. U1은 [애플리케이션 패키지 위치와 FSD 구조 결정](decisions/application-package-and-fsd.md)에 따라 `apps/notes/`를 만들고 package manager, 저장소 workspace 선언과 잠금 파일 형식을 정한다. 이 workspace 설정은 현재 애플리케이션을 저장소에서 실행하기 위한 범위이며 라이브러리 패키지 또는 포트폴리오 연결 백로그를 함께 구현하지 않는다.
 
@@ -182,16 +190,16 @@ U1 기반 및 배포 확인
         -> U5 메모 작성 및 공간 배치
           -> U6 복사, 누적 시작과 집계 저장
             |-> U7 누적 편집과 제거 복구 -> U8 사용 빈도 화면 -|
-            |-> U9 겹침 분석 -> U10 템플릿 --------------------|-> U11 통합 완료 검증
+            |-> U9 텍스트 분석 -> U10 템플릿 ------------------|-> U11 통합 완료 검증
 ```
 
 U7과 U9는 U6이 끝난 뒤 병렬로 진행할 수 있다. U8은 U7의 제거 및 재정렬 결과를 사용하므로 U7 뒤에 진행하고, U10은 U9의 원문 줄 선택 결과를 사용하므로 U9 뒤에 진행한다. U11은 U8과 U10이 모두 끝난 뒤 시작한다. 각 작업 단위에서 발견한 요구사항 변경은 [요구사항 변경 절차](../README.md#requirement-changes-during-work)를 따른다.
 
-## U1. 정적 프로젝트 기반과 Worker 배포 확인
+## U1. 독립 실행 기반과 Worker 배포 확인
 
 ### 목적과 기준
 
-정확한 도구와 버전을 선택하고 Tailwind CSS 및 최소 Dedicated Worker가 운영용 정적 결과물에서 실제로 동작하는지 먼저 확인한다. [로컬 정적 배포와 분석 Worker 결정](decisions/static-export-and-worker.md), [개인 메모 디자인 시스템과 UI 기반 결정](decisions/application-design-system.md)과 [요구사항의 로컬 실행 조건](requirements.md#반드시-지킬-조건)이 기준이다.
+정확한 도구와 버전을 선택하고 Tailwind CSS 및 최소 Dedicated Worker가 현재 선택한 운영용 정적 결과물에서 실제로 동작하는지 먼저 확인한다. [로컬 실행과 텍스트 분석 Worker 결정](decisions/local-runtime-and-analysis-worker.md), [개인 메모 디자인 시스템과 UI 기반 결정](decisions/application-design-system.md)과 [요구사항의 로컬 실행 조건](requirements.md#반드시-지킬-조건)이 기준이다.
 
 ### 선행 조건
 
@@ -209,7 +217,7 @@ U7과 U9는 U6이 끝난 뒤 병렬로 진행할 수 있다. U8은 U7의 제거 
 - `apps/notes/app/page.tsx`
 - `apps/notes/src/_app/styles/globals.css`
 - `apps/notes/src/_pages/notes/index.ts`
-- `apps/notes/src/_pages/overlap/api/overlap.worker.ts`
+- `apps/notes/src/_pages/analysis/api/analysis.worker.ts`
 - 필요한 정적 호스팅 및 브라우저 검사 설정
 
 ### 작업
@@ -217,9 +225,9 @@ U7과 U9는 U6이 끝난 뒤 병렬로 진행할 수 있다. U8은 U7의 제거 
 - 구현 시점의 Next.js, React, TypeScript, React Hook Form, Zod, Tailwind CSS와 필요한 PostCSS 연결의 공식 문서를 다시 확인하고 서로 호환되는 정확한 버전을 고정한다.
 - 각 직접 및 전이 의존성의 기능, 버전, 라이선스, 유지보수 상태, peer 조건, 잠재적 문제와 적용할 작성 방식을 확인한다. TanStack Query, DI 컨테이너, IndexedDB wrapper, drag library와 외부 접근성 부품은 현재 필요와 플랫폼 API를 비교해 근거가 없으면 추가하지 않는다. U4에서 실제 필요가 확인되지 않은 외부 접근성 부품을 U1에서 미리 설치하지 않는다.
 - `apps/notes/package.json`을 애플리케이션 매니페스트로 만들고 저장소 루트의 workspace 설정이 이 패키지를 선택해 실행할 수 있게 한다. package manager와 workspace 파일 형식은 의존성 조사 뒤 확정한다.
-- App Router와 정적 내보내기를 구성하고 Server Action, 동적 Route Handler와 요청 시점 서버 기능이 결과물에 들어오지 않게 한다.
+- App Router와 현재 배포 선택인 정적 내보내기를 구성한다. 현재 과업은 IndexedDB, Clipboard와 Worker만으로 완료할 수 있으므로 Server Actions, 동적 Route Handlers와 요청 시점 서버 기능을 추가하지 않는다. 이후 작업에서 필요가 확인되면 이 선택을 고정한 채 우회하지 않고 요구사항 변경 절차에 따라 배포 결정을 다시 검토한다.
 - Tailwind CSS와 전역 스타일을 루트 layout에서 한 번 연결하고, 의미 기반 디자인 토큰과 utility class가 운영용 정적 CSS에 포함되는 최소 화면을 만든다. 완성형 UI 라이브러리나 외부 기본 테마를 함께 설치하지 않는다.
-- `apps/notes/app/`에는 framework 진입 파일만 두고 `apps/notes/src/`에는 필요한 FSD 계층만 만든다. `_app`, `_pages`, `features`, `entities`, `shared`의 import 방향, 허용된 Entities `@x`와 public API 우회를 구분할 구조 검사 방법을 정하고 위반 예시와 정상 예시로 판별력을 확인한다. FSD 공식 검사 도구를 추가하려면 정확한 버전과 전체 의존성 조사를 먼저 완료한다.
+- `apps/notes/app/`에는 framework 진입 파일만 두고 `apps/notes/src/`에는 필요한 FSD 계층만 만든다. `@boundaries/eslint-plugin`과 TypeScript resolver를 ESLint flat config에 연결해 `_app`, `_pages`, `features`, `entities`, `shared`의 import 방향, 허용된 Entities `@x`, public API 우회, `export *`와 Next.js route 연결을 검사한다. 정적 import와 동적 import를 모두 검사하며, 설정 판별은 저장소의 무시된 임시 입력에서 한 번 확인하고 fixture나 별도 구조 검사 script를 커밋하지 않는다.
 - 분석 요청을 흉내 내는 최소 버튼에서 module-relative URL로 Dedicated Worker를 지연 생성하고 ping 및 응답을 주고받는다.
 - 운영용 정적 결과물을 HTTPS와 호스트 이름이 `localhost`인 HTTP에서 제공할 개발 및 검증 방식을 정한다. 현재 로컬 결과물에는 실행 모드 환경변수를 추가하지 않는다.
 - 지원 브라우저와 최소 버전을 정하고 Clipboard, IndexedDB, Dedicated Worker, Pointer Events, container query와 필요한 `Intl` 기능을 실제 지원 범위와 대조한다.
@@ -231,14 +239,14 @@ TDD를 적용하지 않는다. 이 단위의 위험은 빌드 도구가 만든 W
 - package script로 운영용 정적 내보내기가 성공한다.
 - 운영용 CSS 파일에 Tailwind CSS utility와 의미 기반 디자인 토큰이 포함되고, 최소 네이티브 제어 요소에 고유 스타일이 적용된다. 개발 실행과 운영용 빌드의 CSS 순서 차이로 외형이 바뀌지 않는다.
 - 저장소 루트에서 `apps/notes`만 선택한 실행과 `apps/notes/package.json`의 package script 실행이 같은 애플리케이션을 대상으로 한다.
-- 구조 검사가 계층 역방향 import, 허용되지 않은 같은 계층 import와 public API 우회를 각각 실패로 판정하고 Entities `@x`를 포함한 승인된 import는 통과시킨다.
+- ESLint가 계층 역방향 import, 허용되지 않은 같은 계층 import와 public API 우회를 각각 실패로 판정하고 Entities `@x`를 포함한 승인된 import는 통과시킨다.
 - 내보낸 파일을 두 허용 접속 방식에서 열고 첫 분석 요청 전에는 Worker가 없으며, 요청 뒤 Worker 응답이 화면에 표시된다.
 - 잘못된 Worker URL이나 MIME type이면 smoke가 실패한다.
 - 결과물에서 현재 범위에 없는 서버 실행 코드와 계정 UI를 찾을 수 없다.
 
 ### 중단 조건
 
-Worker URL, MIME type 또는 정적 호스팅에서의 메시지 왕복을 확인하지 못하면 U9를 시작하지 않는다. Tailwind CSS가 내보낸 CSS 파일에 포함되지 않거나 버전 호환성, 대상 브라우저, workspace 설정 또는 FSD 구조 검사 방법이 결정되지 않으면 의존하는 소스 구조를 만들지 않는다.
+Worker URL, MIME type 또는 현재 정적 호스팅에서의 메시지 왕복을 확인하지 못하면 U9를 시작하지 않는다. Tailwind CSS가 내보낸 CSS 파일에 포함되지 않거나 버전 호환성, 대상 브라우저, workspace 설정 또는 FSD ESLint 검사가 결정되지 않으면 의존하는 소스 구조를 만들지 않는다.
 
 ## U2. 자료 규칙과 의존성 조립 구조
 
@@ -248,7 +256,7 @@ Worker URL, MIME type 또는 정적 호스팅에서의 메시지 왕복을 확�
 
 ### 선행 조건
 
-U1의 `apps/notes` package, TypeScript 및 Zod 버전, module alias와 FSD 구조 검사 방법이 확정되어야 한다.
+U1의 `apps/notes` package, TypeScript 및 Zod 버전, module alias와 FSD ESLint 검사가 확정되어야 한다.
 
 ### 변경 후보
 
@@ -257,7 +265,7 @@ U1의 `apps/notes` package, TypeScript 및 Zod 버전, module alias와 FSD 구�
 - `apps/notes/src/entities/usage/model/*`
 - `apps/notes/src/entities/template/model/*`
 - `apps/notes/src/entities/preference/model/*`
-- `apps/notes/src/_pages/overlap/model/*`
+- `apps/notes/src/_pages/analysis/model/*`
 - 각 책임을 사용하는 slice의 `model/*` interface
 - `apps/notes/src/_app/providers/PersonalNotesProvider.tsx`
 - `apps/notes/src/_app/composition/createLocalApplication.ts`
@@ -281,7 +289,7 @@ U1의 `apps/notes` package, TypeScript 및 Zod 버전, module alias와 FSD 구�
 - 원문 변경, geometry 변경과 두 변경의 조합에서 두 revision 결과가 결정과 일치한다.
 - 누락 필드, 잘못된 revision, 빈 식별자와 알 수 없는 Worker message가 schema 경계에서 거절된다.
 - UI 모듈이 IndexedDB, `navigator.clipboard`나 Worker 생성자를 직접 가져오지 않는다.
-- FSD 구조 검사가 역방향 import와 slice 내부 경로를 외부에서 직접 가져오는 코드를 실패로 판정한다.
+- ESLint가 FSD 역방향 import와 slice 내부 파일을 외부에서 직접 가져오는 코드를 실패로 판정한다.
 - provider 없이 렌더링된 개발 오류는 누락된 조립 책임을 식별할 수 있고, 일반 사용 중 Service Locator 조회 실패가 발생하지 않는다.
 
 ### 중단 조건
@@ -352,10 +360,10 @@ U1의 라우트, Tailwind CSS 및 운영용 CSS 확인과 U2의 provider가 필�
 - `apps/notes/app/page.tsx`
 - `apps/notes/app/accumulator/page.tsx`
 - `apps/notes/app/usage/page.tsx`
-- `apps/notes/app/overlap/page.tsx`
+- `apps/notes/app/analysis/page.tsx`
 - `apps/notes/app/templates/page.tsx`
 - `apps/notes/app/settings/page.tsx`
-- `apps/notes/src/_pages/{notes,accumulator,usage,overlap,templates,settings}/index.ts`
+- `apps/notes/src/_pages/{notes,accumulator,usage,analysis,templates,settings}/index.ts`
 - `apps/notes/src/_app/ui/navigation/*`
 - `apps/notes/src/_app/ui/feedback/*`
 - `apps/notes/src/_app/styles/{globals,tokens}.css`
@@ -572,11 +580,11 @@ U6의 두 횟수 저장이 완료되어야 한다. U7의 제거 및 재정렬이
 
 합계를 저장 필드와 계산값 양쪽에서 관리하거나 원문 상태가 다른 횟수를 설명 없이 합치면 U8을 완료하지 않는다.
 
-## U9. 줄 단위 생김새 겹침 분석
+## U9. 줄 단위 텍스트 분석
 
 ### 목적과 기준
 
-사용자가 분석을 명시적으로 요청한 경우에만 메모 원문을 줄 단위로 비교하고, 정확한 반복, 포함 관계와 문자열 조각 점수를 원문 근거와 함께 보여준다. [줄 단위 생김새 겹침 분석 결정](decisions/surface-overlap-analysis.md)과 [로컬 정적 배포와 분석 Worker 결정](decisions/static-export-and-worker.md)이 기준이다.
+사용자가 분석을 명시적으로 요청한 경우에만 메모 원문을 줄 단위로 비교하고, 정확한 반복, 포함 관계와 문자열 조각 점수를 원문 근거와 함께 보여준다. [줄 단위 텍스트 분석 결정](decisions/text-analysis.md)과 [로컬 실행과 텍스트 분석 Worker 결정](decisions/local-runtime-and-analysis-worker.md)이 기준이다.
 
 ### 선행 조건
 
@@ -584,16 +592,16 @@ U1의 운영용 Worker 기본 실행 검사, U2의 메시지 규칙 및 content 
 
 ### 변경 후보
 
-- `apps/notes/src/_pages/overlap/model/normalizeLines.ts`
-- `apps/notes/src/_pages/overlap/model/classifyOverlap.ts`
-- `apps/notes/src/_pages/overlap/model/graphemeNgrams.ts`
-- `apps/notes/src/_pages/overlap/model/*.test.ts`
-- `apps/notes/src/_pages/overlap/api/overlap.worker.ts`
-- `apps/notes/src/_pages/overlap/api/WorkerOverlapAnalyzer.ts`
-- `apps/notes/src/_pages/overlap/model/analysisRunState.ts`
+- `apps/notes/src/_pages/analysis/model/normalizeLines.ts`
+- `apps/notes/src/_pages/analysis/model/classifyLineRelation.ts`
+- `apps/notes/src/_pages/analysis/model/graphemeNgrams.ts`
+- `apps/notes/src/_pages/analysis/model/*.test.ts`
+- `apps/notes/src/_pages/analysis/api/analysis.worker.ts`
+- `apps/notes/src/_pages/analysis/api/WorkerTextAnalyzer.ts`
+- `apps/notes/src/_pages/analysis/model/analysisRunState.ts`
 - `apps/notes/src/features/suggest-template/model/selectedSourceLines.ts`
-- `apps/notes/src/_pages/overlap/ui/OverlapPage.tsx`
-- `apps/notes/src/_pages/overlap/*.browser.test.ts`
+- `apps/notes/src/_pages/analysis/ui/AnalysisPage.tsx`
+- `apps/notes/src/_pages/analysis/*.browser.test.ts`
 
 ### 작업
 
@@ -609,7 +617,7 @@ U1의 운영용 Worker 기본 실행 검사, U2의 메시지 규칙 및 content 
 
 정규화, 관계 분류, Jaccard, 결정적 정렬과 오래된 응답 수락 상태에는 TDD를 적용한다. 입력과 결과가 순수하고 유니코드 및 짧은 줄 경계 사례가 많다. Worker 자산, 메시지 왕복, 주 실행 흐름의 응답성과 실제 계산 시간은 TDD를 적용하지 않고 운영용 정적 결과물의 브라우저에서 확인한다.
 
-- 조합 문자가 다른 같은 문자열, 대소문자, 공백 묶음, 문장부호, CRLF와 빈 줄 fixture가 결정된 정규화 결과를 만든다.
+- 조합 문자가 다른 같은 문자열, 대소문자, 공백 묶음, 문장부호, CRLF와 빈 줄의 테스트 입력이 결정된 정규화 결과를 만든다.
 - 정확한 반복, 포함 관계, 3-gram 일부 겹침, 0점과 3 grapheme 미만 사례가 각각 정해진 분류 및 제외 결과를 만든다.
 - 같은 점수의 결과도 정해진 보조 키로 항상 같은 순서를 만든다.
 - 분석 버튼을 누르기 전에는 Worker와 결과가 없고, 누른 뒤 진행, 성공과 오류 상태가 구분된다.
@@ -672,11 +680,11 @@ U3의 템플릿 저장, U9의 원문 줄 선택과 U2의 segment schema가 필�
 
 정규화 문자열을 원문 대신 템플릿에 넣거나, 의미를 추론한 플레이스홀더 이름을 자동 확정하거나, 제안을 사용자 동작 없이 저장하면 U10을 완료하지 않는다.
 
-## U11. 정적 로컬 애플리케이션 통합 완료 검증
+## U11. 로컬 애플리케이션 통합 완료 검증
 
 ### 목적과 기준
 
-[요구사항의 완료를 확인할 증거](requirements.md#완료를-확인할-증거)를 같은 정적 결과물에서 끝까지 검증하고, 자동 검사가 판정할 수 없는 화면과 조작을 담당자가 확인한다.
+[요구사항의 완료를 확인할 증거](requirements.md#완료를-확인할-증거)를 같은 독립 실행용 결과물에서 끝까지 검증하고, 자동 검사가 판정할 수 없는 화면과 조작을 담당자가 확인한다.
 
 ### 선행 조건
 
@@ -697,7 +705,7 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 - Clipboard 거절, IndexedDB transaction 중단, Worker 오류, 오래된 분석 response와 읽을 수 없는 저장 record에서 사용자가 보존된 결과와 다음 동작을 알 수 있는지 확인한다.
 - 여섯 화면의 실제 한국어 콘텐츠로 대표 구성요소에 적용 가능한 기본, hover, `focus-visible`, pressed, disabled, 오류와 진행 상태를 확인하고, 같은 역할의 구성요소가 U4에서 승인한 디자인 토큰과 `shared/ui`를 사용하는지 담당자가 검토한다.
 - 단순 폼 제어가 네이티브 HTML 요소와 React Hook Form의 직접 등록 방식을 유지하는지 확인한다. 외부 접근성 부품을 추가했다면 폼과 무관한 승인된 `shared/ui` 구성요소에만 격리되고 외부 기본 테마가 화면에 나타나지 않는지 import, lockfile과 실제 화면을 함께 확인한다.
-- U1에서 확정한 FSD 구조 검사를 최종 `apps/notes/src/` 전체에 다시 실행하고, `apps/notes/app/`의 route 파일이 `_pages` 및 `_app` public API만 연결하는지 확인한다.
+- U1에서 확정한 FSD ESLint 검사를 최종 `apps/notes/src/` 전체에 다시 실행하고, `apps/notes/app/`의 route 파일이 `_pages` 및 `_app` public API만 연결하는지 확인한다.
 - 운영용 JavaScript 묶음과 라우트 목록에 계정, 동기화, 서버 실행, PostgreSQL, 라이브러리 제공 코드와 환경변수 예시 값이 없는지 검사한다.
 - 대표 자료 규모에서 Worker 분석 중 main thread 반응, 메모 수 증가에 따른 보드 조작과 IndexedDB 읽기 및 쓰기 시간을 측정해 기준선을 남긴다. 측정 전 임의 성능 합격값을 만들지 않는다.
 
@@ -707,16 +715,16 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 
 - 사용자가 메모 두 개를 만들고 붙여넣기, 편집, 위치 및 크기 변경, 복사와 누적을 완료한다.
 - 누적 순서 변경, 목록 밖 제거, 실행 취소, 다시 실행과 라우트 이동 및 새로고침 수명이 결정대로 동작한다.
-- 사용 빈도, 줄 단위 겹침, 템플릿 제안, 수동 플레이스홀더와 일회성 결과가 요구사항의 예시 값을 만든다.
+- 사용 빈도, 줄 단위 텍스트 분석, 템플릿 제안, 수동 플레이스홀더와 일회성 결과가 요구사항의 예시 값을 만든다.
 - 작은 화면 목록에서 작성, 편집, 복사와 누적을 완료하고 넓은 화면으로 돌아오면 geometry가 복원된다.
 - HTTPS와 localhost HTTP에서 각각 Clipboard와 IndexedDB를 포함한 전체 과업을 완료한다.
-- `apps/notes/package.json`의 빌드 명령이 정적 결과물을 만들고, FSD 구조 검사에서 허용된 Entities `@x` 외의 같은 계층 import, 역방향 import와 public API 우회가 발견되지 않는다.
+- `apps/notes/package.json`의 빌드 명령이 실행 가능한 결과물을 만들고, FSD ESLint 검사에서 허용된 Entities `@x` 외의 같은 계층 import, 역방향 import와 public API 우회가 발견되지 않는다.
 - 화면 읽기 프로그램이 버튼 이름, 상태 알림, 분석 관계와 사용 횟수의 의미를 읽을 수 있고, keyboard focus가 가려지지 않는다.
 - 같은 역할의 버튼, 입력과 알림이 여섯 화면에서 같은 디자인 규칙을 사용하고 포커스 표현도 같은 규칙을 따른다. 외부 UI 라이브러리의 기본 테마가 개인 메모 디자인 시스템을 대신하지 않는다.
 
 ### 중단 조건
 
-문서 검사나 단위 test만으로 완료를 주장하지 않는다. 지원 브라우저의 실제 정적 결과물, 접근성 및 시각 검토 가운데 하나라도 필요한 증거가 없으면 해당 결과는 완료가 아니라 `needs revision` 또는 `needs human input`으로 남긴다.
+문서 검사나 단위 test만으로 완료를 주장하지 않는다. 지원 브라우저의 실제 독립 실행용 결과물, 접근성 및 시각 검토 가운데 하나라도 필요한 증거가 없으면 해당 결과는 완료가 아니라 `needs revision` 또는 `needs human input`으로 남긴다.
 
 ## TDD 적용 요약
 
@@ -740,7 +748,7 @@ TDD 여부는 파일 종류나 모듈 크기가 아니라 구현 전에 사용�
 
 다음 항목은 사용자 동작을 바꾸는 미해결 요구사항이 아니라 구현을 시작할 때 실제 저장소와 배포 환경을 확인해 정할 기술 선택이다.
 
-- U1은 package manager, 저장소 workspace 선언, Tailwind CSS와 PostCSS 연결을 포함한 정확한 의존성 버전, lockfile, FSD 구조 검사 방법, 지원 브라우저와 HTTPS 및 localhost HTTP 제공 방식을 정해야 한다. 애플리케이션 디렉터리와 UI 기반 조합은 확정됐다.
+- U1은 package manager, 저장소 workspace 선언, Tailwind CSS와 PostCSS 연결을 포함한 정확한 의존성 버전, lockfile, FSD ESLint 설정, 지원 브라우저와 HTTPS 및 localhost HTTP 제공 방식을 정해야 한다. 애플리케이션 디렉터리와 UI 기반 조합은 확정됐다.
 - U1은 브라우저 기본 IndexedDB와 wrapper, 기본 Pointer Events와 드래그 라이브러리를 각각 비교하고 직접 및 전이 의존성 검토 없이 새 package를 추가하지 않는다.
 - U4는 실제 콘텐츠가 있는 대표 화면으로 글꼴, 색, 모서리, 깊이, motion, 화면 밀도와 상태 조합의 구체적인 값을 검토할 담당자를 확인해야 한다. Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui` 조합은 다시 선택하지 않는다.
 - 외부 접근성 부품 package는 미리 정하지 않는다. U4에서 폼과 무관한 복합 상호작용의 실제 필요와 네이티브 Web API의 한계를 확인한 경우에만 정확한 버전과 전체 의존성을 조사해 선택한다.
@@ -750,4 +758,4 @@ TDD 여부는 파일 종류나 모듈 크기가 아니라 구현 전에 사용�
 
 ## 계획 완료 판정
 
-이 계획은 문서를 만들었다는 이유로 완료되지 않는다. U1부터 U11까지 요구사항에 연결된 관찰 결과가 있고, 적용한 개발 지침과 결정 기록을 다시 검토했으며, 정적 결과물의 실제 브라우저 흐름과 담당자 검토가 모두 `pass`인 경우에만 로컬 애플리케이션 완성을 주장할 수 있다.
+이 계획은 문서를 만들었다는 이유로 완료되지 않는다. U1부터 U11까지 요구사항에 연결된 관찰 결과가 있고, 적용한 개발 지침과 결정 기록을 다시 검토했으며, 독립 실행용 결과물의 실제 브라우저 흐름과 담당자 검토가 모두 `pass`인 경우에만 로컬 애플리케이션 완성을 주장할 수 있다.

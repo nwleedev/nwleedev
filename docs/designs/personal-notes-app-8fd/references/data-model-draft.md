@@ -164,7 +164,7 @@ interface TextUsageAggregate {
 
 시간대별 사용 추이나 감사 기록이 요구되지 않는 초기 범위에서는 모든 클릭 이벤트를 영구 저장하기보다 집계 객체를 갱신하는 편이 데이터 양과 개인정보 노출을 줄인다. 나중에 시계열 분석이 승인되면 별도 이벤트 모델과 보존 기간을 설계해야 한다.
 
-## 줄 단위 겹침 분석
+## 줄 단위 텍스트 분석
 
 분석 입력은 `Note.content`에서 요청할 때 파생하고 원문과 비교용 문자열을 구분한다. 분석 결과가 오래된 메모를 가리키는지 판단할 수 있도록 텍스트 전용 revision을 참조한다.
 
@@ -179,12 +179,12 @@ interface AnalysisLine extends AnalysisLineRef {
   normalizedText: string;
 }
 
-type OverlapKind = "exact" | "containment" | "surface";
+type AnalysisRelation = "exact" | "containment" | "surface";
 
-interface OverlapPair {
+interface AnalysisPair {
   left: AnalysisLineRef;
   right: AnalysisLineRef;
-  kind: OverlapKind;
+  relation: AnalysisRelation;
   score: number;
   algorithm: AlgorithmRef;
 }
@@ -198,11 +198,11 @@ interface AnalysisRun {
   completedAt?: IsoDateTime;
   status: AnalysisStatus;
   inputNotes: readonly NoteContentRef[];
-  results: readonly OverlapPair[];
+  results: readonly AnalysisPair[];
 }
 ```
 
-[Unicode Normalization Forms](https://unicode.org/reports/tr15/)는 시각적으로 같은 문자열이 서로 다른 코드 포인트 배열을 가질 수 있으며 정규화 형식으로 동등한 표현을 만들 수 있음을 정의한다. `normalizedText`는 분석 실행 중 만든 값이며 원문을 덮어쓰지 않는다. [줄 단위 생김새 겹침 분석 결정](../decisions/surface-overlap-analysis.md)에 따라 CRLF, LF와 CR을 줄바꿈으로 인식하고, 앞뒤 공백 제거, 내부 공백 정리, NFC 정규화와 locale 비의존 소문자 변환을 적용한다. 문장부호는 유지하고 정리한 결과가 빈 줄이면 제외한다.
+[Unicode Normalization Forms](https://unicode.org/reports/tr15/)는 시각적으로 같은 문자열이 서로 다른 코드 포인트 배열을 가질 수 있으며 정규화 형식으로 동등한 표현을 만들 수 있음을 정의한다. `normalizedText`는 분석 실행 중 만든 값이며 원문을 덮어쓰지 않는다. [줄 단위 텍스트 분석 결정](../decisions/text-analysis.md)에 따라 CRLF, LF와 CR을 줄바꿈으로 인식하고, 앞뒤 공백 제거, 내부 공백 정리, NFC 정규화와 locale 비의존 소문자 변환을 적용한다. 문장부호는 유지하고 정리한 결과가 빈 줄이면 제외한다.
 
 `lineIndex`는 분석한 스냅샷 안의 0부터 시작하는 줄 위치다. 메모 편집 뒤에는 위치가 달라질 수 있으므로 `note.contentRevision`이 현재 content revision과 다르면 결과를 오래된 것으로 표시하거나 다시 분석해야 한다. 위치와 크기만 바뀌면 분석 결과를 폐기하지 않는다.
 
@@ -248,7 +248,7 @@ type TemplateInputValues = Readonly<Record<string, string>>;
 
 일회성 결과는 `TextTemplate.segments`와 `TemplateInputValues`로 계산하며, 사용자가 별도로 저장하지 않는 한 엔티티로 만들 필요가 없다. 플레이스홀더 key의 중복을 허용하지 않고 segment 순서로 입력 UI를 만든다. 빈 값 허용과 필수값 표현은 템플릿 작성 화면의 오류 표시를 정할 때 확정한다.
 
-템플릿 제안은 [템플릿 제안 생성 결정](../decisions/template-suggestion.md)에 따라 겹침 결과 한 행의 두 원문 줄을 고정된 선택 쌍으로 전달받아 grapheme 단위로 비교한다. 공통 구간은 일반 텍스트로, 붙어 있는 차이 구간은 순서형 플레이스홀더로 제안한다. 의미를 추론한 이름을 만들지 않으며 공통 일반 텍스트가 없거나 두 줄이 같으면 제안하지 않고 수동 작성 동작을 보여준다. 사용자가 명시적으로 저장하기 전에는 `TextTemplate`이 아니다.
+템플릿 제안은 [템플릿 제안 생성 결정](../decisions/template-suggestion.md)에 따라 분석 결과 한 행의 두 원문 줄을 고정된 선택 쌍으로 전달받아 grapheme 단위로 비교한다. 공통 구간은 일반 텍스트로, 붙어 있는 차이 구간은 순서형 플레이스홀더로 제안한다. 의미를 추론한 이름을 만들지 않으며 공통 일반 텍스트가 없거나 두 줄이 같으면 제안하지 않고 수동 작성 동작을 보여준다. 사용자가 명시적으로 저장하기 전에는 `TextTemplate`이 아니다.
 
 ## 상호작용 설정
 
@@ -290,13 +290,13 @@ interface NoteRepository {
   remove(note: NoteRef): Promise<void>;
 }
 
-interface TextOverlapAnalyzer {
+interface TextAnalyzer {
   analyze(notes: readonly Note[]): Promise<AnalysisRun>;
 }
 
 interface AppDependencies {
   notes: NoteRepository;
-  overlapAnalyzer: TextOverlapAnalyzer;
+  textAnalyzer: TextAnalyzer;
 }
 ```
 
@@ -307,7 +307,7 @@ interface AppDependencies {
 - [로컬 저장과 실행 중 상태 결정](../decisions/local-storage-and-ephemeral-state.md)
 - [누적 순서와 제거 복구 결정](../decisions/accumulator-ordering-and-recovery.md)
 - [텍스트 사용 빈도 집계 결정](../decisions/usage-counting.md)
-- [줄 단위 생김새 겹침 분석 결정](../decisions/surface-overlap-analysis.md)
+- [줄 단위 텍스트 분석 결정](../decisions/text-analysis.md)
 - [템플릿 제안 생성 결정](../decisions/template-suggestion.md)
 - [메모 누적 실행 동작 결정](../decisions/accumulation-activation.md)
 

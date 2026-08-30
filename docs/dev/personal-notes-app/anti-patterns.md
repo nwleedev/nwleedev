@@ -2,17 +2,17 @@
 
 현재 로컬 애플리케이션은 브라우저 구현을 한 조립 지점에서 연결하고, 사용자 입력과 저장소 사이의 모든 경계를 런타임에 검증해야 한다. 페이지 전체를 Client Component로 만드는 방식, React 내부 상태를 `useEffect`로 맞추는 방식, 범용 Service Locator, 역할이 드러나지 않는 port와 adapter 이름, 서버 및 브라우저 코드를 함께 내보내는 FSD public API, 수명과 버전이 없는 worker 메시지와 IndexedDB를 영구 보관소로 간주하는 방식은 채택하지 않는다. 테스트의 선후 관계와 완료 증거는 [개인 메모 애플리케이션 테스트 전략](testing-strategy.md)을 따른다. 두 cache를 같은 데이터의 원본으로 쓰는 방식과 PostgreSQL 제약을 생략하는 방식은 최우선 계정 및 동기화 백로그를 시작할 때 적용할 금지 사항이다. 라이브러리 제공 백로그를 시작할 때에는 React를 중복으로 포함하거나 클라이언트 및 서버 진입점을 하나로 합치는 방식도 피해야 한다.
 
-이 문서의 상태는 `proposed`다. 구현자와 리뷰어가 개인 메모 애플리케이션의 기술 구조를 선택할 때 사용하는 제안 지침이며, 승인된 기술 스택이나 현재 구현을 설명하지 않는다. 다만 [애플리케이션 패키지 위치와 FSD 구조 결정](../../designs/personal-notes-app-8fd/decisions/application-package-and-fsd.md)이 확정한 `apps/notes/` 배치와 FSD 계층 규칙은 현재 적용할 결정이다. 구조 검사 도구와 정확한 의존성은 아직 제안 상태다.
+이 문서의 상태는 `proposed`다. 구현자와 리뷰어가 개인 메모 애플리케이션의 기술 구조를 선택할 때 사용하는 제안 지침이며, 승인된 기술 스택이나 현재 구현을 설명하지 않는다. 다만 [애플리케이션 패키지 위치와 FSD 구조 결정](../../designs/personal-notes-app-8fd/decisions/application-package-and-fsd.md)이 확정한 `apps/notes/` 배치, FSD 계층 규칙과 ESLint 검사 방식은 현재 적용할 결정이다.
 
 ## 적용 범위와 현재 근거
 
-[요구사항](../../designs/personal-notes-app-8fd/requirements.md)은 현재 백엔드 없는 로컬 애플리케이션을 완성하고, 계정 및 동기화를 모든 백로그 가운데 가장 먼저 진행하도록 정한다. 라이브러리 패키지와 포트폴리오 라우트 연결은 그보다 뒤의 백로그다.
+[요구사항](../../designs/personal-notes-app-8fd/requirements.md)은 현재 별도의 백엔드와 데이터베이스 없이 동작하는 로컬 애플리케이션을 완성하고, 계정 및 동기화를 모든 백로그 가운데 가장 먼저 진행하도록 정한다. 로컬 모드는 정적 HTML과 같은 뜻이 아니며 현재 과업에 필요하면 Next.js Server Actions와 Route Handlers를 사용할 수 있다. 라이브러리 패키지와 포트폴리오 라우트 연결은 그보다 뒤의 백로그다.
 
 [로컬 실행 구조와 계정 및 라이브러리 백로그 조사](../../designs/personal-notes-app-8fd/references/runtime-modes-and-architecture.md)는 현재 독립 실행 단계에 적용할 책임별 interface와 조립 지점을 제안하고, 서버 저장소 교체와 패키지 진입점 분리는 각각의 백로그 조사로 남긴다. [데이터 구조 초안](../../designs/personal-notes-app-8fd/references/data-model-draft.md)은 메모의 전체 revision과 content revision, 사용 횟수, 줄 단위 분석과 알고리즘 version을 구분한다.
 
 [애플리케이션 패키지 위치와 FSD 구조 결정](../../designs/personal-notes-app-8fd/decisions/application-package-and-fsd.md)은 독립 실행 패키지를 `apps/notes/`에 두고, Next.js 라우트는 패키지 루트의 `app/`, FSD 코드는 `src/` 아래의 `_app`, `_pages`와 필요한 하위 계층에 두도록 정한다. 모든 계층을 미리 만들거나 라이브러리 패키지를 함께 구현하는 방식은 승인하지 않았다.
 
-2026년 8월 30일 현재 저장소에는 패키지 매니페스트, 잠금 파일, TypeScript 설정, Next.js 설정, 애플리케이션 소스와 테스트가 없다. 따라서 아래 규칙은 도달 가능한 실패를 미리 제한하는 제안이며 현재 준수 여부를 검사할 수 없다. 구현을 시작하기 전에 결정 책임자가 정확한 버전을 승인하고 잠금 파일로 고정해야 한다.
+기준선 커밋에는 패키지 매니페스트, 잠금 파일, TypeScript 설정, Next.js 설정, 애플리케이션 소스와 테스트가 없다. 따라서 아래 규칙은 도달 가능한 실패를 미리 제한하는 제안이며 U1에서 정확한 버전과 잠금 파일을 추가한 뒤 실제 준수 여부를 검사한다.
 
 조사는 당시 최신 안정 릴리스인 Next.js 16.3.3, React 19.2.8, TypeScript 7.0.2, React Hook Form 7.87.0, Zod 4.5.4와 TanStack Query 5.102.8을 기준으로 했다. PostgreSQL은 현재 문서인 18을 확인했다. FSD는 설치 패키지가 아니라 구조화 방법이므로 2026년 8월 29일 문서 revision `a6b69ae`를 고정해 확인했다. 이 버전과 revision은 채택 권고가 아니라 조사 범위다. 특히 Next.js 캐시와 렌더링 모델, TanStack Query의 hydration 동작은 버전 사이에서 달라질 수 있으므로 설치 버전이 다르면 이 문서의 해당 절을 다시 검증해야 한다.
 
@@ -22,10 +22,10 @@
 
 다음 항목이 확정되지 않으면 관련 모듈 구현을 시작하지 않는다.
 
-- Next.js와 React의 정확한 버전 및 선택한 App Router 정적 내보내기의 호환성
-- 작업 단위에서 실제로 만들 FSD layer와 slice, 구조 검사 방법 및 위반 예시와 정상 예시
-- 정적 로컬 배포가 정적 export인지 정적 호스팅의 클라이언트 애플리케이션인지 여부
-- 로컬 정적 결과물을 제공할 HTTPS 호스팅과 localhost HTTP 서버의 구현 및 실행 방식
+- Next.js와 React의 정확한 버전 및 현재 독립 실행 배포로 선택한 App Router 정적 내보내기의 호환성
+- 작업 단위에서 실제로 만들 FSD layer와 slice 및 확정된 ESLint 규칙
+- 현재 독립 실행 배포의 정적 결과물을 제공할 HTTPS 호스팅과 localhost HTTP 서버의 구현 및 실행 방식
+- 이후 작업에서 Server Actions나 Route Handlers가 필요해질 때 정적 내보내기를 중단하고 Node.js 배포로 바꾸는 결정 절차
 - Clipboard, IndexedDB, Dedicated Worker와 필요한 Intl API를 제공하는 지원 브라우저 및 최소 버전
 - IndexedDB schema version, 업그레이드 중 다른 탭을 닫도록 안내하는 UI, 내보내기와 복구 정책
 - React Hook Form과 Zod를 연결하는 방식을 직접 작성할지 검토된 resolver를 추가할지 여부
@@ -46,7 +46,7 @@
 - 포트폴리오 호스트가 연결할 단일 라우트 또는 하위 라우트 구조, 모듈이 받을 라우트 접두어와 탐색 interface
 - React, React DOM 및 Next.js의 peer dependency 범위, CSS와 Worker asset 제공 방식
 
-TanStack Query, `@hookform/resolvers`, IndexedDB wrapper, DI container, PostgreSQL client, ORM, FSD 구조 검사 도구와 React hooks lint 설정은 이 조사에서 채택하지 않았다. 해당 의존성이나 설정을 추가하려면 목적, 정확한 버전, peer dependency, 전이 의존성, 라이선스, 유지보수 상태와 플랫폼 API 또는 내부 구현을 별도로 비교해야 한다.
+TanStack Query, `@hookform/resolvers`, IndexedDB wrapper, DI container, PostgreSQL client, ORM과 추가 React hooks lint 설정은 이 조사에서 채택하지 않았다. FSD 검사는 `@boundaries/eslint-plugin` 7.2.0과 `eslint-import-resolver-typescript` 4.4.5를 ESLint flat config에 연결하는 방식으로 확정했다. 그 밖의 의존성이나 설정을 추가하려면 목적, 정확한 버전, peer dependency, 전이 의존성, 라이선스, 유지보수 상태와 플랫폼 API 또는 내부 구현을 별도로 비교해야 한다.
 
 ## 서버와 브라우저 실행 책임을 한 컴포넌트에 섞지 않는다
 
@@ -106,7 +106,7 @@ export function NoteBoard({ initialViewport }: NoteBoardProps) {
 
 ### 검증
 
-리뷰어는 `'use client'` 파일마다 브라우저 상호작용이 필요한 가장 가까운 경계인지 확인한다. TypeScript와 lint는 서버 HTML과 브라우저 HTML이 같은지 판단하지 못한다. 개발 환경의 hydration 경고, 느린 네트워크에서의 첫 화면, 프로덕션 build의 client bundle 구성과 실제 브라우저 렌더링을 검사한다. cache하지 않은 조회 하나가 전체 경로를 막는지도 Next.js 개발 overlay와 streaming 응답으로 확인한다. 현재는 정적 로컬 빌드에 서버 전용 기능과 계정 UI가 포함되지 않는지 확인한다. 최우선 계정 및 동기화 백로그에서는 계정 빌드를 추가해 공통 화면과 실행 환경 분리를 별도로 확인한다.
+리뷰어는 `'use client'` 파일마다 브라우저 상호작용이 필요한 가장 가까운 경계인지 확인한다. TypeScript와 lint는 서버 HTML과 브라우저 HTML이 같은지 판단하지 못한다. 개발 환경의 hydration 경고, 느린 네트워크에서의 첫 화면, 프로덕션 build의 client bundle 구성과 실제 브라우저 렌더링을 검사한다. cache하지 않은 조회 하나가 전체 경로를 막는지도 Next.js 개발 overlay와 streaming 응답으로 확인한다. 현재 선택한 정적 배포에는 필요하지 않은 서버 기능과 계정 UI가 포함되지 않는지 확인한다. 최우선 계정 및 동기화 백로그에서는 계정 빌드를 추가해 공통 화면과 실행 환경 분리를 별도로 확인한다.
 
 ## React 내부 상태 흐름을 useEffect로 조정하지 않는다
 
@@ -164,7 +164,7 @@ function useAnalysisEvents(worker: Worker, accept: (value: unknown) => void) {
 
 ### 검증
 
-설치할 React hooks lint 버전을 확정한 뒤 `exhaustive-deps`와 `set-state-in-effect`를 정상 및 위반 fixture로 검증한다. 전자는 stale closure를 만드는 누락 dependency를 찾고, 후자는 effect 안의 동기적 state 변경을 찾을 수 있다. 두 규칙 모두 effect가 업무상 맞는 위치인지, 외부 작업이 멱등인지 또는 cleanup이 실제 자원을 모두 해제하는지는 결정하지 못한다. 리뷰어는 effect마다 동기화 대상, setup, cleanup과 재실행 조건을 확인하고 Strict Mode, 빠른 mount 및 unmount와 browser listener 수로 결과를 검사한다.
+설치할 React hooks lint 버전을 확정한 뒤 `exhaustive-deps`와 `set-state-in-effect`의 판별력을 저장소의 무시된 임시 입력에서 한 번 확인한다. 전자는 stale closure를 만드는 누락 dependency를 찾고, 후자는 effect 안의 동기적 state 변경을 찾을 수 있다. 두 규칙 모두 effect가 업무상 맞는 위치인지, 외부 작업이 멱등인지 또는 cleanup이 실제 자원을 모두 해제하는지는 결정하지 못한다. 리뷰어는 effect마다 동기화 대상, setup, cleanup과 재실행 조건을 확인하고 Strict Mode, 빠른 mount 및 unmount와 browser listener 수로 결과를 검사한다.
 
 ## Web API 실패를 정상 상태로 다룬다
 
@@ -182,7 +182,7 @@ Clipboard API 초안은 비동기 clipboard 접근을 permission으로 제어되
 - 현재 로컬 애플리케이션에는 계정 동기화 동작을 navigation과 command에 만들지 않는다. 최우선 계정 및 동기화 백로그에서 사용할 수 있는 동작을 조립 지점의 capability로 계산한다.
 - 실행 형태를 나누는 환경변수는 최우선 계정 및 동기화 백로그의 composition root에서 한 번 검증한다. component는 환경변수 원문이 아니라 검증된 capability와 port를 받는다.
 - `NEXT_PUBLIC_` 값은 build 시점에 브라우저 bundle에 포함되고 build 뒤에는 바뀌지 않는다. 최우선 계정 및 동기화 백로그에서 비밀값, runtime authorization 또는 배포 후 바뀌어야 하는 동기화 허용 여부에 사용하지 않는다.
-- 로컬 정적 결과물은 HTTPS URL 또는 `location.hostname`이 정확히 `localhost`인 HTTP URL에서만 제공한다. `file://` URL, loopback IP를 포함한 다른 호스트의 HTTP URL과 원격 HTTP URL은 지원 대상으로 간주하지 않는다.
+- 현재 선택한 정적 내보내기 결과물은 HTTPS URL 또는 `location.hostname`이 정확히 `localhost`인 HTTP URL에서만 제공한다. 이후 Next.js 서버 배포로 바뀌어도 같은 URL 조건을 적용한다. `file://` URL, loopback IP를 포함한 다른 호스트의 HTTP URL과 원격 HTTP URL은 지원 대상으로 간주하지 않는다.
 - 접속 프로토콜과 호스트 이름을 환경변수로 판정하지 않는다. 실행 시점의 `location.protocol`, `location.hostname`과 `isSecureContext`를 검사하고, 지원하지 않는 주소로 접속했을 때 필요한 주소 형식을 알리는 UI를 제공한다.
 - Web API의 rejection을 빈 catch로 삼키지 않는다. 사용자에게 다음 행동이 있는 알림을 제공하고, 실패한 작업의 상태 변경은 되돌린다.
 
@@ -215,7 +215,7 @@ clipboard 쓰기와 사용 횟수 저장은 하나의 원자적 transaction으�
 
 ### 검증
 
-lint는 권한 요청의 결과와 UI 문구가 일치하는지 판단하지 못한다. 같은 로컬 정적 결과물을 HTTPS와 호스트 이름이 `localhost`인 HTTP에서 각각 제공해 클립보드 쓰기를 확인한다. `file://`와 다른 호스트의 HTTP에서는 지원하지 않는 주소 안내를 확인한다. 각 지원 주소에서 허용, 거절, API 미지원과 write rejection을 재현하고, 실패한 경우 사용 횟수가 늘지 않는지 확인한다. 지원 브라우저가 확정되기 전에는 capability별 expected behavior를 `needs human input`으로 둔다.
+lint는 권한 요청의 결과와 UI 문구가 일치하는지 판단하지 못한다. 같은 독립 실행용 결과물을 HTTPS와 호스트 이름이 `localhost`인 HTTP에서 각각 제공해 클립보드 쓰기를 확인한다. `file://`와 다른 호스트의 HTTP에서는 지원하지 않는 주소 안내를 확인한다. 각 지원 주소에서 허용, 거절, API 미지원과 write rejection을 재현하고, 실패한 경우 사용 횟수가 늘지 않는지 확인한다. 지원 브라우저가 확정되기 전에는 capability별 expected behavior를 `needs human input`으로 둔다.
 
 ## 최우선 계정 및 동기화 백로그: Cache Components와 변경 직후 일관성을 구분한다
 
@@ -298,7 +298,7 @@ OpenStatus의 data table 예제는 boundary가 없어 SSR prefetch가 브라우�
 ### 적용 규칙
 
 - TanStack Query를 채택해도 PostgreSQL, 동기화 API와 IndexedDB가 저장된 데이터의 원본이다. Query cache는 재구성할 수 있는 원격 데이터의 읽기 결과이며 undo history, clipboard 누적 목록 또는 저장 완료 증거가 아니다.
-- 정적 로컬 모드는 서버 prefetch와 hydration을 사용하지 않는다. IndexedDB 자료를 Query cache에도 넣으려면 두 상태 사이의 무효화 책임이 생기므로 별도 채택 근거가 필요하다.
+- 현재 로컬 배포는 서버 prefetch와 hydration을 사용하지 않는다. IndexedDB 자료를 Query cache에도 넣으려면 두 상태 사이의 무효화 책임이 생기므로 별도 채택 근거가 필요하다. 로컬 모드라는 이름만으로 Next.js 서버 기능을 금지하지 않는다.
 - 서버의 `QueryClient`는 request 또는 prefetch Server Component마다 새로 만든다. 하나를 공유해야 한다면 React `cache`처럼 request 범위를 보장하는 수단과 중복 직렬화 비용을 함께 검증한다.
 - 브라우저의 `QueryClient`는 provider 수명 동안 재사용한다. 첫 render가 Suspense로 중단되었을 때 버려지는 초기화 형태를 피하고, provider 아래의 경계를 확인한다.
 - `HydrationBoundary`는 prefetch한 query를 읽는 가장 가까운 Client Component subtree를 감싼다. 여러 boundary를 사용할 수 있지만, 관련 없는 전체 cache를 boundary마다 반복해서 `dehydrate`하지 않는다.
@@ -466,7 +466,7 @@ type UpdateNoteCommand = z.output<typeof updateNoteSchema>
 
 ### 검증
 
-TypeScript 설정 후보는 `strict`, `noUncheckedIndexedAccess`와 `exactOptionalPropertyTypes`다. 설정을 추가하기 전에 설치된 TypeScript 버전과 Next.js 생성 설정의 호환성을 확인하고, 정상 및 위반 fixture로 실제 오류를 검증한다. type check는 runtime 입력을 확인하지 못하므로 schema의 성공, 누락, 범위 초과, 알 수 없는 필드, transform과 비동기 refinement를 검사한다. database migration 리뷰는 같은 불변 조건이 database에도 있는지 확인한다.
+TypeScript 설정 후보는 `strict`, `noUncheckedIndexedAccess`와 `exactOptionalPropertyTypes`다. 설정을 추가하기 전에 설치된 TypeScript 버전과 Next.js 생성 설정의 호환성을 확인하고, 저장소의 무시된 임시 입력에서 실제 오류를 한 번 검증한다. type check는 runtime 입력을 확인하지 못하므로 schema의 성공, 누락, 범위 초과, 알 수 없는 필드, transform과 비동기 refinement를 검사한다. database migration 리뷰는 같은 불변 조건이 database에도 있는지 확인한다.
 
 ## React Hook Form을 애플리케이션 상태 저장소로 만들지 않는다
 
@@ -688,7 +688,7 @@ Alistair Cockburn의 원문은 port를 목적이 있는 대화로, adapter를 �
 - port 이름은 use case가 외부에 요구하는 목적과 동작을 나타낸다. 읽기와 쓰기 책임이 다르면 `NoteReader`, `NoteWriter`, `UsageRecorder`와 `ClipboardWriter`처럼 필요한 capability를 드러낸다.
 - `Port`, `Service`, `Manager`, `Handler` 또는 `Adapter`만으로 의미를 채우지 않는다. `NoteRepositoryPort`처럼 역할이 이미 분명하고 팀이 승인한 규칙은 사용할 수 있지만 suffix가 빠진 목적을 대신해서는 안 된다.
 - port는 이를 사용하는 application 또는 domain 쪽에 두고 브라우저나 데이터베이스 타입을 노출하지 않는다. `IDBRequest`, SQL row, `Response`와 React type은 adapter 경계에서 domain 값으로 변환한다.
-- adapter 이름은 연결하는 기술과 맡은 역할을 함께 나타낸다. `IndexedDbNoteRepository`, `PostgresNoteRepository`, `BrowserClipboardWriter`와 `OverlapWorkerAnalyzer`처럼 import만으로 runtime 의존성을 추적할 수 있게 한다.
+- adapter 이름은 연결하는 기술과 맡은 역할을 함께 나타낸다. `IndexedDbNoteRepository`, `PostgresNoteRepository`, `BrowserClipboardWriter`와 `WorkerTextAnalyzer`처럼 import만으로 runtime 의존성을 추적할 수 있게 한다.
 - `LocalNotePort`와 `SyncNotePort`를 따로 만들어 UI를 모드에 결합하지 않는다. 같은 port를 구현하는 local 및 sync adapter를 composition root에서 선택하고, 실제 capability 차이는 별도 port와 capability 값으로 표현한다.
 - 한 구현이 읽기와 쓰기를 모두 제공하더라도 use case에는 필요한 좁은 port만 전달한다. class 이름과 interface 이름을 일대일로 맞추기 위해 불필요한 큰 interface를 만들지 않는다.
 - `inbound`, `outbound`, `driving`과 `driven`은 방향을 팀이 일관되게 이해할 때만 폴더 보조 이름으로 사용한다. 업무 목적을 나타내는 type 이름을 이 용어로 대체하지 않는다.
@@ -730,7 +730,7 @@ lint는 `Adapter` suffix를 찾을 수 있지만 이름이 직관적인지 또�
 
 ## FSD 계층과 public API가 Next.js 실행 환경을 섞게 하지 않는다
 
-`apps/notes/` 패키지와 아래 적용 규칙의 FSD 계층 배치는 `current`다. Steiger를 포함한 구조 검사 도구와 환경별 public API 추가 여부는 실제 의존성과 실행 환경을 확인하기 전까지 `proposed`다.
+`apps/notes/` 패키지, 아래 적용 규칙의 FSD 계층 배치와 ESLint 검사 방식은 `current`다. 환경별 public API 추가 여부는 실제 실행 환경을 확인하기 전까지 `proposed`다.
 
 ### 막으려는 실패
 
@@ -799,7 +799,9 @@ export { NotesProvider } from './ui/notes-provider'
 
 ### 검증
 
-FSD 도입은 승인됐지만 Steiger 같은 구조 검사 도구를 추가할지는 정확한 버전과 dependency 조사를 거쳐 결정한다. U1은 기존 lint, FSD 공식 검사 도구와 내부 검사를 비교하고, layer 역방향 import, 허용된 Entities `@x` 외의 같은 layer import, public API 우회와 server 및 client 진입점 교차 import를 구분하는 방법을 확정해야 한다. Next.js의 local 및 sync production build로 환경 오염 오류와 client bundle을 확인하고, 정적 로컬 산출물에 PostgreSQL client, server action과 비밀 환경변수 접근 코드가 없는지 검사한다. 파일명이 맞는지만으로 통과시키지 않는다.
+U1의 의존성 조사는 FSD 팀의 legacy ESLint config, 별도 실행 도구인 Steiger, FSD 전용 ESLint 플러그인, `@boundaries/eslint-plugin`과 내부 검사 스크립트를 비교했다. 현재 ESLint flat config, TypeScript alias와 저장소 고유 계층을 함께 구성할 수 있는 `@boundaries/eslint-plugin` 7.2.0 및 `eslint-import-resolver-typescript` 4.4.5를 사용한다. `boundaries/dependencies`를 기본 거부 방식으로 구성해 layer 역방향 import, 허용된 Entities `@x` 외의 같은 layer import, public API 우회와 server 및 client 진입점 교차 import를 검사한다. ESLint core 규칙은 `export *`를 거부한다.
+
+설정 판별만을 위한 fixture나 별도 검사 스크립트는 커밋하지 않는다. 저장소의 무시된 임시 입력에서 정상 import, 정적 및 동적 위반 import를 한 번 구분한 뒤 실제 소스의 lint를 반복 검증 명령으로 사용한다. Next.js의 현재 독립 실행 빌드로 환경 오염 오류와 client bundle을 확인하고, 현재 정적 결과물에 PostgreSQL client, 사용하지 않는 Server Actions와 비밀 환경변수 접근 코드가 없는지 검사한다. 파일명이 맞는지만으로 통과시키지 않는다.
 
 ## 백로그: 라이브러리 빌드에서 호스트와 실행 환경을 다시 묶지 않는다
 
@@ -901,12 +903,12 @@ export default function Page() {
 - 라이브러리 빌드 산출물의 각 진입점, 타입 선언, 지시문, CSS와 Worker 파일 목록
 - 패키지 archive만 설치한 깨끗한 Next.js 호스트의 production build
 - 승인된 실행 모드별 독립 실행 빌드와 포트폴리오 라우트 빌드의 성공
-- 클라이언트에서 서버 진입점을 가져오고 서버에서 브라우저 어댑터를 가져오는 위반 fixture의 빌드 실패
+- 저장소의 무시된 임시 입력에서 클라이언트가 서버 진입점을 가져오고 서버가 브라우저 어댑터를 가져오는 경우의 빌드 실패
 - 패키지 관리자 dependency tree에서 호스트와 라이브러리가 공유하는 React 사본이 하나라는 결과
 - 서로 다른 라우트 접두어에서 탐색, 새로고침, style과 Worker 동작이 유지되는 실제 브라우저 결과
-- 정적 로컬 호스트의 클라이언트 bundle과 archive에 계정 서버 코드, PostgreSQL client와 비밀 환경변수 접근이 없다는 검사
+- 로컬 호스트의 클라이언트 bundle과 archive에 계정 서버 코드, PostgreSQL client와 비밀 환경변수 접근이 없다는 검사
 
-현재는 패키지 관리자, 소스, 빌드 설정과 명령이 없으므로 위 검사를 실행할 수 없다. 구현 전 결정이 끝나면 실제 명령과 위반 fixture를 이 절에 추가하거나 저장소 tooling으로 옮겨야 한다.
+라이브러리 백로그를 시작하면 실제 package 명령으로 위 검사를 실행한다. 검사 도구의 판별만을 위한 fixture나 별도 script를 커밋하지 않고, 반복해서 보존해야 하는 사용자 동작이나 package 호환성 사례만 테스트로 남긴다.
 
 ## Worker를 원본 저장소나 순서가 보장된 함수처럼 다루지 않는다
 
@@ -918,7 +920,7 @@ HTML Living Standard는 worker가 시작 비용과 instance별 memory 비용이 
 
 ### 적용 규칙
 
-- 줄 단위 겹침 분석은 명시적 사용자 요청 후 실행하고, 분석 책임의 조립 지점에서 지연 생성한 Dedicated Worker 하나를 재사용한다.
+- 줄 단위 텍스트 분석은 명시적 사용자 요청 후 실행하고, 분석 책임의 조립 지점에서 지연 생성한 Dedicated Worker 하나를 재사용한다.
 - SharedWorker는 여러 탭의 분석 queue나 IndexedDB 접근을 조정해야 한다는 요구가 생길 때 별도 결정으로 검토한다. 현재 구현에 fallback이나 조건부 분기를 미리 넣지 않는다.
 - request와 response는 discriminated union으로 정의하고 `requestId`, note ID와 content revision, algorithm type과 version을 포함한다.
 - response의 note content revision이 현재 값과 다르면 결과를 폐기한다. 사용자 취소는 실제 분석 시간이 사용 흐름을 방해한다는 측정 결과와 요구가 생긴 뒤 별도 message 규칙으로 검토한다.
@@ -928,8 +930,8 @@ HTML Living Standard는 worker가 시작 비용과 instance별 memory 비용이 
 안티패턴:
 
 ```tsx
-function OverlapPanel({ notes }: OverlapPanelProps) {
-  const worker = new Worker(new URL('./overlap.worker.ts', import.meta.url))
+function AnalysisPanel({ notes }: AnalysisPanelProps) {
+  const worker = new Worker(new URL('./analysis.worker.ts', import.meta.url))
   worker.postMessage(notes)
   worker.onmessage = ({ data }) => saveAnalysis(data)
 
@@ -941,7 +943,7 @@ function OverlapPanel({ notes }: OverlapPanelProps) {
 
 ```ts
 type AnalysisRequest = {
-  type: 'analyze-overlap'
+  type: 'analyze-text'
   requestId: string
   note: {
     id: string
@@ -955,13 +957,13 @@ type AnalysisRequest = {
 }
 
 type AnalysisResponse = {
-  type: 'overlap-result'
+  type: 'analysis-result'
   requestId: string
   note: {
     id: string
     contentRevision: number
   }
-  result: LexicalOverlapResult
+  result: TextAnalysisResult
 }
 ```
 
@@ -1104,7 +1106,7 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 - TDD 단위 검사: 승인된 schema 경계, command 및 이력, 사용 빈도 규칙, 분석 알고리즘, 템플릿 생성과 오래된 Worker response 폐기
 - 외부 동작 기준 브라우저 검사: IndexedDB transaction, upgrade, `blocked`, `versionchange`, quota와 새로고침 보존
 - 실제 browser 검사: Strict Mode의 effect cleanup, clipboard 권한, Dedicated Worker lifecycle 및 form render 비용
-- 접속 주소별 build와 browser 검사: 로컬 UI에 계정 기능이 없고 같은 정적 결과물이 HTTPS와 localhost HTTP에서 동작하는지 확인
+- 접속 주소별 build와 browser 검사: 로컬 UI에 계정 기능이 없고 같은 독립 실행용 결과물이 HTTPS와 localhost HTTP에서 동작하는지 확인
 
 최우선 계정 및 동기화 백로그를 시작하면 다음 검사를 추가한다.
 
@@ -1133,6 +1135,7 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 - [Zod 4 Basic usage](https://zod.dev/basics)와 [Zod 4 schema API](https://zod.dev/api)
 - TanStack Query 5.102.8 [release](https://github.com/TanStack/query/releases/tag/release-2026-08-27-1607)와 고정 revision `2969edf`: [Advanced Server Rendering](https://github.com/TanStack/query/blob/2969edf32f7e0c48e2a108d84712d6e01edfde21/docs/framework/react/guides/advanced-ssr.md), [Mutations](https://github.com/TanStack/query/blob/2969edf32f7e0c48e2a108d84712d6e01edfde21/docs/framework/react/guides/mutations.md), [Optimistic Updates](https://github.com/TanStack/query/blob/2969edf32f7e0c48e2a108d84712d6e01edfde21/docs/framework/react/guides/optimistic-updates.md), [useMutation](https://github.com/TanStack/query/blob/2969edf32f7e0c48e2a108d84712d6e01edfde21/docs/framework/react/reference/useMutation.md), [useMutationState](https://github.com/TanStack/query/blob/2969edf32f7e0c48e2a108d84712d6e01edfde21/docs/framework/react/reference/useMutationState.md)
 - FSD 문서 고정 revision `a6b69ae`: [Layers](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/layers.mdx), [Public API](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/public-api.mdx), [Next.js와 함께 사용하기](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/guides/tech/with-nextjs.mdx)
+- JS Boundaries 7 계열의 [element 분류](https://www.jsboundaries.dev/docs/classification/elements/), [의존성 규칙](https://www.jsboundaries.dev/docs/rules/dependencies/), [selector](https://www.jsboundaries.dev/docs/selectors/)와 [설정](https://www.jsboundaries.dev/docs/settings/), 그리고 `@boundaries/eslint-plugin` 7.2.0의 [공식 저장소](https://github.com/javierbrea/eslint-plugin-boundaries)
 - WHATWG [HTML Web Workers](https://html.spec.whatwg.org/multipage/workers.html), [structured clone과 transferable](https://html.spec.whatwg.org/multipage/structured-data.html#structuredserializewithtransfer), [Storage Standard](https://storage.spec.whatwg.org/)
 - W3C [Indexed Database API 3.0](https://w3c.github.io/IndexedDB/), [Clipboard API and events](https://www.w3.org/TR/clipboard-apis/), [Secure Contexts](https://www.w3.org/TR/secure-contexts/)
 - IETF [RFC 9110 If-Match](https://httpwg.org/specs/rfc9110.html#field.if-match)
