@@ -79,7 +79,52 @@ async function verifyOrigin(browser, origin) {
   await page
     .getByRole("link", { exact: true, name: "텍스트 분석" })
     .click()
-  await expect(page.getByRole("status")).toHaveText(completedStatus ?? "")
+  await page
+    .getByRole("heading", { level: 1, name: "텍스트 분석" })
+    .waitFor()
+  await expect(
+    page.getByText(completedStatus ?? "", { exact: true }),
+  ).toBeVisible()
+  await page.getByRole("link", { exact: true, name: "메모" }).click()
+  await page.getByRole("button", { name: "새 메모" }).click()
+  const noteEditor = page.getByRole("textbox", { name: "메모 내용" })
+  await noteEditor.fill("브라우저에서 작성한 메모\nhttps://example.com")
+  await page.getByRole("button", { name: "완료" }).click()
+  await expect(page.getByRole("article")).toContainText(
+    "브라우저에서 작성한 메모",
+  )
+  assert.equal(
+    await page.getByRole("link", { name: "https://example.com" }).count(),
+    0,
+  )
+
+  await page.getByRole("button", { name: "편집" }).click()
+  await noteEditor.fill("Escape로 저장한 메모")
+  await noteEditor.press("Escape")
+  await expect(page.getByRole("article")).toContainText("Escape로 저장한 메모")
+
+  await page.getByRole("article").click()
+  const widthInput = page.getByLabel("너비")
+  await widthInput.fill("360")
+  await page.getByRole("button", { name: "배치 적용" }).click()
+  await expect.poll(() => readNoteWidth(page, "Escape로 저장한 메모")).toBe(360)
+  await page.reload()
+  await expect(page.getByRole("article")).toContainText("Escape로 저장한 메모")
+  await page.getByRole("article").click()
+  await expect(page.getByLabel("너비")).toHaveValue("360")
+
+  await page.setViewportSize({ height: 720, width: 767 })
+  await expect(page.getByRole("button", { name: "메모 이동" })).toBeHidden()
+  await page.setViewportSize({ height: 720, width: 900 })
+  await expect(page.getByRole("button", { name: "메모 이동" })).toBeVisible()
+  await page.setViewportSize({ height: 720, width: 1280 })
+  await page
+    .getByRole("link", { exact: true, name: "텍스트 분석" })
+    .click()
+  await page
+    .getByRole("heading", { level: 1, name: "텍스트 분석" })
+    .waitFor()
+  await expect(page.getByText("아직 분석하지 않았습니다.")).toBeVisible()
 
   await page.goto(`${origin}/accumulator/`)
   await page
@@ -133,12 +178,36 @@ async function readNoteCount(page) {
   )
 }
 
+async function readNoteWidth(page, content) {
+  return page.evaluate(
+    (expectedContent) =>
+      new Promise((resolve, reject) => {
+        const request = indexedDB.open("personal-notes", 1)
+        request.onerror = () => reject(request.error)
+        request.onsuccess = () => {
+          const database = request.result
+          const transaction = database.transaction("notes", "readonly")
+          const notes = transaction.objectStore("notes").getAll()
+          notes.onerror = () => reject(notes.error)
+          notes.onsuccess = () => {
+            const note = notes.result.find(
+              (candidate) => candidate.content === expectedContent,
+            )
+            resolve(note?.geometry.width)
+          }
+          transaction.oncomplete = () => database.close()
+        }
+      }),
+    content,
+  )
+}
+
 async function verifyStorageIsolation(browser, httpOrigin, httpsOrigin) {
   const context = await browser.newContext({ ignoreHTTPSErrors: true })
   const page = await context.newPage()
 
   await page.goto(httpOrigin)
-  await page.getByRole("status").waitFor()
+  await page.getByText("메모가 없습니다.", { exact: true }).waitFor()
   await page.evaluate(
     () =>
       new Promise((resolve, reject) => {
@@ -171,14 +240,16 @@ async function verifyStorageIsolation(browser, httpOrigin, httpsOrigin) {
       }),
   )
   await page.reload()
-  await expect(page.getByRole("status")).toContainText(/1/u)
+  await expect(page.getByText("메모 1개", { exact: true })).toHaveText(
+    "메모 1개",
+  )
 
   await page.goto(httpsOrigin)
-  await page.getByRole("status").waitFor()
+  await page.getByText("메모가 없습니다.", { exact: true }).waitFor()
   assert.equal(await readNoteCount(page), 0)
 
   await page.goto(httpOrigin)
-  await page.getByRole("status").waitFor()
+  await page.getByText("메모 1개", { exact: true }).waitFor({ state: "attached" })
   assert.equal(await readNoteCount(page), 1)
 
   await context.close()

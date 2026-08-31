@@ -22,6 +22,8 @@ export function PersonalNotesProvider({ children }: PropsWithChildren) {
     >
       <TextAnalysisProvider analyzer={application.analysis.analyzer}>
         <NotesDataProvider
+          createId={application.notes.createId}
+          now={application.notes.now}
           repository={application.notes.repository}
           storageMonitor={application.notes.storageMonitor}
         >

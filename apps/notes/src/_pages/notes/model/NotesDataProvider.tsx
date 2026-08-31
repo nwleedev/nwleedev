@@ -9,7 +9,12 @@ import {
   type PropsWithChildren,
 } from "react"
 
-import type { Note, NoteRepository } from "@/entities/note"
+import {
+  reviseNote,
+  type Note,
+  type NoteGeometry,
+  type NoteRepository,
+} from "@/entities/note"
 
 import type { NoteStorageMonitor } from "./NoteStorageMonitor"
 
@@ -22,7 +27,12 @@ type NotesDataState =
   | { status: "failure" }
 
 type NotesDataContextValue = NotesDataState & {
+  createNote(): Promise<Note>
   retry(): void
+  updateNote(
+    note: Note,
+    change: { content?: string; geometry?: NoteGeometry },
+  ): Promise<Note>
 }
 
 const NotesDataContext = createContext<NotesDataContextValue | null>(null)
@@ -40,12 +50,36 @@ async function readNotes(repository: NoteRepository): Promise<NotesDataState> {
 }
 
 type NotesDataProviderProps = PropsWithChildren<{
+  createId(): string
+  now(): string
   repository: NoteRepository
   storageMonitor: NoteStorageMonitor
 }>
 
+function notesFromState(state: NotesDataState) {
+  return state.status === "ready" ? state.notes : []
+}
+
+function nextGeometry(notes: readonly Note[]): NoteGeometry {
+  const index = notes.length
+  const highestLayer = notes.reduce(
+    (highest, note) => Math.max(highest, note.geometry.zIndex),
+    0,
+  )
+
+  return {
+    height: 240,
+    width: 320,
+    x: 32 + (index % 4) * 40,
+    y: 32 + (index % 5) * 36,
+    zIndex: highestLayer + 1,
+  }
+}
+
 export function NotesDataProvider({
   children,
+  createId,
+  now,
   repository,
   storageMonitor,
 }: NotesDataProviderProps) {
@@ -86,8 +120,53 @@ export function NotesDataProvider({
     })
   }
 
+  async function createNote() {
+    const notes = notesFromState(state)
+    const timestamp = now()
+    const note: Note = {
+      content: "",
+      contentRevision: 0,
+      createdAt: timestamp,
+      geometry: nextGeometry(notes),
+      id: createId(),
+      revision: 0,
+      updatedAt: timestamp,
+    }
+    const savedNote = await repository.save(note)
+
+    setState((current) => ({
+      notes: [...notesFromState(current), savedNote],
+      status: "ready",
+    }))
+
+    return savedNote
+  }
+
+  async function updateNote(
+    note: Note,
+    change: { content?: string; geometry?: NoteGeometry },
+  ) {
+    const nextNote = reviseNote(note, { ...change, updatedAt: now() })
+    const savedNote = await repository.save(nextNote)
+
+    setState((current) => {
+      if (current.status !== "ready") {
+        return current
+      }
+
+      return {
+        notes: current.notes.map((currentNote) =>
+          currentNote.id === savedNote.id ? savedNote : currentNote,
+        ),
+        status: "ready",
+      }
+    })
+
+    return savedNote
+  }
+
   return (
-    <NotesDataContext value={{ ...state, retry }}>
+    <NotesDataContext value={{ ...state, createNote, retry, updateNote }}>
       {children}
     </NotesDataContext>
   )

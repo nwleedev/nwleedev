@@ -41,6 +41,8 @@ export type LocalApplication = {
     writer: AccumulationWriter
   }
   notes: {
+    createId(): string
+    now(): string
     repository: NoteRepository
     storageMonitor: NoteStorageMonitor
   }
@@ -80,6 +82,8 @@ export function createLocalApplication(): LocalApplication {
       database.close()
     },
     notes: {
+      createId: () => identifiers.create(),
+      now,
       repository: new IndexedDbNoteRepository(database),
       storageMonitor: database,
     },

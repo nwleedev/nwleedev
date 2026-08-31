@@ -102,6 +102,8 @@ describe("NotesDataProvider", () => {
     await act(async () => {
       root.render(
         <NotesDataProvider
+          createId={() => "created-note"}
+          now={() => timestamp}
           repository={repository}
           storageMonitor={storageMonitor}
         >
