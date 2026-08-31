@@ -1,8 +1,14 @@
+"use client"
+
+import { usePathname } from "next/navigation"
 import type { PropsWithChildren } from "react"
 
 import { ApplicationNavigation } from "./navigation"
 
 export function ApplicationFrame({ children }: PropsWithChildren) {
+  const pathname = usePathname()
+  const navigationPlacement = pathname === "/" ? "top" : "side"
+
   return (
     <>
       <a
@@ -11,8 +17,18 @@ export function ApplicationFrame({ children }: PropsWithChildren) {
       >
         본문으로 이동
       </a>
-      <div className="min-h-screen lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)]">
-        <ApplicationNavigation />
+      <div
+        className={
+          navigationPlacement === "side"
+            ? "min-h-screen lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)]"
+            : "min-h-screen"
+        }
+      >
+        <ApplicationNavigation
+          key={navigationPlacement}
+          pathname={pathname}
+          placement={navigationPlacement}
+        />
         <div className="min-w-0">{children}</div>
       </div>
     </>

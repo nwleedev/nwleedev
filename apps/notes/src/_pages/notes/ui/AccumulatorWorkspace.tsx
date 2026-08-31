@@ -82,6 +82,8 @@ function AccumulatorPanelContent({
 }
 
 export function AccumulatorWorkspace({ children }: PropsWithChildren) {
+  const accumulatorCount = 0
+  const accumulatorCountText = `${accumulatorCount.toLocaleString("ko-KR")}개`
   const [open, setOpen] = useState(false)
   const container = useRef<HTMLElement>(null)
   const dialog = useRef<HTMLDialogElement>(null)
@@ -132,6 +134,7 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
       <PageHeading
         action={
           <Button
+            aria-label={`누적 텍스트 ${accumulatorCountText}`}
             aria-controls={
               inline ? (open ? INLINE_PANEL_ID : undefined) : MODAL_PANEL_ID
             }
@@ -140,7 +143,13 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
             ref={trigger}
             tone="quiet"
           >
-            누적 텍스트 <span aria-hidden="true">0</span>
+            <span>누적 텍스트</span>
+            <span
+              aria-hidden="true"
+              className="inline-flex min-w-9 items-center justify-center rounded-full bg-ink px-2 py-0.5 font-mono text-xs tabular-nums text-canvas"
+            >
+              {accumulatorCountText}
+            </span>
           </Button>
         }
         title="메모"

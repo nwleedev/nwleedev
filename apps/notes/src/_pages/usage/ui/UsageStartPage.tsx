@@ -1,39 +1,45 @@
 import { PageHeading } from "@/shared/ui/page-heading"
 
+const usageMetrics = [
+  { description: "메모를 바로 복사한 횟수", label: "일반 복사" },
+  { description: "누적 목록에 더한 횟수", label: "누적" },
+  { description: "두 횟수를 합한 값", label: "합계" },
+] as const
+
 export function UsageStartPage() {
   return (
     <main
       className="min-h-screen px-4 py-7 sm:px-7 sm:py-10 xl:px-10"
       id="main-content"
     >
-      <PageHeading title="사용 빈도" />
-      <div className="mt-6 overflow-x-auto border-y-2 border-ink bg-surface">
-        <table className="w-full min-w-[42rem] border-collapse text-left">
-          <thead className="border-b border-line-strong font-mono text-xs tracking-[0.08em] text-soft-ink">
-            <tr>
-              <th className="px-5 py-4 font-medium" scope="col">
-                텍스트
-              </th>
-              <th className="w-28 px-5 py-4 text-right font-medium" scope="col">
-                일반 복사
-              </th>
-              <th className="w-24 px-5 py-4 text-right font-medium" scope="col">
-                누적
-              </th>
-              <th className="w-24 px-5 py-4 text-right font-medium" scope="col">
-                합계
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="px-5 py-12 text-center text-sm text-soft-ink" colSpan={4}>
-                복사 기록이 없습니다.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <PageHeading density="compact" title="사용 빈도" />
+      <section
+        aria-labelledby="usage-metrics-heading"
+        className="mt-6 border-y-2 border-ink bg-surface"
+      >
+        <h2 className="sr-only" id="usage-metrics-heading">
+          복사 횟수 기준
+        </h2>
+        <dl className="grid divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+          {usageMetrics.map((metric) => (
+            <div className="px-5 py-4" key={metric.label}>
+              <dt className="font-mono text-xs tracking-[0.08em] text-soft-ink">
+                {metric.label}
+              </dt>
+              <dd className="mt-1 text-sm font-medium text-ink">
+                {metric.description}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <p
+          aria-live="polite"
+          className="border-t border-line px-5 py-12 text-center text-sm text-soft-ink"
+          role="status"
+        >
+          복사 기록이 없습니다.
+        </p>
+      </section>
     </main>
   )
 }

@@ -15,7 +15,7 @@ export function SettingsStartPage() {
       className="min-h-screen px-4 py-7 sm:px-7 sm:py-10 xl:px-10"
       id="main-content"
     >
-      <PageHeading title="설정" />
+      <PageHeading density="compact" title="설정" />
       <section className="mt-6 border-y-2 border-ink bg-surface px-5 py-6 sm:px-7">
         {"preferences" in preferences ? (
           <div>

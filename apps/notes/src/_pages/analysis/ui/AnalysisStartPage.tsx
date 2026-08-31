@@ -36,6 +36,7 @@ export function AnalysisStartPage() {
             분석 실행
           </Button>
         }
+        density="compact"
         title="텍스트 분석"
       />
       <section className="mt-6 min-h-[32rem] border border-line bg-surface p-5 sm:p-7">
