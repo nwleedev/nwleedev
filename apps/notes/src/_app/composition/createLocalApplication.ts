@@ -3,10 +3,13 @@ import {
   type TextAnalyzer,
 } from "@/_pages/analysis/composition"
 import {
-  IndexedDbAccumulationWriter,
-  type AccumulationWriter,
+  type ClipboardWriter,
   type NoteStorageMonitor,
 } from "@/_pages/notes/composition"
+import {
+  IndexedDbAccumulationWriter,
+  type AccumulationWriter,
+} from "@/features/accumulate-note"
 import {
   IndexedDbAccumulatorRepository,
   type AccumulatorRepository,
@@ -28,6 +31,7 @@ import {
   type OrdinaryCopyUsageWriter,
   type TextUsageReader,
 } from "@/entities/usage"
+import { BrowserClipboardWriter } from "@/shared/lib/clipboard"
 import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
 
 import { PersonalNotesDatabase } from "./indexed-db/PersonalNotesDatabase"
@@ -37,14 +41,18 @@ export type LocalApplication = {
     analyzer: TextAnalyzer
   }
   accumulator: {
+    createId(): string
+    now(): string
     repository: AccumulatorRepository
     writer: AccumulationWriter
   }
   notes: {
+    clipboard: ClipboardWriter
     createId(): string
     now(): string
     repository: NoteRepository
     storageMonitor: NoteStorageMonitor
+    usageWriter: OrdinaryCopyUsageWriter
   }
   preferences: {
     now(): string
@@ -74,6 +82,8 @@ export function createLocalApplication(): LocalApplication {
   return {
     analysis: { analyzer },
     accumulator: {
+      createId: () => identifiers.create(),
+      now,
       repository: new IndexedDbAccumulatorRepository(database),
       writer: new IndexedDbAccumulationWriter(database, identifiers),
     },
@@ -82,10 +92,12 @@ export function createLocalApplication(): LocalApplication {
       database.close()
     },
     notes: {
+      clipboard: new BrowserClipboardWriter(),
       createId: () => identifiers.create(),
       now,
       repository: new IndexedDbNoteRepository(database),
       storageMonitor: database,
+      usageWriter: usage,
     },
     preferences: {
       now,

@@ -12,6 +12,7 @@ const executeFile = promisify(execFile)
 const packageRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
 const repositoryRoot = path.resolve(packageRoot, "../..")
 const temporaryRoot = path.join(repositoryRoot, "temps")
+const mobileAccumulationHoldMs = 500
 
 async function listen(server, host = "localhost") {
   await new Promise((resolve, reject) => {
@@ -34,8 +35,16 @@ async function close(server) {
   })
 }
 
-async function verifyOrigin(browser, origin) {
+async function verifyOrigin(browser, origin, chromiumBrowser) {
   const context = await browser.newContext({ ignoreHTTPSErrors: true })
+
+  if (chromiumBrowser) {
+    await context.grantPermissions(
+      ["clipboard-read", "clipboard-write"],
+      { origin },
+    )
+  }
+
   const page = await context.newPage()
   const stylesheets = []
   page.on("response", (response) => {
@@ -103,15 +112,122 @@ async function verifyOrigin(browser, origin) {
   await noteEditor.press("Escape")
   await expect(page.getByRole("article")).toContainText("Escape로 저장한 메모")
 
-  await page.getByRole("article").click()
+  const noteArticle = page.getByRole("article")
+  const noteContent = noteArticle.getByText("Escape로 저장한 메모", {
+    exact: true,
+  })
+  const browserName = browser.browserType().name()
+  await noteArticle.getByRole("button", { name: "복사" }).click()
+  await expect(
+    noteArticle.getByText("복사했습니다.", { exact: true }),
+  ).toBeVisible()
+  await expect
+    .poll(() => readUsageCounts(page, "Escape로 저장한 메모"))
+    .toEqual({ accumulation: 0, ordinaryCopy: 1 })
+
+  if (chromiumBrowser) {
+    const contentBounds = await noteContent.boundingBox()
+    assert.notEqual(contentBounds, null)
+    await page.mouse.move(contentBounds.x + 4, contentBounds.y + 8)
+    await page.mouse.down()
+    await page.mouse.move(contentBounds.x + 100, contentBounds.y + 8, {
+      steps: 8,
+    })
+    await page.mouse.up()
+  } else if (browserName === "firefox") {
+    await noteContent.evaluate((element) => {
+      const range = document.createRange()
+      const selection = window.getSelection()
+
+      range.selectNodeContents(element)
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+    })
+  }
+
+  const selectedText = await page.evaluate(
+    () => window.getSelection()?.toString() ?? "",
+  )
+
+  if (browserName !== "webkit") {
+    assert.notEqual(
+      selectedText,
+      "",
+      `${browserName} did not preserve the note text selection at ${origin}`,
+    )
+    await expect
+      .poll(() => readUsageCounts(page, "Escape로 저장한 메모"))
+      .toEqual({ accumulation: 0, ordinaryCopy: 1 })
+  }
+
+  const accumulateButton = noteArticle.getByRole("button", { name: "누적" })
+  await accumulateButton.click()
+  const accumulatorPanel = page.getByRole("complementary", {
+    name: "누적 텍스트",
+  })
+  await expect(accumulatorPanel).toContainText("Escape로 저장한 메모")
+
+  if (browserName === "webkit") {
+    const panelContainsFocus = await accumulatorPanel.evaluate((element) =>
+      element.contains(document.activeElement),
+    )
+    assert.equal(panelContainsFocus, false)
+  } else {
+    await expect(accumulateButton).toBeFocused()
+  }
+
+  await expect
+    .poll(() => readUsageCounts(page, "Escape로 저장한 메모"))
+    .toEqual({ accumulation: 1, ordinaryCopy: 1 })
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(1)
+
+  await page.evaluate(() => window.getSelection()?.removeAllRanges())
+  await noteContent.click({ modifiers: ["Meta"] })
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(2)
+  await expect
+    .poll(() => readUsageCounts(page, "Escape로 저장한 메모"))
+    .toEqual({ accumulation: 2, ordinaryCopy: 1 })
+
   const widthInput = page.getByLabel("너비")
   await widthInput.fill("360")
   await page.getByRole("button", { name: "배치 적용" }).click()
   await expect.poll(() => readNoteWidth(page, "Escape로 저장한 메모")).toBe(360)
   await page.reload()
   await expect(page.getByRole("article")).toContainText("Escape로 저장한 메모")
-  await page.getByRole("article").click()
+  await page.getByRole("button", { name: "메모 이동" }).click()
   await expect(page.getByLabel("너비")).toHaveValue("360")
+
+  await page.getByRole("link", { exact: true, name: "설정" }).click()
+  const metaClickPreference = page.getByRole("checkbox", {
+    name: "Command+클릭으로 누적",
+  })
+  await expect(metaClickPreference).toBeChecked()
+  await page
+    .getByText("Command+클릭으로 누적", { exact: true })
+    .click()
+  await expect(metaClickPreference).not.toBeChecked()
+  await expect(page.getByText("설정 저장 중", { exact: true })).toBeHidden()
+  await page.getByRole("link", { exact: true, name: "메모" }).click()
+  const returnedArticle = page.getByRole("article")
+  const returnedContent = returnedArticle.getByText(
+    "Escape로 저장한 메모",
+    { exact: true },
+  )
+  await returnedArticle.getByRole("button", { name: "복사" }).click()
+  await expect
+    .poll(() => readUsageCounts(page, "Escape로 저장한 메모"))
+    .toEqual({ accumulation: 2, ordinaryCopy: 2 })
+  await page.evaluate(() => window.getSelection()?.removeAllRanges())
+  await returnedContent.click({ modifiers: ["Meta"] })
+  await expect(
+    returnedArticle.getByText("복사했습니다.", { exact: true }),
+  ).toBeVisible()
+  await expect
+    .poll(() => readUsageCounts(page, "Escape로 저장한 메모"))
+    .toEqual({ accumulation: 2, ordinaryCopy: 3 })
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(2)
+  await returnedArticle.getByRole("button", { name: "누적" }).click()
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(3)
 
   await page.setViewportSize({ height: 720, width: 767 })
   await expect(page.getByRole("button", { name: "메모 이동" })).toBeHidden()
@@ -160,6 +276,114 @@ async function verifyUnsupportedOrigin(browser, origin) {
   await context.close()
 }
 
+async function createNote(page, content) {
+  await page.getByRole("button", { name: "새 메모" }).click()
+  const editor = page.getByRole("textbox", { name: "메모 내용" })
+  await editor.fill(content)
+  await page.getByRole("button", { name: "완료" }).click()
+}
+
+async function touchStart(client, bounds) {
+  await client.send("Input.dispatchTouchEvent", {
+    touchPoints: [{ x: bounds.x + 16, y: bounds.y + 16 }],
+    type: "touchStart",
+  })
+}
+
+async function touchEnd(client) {
+  await client.send("Input.dispatchTouchEvent", {
+    touchPoints: [],
+    type: "touchEnd",
+  })
+}
+
+async function verifyMobileAccumulation(browser, origin) {
+  const context = await browser.newContext({
+    hasTouch: true,
+    ignoreHTTPSErrors: true,
+    isMobile: true,
+    viewport: { height: 720, width: 320 },
+  })
+  await context.grantPermissions(
+    ["clipboard-read", "clipboard-write"],
+    { origin },
+  )
+  const page = await context.newPage()
+  const client = await context.newCDPSession(page)
+
+  await page.goto(origin)
+  await page.getByText("메모가 없습니다.", { exact: true }).waitFor()
+  await createNote(page, "첫 번째 모바일 메모")
+  await createNote(page, "두 번째 모바일 메모")
+  await createNote(page, "취소할 모바일 메모")
+  await page.clock.install()
+
+  const firstArticle = page
+    .getByRole("article")
+    .filter({ hasText: "첫 번째 모바일 메모", visible: true })
+  const firstContent = firstArticle.getByText("첫 번째 모바일 메모", {
+    exact: true,
+  })
+  await firstContent.scrollIntoViewIfNeeded()
+  const firstBounds = await firstContent.boundingBox()
+  assert.notEqual(firstBounds, null)
+  await touchStart(client, firstBounds)
+  await page.clock.fastForward(mobileAccumulationHoldMs)
+  await touchEnd(client)
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(1)
+  await expect(
+    page.getByRole("link", { name: "누적 텍스트 1개 관리" }),
+  ).toBeVisible()
+  await expect(
+    firstArticle.getByText("누적 선택됨"),
+  ).toBeVisible()
+
+  const secondArticle = page
+    .getByRole("article")
+    .filter({ hasText: "두 번째 모바일 메모", visible: true })
+  const secondContent = secondArticle.getByText("두 번째 모바일 메모", {
+    exact: true,
+  })
+  await secondContent.scrollIntoViewIfNeeded()
+  const secondBounds = await secondContent.boundingBox()
+  assert.notEqual(secondBounds, null)
+  await touchStart(client, secondBounds)
+  await page.clock.fastForward(mobileAccumulationHoldMs)
+  await touchEnd(client)
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(2)
+  await expect(
+    page.getByRole("link", { name: "누적 텍스트 2개 관리" }),
+  ).toBeVisible()
+
+  const cancelledArticle = page
+    .getByRole("article")
+    .filter({ hasText: "취소할 모바일 메모", visible: true })
+  const cancelledContent = cancelledArticle.getByText("취소할 모바일 메모", {
+    exact: true,
+  })
+  await cancelledContent.scrollIntoViewIfNeeded()
+  const cancelledBounds = await cancelledContent.boundingBox()
+  assert.notEqual(cancelledBounds, null)
+  await touchStart(client, cancelledBounds)
+  await client.send("Input.dispatchTouchEvent", {
+    touchPoints: [
+      { x: cancelledBounds.x + 40, y: cancelledBounds.y + 16 },
+    ],
+    type: "touchMove",
+  })
+  await page.clock.fastForward(mobileAccumulationHoldMs)
+  await touchEnd(client)
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(2)
+
+  await touchStart(client, cancelledBounds)
+  await touchEnd(client)
+  await expect
+    .poll(() => readUsageCounts(page, "취소할 모바일 메모"))
+    .toEqual({ accumulation: 0, ordinaryCopy: 1 })
+
+  await context.close()
+}
+
 async function readNoteCount(page) {
   return page.evaluate(
     () =>
@@ -176,6 +400,44 @@ async function readNoteCount(page) {
         }
       }),
   )
+}
+
+async function readStoreRecords(page, storeName) {
+  return page.evaluate(
+    (requestedStoreName) =>
+      new Promise((resolve, reject) => {
+        const request = indexedDB.open("personal-notes", 1)
+        request.onerror = () => reject(request.error)
+        request.onsuccess = () => {
+          const database = request.result
+          const transaction = database.transaction(
+            requestedStoreName,
+            "readonly",
+          )
+          const records = transaction.objectStore(requestedStoreName).getAll()
+          records.onerror = () => reject(records.error)
+          records.onsuccess = () => resolve(records.result)
+          transaction.oncomplete = () => database.close()
+        }
+      }),
+    storeName,
+  )
+}
+
+async function readAccumulatorItemCount(page) {
+  const accumulators = await readStoreRecords(page, "accumulators")
+  const primaryAccumulator = accumulators.find(
+    (accumulator) => accumulator.id === "primary",
+  )
+  return primaryAccumulator?.content.items.length ?? 0
+}
+
+async function readUsageCounts(page, textSnapshot) {
+  const usageRecords = await readStoreRecords(page, "usage")
+  const record = usageRecords.find(
+    (usage) => usage.textSnapshot === textSnapshot,
+  )
+  return record?.counts ?? null
 }
 
 async function readNoteWidth(page, content) {
@@ -315,11 +577,17 @@ async function run() {
       const httpOrigin = `http://localhost:${httpPort}`
       const httpsOrigin = `https://localhost:${httpsPort}`
       const unsupportedHttpOrigin = `http://127.0.0.1:${unsupportedHttpPort}`
+      const chromiumBrowser = browserType === chromium
 
       await verifyStorageIsolation(browser, httpOrigin, httpsOrigin)
-      await verifyOrigin(browser, httpOrigin)
-      await verifyOrigin(browser, httpsOrigin)
+      await verifyOrigin(browser, httpOrigin, chromiumBrowser)
+      await verifyOrigin(browser, httpsOrigin, chromiumBrowser)
       await verifyUnsupportedOrigin(browser, unsupportedHttpOrigin)
+
+      if (browserType === chromium) {
+        await verifyMobileAccumulation(browser, httpOrigin)
+        await verifyMobileAccumulation(browser, httpsOrigin)
+      }
     }
 
     process.stdout.write(

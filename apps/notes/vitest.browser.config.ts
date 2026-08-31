@@ -4,8 +4,11 @@ import { playwright } from "@vitest/browser-playwright"
 import { defineConfig } from "vitest/config"
 
 export default defineConfig({
+  define: {
+    "process.env": "{}",
+  },
   optimizeDeps: {
-    include: ["react", "react-dom", "react-dom/client"],
+    include: ["next/link", "react", "react-dom", "react-dom/client"],
   },
   resolve: {
     alias: {

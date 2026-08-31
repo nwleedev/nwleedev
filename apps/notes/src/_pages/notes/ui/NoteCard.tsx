@@ -1,18 +1,31 @@
 "use client"
 
 import {
+  useEffect,
   useRef,
   useState,
   type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 
 import type { Note, NoteGeometry } from "@/entities/note"
+import type {
+  AccumulateNoteResult,
+  AccumulationRequest,
+} from "@/features/accumulate-note"
 import { joinClassNames } from "@/shared/lib/join-class-names"
-import { Button } from "@/shared/ui/button"
 
+import type { CopyNoteResult } from "../model/copyNote"
+import {
+  NoteActions,
+  type NoteInteractionNotice,
+} from "./NoteActions"
 import { NoteEditor } from "./NoteEditor"
 import { NoteGeometryControls } from "./NoteGeometryControls"
+
+const NOTE_LONG_PRESS_DELAY_MS = 500
+const NOTE_LONG_PRESS_MOVEMENT_PX = 10
 
 type GeometryGesture = {
   geometry: NoteGeometry
@@ -22,14 +35,32 @@ type GeometryGesture = {
   startY: number
 }
 
+type MobilePressGesture = {
+  cancelled: boolean
+  pointerId: number
+  qualified: boolean
+  startX: number
+  startY: number
+  timer: ReturnType<typeof setTimeout>
+}
+
 type NoteCardProps = {
+  accumulatedSelected: boolean
+  accumulationReady: boolean
   draftContent: string
   editing: boolean
+  metaClickEnabled: boolean
   note: Note
   placement: "board" | "list"
   scale?: number
   selected: boolean
+  onAccumulate(
+    note: Note,
+    request: AccumulationRequest,
+  ): Promise<AccumulateNoteResult>
+  onAccumulated(): void
   onBeginEditing(note: Note): void
+  onCopy(note: Note): Promise<CopyNoteResult>
   onDraftChange(content: string): void
   onFinishEditing(note: Note, content: string): Promise<void>
   onSaveGeometry(note: Note, geometry: NoteGeometry): Promise<void>
@@ -59,11 +90,55 @@ function geometryFromGesture(
   }
 }
 
+function hasTextSelection(element: HTMLElement) {
+  const selection = window.getSelection()
+
+  if (selection === null || selection.isCollapsed) {
+    return false
+  }
+
+  const anchorSelected = element.contains(selection.anchorNode)
+  const focusSelected = element.contains(selection.focusNode)
+  return anchorSelected || focusSelected
+}
+
+function isInside(element: HTMLElement, clientX: number, clientY: number) {
+  const bounds = element.getBoundingClientRect()
+  const withinHorizontal = clientX >= bounds.left && clientX <= bounds.right
+  const withinVertical = clientY >= bounds.top && clientY <= bounds.bottom
+  return withinHorizontal && withinVertical
+}
+
+function isMetaAccumulationClick(
+  event: ReactMouseEvent<HTMLDivElement>,
+  enabled: boolean,
+) {
+  if (!enabled || !event.metaKey) {
+    return false
+  }
+
+  if (event.altKey || event.ctrlKey) {
+    return false
+  }
+
+  if (event.shiftKey) {
+    return false
+  }
+
+  return event.button === 0
+}
+
 export function NoteCard({
+  accumulatedSelected,
+  accumulationReady,
   draftContent,
   editing,
+  metaClickEnabled,
   note,
+  onAccumulate,
+  onAccumulated,
   onBeginEditing,
+  onCopy,
   onDraftChange,
   onFinishEditing,
   onSaveGeometry,
@@ -74,8 +149,12 @@ export function NoteCard({
 }: NoteCardProps) {
   const [errorMessage, setErrorMessage] = useState("")
   const [geometry, setGeometry] = useState(note.geometry)
+  const [mobilePressActive, setMobilePressActive] = useState(false)
+  const [notice, setNotice] = useState<NoteInteractionNotice | null>(null)
   const [pending, setPending] = useState(false)
   const gesture = useRef<GeometryGesture | null>(null)
+  const mobilePress = useRef<MobilePressGesture | null>(null)
+  const suppressNextClick = useRef(false)
   const boardPlacement = placement === "board"
   const showBoardControls = boardPlacement && !editing
   const showGeometryControls = showBoardControls && selected
@@ -84,6 +163,14 @@ export function NoteCard({
     "flex min-h-40 flex-col gap-3 overflow-auto rounded-note border bg-surface-raised p-3 shadow-note transition-[border-color,box-shadow] duration-[var(--notes-motion-fast)]",
     boardPlacement ? "absolute" : "relative",
     selected ? "border-action shadow-floating" : "border-line",
+    accumulatedSelected ? "ring-2 ring-action ring-offset-2" : undefined,
+  )
+  const contentClassName = joinClassNames(
+    "min-h-0 flex-1 cursor-copy touch-pan-y overflow-auto rounded-control p-1",
+    mobilePressActive
+      ? "select-none [-webkit-touch-callout:none]"
+      : "select-text",
+    accumulatedSelected ? "bg-action/10" : undefined,
   )
   const boardStyle: CSSProperties | undefined = boardPlacement
     ? {
@@ -94,6 +181,14 @@ export function NoteCard({
         zIndex: geometry.zIndex,
       }
     : undefined
+
+  useEffect(() => {
+    return () => {
+      if (mobilePress.current !== null) {
+        clearTimeout(mobilePress.current.timer)
+      }
+    }
+  }, [])
 
   function startGesture(
     event: ReactPointerEvent<HTMLButtonElement>,
@@ -174,8 +269,202 @@ export function NoteCard({
   }
 
   function beginEditing() {
+    if (pending) {
+      return
+    }
+
     setErrorMessage("")
+    setNotice(null)
     onBeginEditing(note)
+  }
+
+  async function performCopy() {
+    if (pending) {
+      return
+    }
+
+    setPending(true)
+    const result = await onCopy(note)
+
+    if (result.status === "copied") {
+      setNotice({ kind: "status", message: "복사했습니다.", retry: null })
+    } else if (result.status === "usage-failure") {
+      setNotice({
+        kind: "error",
+        message: "텍스트는 복사했지만 사용 횟수를 기록하지 못했습니다.",
+        retry: null,
+      })
+    } else {
+      setNotice({
+        kind: "error",
+        message:
+          "복사하지 못했습니다. 브라우저의 클립보드 권한을 확인하세요.",
+        retry: "copy",
+      })
+    }
+
+    setPending(false)
+  }
+
+  async function performAccumulation(selectForMobile: boolean) {
+    if (pending) {
+      return
+    }
+
+    setPending(true)
+    const result = await onAccumulate(note, { selectForMobile })
+
+    if (result.status === "accumulated") {
+      setNotice({ kind: "status", message: "누적했습니다.", retry: null })
+      onAccumulated()
+    } else {
+      setNotice({
+        kind: "error",
+        message: "누적하지 못했습니다. 다시 시도하세요.",
+        retry: "accumulate",
+      })
+    }
+
+    setPending(false)
+  }
+
+  function copyFromButton() {
+    void performCopy()
+  }
+
+  function accumulateFromButton() {
+    void performAccumulation(false)
+  }
+
+  function retryInteraction() {
+    if (notice?.retry === "copy") {
+      void performCopy()
+      return
+    }
+
+    if (notice?.retry === "accumulate") {
+      void performAccumulation(false)
+    }
+  }
+
+  function startMobilePress(event: ReactPointerEvent<HTMLDivElement>) {
+    const unavailable = placement !== "list" || event.pointerType === "mouse"
+
+    if (unavailable || event.button !== 0) {
+      return
+    }
+
+    const pointerId = event.pointerId
+    const timer = setTimeout(() => {
+      const current = mobilePress.current
+
+      if (current?.pointerId === pointerId && !current.cancelled) {
+        current.qualified = true
+      }
+    }, NOTE_LONG_PRESS_DELAY_MS)
+    mobilePress.current = {
+      cancelled: false,
+      pointerId,
+      qualified: false,
+      startX: event.clientX,
+      startY: event.clientY,
+      timer,
+    }
+    setMobilePressActive(true)
+    event.currentTarget.setPointerCapture(pointerId)
+  }
+
+  function moveMobilePress(event: ReactPointerEvent<HTMLDivElement>) {
+    const current = mobilePress.current
+
+    if (current === null || current.pointerId !== event.pointerId) {
+      return
+    }
+
+    const movement = Math.hypot(
+      event.clientX - current.startX,
+      event.clientY - current.startY,
+    )
+
+    if (movement <= NOTE_LONG_PRESS_MOVEMENT_PX) {
+      return
+    }
+
+    clearTimeout(current.timer)
+    current.cancelled = true
+  }
+
+  function cancelMobilePress(event: ReactPointerEvent<HTMLDivElement>) {
+    const current = mobilePress.current
+
+    if (current === null || current.pointerId !== event.pointerId) {
+      return
+    }
+
+    clearTimeout(current.timer)
+    current.cancelled = true
+    mobilePress.current = null
+    setMobilePressActive(false)
+    suppressNextClick.current = true
+  }
+
+  function finishMobilePress(event: ReactPointerEvent<HTMLDivElement>) {
+    const current = mobilePress.current
+
+    if (current === null || current.pointerId !== event.pointerId) {
+      return
+    }
+
+    clearTimeout(current.timer)
+    mobilePress.current = null
+    setMobilePressActive(false)
+    suppressNextClick.current = true
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+
+    if (current.cancelled) {
+      return
+    }
+
+    if (!isInside(event.currentTarget, event.clientX, event.clientY)) {
+      return
+    }
+
+    if (hasTextSelection(event.currentTarget)) {
+      return
+    }
+
+    if (current.qualified) {
+      if (!accumulatedSelected) {
+        void performAccumulation(true)
+      }
+
+      return
+    }
+
+    if (!accumulatedSelected) {
+      void performCopy()
+    }
+  }
+
+  function handleContentClick(event: ReactMouseEvent<HTMLDivElement>) {
+    if (suppressNextClick.current) {
+      suppressNextClick.current = false
+      return
+    }
+
+    if (hasTextSelection(event.currentTarget)) {
+      return
+    }
+
+    if (isMetaAccumulationClick(event, metaClickEnabled)) {
+      void performAccumulation(false)
+      return
+    }
+
+    void performCopy()
   }
 
   return (
@@ -186,24 +475,39 @@ export function NoteCard({
       style={boardStyle}
     >
       {editing ? null : (
-        <header className="flex items-center justify-end gap-2 border-b border-line pb-2">
-          {showBoardControls ? (
-            <button
-              aria-label="메모 이동"
-              className="mr-auto min-h-[var(--notes-control-size)] cursor-grab rounded-control border border-line bg-canvas px-3 text-xs font-semibold text-soft-ink active:cursor-grabbing"
-              disabled={pending}
-              onPointerCancel={cancelGesture}
-              onPointerDown={(event) => startGesture(event, "move")}
-              onPointerMove={moveGesture}
-              onPointerUp={finishGesture}
-              type="button"
-            >
-              이동
-            </button>
-          ) : null}
-          <Button disabled={pending} onClick={beginEditing} tone="quiet">
-            편집
-          </Button>
+        <header className="grid gap-2 border-b border-line pb-2">
+          <div className="flex items-start gap-2">
+            {showBoardControls ? (
+              <button
+                aria-label="메모 이동"
+                className="min-h-[var(--notes-control-size)] cursor-grab rounded-control border border-line bg-canvas px-3 text-xs font-semibold text-soft-ink active:cursor-grabbing"
+                disabled={pending}
+                onPointerCancel={cancelGesture}
+                onPointerDown={(event) => startGesture(event, "move")}
+                onPointerMove={moveGesture}
+                onPointerUp={finishGesture}
+                type="button"
+              >
+                이동
+              </button>
+            ) : null}
+            <div className="min-w-0 flex-1">
+              {accumulatedSelected ? (
+                <p className="mb-2 text-right text-xs font-semibold text-action">
+                  누적 선택됨
+                </p>
+              ) : null}
+              <NoteActions
+                accumulationReady={accumulationReady}
+                notice={notice}
+                onAccumulate={accumulateFromButton}
+                onCopy={copyFromButton}
+                onEdit={beginEditing}
+                onRetry={retryInteraction}
+                pending={pending}
+              />
+            </div>
+          </div>
         </header>
       )}
       {editing ? (
@@ -215,7 +519,15 @@ export function NoteCard({
           pending={pending}
         />
       ) : (
-        <div className="min-h-0 flex-1 overflow-auto">
+        <div
+          className={contentClassName}
+          onClick={handleContentClick}
+          onLostPointerCapture={cancelMobilePress}
+          onPointerCancel={cancelMobilePress}
+          onPointerDown={startMobilePress}
+          onPointerMove={moveMobilePress}
+          onPointerUp={finishMobilePress}
+        >
           <p className="whitespace-pre-wrap break-words text-[0.98rem] leading-7">
             {contentText}
           </p>

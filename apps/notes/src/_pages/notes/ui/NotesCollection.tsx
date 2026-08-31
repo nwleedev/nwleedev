@@ -8,8 +8,15 @@ import {
 } from "react"
 
 import type { Note, NoteGeometry } from "@/entities/note"
+import {
+  useAccumulator,
+  type AccumulateNoteResult,
+  type AccumulationRequest,
+} from "@/features/accumulate-note"
 import { Button } from "@/shared/ui/button"
 
+import type { CopyNoteResult } from "../model/copyNote"
+import { useAccumulatorWorkspace } from "./AccumulatorWorkspace"
 import { NoteCard } from "./NoteCard"
 
 type NoteChange = {
@@ -18,7 +25,9 @@ type NoteChange = {
 }
 
 type NotesCollectionProps = {
+  metaClickEnabled: boolean
   notes: readonly Note[]
+  copyNote(note: Note): Promise<CopyNoteResult>
   createNote(): Promise<Note>
   updateNote(note: Note, change: NoteChange): Promise<Note>
 }
@@ -29,10 +38,19 @@ type EditingDraft = {
 }
 
 type NotePresentationProps = {
+  accumulatedItemByNote: Readonly<Record<string, string>>
+  accumulationReady: boolean
   editingDraft: EditingDraft | null
+  metaClickEnabled: boolean
   notes: readonly Note[]
   selectedNoteId: string | null
+  onAccumulate(
+    note: Note,
+    request: AccumulationRequest,
+  ): Promise<AccumulateNoteResult>
+  onAccumulated(): void
   onBeginEditing(note: Note): void
+  onCopy(note: Note): Promise<CopyNoteResult>
   onDraftChange(content: string): void
   onFinishEditing(note: Note, content: string): Promise<void>
   onSaveGeometry(note: Note, geometry: NoteGeometry): Promise<void>
@@ -40,9 +58,15 @@ type NotePresentationProps = {
 }
 
 function NotesList({
+  accumulatedItemByNote,
+  accumulationReady,
   editingDraft,
+  metaClickEnabled,
   notes,
+  onAccumulate,
+  onAccumulated,
   onBeginEditing,
+  onCopy,
   onDraftChange,
   onFinishEditing,
   onSaveGeometry,
@@ -61,11 +85,19 @@ function NotesList({
 
         return (
           <NoteCard
+            accumulatedSelected={
+              accumulatedItemByNote[note.id] !== undefined
+            }
+            accumulationReady={accumulationReady}
             draftContent={draftContent}
             editing={editing}
             key={itemKey}
+            metaClickEnabled={metaClickEnabled}
             note={note}
+            onAccumulate={onAccumulate}
+            onAccumulated={onAccumulated}
             onBeginEditing={onBeginEditing}
+            onCopy={onCopy}
             onDraftChange={onDraftChange}
             onFinishEditing={onFinishEditing}
             onSaveGeometry={onSaveGeometry}
@@ -115,9 +147,15 @@ function measureBoard(notes: readonly Note[]): BoardDimensions {
 
 function NotesBoard(props: NotePresentationProps) {
   const {
+    accumulatedItemByNote,
+    accumulationReady,
     editingDraft,
+    metaClickEnabled,
     notes,
+    onAccumulate,
+    onAccumulated,
     onBeginEditing,
+    onCopy,
     onDraftChange,
     onFinishEditing,
     onSaveGeometry,
@@ -241,11 +279,19 @@ function NotesBoard(props: NotePresentationProps) {
 
           return (
             <NoteCard
+              accumulatedSelected={
+                accumulatedItemByNote[note.id] !== undefined
+              }
+              accumulationReady={accumulationReady}
               draftContent={draftContent}
               editing={editing}
               key={itemKey}
+              metaClickEnabled={metaClickEnabled}
               note={note}
+              onAccumulate={onAccumulate}
+              onAccumulated={onAccumulated}
               onBeginEditing={onBeginEditing}
+              onCopy={onCopy}
               onDraftChange={onDraftChange}
               onFinishEditing={onFinishEditing}
               onSaveGeometry={onSaveGeometry}
@@ -296,10 +342,14 @@ function byCreationTime(left: Note, right: Note) {
 }
 
 export function NotesCollection({
+  copyNote,
   createNote,
+  metaClickEnabled,
   notes,
   updateNote,
 }: NotesCollectionProps) {
+  const accumulator = useAccumulator()
+  const accumulatorWorkspace = useAccumulatorWorkspace()
   const orderedNotes = [...notes].sort(byCreationTime)
   const [creationError, setCreationError] = useState("")
   const [creationPending, setCreationPending] = useState(false)
@@ -347,9 +397,15 @@ export function NotesCollection({
   }
 
   const presentationProps: NotePresentationProps = {
+    accumulatedItemByNote: accumulator.selectedItemByNote,
+    accumulationReady: accumulator.status === "ready",
     editingDraft,
+    metaClickEnabled,
     notes: orderedNotes,
+    onAccumulate: accumulator.accumulate,
+    onAccumulated: accumulatorWorkspace.revealNewAccumulation,
     onBeginEditing: beginEditing,
+    onCopy: copyNote,
     onDraftChange: changeDraft,
     onFinishEditing: finishEditing,
     onSaveGeometry: saveGeometry,

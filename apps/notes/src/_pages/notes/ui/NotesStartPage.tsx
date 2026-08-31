@@ -32,7 +32,9 @@ export function NotesStartPage() {
           메모 {noteCountText}개
         </p>
         <NotesCollection
+          copyNote={notesData.copyNote}
           createNote={notesData.createNote}
+          metaClickEnabled={notesData.metaClickEnabled}
           notes={notes}
           updateNote={notesData.updateNote}
         />

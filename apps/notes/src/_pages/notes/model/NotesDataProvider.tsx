@@ -15,8 +15,14 @@ import {
   type NoteGeometry,
   type NoteRepository,
 } from "@/entities/note"
+import type { OrdinaryCopyUsageWriter } from "@/entities/usage"
 
+import type { ClipboardWriter } from "./ClipboardWriter"
 import type { NoteStorageMonitor } from "./NoteStorageMonitor"
+import {
+  copyNote as executeCopyNote,
+  type CopyNoteResult,
+} from "./copyNote"
 
 type NotesDataState =
   | { status: "loading" }
@@ -27,7 +33,9 @@ type NotesDataState =
   | { status: "failure" }
 
 type NotesDataContextValue = NotesDataState & {
+  copyNote(note: Note): Promise<CopyNoteResult>
   createNote(): Promise<Note>
+  metaClickEnabled: boolean
   retry(): void
   updateNote(
     note: Note,
@@ -50,10 +58,13 @@ async function readNotes(repository: NoteRepository): Promise<NotesDataState> {
 }
 
 type NotesDataProviderProps = PropsWithChildren<{
+  clipboard: ClipboardWriter
   createId(): string
+  metaClickEnabled: boolean
   now(): string
   repository: NoteRepository
   storageMonitor: NoteStorageMonitor
+  usage: OrdinaryCopyUsageWriter
 }>
 
 function notesFromState(state: NotesDataState) {
@@ -78,10 +89,13 @@ function nextGeometry(notes: readonly Note[]): NoteGeometry {
 
 export function NotesDataProvider({
   children,
+  clipboard,
   createId,
+  metaClickEnabled,
   now,
   repository,
   storageMonitor,
+  usage,
 }: NotesDataProviderProps) {
   const [state, setState] = useState<NotesDataState>({ status: "loading" })
   const readSequence = useRef(0)
@@ -142,6 +156,10 @@ export function NotesDataProvider({
     return savedNote
   }
 
+  function copyNote(note: Note) {
+    return executeCopyNote({ clipboard, usage }, note)
+  }
+
   async function updateNote(
     note: Note,
     change: { content?: string; geometry?: NoteGeometry },
@@ -166,7 +184,16 @@ export function NotesDataProvider({
   }
 
   return (
-    <NotesDataContext value={{ ...state, createNote, retry, updateNote }}>
+    <NotesDataContext
+      value={{
+        ...state,
+        copyNote,
+        createNote,
+        metaClickEnabled,
+        retry,
+        updateNote,
+      }}
+    >
       {children}
     </NotesDataContext>
   )

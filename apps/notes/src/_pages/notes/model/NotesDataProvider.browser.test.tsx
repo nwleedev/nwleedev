@@ -3,7 +3,13 @@ import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { page, userEvent } from "vitest/browser"
 
+import type { AccumulatorRepository } from "@/entities/accumulator"
 import type { Note, NoteRepository } from "@/entities/note"
+import type { OrdinaryCopyUsageWriter } from "@/entities/usage"
+import {
+  AccumulatorProvider,
+  type AccumulationWriter,
+} from "@/features/accumulate-note"
 
 import type {
   NoteStorageEvent,
@@ -15,6 +21,17 @@ import { NotesStartPage } from "../ui/NotesStartPage"
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
 const timestamp = "2026-08-31T01:00:00.000Z"
+const clipboard = { writeText: async () => undefined }
+const usage: OrdinaryCopyUsageWriter = {
+  recordOrdinaryCopy: async () => undefined,
+}
+const accumulatorRepository: AccumulatorRepository = {
+  get: async () => null,
+  save: async (accumulator) => accumulator,
+}
+const accumulationWriter: AccumulationWriter = {
+  addAndRecordUsage: async () => undefined,
+}
 
 function createDeferred<T>() {
   let resolve: (value: T) => void = () => undefined
@@ -101,14 +118,24 @@ describe("NotesDataProvider", () => {
   ) {
     await act(async () => {
       root.render(
-        <NotesDataProvider
+        <AccumulatorProvider
           createId={() => "created-note"}
           now={() => timestamp}
-          repository={repository}
-          storageMonitor={storageMonitor}
+          repository={accumulatorRepository}
+          writer={accumulationWriter}
         >
-          <NotesStartPage />
-        </NotesDataProvider>,
+          <NotesDataProvider
+            clipboard={clipboard}
+            createId={() => "created-note"}
+            metaClickEnabled
+            now={() => timestamp}
+            repository={repository}
+            storageMonitor={storageMonitor}
+            usage={usage}
+          >
+            <NotesStartPage />
+          </NotesDataProvider>
+        </AccumulatorProvider>,
       )
     })
   }

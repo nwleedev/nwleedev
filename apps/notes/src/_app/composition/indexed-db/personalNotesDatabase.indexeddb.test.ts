@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
-import { IndexedDbAccumulationWriter } from "@/_pages/notes/composition"
+import { IndexedDbAccumulationWriter } from "@/features/accumulate-note"
 import {
   ACCUMULATOR_STORE_NAME,
   IndexedDbAccumulatorRepository,
