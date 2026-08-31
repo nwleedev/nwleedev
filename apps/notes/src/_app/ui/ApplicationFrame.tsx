@@ -20,8 +20,8 @@ export function ApplicationFrame({ children }: PropsWithChildren) {
       <div
         className={
           navigationPlacement === "side"
-            ? "min-h-screen lg:grid lg:grid-cols-[15.5rem_minmax(0,1fr)]"
-            : "min-h-screen"
+            ? "min-h-screen lg:grid lg:grid-cols-[13.5rem_minmax(0,1fr)]"
+            : "grid h-dvh grid-rows-[auto_minmax(0,1fr)] overflow-hidden"
         }
       >
         <ApplicationNavigation
@@ -29,7 +29,7 @@ export function ApplicationFrame({ children }: PropsWithChildren) {
           pathname={pathname}
           placement={navigationPlacement}
         />
-        <div className="min-w-0">{children}</div>
+        <div className="min-h-0 min-w-0">{children}</div>
       </div>
     </>
   )

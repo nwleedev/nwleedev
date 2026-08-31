@@ -10,21 +10,33 @@ function byCreationTime(left: Note, right: Note) {
   return left.createdAt.localeCompare(right.createdAt)
 }
 
+function NotesList({ notes }: NotesCollectionProps) {
+  return (
+    <div className="grid min-h-full gap-3 p-4 pt-16 @3xl/note-area:hidden">
+      {notes.map((note) => (
+        <NotePreview key={note.id} note={note} />
+      ))}
+    </div>
+  )
+}
+
+function NotesBoard({ notes }: NotesCollectionProps) {
+  return (
+    <div className="relative hidden min-h-full min-w-[48rem] @3xl/note-area:block">
+      {notes.map((note) => (
+        <NotePreview key={note.id} note={note} placement="board" />
+      ))}
+    </div>
+  )
+}
+
 export function NotesCollection({ notes }: NotesCollectionProps) {
   const orderedNotes = [...notes].sort(byCreationTime)
 
   return (
-    <div className="@container/note-area">
-      <div className="grid gap-4 @3xl/note-area:hidden">
-        {orderedNotes.map((note) => (
-          <NotePreview key={note.id} note={note} />
-        ))}
-      </div>
-      <div className="relative hidden min-h-[42rem] min-w-[48rem] overflow-auto border border-line bg-canvas @3xl/note-area:block">
-        {orderedNotes.map((note) => (
-          <NotePreview key={note.id} note={note} placement="board" />
-        ))}
-      </div>
+    <div className="notes-workspace-canvas @container/note-area h-full min-h-0 overflow-auto">
+      <NotesList notes={orderedNotes} />
+      <NotesBoard notes={orderedNotes} />
     </div>
   )
 }

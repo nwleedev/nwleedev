@@ -24,27 +24,20 @@ export function AnalysisStartPage() {
 
   return (
     <main
-      className="min-h-screen px-4 py-7 sm:px-7 sm:py-10 xl:px-10"
+      className="min-h-screen px-4 py-5 sm:px-6 sm:py-7 xl:px-8"
       id="main-content"
     >
-      <PageHeading
-        action={
-          <Button
-            disabled={analysis.status === "running"}
-            onClick={runAnalysis}
-          >
-            분석 실행
-          </Button>
-        }
-        density="compact"
-        title="텍스트 분석"
-      />
-      <section className="mt-6 min-h-[32rem] border border-line bg-surface p-5 sm:p-7">
+      <PageHeading density="compact" title="텍스트 분석">
+        <Button disabled={analysis.status === "running"} onClick={runAnalysis}>
+          분석 실행
+        </Button>
+      </PageHeading>
+      <section className="mt-5 min-h-[32rem] rounded-panel border border-line bg-surface-raised p-5 shadow-note sm:p-6">
         {statusText ? (
           <StatusNotice
             kind={analysis.status === "failure" ? "error" : "status"}
           >
-            {statusText}
+            <p>{statusText}</p>
           </StatusNotice>
         ) : (
           <p className="text-sm text-soft-ink">아직 분석하지 않았습니다.</p>

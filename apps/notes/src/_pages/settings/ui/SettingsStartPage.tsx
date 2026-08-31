@@ -9,14 +9,19 @@ import { useInteractionPreferences } from "../model/InteractionPreferencesProvid
 
 export function SettingsStartPage() {
   const preferences = useInteractionPreferences()
+  const loadFailed = preferences.status === "load-failure"
+  const loadNoticeKind = loadFailed ? "error" : "status"
+  const loadStatusText = loadFailed
+    ? "설정을 불러오지 못했습니다."
+    : "설정 불러오는 중"
 
   return (
     <main
-      className="min-h-screen px-4 py-7 sm:px-7 sm:py-10 xl:px-10"
+      className="min-h-screen px-4 py-5 sm:px-6 sm:py-7 xl:px-8"
       id="main-content"
     >
       <PageHeading density="compact" title="설정" />
-      <section className="mt-6 border-y-2 border-ink bg-surface px-5 py-6 sm:px-7">
+      <section className="mt-5 rounded-panel border border-line bg-surface-raised px-5 py-6 shadow-note sm:px-6">
         {"preferences" in preferences ? (
           <div>
             <Checkbox
@@ -31,31 +36,27 @@ export function SettingsStartPage() {
             />
             {preferences.status === "saving" ? (
               <div className="mt-5">
-                <StatusNotice>설정 저장 중</StatusNotice>
+                <StatusNotice>
+                  <p>설정 저장 중</p>
+                </StatusNotice>
               </div>
             ) : null}
             {preferences.status === "save-failure" ? (
               <div className="mt-5">
                 <StatusNotice kind="error">
-                  설정을 저장하지 못했습니다. 다시 변경하세요.
+                  <p>설정을 저장하지 못했습니다. 다시 변경하세요.</p>
                 </StatusNotice>
               </div>
             ) : null}
           </div>
         ) : (
-          <StatusNotice
-            action={
-              preferences.status === "load-failure" ? (
-                <Button onClick={preferences.retry} tone="quiet">
-                  다시 시도
-                </Button>
-              ) : undefined
-            }
-            kind={preferences.status === "load-failure" ? "error" : "status"}
-          >
-            {preferences.status === "load-failure"
-              ? "설정을 불러오지 못했습니다."
-              : "설정 불러오는 중"}
+          <StatusNotice kind={loadNoticeKind}>
+            <p>{loadStatusText}</p>
+            {loadFailed ? (
+              <Button onClick={preferences.retry} tone="quiet">
+                다시 시도
+              </Button>
+            ) : null}
           </StatusNotice>
         )}
       </section>

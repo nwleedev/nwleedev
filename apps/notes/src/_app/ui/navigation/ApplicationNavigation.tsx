@@ -3,12 +3,24 @@
 import Link from "next/link"
 import { useState } from "react"
 
+import { joinClassNames } from "@/shared/lib/join-class-names"
+
 const destinations = [
-  { href: "/", index: "01", label: "메모" },
-  { href: "/usage/", index: "02", label: "사용 빈도" },
-  { href: "/analysis/", index: "03", label: "텍스트 분석" },
-  { href: "/templates/", index: "04", label: "템플릿" },
-  { href: "/settings/", index: "05", label: "설정" },
+  { activePath: "/", href: "/", index: "01", label: "메모" },
+  { activePath: "/usage", href: "/usage/", index: "02", label: "사용 빈도" },
+  {
+    activePath: "/analysis",
+    href: "/analysis/",
+    index: "03",
+    label: "텍스트 분석",
+  },
+  {
+    activePath: "/templates",
+    href: "/templates/",
+    index: "04",
+    label: "템플릿",
+  },
+  { activePath: "/settings", href: "/settings/", index: "05", label: "설정" },
 ] as const
 
 function normalizePathname(pathname: string) {
@@ -16,6 +28,37 @@ function normalizePathname(pathname: string) {
 }
 
 type NavigationPlacement = "side" | "top"
+
+const navigationBaseClassNames: Record<NavigationPlacement, string> = {
+  side:
+    "divide-y divide-rail-ink/15 border-b border-rail-ink/20 lg:block lg:border-b-0",
+  top:
+    "basis-full divide-y divide-rail-ink/10 border-t border-rail-ink/15 pb-2 lg:flex lg:basis-auto lg:self-stretch lg:border-t-0 lg:pb-0",
+}
+
+const navigationVisibleClassNames: Record<NavigationPlacement, string> = {
+  side: "block",
+  top: "grid",
+}
+
+const linkBaseClassNames: Record<NavigationPlacement, string> = {
+  side:
+    "grid min-h-12 grid-cols-[1.75rem_1fr] items-center gap-2 px-4 text-sm transition-colors duration-[var(--notes-motion-fast)] lg:min-h-12",
+  top:
+    "grid min-h-11 grid-cols-[1.75rem_1fr] items-center gap-2 px-3 text-sm transition-colors duration-[var(--notes-motion-fast)] lg:min-h-14 lg:grid-cols-[1.5rem_auto] lg:border-l lg:border-rail-ink/10 lg:px-4",
+}
+
+const activeLinkClassNames: Record<NavigationPlacement, string> = {
+  side:
+    "bg-rail-ink/12 text-rail-ink shadow-[inset_0.16rem_0_0_var(--notes-focus-ring)]",
+  top:
+    "bg-rail-ink/12 text-rail-ink shadow-[inset_0_-0.16rem_0_var(--notes-focus-ring)]",
+}
+
+const inactiveLinkClassNames: Record<NavigationPlacement, string> = {
+  side: "hover:bg-rail-ink/8",
+  top: "hover:bg-rail-ink/8",
+}
 
 type NavigationLinksProps = {
   expanded: boolean
@@ -30,10 +73,13 @@ function NavigationLinks({
   pathname,
   placement,
 }: NavigationLinksProps) {
-  const navigationClassName =
-    placement === "top"
-      ? `${expanded ? "grid" : "hidden"} basis-full divide-y divide-rail-ink/15 border-t border-rail-ink/20 pb-3 lg:flex lg:basis-auto lg:self-stretch lg:border-t-0 lg:pb-0`
-      : `${expanded ? "block" : "hidden"} divide-y divide-rail-ink/15 border-b border-rail-ink/20 lg:block lg:border-b-0`
+  const visibilityClassName = expanded
+    ? navigationVisibleClassNames[placement]
+    : "hidden"
+  const navigationClassName = joinClassNames(
+    visibilityClassName,
+    navigationBaseClassNames[placement],
+  )
 
   return (
     <nav
@@ -42,11 +88,14 @@ function NavigationLinks({
       id="application-navigation-links"
     >
       {destinations.map((destination) => {
-        const active = pathname === normalizePathname(destination.href)
-        const linkClassName =
-          placement === "top"
-            ? `grid min-h-14 grid-cols-[2.25rem_1fr] items-center gap-2 px-3 transition-colors duration-[var(--notes-motion-fast)] lg:min-h-20 lg:grid-cols-1 lg:content-center lg:gap-1 lg:border-l lg:border-rail-ink/15 lg:px-5 ${active ? "bg-canvas text-ink" : "hover:bg-rail-ink/10"}`
-            : `grid min-h-16 grid-cols-[2.25rem_1fr] items-center gap-2 px-5 transition-colors duration-[var(--notes-motion-fast)] lg:min-h-20 lg:px-7 ${active ? "bg-canvas text-ink" : "hover:bg-rail-ink/10"}`
+        const active = pathname === destination.activePath
+        const stateClassName = active
+          ? activeLinkClassNames[placement]
+          : inactiveLinkClassNames[placement]
+        const linkClassName = joinClassNames(
+          linkBaseClassNames[placement],
+          stateClassName,
+        )
 
         return (
           <Link
@@ -58,7 +107,7 @@ function NavigationLinks({
           >
             <span
               aria-hidden="true"
-              className="font-mono text-[0.68rem] tracking-[0.12em] opacity-65"
+              className="text-[0.62rem] font-medium tabular-nums tracking-[0.08em] opacity-55"
             >
               {destination.index}
             </span>
@@ -89,9 +138,9 @@ export function ApplicationNavigation({
   if (placement === "top") {
     return (
       <header className="relative z-30 bg-rail text-rail-ink">
-        <div className="flex min-h-20 flex-wrap items-center justify-between gap-x-6 px-4 sm:px-7 xl:px-10">
+        <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-5 border-b border-rail-ink/10 px-4 sm:px-5 xl:px-6">
           <Link
-            className="py-5 font-display text-2xl font-semibold tracking-[-0.04em]"
+            className="py-3 font-display text-sm font-semibold tracking-[-0.015em]"
             href="/"
           >
             개인 메모
@@ -99,7 +148,7 @@ export function ApplicationNavigation({
           <button
             aria-controls="application-navigation-links"
             aria-expanded={expanded}
-            className="min-h-[var(--notes-control-size)] rounded-control border border-rail-ink/30 px-4 py-2 text-sm font-bold lg:hidden"
+            className="min-h-[var(--notes-control-size)] rounded-control border border-rail-ink/25 px-3 py-1.5 text-sm font-semibold lg:hidden"
             onClick={() => setExpanded((current) => !current)}
             type="button"
           >
@@ -118,9 +167,9 @@ export function ApplicationNavigation({
 
   return (
     <aside className="bg-rail text-rail-ink lg:sticky lg:top-0 lg:h-screen lg:min-h-[34rem]">
-      <div className="flex min-h-20 items-center justify-between border-b border-rail-ink/20 px-5 lg:min-h-32 lg:items-end lg:px-7 lg:pb-7">
+      <div className="flex min-h-14 items-center justify-between border-b border-rail-ink/15 px-4 lg:min-h-16">
         <Link
-          className="font-display text-2xl font-semibold tracking-[-0.04em]"
+          className="font-display text-sm font-semibold tracking-[-0.015em]"
           href="/"
         >
           개인 메모
@@ -130,7 +179,7 @@ export function ApplicationNavigation({
         <button
           aria-controls="application-navigation-links"
           aria-expanded={expanded}
-          className="min-h-[var(--notes-control-size)] w-full border-b border-rail-ink/20 px-5 py-3 text-left font-bold lg:hidden"
+          className="min-h-[var(--notes-control-size)] w-full border-b border-rail-ink/15 px-4 py-2 text-left text-sm font-semibold lg:hidden"
           onClick={() => setExpanded((current) => !current)}
           type="button"
         >

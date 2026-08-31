@@ -10,6 +10,8 @@ AI가 만든 화면은 특정 모양만으로 판별할 수 없다. 다만 디�
 
 이 문서는 조사 결과와 적용 후보를 기록한 참고 자료다. 시각적 성격, 글꼴, 색, 모서리, 깊이, 투명도, 밀도와 모션 수치는 아직 승인된 설계가 아니다. 플랫폼 디자인 문서, 접근성 표준, 생성형 UI 도구의 공식 문서와 연구 논문은 2026년 8월 30일에 검토했다.
 
+2026년 8월 31일에는 구현된 개인 메모 화면, 유사 애플리케이션의 실제 화면, 공식 디자인 시스템 package와 사용자 제작 Figma Community 화면을 추가로 비교했다. 실제 화면에서 확인한 차이, 내려받은 자료와 현재 애플리케이션에 적용할 제안은 [개인 메모 UI 디자인 시스템과 사용자 템플릿 시각 비교](ui-design-system-visual-comparison.md)에서 다룬다.
+
 ## 조사 기준과 근거의 무게
 
 웹 애플리케이션의 작업 화면을 중심으로 조사했다. 홍보용 사이트나 작품 전시 성격의 화면에서 관찰한 흐름은 애플리케이션 UI의 규칙으로 곧바로 옮기지 않았다.
@@ -366,9 +368,8 @@ Figma에서는 이름, auto layout, variant, variable과 설명을 정리한 lib
 
 [Google Stitch 소개](https://developers.googleblog.com/en/stitch-a-new-way-to-design-uis/)는 prompt와 이미지 입력에서 여러 화면 variation을 만들고 theme를 바꾸는 흐름을 제공한다. 하지만 색과 font만 바꾼 variation은 구조적 다양성이 아니다.
 
-방향별 차이를 다음처럼 명시해야 한다.
+방향별 차이를 다음처럼 명시해야 한다. 글꼴, 애플리케이션 프레임과 메모 캔버스의 방향은 후속 [Pretendard와 Figma식 작업 화면 결정](../decisions/figma-inspired-visual-direction.md)에서 확정됐고, 나머지 항목은 시안에서 비교해야 한다.
 
-- 메모 자체를 종이에 가깝게 표현할지, 작업 공간의 중립적 객체로 표현할지
 - 제어 UI를 항상 보일지, 선택과 focus에 따라 드러낼지
 - 분석 화면을 비교 중심 행 목록으로 둘지, 관계 묶음 중심으로 둘지
 - 넓은 화면에서 navigation, inspector와 board가 차지하는 비율
@@ -428,11 +429,11 @@ Figma에서는 이름, auto layout, variant, variable과 설명을 정리한 lib
 
 ## 개인 메모 애플리케이션에 적용할 후보
 
-다음은 조사 결과를 현재 요구사항에 연결한 제안이며 승인된 시각 설계가 아니다.
+다음 항목 가운데 Pretendard, Figma식 애플리케이션 프레임과 밝은 목재 메모 캔버스는 후속 [시각 방향 결정](../decisions/figma-inspired-visual-direction.md)으로 승인됐다. interaction state와 구성요소별 세부 값은 아직 시안에서 검증할 제안이다.
 
 - 넓은 화면의 첫인상은 dashboard가 아니라 메모를 직접 다루는 작업 공간이어야 한다. 메모 원문과 위치 관계가 navigation이나 장식보다 먼저 보여야 한다.
-- 반투명 재질을 시험한다면 상단 제어, 임시 toolbar 또는 popover처럼 콘텐츠 위에 잠시 놓이는 영역에 제한한다. 메모 본문과 분석 결과의 배경에는 읽기 안정성을 우선한다.
-- 메모의 물성을 표현할 때 종이 질감, tape와 접힌 모서리를 모두 추가하기보다 선택, drag, resize와 겹침 순서를 깊이 및 모션으로 분명히 하는 데 집중한다.
+- 탐색, 도구 영역과 panel은 Figma Design 편집기처럼 중립적인 애플리케이션 프레임으로 구성하고, 메모 화면의 왼쪽 사이드바 금지와 작업 영역 너비 우선 조건을 유지한다.
+- 메모 캔버스만 낮은 대비의 밝은 목재 인상을 사용한다. 메모, 입력과 분석 결과는 중립색 표면을 사용하고 종이 질감, tape, 접힌 모서리와 어긋난 짙은 그림자를 추가하지 않는다.
 - 일반 클릭 복사, 누적 클릭과 편집은 색 하나가 아니라 cursor, 테두리, handle, 상태 문구와 keyboard 안내를 함께 사용해 구분한다.
 - 메모 화면의 누적 작업 패널은 원본 메모, 항목 순서와 결합 결과의 관계를 강조한다. 큰 card를 반복하기보다 항목 목록과 미리보기의 읽기 순서를 분명히 하고, 나란한 표현과 modal 표현에서 같은 시각 언어를 유지한다.
 - 사용 빈도와 텍스트 분석 화면은 홍보용 통계 dashboard가 아니라 원문을 비교하고 근거로 돌아갈 수 있는 밀도 높은 작업 화면으로 만든다.
@@ -440,10 +441,11 @@ Figma에서는 이름, auto layout, variant, variable과 설명을 정리한 lib
 - URL 형식 문자열은 별도 link 색, 밑줄, preview card나 favicon을 붙이지 않고 메모 원문의 일부로 표시한다.
 - 고유한 시각 성격은 범용 gradient 배경보다 메모 배치, 누적 순서, 분석 관계와 템플릿 placeholder를 표현하는 조형 규칙에서 찾는다.
 
-## 결정이 필요한 사항
+## 남은 결정 사항
 
-- 애플리케이션의 시각적 성격을 설명할 실제 참고 화면과 피해야 할 참고 화면
-- 본문, UI label, 숫자와 짧은 제목에 사용할 글꼴 family, weight와 fallback
+애플리케이션의 시각적 성격, Pretendard 글꼴 계열과 밝은 목재 메모 캔버스는 [시각 방향 결정](../decisions/figma-inspired-visual-direction.md)에서 확정됐다. 다음 세부 값은 대표 화면에서 정해야 한다.
+
+- Pretendard의 제목, 본문, UI label과 숫자별 size, weight, line-height와 letter-spacing
 - 밝은 테마, 어두운 테마, 고대비 지원 범위와 기본 선택 방식
 - brand, neutral, note, selection, focus, success, warning과 error의 semantic color 역할
 - 메모별 색을 사용자가 고를 수 있는지와 색이 분류 의미를 갖는지 여부
@@ -458,7 +460,7 @@ Figma에서는 이름, auto layout, variant, variable과 설명을 정리한 lib
 
 ## 조사 한계
 
-- 이 저장소에는 아직 구현된 개인 메모 화면이나 승인된 시각 시안이 없으므로 실제 screenshot 비교와 사용자 시험은 수행하지 못했다.
+- 이 문서를 처음 작성할 때에는 구현된 개인 메모 화면이 없어 실제 screenshot 비교를 수행하지 못했다. 후속 [시각 비교 조사](ui-design-system-visual-comparison.md)는 구현 화면과 실제 서비스 자료를 비교하고, deprecated로 표시된 파일을 제외한 공식 디자인 시스템 6건과 사용자 제작 템플릿 6건의 `.fig`를 Figma에서 열어 page, layer와 style 구조를 확인했다. 사용자 시험은 아직 수행하지 않았다.
 - Apple과 Material의 최신 흐름은 native platform을 함께 다루므로 웹에 동일한 재질, 크기와 모션 수치를 복제할 근거가 되지 않는다.
 - Webflow와 Adobe의 연간 전망은 제작 시장의 선택 편향이 있을 수 있어 플랫폼 지침보다 근거의 무게를 낮췄다.
 - 생성형 AI 연구는 서로 다른 도구, 과제와 평가법을 사용한다. 특정 외형만으로 AI 사용 여부나 모델 종류를 판별할 수 없다.

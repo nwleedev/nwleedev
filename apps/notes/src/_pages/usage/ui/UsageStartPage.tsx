@@ -9,13 +9,13 @@ const usageMetrics = [
 export function UsageStartPage() {
   return (
     <main
-      className="min-h-screen px-4 py-7 sm:px-7 sm:py-10 xl:px-10"
+      className="min-h-screen px-4 py-5 sm:px-6 sm:py-7 xl:px-8"
       id="main-content"
     >
       <PageHeading density="compact" title="사용 빈도" />
       <section
         aria-labelledby="usage-metrics-heading"
-        className="mt-6 border-y-2 border-ink bg-surface"
+        className="mt-5 overflow-hidden rounded-panel border border-line bg-surface-raised shadow-note"
       >
         <h2 className="sr-only" id="usage-metrics-heading">
           복사 횟수 기준
@@ -23,7 +23,7 @@ export function UsageStartPage() {
         <dl className="grid divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           {usageMetrics.map((metric) => (
             <div className="px-5 py-4" key={metric.label}>
-              <dt className="font-mono text-xs tracking-[0.08em] text-soft-ink">
+              <dt className="text-xs font-semibold tracking-[0.04em] text-soft-ink">
                 {metric.label}
               </dt>
               <dd className="mt-1 text-sm font-medium text-ink">

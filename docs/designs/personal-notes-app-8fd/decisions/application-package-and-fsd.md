@@ -22,13 +22,14 @@
 - 구조 검사 재검토에서는 별도 검사 스크립트보다 ESLint 실행 안에서 import 방향과 public API를 검사하기로 했다. 화면과 모듈 이름은 일부 계산 방식이 아니라 전체 작업을 나타내는 `analysis`를 사용한다.
 - 누적 기능의 위치 재검토에서는 독립 route와 Pages slice를 만들지 않고 메모 화면의 보조 패널로 구성하기로 했다.
 - U3 브라우저 통합 검사에서는 Pages slice의 `index.ts`가 route UI와 IndexedDB 조립 항목을 함께 다시 내보내 저장 검사에서 필요하지 않은 `next/link`까지 평가되는 문제가 확인됐다. 실행 환경 이름을 붙인 대칭 진입점 대신 사용 목적이 분명한 route용 `index.ts`와 조립용 `composition.ts`로 나누기로 했다.
+- 모바일 누적 요구사항은 `48rem` 미만에서 별도 `/accumulator` 페이지를 요구하므로 `_pages/accumulator`를 추가한다. 메모 패널과 모바일 페이지가 함께 사용하는 누적 목록 편집 동작은 Pages slice 사이에서 가져오지 않고 `features/edit-accumulated-text`로 분리한다.
 
 ## 승인된 결정과 이유
 
 - 독립 실행 애플리케이션의 패키지 루트는 `apps/notes/`다. 애플리케이션 의존성과 실행 명령은 `apps/notes/package.json`이 관리한다. 저장소 전체 package manager, workspace 선언과 잠금 파일 형식은 U1의 의존성 조사에서 정한다.
 - Next.js의 특별 디렉터리는 `apps/notes/app/`에 둔다. 라우트의 `page.tsx`는 `apps/notes/src/_pages/`의 공개 진입점을 연결하고, 공통 `layout.tsx`는 `apps/notes/src/_app/`의 provider와 전역 스타일을 연결하는 데 집중한다.
 - FSD App과 Pages 계층은 Next.js의 `app` 및 `pages` 이름과 구분하기 위해 `_app`과 `_pages`로 쓴다. [FSD의 Next.js 가이드](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/guides/tech/with-nextjs.mdx)는 두 계층 이름을 구분하고 Next.js 라우트 디렉터리를 프로젝트 루트에 두면 `src/`를 FSD 코드에만 사용할 수 있다고 설명한다.
-- `_pages`는 `notes`, `usage`, `analysis`, `templates`와 `settings` 화면 slice를 둔다. 누적 패널의 UI와 화면 전용 동작은 `notes` slice에 두고, 저장되는 누적 자료와 규칙은 `entities/accumulator`가 맡는다. 한 화면에서만 쓰는 UI와 동작은 그 화면 slice 안에 유지한다.
+- `_pages`는 `notes`, `usage`, `analysis`, `templates`, `settings`와 `accumulator` 화면 slice를 둔다. 넓은 화면의 패널 껍데기는 `notes`에, 모바일 관리 페이지 껍데기는 `accumulator`에 두고 두 Pages slice가 서로 가져오지 않게 한다. 두 화면이 함께 사용하는 누적 목록 편집 동작과 UI는 `features/edit-accumulated-text`가 맡고, 저장되는 누적 자료와 규칙은 `entities/accumulator`가 맡는다. 한 화면에서만 쓰는 UI와 동작은 그 화면 slice 안에 유지한다.
 - `features`는 여러 화면에서 다시 사용하는 사용자 동작이 실제로 생길 때만 만든다. `entities`는 메모, 누적 항목, 사용 기록, 템플릿과 사용자 설정처럼 개인 메모 애플리케이션이 식별하는 자료와 규칙을 두고, `shared`는 개인 메모 업무 의미가 없는 공통 UI, 브라우저 연결과 제한된 내부 라이브러리를 둔다. [FSD Layers](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/layers.mdx)는 필요한 계층만 만들고 Pages에 화면 전용 코드를 유지하며 여러 화면에서 재사용하는 동작을 Features로 분리하라고 설명한다.
 - `widgets`는 현재 화면에서 재사용할 독립 UI 블록이 확인되지 않았으므로 만들지 않는다. 폐기된 `processes` 계층도 만들지 않는다. 이후 필요가 확인되면 같은 결정 기준으로 다시 검토한다.
 - slice와 slice가 없는 계층의 segment는 필요한 항목만 명시적으로 내보내는 public API를 둔다. 다른 slice는 public API로만 가져오고 같은 slice 안에서는 자신의 `index.ts`를 거치지 않는 상대 경로를 사용한다. `export *`는 사용하지 않는다. Entities slice 사이의 자료 관계를 type으로 직접 표현해야 할 때에만 FSD의 `@x` public API를 사용하고, 그 밖의 같은 계층 import는 허용하지 않는다. 이 규칙은 [FSD의 slice와 segment 규칙](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/slices-segments.mdx)과 [public API 지침](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/public-api.mdx)을 따른다.
@@ -43,7 +44,7 @@
 
 ## 예상 결과와 계획 영향
 
-U1은 더 이상 애플리케이션 디렉터리를 비교하지 않고 `apps/notes/package.json`, 패키지 루트의 Next.js 설정, `apps/notes/app/`과 `apps/notes/src/`를 만든다. 이후 작업 단위의 파일 후보는 화면 전용 코드를 `_pages`, 메모와 템플릿 자료 및 규칙을 `entities`, 외부 기술 연결을 `shared`, 여러 화면에서 재사용하는 동작만 `features`에 배치한다.
+U1은 더 이상 애플리케이션 디렉터리를 비교하지 않고 `apps/notes/package.json`, 패키지 루트의 Next.js 설정, `apps/notes/app/`과 `apps/notes/src/`를 만든다. 이후 작업 단위의 파일 후보는 화면 전용 코드를 `_pages`, 메모와 템플릿 자료 및 규칙을 `entities`, 외부 기술 연결을 `shared`, 여러 화면에서 재사용하는 동작만 `features`에 배치한다. U4와 U7은 `/accumulator`, `_pages/accumulator`와 `features/edit-accumulated-text`를 이 기준으로 추가한다.
 
 라우트 파일, FSD import 방향과 public API 준수 여부는 U1에서 확정한 ESLint 설정과 운영용 Next.js 빌드로 확인한다. 이 결정은 package manager, FSD 검사 외의 정확한 의존성 버전, 라이브러리 공개 진입점이나 포트폴리오 라우트 연결을 승인하지 않는다.
 

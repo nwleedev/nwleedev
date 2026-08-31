@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react"
 
 import type { Note } from "@/entities/note"
+import { joinClassNames } from "@/shared/lib/join-class-names"
 
 type NotePreviewProps = {
   note: Note
@@ -18,12 +19,13 @@ export function NotePreview({ note, placement = "list" }: NotePreviewProps) {
           zIndex: note.geometry.zIndex,
         }
       : undefined
+  const noteClassName = joinClassNames(
+    "overflow-auto rounded-note border border-line bg-surface-raised p-4 shadow-note transition-[border-color,box-shadow] duration-[var(--notes-motion-fast)] hover:border-line-strong",
+    placement === "board" ? "absolute" : "min-h-40",
+  )
 
   return (
-    <article
-      className={`overflow-auto rounded-note border border-line-strong bg-paper p-5 shadow-note ${placement === "board" ? "absolute" : "min-h-44"}`}
-      style={boardStyle}
-    >
+    <article className={noteClassName} style={boardStyle}>
       <p className="whitespace-pre-wrap break-words text-[0.98rem] leading-7">
         {note.content || "빈 메모"}
       </p>

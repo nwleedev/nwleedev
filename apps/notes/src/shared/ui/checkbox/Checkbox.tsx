@@ -2,6 +2,8 @@
 
 import { useId, type ComponentPropsWithRef } from "react"
 
+import { joinClassNames } from "@/shared/lib/join-class-names"
+
 type CheckboxProps = Omit<
   ComponentPropsWithRef<"input">,
   "className" | "type"
@@ -20,13 +22,18 @@ export function Checkbox({
   const generatedId = useId()
   const inputId = id ?? generatedId
   const descriptionId = description ? `${inputId}-description` : undefined
+  const labelClassName = joinClassNames(
+    "grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-x-3",
+    disabled ? "cursor-not-allowed" : "cursor-pointer",
+  )
+  const descriptionClassName = joinClassNames(
+    "ml-9 mt-1 text-sm leading-6 text-soft-ink",
+    disabled ? "opacity-45" : undefined,
+  )
 
   return (
     <div>
-      <label
-        className={`grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-x-3 ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}
-        htmlFor={inputId}
-      >
+      <label className={labelClassName} htmlFor={inputId}>
         <input
           aria-describedby={descriptionId}
           className="peer sr-only"
@@ -44,10 +51,7 @@ export function Checkbox({
         </span>
       </label>
       {description ? (
-        <p
-          className={`ml-9 mt-1 text-sm leading-6 text-soft-ink ${disabled ? "opacity-45" : ""}`}
-          id={descriptionId}
-        >
+        <p className={descriptionClassName} id={descriptionId}>
           {description}
         </p>
       ) : null}

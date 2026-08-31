@@ -74,7 +74,8 @@ async function verifyOrigin(browser, origin) {
   )
 
   await page.getByRole("link", { exact: true, name: "메모" }).click()
-  await page.getByRole("heading", { level: 1 }).waitFor()
+  await page.getByRole("region", { name: "메모 작업 영역" }).waitFor()
+  await page.getByRole("button", { name: /누적 텍스트/u }).waitFor()
   await page
     .getByRole("link", { exact: true, name: "텍스트 분석" })
     .click()

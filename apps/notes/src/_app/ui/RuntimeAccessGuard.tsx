@@ -43,12 +43,14 @@ export function RuntimeAccessGuard({ children }: PropsWithChildren) {
       className="grid min-h-screen place-items-center bg-canvas px-4 py-10 text-ink"
       id="main-content"
     >
-      <section className="w-full max-w-xl rounded-panel border-2 border-ink bg-surface p-6 shadow-note sm:p-8">
+      <section className="w-full max-w-xl rounded-panel border border-line bg-surface-raised p-6 shadow-floating sm:p-8">
         {access === "checking" ? (
-          <StatusNotice>접속 주소 확인 중</StatusNotice>
+          <StatusNotice>
+            <p>접속 주소 확인 중</p>
+          </StatusNotice>
         ) : (
           <>
-            <h1 className="font-display text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">
+            <h1 className="font-display text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
               지원하지 않는 접속 주소
             </h1>
             <p className="mt-4 text-sm leading-6 text-soft-ink sm:text-base">

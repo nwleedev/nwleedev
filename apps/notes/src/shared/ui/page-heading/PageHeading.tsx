@@ -1,30 +1,31 @@
-import type { ReactNode } from "react"
+import type { PropsWithChildren } from "react"
 
-type PageHeadingProps = {
-  action?: ReactNode
+import { joinClassNames } from "@/shared/lib/join-class-names"
+
+type PageHeadingProps = PropsWithChildren<{
   density?: "compact" | "display"
   title: string
-}
+}>
 
 const titleClassNames = {
-  compact:
-    "text-[clamp(2.35rem,4.4vw,4rem)] leading-[0.98] tracking-[-0.045em]",
-  display: "text-[clamp(2.6rem,7vw,5.8rem)] leading-[0.92] tracking-[-0.055em]",
+  compact: "text-[clamp(1.5rem,2.5vw,1.9rem)] leading-tight tracking-[-0.025em]",
+  display: "text-[clamp(1.75rem,3.5vw,2.4rem)] leading-tight tracking-[-0.03em]",
 } as const
 
 export function PageHeading({
-  action,
+  children,
   density = "display",
   title,
 }: PageHeadingProps) {
+  const titleClassName = joinClassNames(
+    "font-display font-semibold text-ink",
+    titleClassNames[density],
+  )
+
   return (
-    <header className="flex flex-wrap items-end justify-between gap-5 border-b-2 border-ink pb-5">
-      <h1
-        className={`font-display font-semibold text-ink ${titleClassNames[density]}`}
-      >
-        {title}
-      </h1>
-      {action ? <div className="pb-1">{action}</div> : null}
+    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-3">
+      <h1 className={titleClassName}>{title}</h1>
+      {children}
     </header>
   )
 }

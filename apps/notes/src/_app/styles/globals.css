@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @import "./tokens.css";
 
+@font-face {
+  font-family: "Pretendard Variable";
+  font-style: normal;
+  font-weight: 45 920;
+  font-display: swap;
+  src: url("/fonts/pretendard/PretendardVariable.woff2") format("woff2-variations");
+}
+
 * {
   box-sizing: border-box;
 }
@@ -14,6 +22,50 @@ html {
 body {
   margin: 0;
   min-width: 0;
+  min-height: 100vh;
+}
+
+code {
+  font-family: inherit;
+}
+
+.notes-workspace-canvas {
+  background-color: var(--notes-color-workspace);
+  background-image:
+    radial-gradient(
+      ellipse 3.8rem 2.25rem at 18% 36%,
+      transparent 0 72%,
+      oklch(64% 0.055 72deg / 7%) 76% 80%,
+      transparent 84%
+    ),
+    radial-gradient(
+      ellipse 4.5rem 2.7rem at 73% 68%,
+      transparent 0 72%,
+      oklch(66% 0.05 74deg / 6%) 76% 80%,
+      transparent 84%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      oklch(98% 0.018 85deg / 16%) 0,
+      transparent 0.12rem,
+      transparent 0.68rem,
+      oklch(68% 0.045 72deg / 6%) 0.76rem,
+      transparent 0.84rem
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 15.9rem,
+      oklch(64% 0.045 70deg / 10%) 15.96rem 16rem,
+      oklch(97% 0.025 84deg / 14%) 16rem 16.05rem,
+      transparent 16.05rem 32rem
+    ),
+    linear-gradient(
+      100deg,
+      oklch(95% 0.026 87deg),
+      var(--notes-color-workspace) 44%,
+      oklch(89% 0.042 78deg)
+    );
+  background-size: 100% 100%, 100% 100%, auto, auto, auto;
 }
 
 ::selection {
@@ -32,7 +84,7 @@ a {
 }
 
 dialog::backdrop {
-  background: oklch(18% 0.025 48deg / 68%);
+  background: oklch(18% 0.01 255deg / 68%);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -45,6 +97,10 @@ dialog::backdrop {
 }
 
 @media (forced-colors: active) {
+  .notes-workspace-canvas {
+    background: Canvas;
+  }
+
   :focus-visible {
     outline-color: Highlight;
   }

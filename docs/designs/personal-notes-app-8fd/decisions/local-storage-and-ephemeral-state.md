@@ -21,6 +21,7 @@
 - 구현 가능성 검토에서는 공통 Client Provider의 수명과 정적 사전 렌더링에 안전한 조립 조건, 여러 object store를 바꾸는 transaction의 단일 책임이 추가로 필요하다는 점을 확인했다.
 - 상호작용 검토에서는 첫 자료 읽기 전 화면을 실제 빈 상태로 오인하지 않도록 불러오기, 자료 표시, 읽기 실패와 다른 탭 대기를 구분해야 한다는 점을 보완했다.
 - U2 자료 규칙 검토에서는 로컬 revision을 0부터 단조 증가하는 JavaScript 안전 정수로 확정했다. 계정 동기화에서 사용할 ETag나 분산 revision 표현은 이 로컬 값과 같은 타입으로 간주하지 않는다.
+- 모바일 누적 요구사항 검토에서는 길게 눌러 추가한 항목과 메모의 선택 표시를 연결하되, 이 표시를 저장 자료의 새 속성으로 만들지 않고 현재 애플리케이션 실행에서 항목 ID로 연결하기로 했다.
 - 현재 결정은 사용자 자료와 실행 중 상태의 수명을 나누고, 공통 Provider에서 브라우저 구현을 한 번 조립하며, 목적별 저장 동작이 여러 object store의 transaction을 책임지게 하는 것이다. 내보내기와 가져오기는 현재 범위에 포함하지 않는다.
 
 ## 승인된 결정과 이유
@@ -28,7 +29,8 @@
 - IndexedDB에는 메모 원문, 전체 revision, content revision, geometry, 현재 누적 항목과 순서, 사용 횟수, 저장된 템플릿과 조작 설정을 보관한다.
 - 메모 원문이 바뀌면 content revision을 증가시킨다. 위치, 크기나 z-order만 바뀌면 전체 revision만 증가시키고 content revision은 유지한다.
 - 로컬의 전체 revision과 content revision은 0 이상의 JavaScript 안전 정수다. 실제 값이 달라진 저장 변경마다 해당 revision을 한 번 증가시키며, 같은 값을 다시 적용한 경우에는 증가시키지 않는다.
-- 제거 undo 및 redo, 분석 요청과 결과, 템플릿 제안에 사용할 두 원문 줄의 선택 쌍, 저장 전 템플릿 제안과 일회성 출력은 메모리에 둔다.
+- 제거 undo 및 redo, 길게 눌러 추가한 누적 항목 ID와 메모 선택 상태의 연결, 분석 요청과 결과, 템플릿 제안에 사용할 두 원문 줄의 선택 쌍, 저장 전 템플릿 제안과 일회성 출력은 메모리에 둔다.
+- 모바일 메모 선택 연결은 라우트를 이동해도 유지하고, 연결된 누적 항목을 제거하면 해제하며 실행 취소로 같은 항목을 복원하면 다시 연결한다. 새로고침하면 선택 연결은 지우되 IndexedDB의 누적 항목은 유지한다.
 - `PersonalNotesProvider`는 명시적인 Client Component 진입점으로 두고 공통 루트 layout의 자식에서 한 번 유지한다. `createLocalApplication`과 브라우저 구현의 생성 과정에서는 브라우저 전역을 읽지 않으며, IndexedDB, Clipboard와 Worker는 브라우저에서 실제 동작을 시작할 때 접근한다.
 - 누적 항목 추가와 누적 횟수 증가는 `AccumulationWriter`의 한 동작으로 제공한다. `IndexedDbAccumulationWriter`가 두 object store의 request를 같은 readwrite transaction에 등록하고 `complete` 또는 중단을 최종 결과로 돌려준다.
 - IndexedDB transaction의 완료를 확인한 뒤에만 저장 성공으로 표시한다.
