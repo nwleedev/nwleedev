@@ -189,7 +189,7 @@ interface AnalysisPair {
   left: AnalysisLineRef;
   right: AnalysisLineRef;
   relation: AnalysisRelation;
-  score: number;
+  score: number | null;
   algorithm: AlgorithmRef;
 }
 
@@ -210,7 +210,7 @@ interface AnalysisRun {
 
 `lineIndex`는 분석한 스냅샷 안의 0부터 시작하는 줄 위치다. 메모 편집 뒤에는 위치가 달라질 수 있으므로 `note.contentRevision`이 현재 content revision과 다르면 결과를 오래된 것으로 표시하거나 다시 분석해야 한다. 위치와 크기만 바뀌면 분석 결과를 폐기하지 않는다.
 
-정확한 반복과 포함 관계를 먼저 분류한 뒤, 나머지 3 grapheme 이상인 줄은 extended grapheme 3-gram 집합의 Jaccard 점수를 계산한다. 점수가 0보다 큰 후보를 내림차순으로 보여주되 고정 합격 임계값이나 의미가 같다는 판정으로 사용하지 않는다. `score`의 의미를 재현할 수 있도록 알고리즘 이름과 버전을 함께 둔다. `AnalysisRun`은 현재 애플리케이션 실행의 메모리에서만 유지한다. 최우선 계정 및 동기화 백로그에서 결과 공유나 비교 이력을 승인하면 서버 저장 범위와 삭제 규칙을 다시 정해야 한다.
+정확한 반복과 포함 관계를 먼저 분류한 뒤, 나머지 3 grapheme 이상인 줄은 extended grapheme 3-gram 집합의 Jaccard 점수를 계산한다. 정확한 반복과 포함 관계의 `score`는 `null`이고 문자열 근접 후보만 0보다 큰 계산값을 가진다. 이 후보는 점수 내림차순으로 보여주되 고정 합격 임계값이나 의미가 같다는 판정으로 사용하지 않는다. `score`의 의미를 재현할 수 있도록 알고리즘 이름과 버전을 함께 둔다. `AnalysisRun`은 현재 애플리케이션 실행의 메모리에서만 유지한다. 최우선 계정 및 동기화 백로그에서 결과 공유나 비교 이력을 승인하면 서버 저장 범위와 삭제 규칙을 다시 정해야 한다.
 
 ## 템플릿과 일회성 결과
 
