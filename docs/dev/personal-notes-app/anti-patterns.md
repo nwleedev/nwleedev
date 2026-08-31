@@ -1,8 +1,8 @@
 # 개인 메모 애플리케이션 기술 안티패턴
 
-현재 로컬 애플리케이션은 브라우저 구현을 한 조립 지점에서 연결하고, 사용자 입력과 저장소 사이의 모든 경계를 런타임에 검증해야 한다. 페이지 전체를 Client Component로 만드는 방식, React 내부 상태를 `useEffect`로 맞추는 방식, 범용 Service Locator, 역할이 드러나지 않는 port와 adapter 이름, 서버 및 브라우저 코드를 함께 내보내는 FSD public API, 수명과 버전이 없는 worker 메시지와 IndexedDB를 영구 보관소로 간주하는 방식은 채택하지 않는다. 테스트의 선후 관계와 완료 증거는 [개인 메모 애플리케이션 테스트 전략](testing-strategy.md)을 따른다. 두 cache를 같은 데이터의 원본으로 쓰는 방식과 PostgreSQL 제약을 생략하는 방식은 최우선 계정 및 동기화 백로그를 시작할 때 적용할 금지 사항이다. 라이브러리 제공 백로그를 시작할 때에는 React를 중복으로 포함하거나 클라이언트 및 서버 진입점을 하나로 합치는 방식도 피해야 한다.
+현재 로컬 애플리케이션은 브라우저 구현을 한 조립 지점에서 연결하고, 사용자 입력과 저장소 사이의 모든 경계를 런타임에 검증해야 한다. 페이지 전체를 Client Component로 만드는 방식, React 내부 상태를 `useEffect`로 맞추는 방식, JSX 안에 복잡한 분기와 조립 과정을 숨기는 방식, 범용 Service Locator, 역할이 드러나지 않는 port와 adapter 이름, 서버 및 브라우저 코드를 함께 내보내는 FSD public API, 수명과 버전이 없는 worker 메시지와 IndexedDB를 영구 보관소로 간주하는 방식은 채택하지 않는다. 테스트의 선후 관계와 완료 증거는 [개인 메모 애플리케이션 테스트 전략](testing-strategy.md)을 따른다. 두 cache를 같은 데이터의 원본으로 쓰는 방식과 PostgreSQL 제약을 생략하는 방식은 최우선 계정 및 동기화 백로그를 시작할 때 적용할 금지 사항이다. 라이브러리 제공 백로그를 시작할 때에는 React를 중복으로 포함하거나 클라이언트 및 서버 진입점을 하나로 합치는 방식도 피해야 한다.
 
-이 문서의 상태는 `proposed`다. 구현자와 리뷰어가 개인 메모 애플리케이션의 기술 구조를 선택할 때 사용하는 제안 지침이며, 승인된 기술 스택이나 현재 구현을 설명하지 않는다. 다만 [애플리케이션 패키지 위치와 FSD 구조 결정](../../designs/personal-notes-app-8fd/decisions/application-package-and-fsd.md)이 확정한 `apps/notes/` 배치, FSD 계층 규칙과 ESLint 검사 방식은 현재 적용할 결정이다.
+이 문서의 상태는 `proposed`다. 구현자와 리뷰어가 개인 메모 애플리케이션의 기술 구조를 선택할 때 사용하는 제안 지침이며, 승인된 기술 스택이나 현재 구현을 설명하지 않는다. 다만 [애플리케이션 패키지 위치와 FSD 구조 결정](../../designs/personal-notes-app-8fd/decisions/application-package-and-fsd.md)이 확정한 `apps/notes/` 배치, FSD 계층 규칙과 ESLint 검사 방식, 이 문서의 JSX 렌더링 흐름 규칙은 현재 적용할 결정이다.
 
 ## 적용 범위와 현재 근거
 
@@ -12,9 +12,9 @@
 
 [애플리케이션 패키지 위치와 FSD 구조 결정](../../designs/personal-notes-app-8fd/decisions/application-package-and-fsd.md)은 독립 실행 패키지를 `apps/notes/`에 두고, Next.js 라우트는 패키지 루트의 `app/`, FSD 코드는 `src/` 아래의 `_app`, `_pages`와 필요한 하위 계층에 두도록 정한다. 모든 계층을 미리 만들거나 라이브러리 패키지를 함께 구현하는 방식은 승인하지 않았다.
 
-기준선 커밋에는 패키지 매니페스트, 잠금 파일, TypeScript 설정, Next.js 설정, 애플리케이션 소스와 테스트가 없다. 따라서 아래 규칙은 도달 가능한 실패를 미리 제한하는 제안이며 U1에서 정확한 버전과 잠금 파일을 추가한 뒤 실제 준수 여부를 검사한다.
+현재 `apps/notes/`에는 package manifest, 잠금 파일, TypeScript, Next.js 및 ESLint 설정, 애플리케이션 소스와 테스트가 있다. 아래 규칙은 현재 연결 지점과 설정을 근거로 삼되, 각 절의 `current`와 `proposed` 상태로 즉시 적용할 결정과 아직 승인되지 않은 제안을 구분한다. 새 의존성이나 ESLint 규칙은 실제 설정에 추가하고 검증하기 전까지 현재 기준선으로 간주하지 않는다.
 
-조사는 당시 최신 안정 릴리스인 Next.js 16.3.3, React 19.2.8, TypeScript 7.0.2, React Hook Form 7.87.0, Zod 4.5.4와 TanStack Query 5.102.8을 기준으로 했다. PostgreSQL은 현재 문서인 18을 확인했다. FSD는 설치 패키지가 아니라 구조화 방법이므로 2026년 8월 29일 문서 revision `a6b69ae`를 고정해 확인했다. 이 버전과 revision은 채택 권고가 아니라 조사 범위다. 특히 Next.js 캐시와 렌더링 모델, TanStack Query의 hydration 동작은 버전 사이에서 달라질 수 있으므로 설치 버전이 다르면 이 문서의 해당 절을 다시 검증해야 한다.
+현재 설치된 주요 버전은 Next.js 16.3.3, React 19.2.8, TypeScript 6.0.3, React Hook Form 7.86.0, Zod 4.4.3과 ESLint 9.39.5다. TanStack Query와 PostgreSQL은 설치되지 않았으며, 최우선 계정 및 동기화 백로그의 조사 기준으로 TanStack Query 5.102.8과 PostgreSQL 18 문서를 확인했다. FSD는 설치 패키지가 아니라 구조화 방법이므로 2026년 8월 29일 문서 revision `a6b69ae`를 고정해 확인했다. 특히 Next.js cache와 렌더링 모델, TanStack Query의 hydration 동작은 버전 사이에서 달라질 수 있으므로 설치 버전이 바뀌면 이 문서에서 영향을 받는 절을 다시 검증해야 한다.
 
 이 문서에서 Advanced Server Side Rendering은 별도 제품이나 API 이름이 아니라 App Router의 Server Components, streaming, Suspense, Cache Components와 hydration을 함께 사용하는 렌더링 구성을 뜻한다. Web API는 Clipboard, Worker, SharedWorker, IndexedDB, Storage와 HTTP 조건부 요청처럼 이 애플리케이션이 직접 사용하는 브라우저 및 HTTP API로 한정한다.
 
@@ -165,6 +165,133 @@ function useAnalysisEvents(worker: Worker, accept: (value: unknown) => void) {
 ### 검증
 
 설치할 React hooks lint 버전을 확정한 뒤 `exhaustive-deps`와 `set-state-in-effect`의 판별력을 저장소의 무시된 임시 입력에서 한 번 확인한다. 전자는 stale closure를 만드는 누락 dependency를 찾고, 후자는 effect 안의 동기적 state 변경을 찾을 수 있다. 두 규칙 모두 effect가 업무상 맞는 위치인지, 외부 작업이 멱등인지 또는 cleanup이 실제 자원을 모두 해제하는지는 결정하지 못한다. 리뷰어는 effect마다 동기화 대상, setup, cleanup과 재실행 조건을 확인하고 Strict Mode, 빠른 mount 및 unmount와 browser listener 수로 결과를 검사한다.
+
+## JSX 렌더링 흐름을 한눈에 확인할 수 있게 작성한다
+
+이 절의 코드 작성 규칙은 `current`다. 기존 코드를 이 규칙에 맞추는 작업, 조건부 class 결합 도구 도입과 ESLint 검사 추가는 `proposed`다. 이 구분은 새 코드에 규칙을 적용하면서 아직 정리하지 않은 코드 때문에 현재 lint 기준선이 즉시 실패하는 일을 막기 위한 것이다.
+
+### 막으려는 실패
+
+한 줄에 조건 연산자가 연달아 나오거나 JSX 안에서 배열을 여러 번 변환하면 어떤 조건과 순서로 element가 생기는지 한눈에 확인하기 어렵다. render prop, JSX를 반환하는 일반 함수 호출, component 안에서 만든 component와 JSX를 담은 named prop은 실제 component tree를 여러 호출과 prop에 흩어 놓는다. `className` template literal은 조건부 class 결합을 문자열 보간에 맡겨, 어떤 상태가 어떤 class를 추가하는지 정적 검사와 리뷰에서 찾기 어렵게 한다.
+
+React 19.2는 삼항 연산자와 `&&`를 유효한 조건부 렌더링 수단으로 설명하지만, 중첩된 조건부 마크업은 자식 component로 분리하라고 안내한다. 목록 문서도 `filter`와 `map`의 반환값을 return 전에 변수로 계산하는 예시를 제공한다. React는 JSX를 prop과 `children`으로 전달하는 방식도 허용한다. 따라서 아래 제한은 React 문법의 옳고 그름을 판정하는 규칙이 아니라, 이 애플리케이션이 허용할 렌더링 방식을 더 제한한 작성 규칙이다.
+
+Sentry는 render 중 `resolveChartComponent()` 호출로 chart component를 고르던 코드가 React Compiler의 정적 분석에 보이지 않는 문제를 겪었다. [PR #122289](https://github.com/getsentry/sentry/pull/122289)와 병합 결과 [e80d8b5](https://github.com/getsentry/sentry/commit/e80d8b530ded82201d1bccf3ad0286dbfdd7e116)는 선택 과정을 호출 뒤에 숨기지 않도록 바꾼 이유를 기록한다. 이 저장소는 같은 문제를 중첩 삼항 연산자로 옮기지 않고, component 본문의 `if` 또는 `switch`와 module 최상위에 선언한 component로 해결한다.
+
+2026년 8월 31일의 `apps/notes/src/`에는 `className` template literal 일곱 곳, JSX를 받는 `action` prop 두 곳과 한 return tree에서 `map`을 두 번 호출하는 `NotesCollection`이 있다. `eslint-config-next@16.3.3`이 켠 `react-hooks/static-components`는 오류로 동작하지만, `react-hooks/component-hook-factories`와 `react/no-unstable-nested-components`는 현재 설정에 없다. 조건부 class 결합 도구도 설치되어 있지 않다. 그러므로 이 절은 기존 코드가 이미 준수한다고 주장하지 않는다.
+
+### 적용 규칙
+
+- `apps/notes/`의 TypeScript와 TSX에서는 물리적인 소스 한 줄에 삼항 조건식과 논리 연산자를 합해 최대 두 개만 둔다. 삼항 조건식 하나는 `?`와 `:`를 합해 한 개로 세고, `&&`, `||`, `??`, `&&=`, `||=`와 `??=`는 연산자마다 한 개로 센다. optional chaining의 `?.`와 bitwise 연산자는 이 제한에 포함하지 않는다.
+- 같은 줄의 합계가 두 개를 넘으면 조건에 이름을 붙이거나 `if`, early return 또는 `switch`로 분리한다. formatter가 줄을 나누었다는 사실만으로 읽기 어려운 중첩 조건이 정당화되지는 않는다.
+- component 하나가 반환하는 JSX tree에는 배열을 순회하거나 변환해 렌더링 결과를 만드는 호출을 최대 한 번만 둔다. `map`, `flatMap`, `filter`, `reduce`, `reduceRight`, `sort`, `toSorted`, `reverse`와 `toReversed`를 이 검사 대상으로 삼는다. `{items.filter(predicate).map(toItem)}`는 두 번으로 세며 허용하지 않는다.
+- 화면에 필요한 정렬, 필터링과 집계는 JSX 전에 이름이 드러나는 값으로 계산한다. 한 화면에서 서로 다른 목록을 그려야 하거나 반응형 화면마다 별도 마크업이 필요하면, 각각 한 번의 순회만 맡는 자식 component를 module 최상위에 선언한다.
+- render prop과 JSX 또는 `ReactNode`를 반환하는 함수 prop을 사용하지 않는다. component가 실행되는 동안 JSX expression에서 일반 함수를 호출하지 않는다. `<Component />` 자체, 나중에 실행되는 event handler의 본문과 앞에서 허용한 목록 순회 한 번은 일반 함수 호출 제한에 포함하지 않는다.
+- component는 module 최상위에 선언한다. 다른 component의 본문, `useMemo`, `useCallback` 또는 다른 hook과 factory 안에서 component나 JSX 반환 함수를 만들지 않는다. `useMemo`와 `useCallback`은 이 문서의 다른 조건을 충족하는 값과 event callback에 사용할 수 있지만 component 선언 수단으로는 사용할 수 없다.
+- JSX 조합은 태그 사이에 중첩하는 `children`만 허용한다. `children={<Panel />}`처럼 명시적 prop으로 JSX를 넘기지 않는다. `action`, `header`, `footer`, `icon`처럼 JSX를 받는 named slot, `Slot` abstraction과 그 밖의 prop으로 JSX, fragment 또는 `ReactNode`를 전달하지 않는다. 여러 영역이 필요하면 호출자가 형제 element를 직접 배치하거나, 완성된 마크업을 책임지고 data와 event callback만 받는 component를 만든다.
+- `className`에는 backtick으로 만든 template literal을 사용하지 않는다. 고정 class는 string literal로 작성하고, 조건부 class는 승인된 class 결합 도구로 JSX 전에 계산한 뒤 identifier로 전달한다. 일반 함수 호출 제한 때문에 `className={clsx(...)}`처럼 JSX 안에서 결합 도구를 직접 호출하지 않는다.
+
+안티패턴:
+
+```tsx
+const showNotes = active && hasAccess && hasContent || preview
+```
+
+권장 패턴:
+
+```tsx
+const canShowSavedNotes = active && hasAccess
+const showSavedNotes = canShowSavedNotes && hasContent
+const showNotes = showSavedNotes || preview
+```
+
+컴포넌트 안티패턴:
+
+```tsx
+type BadNotesPanelProps = {
+  active: boolean
+  action: ReactNode
+  notes: readonly Note[]
+  renderEmpty: () => ReactNode
+}
+
+function BadNotesPanel(props: BadNotesPanelProps) {
+  const { action, active, notes, renderEmpty } = props
+  const NoteRow = useMemo(
+    () => ({ note }: { note: Note }) => <li>{note.text}</li>,
+    [],
+  )
+
+  return (
+    <section className={`notes-panel ${notes.length > 0 ? "has-notes" : "is-empty"}`}>
+      {notes.length > 0
+        ? notes.filter(isVisible).map((note) => <NoteRow key={note.id} note={note} />)
+        : renderEmpty()}
+      <Toolbar action={action} />
+    </section>
+  )
+}
+```
+
+컴포넌트 권장 패턴:
+
+```tsx
+type NoteItemsProps = {
+  notes: readonly Note[]
+}
+
+type NotesPanelProps = {
+  active: boolean
+  notes: readonly Note[]
+}
+
+function NoteItems({ notes }: NoteItemsProps) {
+  return (
+    <ul>
+      {notes.map((note) => (
+        <li key={note.id}>{note.text}</li>
+      ))}
+    </ul>
+  )
+}
+
+function NotesPanel({ active, notes }: NotesPanelProps) {
+  const visibleNotes = notes.filter(isVisible)
+  const className = clsx("notes-panel", { "is-active": active })
+
+  if (visibleNotes.length === 0) {
+    return <EmptyNotes />
+  }
+
+  return (
+    <section className={className}>
+      <NoteItems notes={visibleNotes} />
+      <Toolbar>
+        <CreateNoteButton />
+      </Toolbar>
+    </section>
+  )
+}
+```
+
+권장 예시의 `clsx`는 아직 설치되지 않은 제안 도구다. `clsx@2.1.1`은 string, array와 object 입력을 class 문자열로 결합하며 MIT 라이선스이고 실행 시 필요한 다른 package가 없다. 현재 필요한 일은 조건부 class 결합뿐이므로, 충돌하는 Tailwind class를 제거해 반환값까지 바꾸는 `tailwind-merge`나 variant 조합을 정의하는 도구는 이 목적에 필요하지 않다. 외부 의존성 승인을 받은 뒤 `clsx@2.1.1`을 직접 의존성으로 추가하고 잠금 파일과 실제 설치된 dependency graph를 다시 확인한다. 승인 전에는 예시를 실제 코드에 복사하지 않는다.
+
+### 검증
+
+현재 ESLint가 오류로 실행하는 `react-hooks/static-components`는 render 중 component를 새로 만드는 일부 사례를 찾는다. `eslint-plugin-react@7.37.5`의 `react/no-unstable-nested-components`는 nested component와 render prop 일부를 찾을 수 있지만, `useMemo` 또는 `useCallback`으로 만든 component를 모두 찾지 못하고 기본 설정은 `render`로 시작하는 prop을 허용한다. 따라서 이 규칙 하나를 전체 지침의 증거로 사용하지 않는다. 도입을 검토할 때에는 `react-hooks/component-hook-factories`와 함께 위반 및 정상 입력을 먼저 확인한다.
+
+ESLint의 `no-nested-ternary`는 중첩 삼항 연산자를 전부 금지하므로 한 줄당 최대 두 개라는 기준과 다르고, `complexity`는 함수 단위의 순환 복잡도를 세므로 대신 사용할 수 없다. 정확한 검사를 추가하려면 ESLint `SourceCode`의 token 위치를 기준으로 삼항 조건식, 논리식과 논리 대입식을 줄별로 합산하는 저장소 규칙이 필요하다. JSX 목록 연산 횟수와 render 중 실행되는 call expression도 return tree 단위로 세는 저장소 규칙이 필요하다. named slot을 identifier로 전달하는 경우와 prop type이 `ReactNode`인지 판정하는 검사는 TypeScript type 정보가 없으면 누락될 수 있으므로, type-aware 규칙을 만들지 않는 동안 리뷰어가 확인한다.
+
+`className` template literal은 기존 `no-restricted-syntax` 설정에 다음 selector를 더하면 정확히 금지할 수 있다. 현재 일곱 곳을 정리하고 class 결합 도구를 승인하기 전에는 이 설정을 적용하지 않는다.
+
+```js
+{
+  selector: "JSXAttribute[name.name='className'] TemplateLiteral",
+  message: "Compute conditional class names before JSX with the approved class-name utility.",
+}
+```
+
+정적 규칙을 추가할 때에는 별도 fixture나 일회성 script를 만들지 않고 ESLint `RuleTester`의 메모리 입력으로 각 위반과 정상 사례를 한 번 검증한다. 자동 수정은 조건 분기, component 추출과 slot 제거의 의미를 안전하게 결정할 수 없으므로 제공하지 않는다. 코드 검토자는 변경된 TSX에서 줄별 연산자 수, return tree별 목록 연산 횟수, module 최상위 component, `children` 외 JSX 전달과 `className` 값의 형태를 확인한다. TypeScript, lint와 리뷰를 통과해도 실제 component state가 보존되고 반응형 화면이 같은 항목을 빠뜨리지 않는지는 변경한 component를 browser에서 실행해 검증한다.
 
 ## Web API 실패를 정상 상태로 다룬다
 
@@ -1103,7 +1230,7 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 
 - TypeScript compile: `strict`, 외부 입력의 `unknown`, worker message union과 client module의 server-only import 방향
 - Zod schema 검사: form input과 output, worker message와 IndexedDB record
-- 정적 분석: hooks dependency, effect 안의 동기 state 변경, FSD layer 및 public API 우회, client module의 server-only import와 composition root 밖의 generic locator import
+- 정적 분석: hooks dependency, effect 안의 동기 state 변경, 줄별 조건 연산자 수, JSX 목록 연산과 render 중 함수 호출, module 내부 component 선언, `children` 외 JSX 전달, `className` template literal, FSD layer 및 public API 우회, client module의 server-only import와 composition root 밖의 generic locator import
 - TDD 단위 검사: 승인된 schema 경계, command 및 이력, 사용 빈도 규칙, 분석 알고리즘, 템플릿 생성과 오래된 Worker response 폐기
 - 외부 동작 기준 브라우저 검사: IndexedDB transaction, upgrade, `blocked`, `versionchange`, quota와 새로고침 보존
 - 실제 browser 검사: Strict Mode의 effect cleanup, clipboard 권한, Dedicated Worker lifecycle 및 form render 비용
@@ -1126,10 +1253,13 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 
 ## 출처와 고정 사례
 
-공식 자료는 2026년 8월 30일에 다시 확인했다.
+공식 자료는 2026년 8월 31일에 다시 확인했다.
 
 - [Next.js v16.3.3 release](https://github.com/vercel/next.js/releases/tag/v16.3.3)와 해당 release의 [Project Structure](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/02-project-structure.mdx), [Server and Client Components](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/05-server-and-client-components.mdx), [CSS](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/11-css.mdx), [Server and Client Boundary](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/02-guides/server-and-client-boundary.mdx), [Fetching Data](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/06-fetching-data.mdx), [Caching](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/08-caching.mdx), [Revalidating](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/09-revalidating.mdx), [Route Handlers](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/01-getting-started/15-route-handlers.mdx), [`transpilePackages`](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/03-api-reference/05-config/01-next-config-js/transpilePackages.mdx), [Data Security](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/02-guides/data-security.mdx), [Environment Variables](https://github.com/vercel/next.js/blob/a9a1cb7859f178f830ad3773b303130c21b19586/docs/01-app/02-guides/environment-variables.mdx)
-- React 19.2 [hydrateRoot](https://react.dev/reference/react-dom/client/hydrateRoot), [useSyncExternalStore](https://react.dev/reference/react/useSyncExternalStore), [useEffect](https://react.dev/reference/react/useEffect), [Effect가 필요하지 않을 수 있는 경우](https://react.dev/learn/you-might-not-need-an-effect), [`exhaustive-deps`](https://react.dev/reference/eslint-plugin-react-hooks/lints/exhaustive-deps), [`set-state-in-effect`](https://react.dev/reference/eslint-plugin-react-hooks/lints/set-state-in-effect), [useContext](https://react.dev/reference/react/useContext), [Context 사용 전 고려 사항](https://react.dev/learn/passing-data-deeply-with-context#before-you-use-context), [중복 React 경고](https://react.dev/warnings/invalid-hook-call-warning#duplicate-react)
+- React 19.2 [hydrateRoot](https://react.dev/reference/react-dom/client/hydrateRoot), [useSyncExternalStore](https://react.dev/reference/react/useSyncExternalStore), [useEffect](https://react.dev/reference/react/useEffect), [Effect가 필요하지 않을 수 있는 경우](https://react.dev/learn/you-might-not-need-an-effect), [조건부 렌더링](https://react.dev/learn/conditional-rendering), [목록 렌더링](https://react.dev/learn/rendering-lists), [prop과 `children`](https://react.dev/learn/passing-props-to-a-component), [`static-components`](https://react.dev/reference/eslint-plugin-react-hooks/lints/static-components), [`component-hook-factories`](https://react.dev/reference/eslint-plugin-react-hooks/lints/component-hook-factories), [`exhaustive-deps`](https://react.dev/reference/eslint-plugin-react-hooks/lints/exhaustive-deps), [`set-state-in-effect`](https://react.dev/reference/eslint-plugin-react-hooks/lints/set-state-in-effect), [useContext](https://react.dev/reference/react/useContext), [Context 사용 전 고려 사항](https://react.dev/learn/passing-data-deeply-with-context#before-you-use-context), [중복 React 경고](https://react.dev/warnings/invalid-hook-call-warning#duplicate-react)
+- ESLint 9.39.5 [`no-nested-ternary`](https://eslint.org/docs/latest/rules/no-nested-ternary), [`complexity`](https://eslint.org/docs/latest/rules/complexity), [`no-restricted-syntax`](https://eslint.org/docs/latest/rules/no-restricted-syntax)와 [custom rule 작성](https://eslint.org/docs/latest/extend/custom-rules)
+- `eslint-plugin-react@7.37.5` 고정 revision `2c98b83`: [`no-unstable-nested-components`](https://github.com/jsx-eslint/eslint-plugin-react/blob/2c98b83c451a4297edf1787d9a616e50687e27e8/docs/rules/no-unstable-nested-components.md)
+- `clsx@2.1.1` 고정 revision `925494c`: [package 정보와 구현](https://github.com/lukeed/clsx/tree/925494cf31bcd97d3337aacd34e659e80cae7fe2)
 - Node.js 26.8.1 [package entry point와 `exports`](https://nodejs.org/api/packages.html#package-entry-points), npm [peer dependency](https://docs.npmjs.com/files/package.json/#peerdependencies)와 TypeScript 7.0.2 [package `exports` resolution](https://www.typescriptlang.org/docs/handbook/modules/reference#packagejson-exports). Node.js와 npm 문서는 package 형식 조사 기준이며 runtime 채택 버전이 아니다.
 - [TypeScript의 erased types](https://www.typescriptlang.org/docs/handbook/typescript-from-scratch.html#erased-types), [strict](https://www.typescriptlang.org/tsconfig/strict.html), [noUncheckedIndexedAccess](https://www.typescriptlang.org/tsconfig/noUncheckedIndexedAccess.html), [exactOptionalPropertyTypes](https://www.typescriptlang.org/tsconfig/exactOptionalPropertyTypes.html), [moduleSuffixes](https://www.typescriptlang.org/tsconfig/moduleSuffixes.html)
 - React Hook Form 문서 고정 revision `e739aea`: [useForm](https://github.com/react-hook-form/documentation/blob/e739aea29ff1f13a272b3aae99e9af257e218e6a/src/content/docs/useform.mdx), [watch](https://github.com/react-hook-form/documentation/blob/e739aea29ff1f13a272b3aae99e9af257e218e6a/src/content/docs/useform/watch.mdx), [useWatch](https://github.com/react-hook-form/documentation/blob/e739aea29ff1f13a272b3aae99e9af257e218e6a/src/content/docs/usewatch.mdx), [formState](https://github.com/react-hook-form/documentation/blob/e739aea29ff1f13a272b3aae99e9af257e218e6a/src/content/docs/useform/formstate.mdx)
@@ -1151,6 +1281,7 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 - Cal.com Zod 입력 형식 검증: [PR #26976](https://github.com/calcom/cal.diy/pull/26976), [c43c48b](https://github.com/calcom/cal.diy/commit/c43c48b1a8338f6f06ed074d1306bf4855e95c67)
 - Cal.com 동시 booking race 재현: [PR #22170](https://github.com/calcom/cal.diy/pull/22170), [179a547](https://github.com/calcom/cal.diy/commit/179a547bd08d05f487cd2117de51a1db3b373283)
 - Sentry 파생 상태 effect 제거: [PR #115146](https://github.com/getsentry/sentry/pull/115146), [38a5ba3](https://github.com/getsentry/sentry/commit/38a5ba35c43bffdf3ebdecff65a224645ae3153a)
+- Sentry render 중 component 선택의 정적 분석 보완: [PR #122289](https://github.com/getsentry/sentry/pull/122289), [e80d8b5](https://github.com/getsentry/sentry/commit/e80d8b530ded82201d1bccf3ad0286dbfdd7e116)
 - OpenStatus SSR query hydration 보완: [PR #44](https://github.com/openstatusHQ/data-table-filters/pull/44), [4bb3cdb](https://github.com/openstatusHQ/data-table-filters/commit/4bb3cdb1cf93c0370435c6dcb0edc9ce5e7f225b)
 - Neondeck mutation별 진행 상태 분리: [PR #315](https://github.com/pandemicsyn/neondeck/pull/315), [bedbb8c](https://github.com/pandemicsyn/neondeck/commit/bedbb8c804094fef1cd91fadb10cb529a2f942a5)
 - Webiny Service Locator 제거와 직접 DI: [PR #5387](https://github.com/webiny/webiny-js/pull/5387), [573e347](https://github.com/webiny/webiny-js/commit/573e347c7ab5f027b9c367dd133b2469b9d97e1e)
