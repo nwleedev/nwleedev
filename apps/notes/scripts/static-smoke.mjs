@@ -81,6 +81,13 @@ async function verifyOrigin(browser, origin) {
     .click()
   await expect(page.getByRole("status")).toHaveText(completedStatus ?? "")
 
+  await page.goto(`${origin}/accumulator/`)
+  await page
+    .getByRole("heading", { level: 1, name: "누적 텍스트" })
+    .waitFor()
+  assert.equal(await page.locator("aside").count(), 0)
+  await expect(page.getByRole("button", { name: "복사" })).toBeDisabled()
+
   await page.reload()
   await page.getByRole("heading", { level: 1 }).waitFor()
   const reloadedStatuses = await page.getByRole("status").allTextContents()

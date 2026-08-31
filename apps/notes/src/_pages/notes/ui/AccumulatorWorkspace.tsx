@@ -154,7 +154,7 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
         aria-label={`누적 텍스트 ${accumulatorCountText}`}
         aria-controls={controlledPanelId}
         aria-expanded={open}
-        className="absolute right-3 top-3 z-20 shadow-floating sm:right-4"
+        className="absolute right-3 top-3 z-20 hidden shadow-floating @3xl/notes-workspace:inline-flex sm:right-4"
         onClick={() => setOpen((current) => !current)}
         ref={trigger}
         tone="quiet"
