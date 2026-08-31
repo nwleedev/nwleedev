@@ -1,7 +1,6 @@
 import type { Note } from "@/entities/note"
 import type { OrdinaryCopyUsageWriter } from "@/entities/usage"
-
-import type { ClipboardWriter } from "./ClipboardWriter"
+import type { ClipboardWriter } from "@/shared/lib/clipboard"
 
 type CopyNoteDependencies = {
   clipboard: ClipboardWriter

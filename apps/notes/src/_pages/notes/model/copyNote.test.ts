@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest"
 
 import type { Note } from "@/entities/note"
 import type { OrdinaryCopyUsageWriter } from "@/entities/usage"
+import type { ClipboardWriter } from "@/shared/lib/clipboard"
 
-import type { ClipboardWriter } from "./ClipboardWriter"
 import { copyNote } from "./copyNote"
 
 const note: Note = {

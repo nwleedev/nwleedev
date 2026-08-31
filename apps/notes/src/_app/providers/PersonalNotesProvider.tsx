@@ -31,6 +31,7 @@ function ApplicationProviders({
 
   return (
     <AccumulatorProvider
+      clipboard={application.notes.clipboard}
       createId={application.accumulator.createId}
       now={application.accumulator.now}
       repository={application.accumulator.repository}

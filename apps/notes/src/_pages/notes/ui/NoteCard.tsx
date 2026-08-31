@@ -13,6 +13,7 @@ import type { Note, NoteGeometry } from "@/entities/note"
 import type {
   AccumulateNoteResult,
   AccumulationRequest,
+  EditAccumulatorResult,
 } from "@/features/accumulate-note"
 import { joinClassNames } from "@/shared/lib/join-class-names"
 
@@ -45,7 +46,7 @@ type MobilePressGesture = {
 }
 
 type NoteCardProps = {
-  accumulatedSelected: boolean
+  accumulatedItemId: string | null
   accumulationReady: boolean
   draftContent: string
   editing: boolean
@@ -64,6 +65,7 @@ type NoteCardProps = {
   onDraftChange(content: string): void
   onFinishEditing(note: Note, content: string): Promise<void>
   onSaveGeometry(note: Note, geometry: NoteGeometry): Promise<void>
+  onRemoveAccumulated(itemId: string): Promise<EditAccumulatorResult>
   onSelect(noteId: string): void
 }
 
@@ -129,7 +131,7 @@ function isMetaAccumulationClick(
 }
 
 export function NoteCard({
-  accumulatedSelected,
+  accumulatedItemId,
   accumulationReady,
   draftContent,
   editing,
@@ -142,6 +144,7 @@ export function NoteCard({
   onDraftChange,
   onFinishEditing,
   onSaveGeometry,
+  onRemoveAccumulated,
   onSelect,
   placement,
   scale = 1,
@@ -158,6 +161,7 @@ export function NoteCard({
   const boardPlacement = placement === "board"
   const showBoardControls = boardPlacement && !editing
   const showGeometryControls = showBoardControls && selected
+  const accumulatedSelected = accumulatedItemId !== null
   const contentText = note.content || "빈 메모"
   const cardClassName = joinClassNames(
     "flex min-h-40 flex-col gap-3 overflow-auto rounded-note border bg-surface-raised p-3 shadow-note transition-[border-color,box-shadow] duration-[var(--notes-motion-fast)]",
@@ -328,6 +332,31 @@ export function NoteCard({
     setPending(false)
   }
 
+  async function performAccumulatedRemoval(itemId: string) {
+    if (pending) {
+      return
+    }
+
+    setPending(true)
+    const result = await onRemoveAccumulated(itemId)
+
+    if (result.status === "saved") {
+      setNotice({
+        kind: "status",
+        message: "누적 선택을 해제했습니다.",
+        retry: null,
+      })
+    } else if (result.status === "failure") {
+      setNotice({
+        kind: "error",
+        message: "누적 선택을 해제하지 못했습니다. 다시 시도하세요.",
+        retry: "remove",
+      })
+    }
+
+    setPending(false)
+  }
+
   function copyFromButton() {
     void performCopy()
   }
@@ -344,6 +373,11 @@ export function NoteCard({
 
     if (notice?.retry === "accumulate") {
       void performAccumulation(false)
+      return
+    }
+
+    if (notice?.retry === "remove" && accumulatedItemId !== null) {
+      void performAccumulatedRemoval(accumulatedItemId)
     }
   }
 
@@ -444,9 +478,12 @@ export function NoteCard({
       return
     }
 
-    if (!accumulatedSelected) {
-      void performCopy()
+    if (accumulatedItemId !== null) {
+      void performAccumulatedRemoval(accumulatedItemId)
+      return
     }
+
+    void performCopy()
   }
 
   function handleContentClick(event: ReactMouseEvent<HTMLDivElement>) {

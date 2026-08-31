@@ -6,7 +6,7 @@ import { StatusNotice } from "@/shared/ui/status-notice"
 export type NoteInteractionNotice = {
   kind: "error" | "status"
   message: string
-  retry: "accumulate" | "copy" | null
+  retry: "accumulate" | "copy" | "remove" | null
 }
 
 type NoteActionsProps = {

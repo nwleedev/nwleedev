@@ -12,6 +12,7 @@ import {
   useAccumulator,
   type AccumulateNoteResult,
   type AccumulationRequest,
+  type EditAccumulatorResult,
 } from "@/features/accumulate-note"
 import { Button } from "@/shared/ui/button"
 
@@ -53,6 +54,7 @@ type NotePresentationProps = {
   onCopy(note: Note): Promise<CopyNoteResult>
   onDraftChange(content: string): void
   onFinishEditing(note: Note, content: string): Promise<void>
+  onRemoveAccumulated(itemId: string): Promise<EditAccumulatorResult>
   onSaveGeometry(note: Note, geometry: NoteGeometry): Promise<void>
   onSelect(noteId: string): void
 }
@@ -69,6 +71,7 @@ function NotesList({
   onCopy,
   onDraftChange,
   onFinishEditing,
+  onRemoveAccumulated,
   onSaveGeometry,
   onSelect,
   selectedNoteId,
@@ -85,9 +88,7 @@ function NotesList({
 
         return (
           <NoteCard
-            accumulatedSelected={
-              accumulatedItemByNote[note.id] !== undefined
-            }
+            accumulatedItemId={accumulatedItemByNote[note.id] ?? null}
             accumulationReady={accumulationReady}
             draftContent={draftContent}
             editing={editing}
@@ -101,6 +102,7 @@ function NotesList({
             onDraftChange={onDraftChange}
             onFinishEditing={onFinishEditing}
             onSaveGeometry={onSaveGeometry}
+            onRemoveAccumulated={onRemoveAccumulated}
             onSelect={onSelect}
             placement="list"
             selected={selectedNoteId === note.id}
@@ -159,6 +161,7 @@ function NotesBoard(props: NotePresentationProps) {
     onDraftChange,
     onFinishEditing,
     onSaveGeometry,
+    onRemoveAccumulated,
     onSelect,
     selectedNoteId,
   } = props
@@ -279,9 +282,7 @@ function NotesBoard(props: NotePresentationProps) {
 
           return (
             <NoteCard
-              accumulatedSelected={
-                accumulatedItemByNote[note.id] !== undefined
-              }
+              accumulatedItemId={accumulatedItemByNote[note.id] ?? null}
               accumulationReady={accumulationReady}
               draftContent={draftContent}
               editing={editing}
@@ -295,6 +296,7 @@ function NotesBoard(props: NotePresentationProps) {
               onDraftChange={onDraftChange}
               onFinishEditing={onFinishEditing}
               onSaveGeometry={onSaveGeometry}
+              onRemoveAccumulated={onRemoveAccumulated}
               onSelect={onSelect}
               placement="board"
               scale={view.scale}
@@ -408,6 +410,7 @@ export function NotesCollection({
     onCopy: copyNote,
     onDraftChange: changeDraft,
     onFinishEditing: finishEditing,
+    onRemoveAccumulated: accumulator.removeItem,
     onSaveGeometry: saveGeometry,
     onSelect: setSelectedNoteId,
     selectedNoteId,

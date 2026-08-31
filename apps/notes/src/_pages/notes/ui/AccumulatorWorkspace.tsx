@@ -11,8 +11,16 @@ import {
   type RefObject,
 } from "react"
 
-import type { AccumulatedTextItem } from "@/entities/accumulator"
+import {
+  combineAccumulatorText,
+  type AccumulatedTextItem,
+} from "@/entities/accumulator"
 import { useAccumulator } from "@/features/accumulate-note"
+import {
+  AccumulatorEditingView,
+  AccumulatorHistoryShortcuts,
+  CopyAccumulatorAction,
+} from "@/features/edit-accumulated-text"
 import { Button } from "@/shared/ui/button"
 import { joinClassNames } from "@/shared/lib/join-class-names"
 
@@ -73,38 +81,27 @@ function useInlinePanel(container: RefObject<HTMLElement | null>) {
 }
 
 type AccumulatorPanelContentProps = {
+  canRedo: boolean
+  canUndo: boolean
+  combinedText: string
   headingId: string
   headingRef?: RefObject<HTMLHeadingElement | null>
   items: readonly AccumulatedTextItem[]
+  pending: boolean
   presentation: "inline" | "modal"
   status: "failure" | "loading" | "ready"
   onClose(): void
+  onCopy(): Promise<{ status: "clipboard-failure" | "copied" }>
+  onMove(
+    itemId: string,
+    index: number,
+  ): Promise<{ status: "failure" | "saved" | "unchanged" }>
+  onRedo(): Promise<{ status: "failure" | "saved" | "unchanged" }>
+  onRemove(
+    itemId: string,
+  ): Promise<{ status: "failure" | "saved" | "unchanged" }>
   onRetry(): void
-}
-
-function AccumulatorItems({ items }: { items: readonly AccumulatedTextItem[] }) {
-  return (
-    <ol className="grid gap-2 p-4">
-      {items.map((item, index) => {
-        const indexText = (index + 1).toLocaleString("ko-KR")
-        const itemText = item.textSnapshot || "빈 메모"
-
-        return (
-          <li
-            className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 rounded-control border border-line bg-surface p-3"
-            key={item.id}
-          >
-            <span className="text-xs font-semibold tabular-nums text-soft-ink">
-              {indexText}
-            </span>
-            <p className="whitespace-pre-wrap break-words text-sm leading-6">
-              {itemText}
-            </p>
-          </li>
-        )
-      })}
-    </ol>
-  )
+  onUndo(): Promise<{ status: "failure" | "saved" | "unchanged" }>
 }
 
 type EmptyAccumulatorContentProps = {
@@ -146,11 +143,20 @@ function EmptyAccumulatorContent({
 }
 
 function AccumulatorPanelContent({
+  canRedo,
+  canUndo,
+  combinedText,
   headingId,
   headingRef,
   items,
   onClose,
+  onCopy,
+  onMove,
+  onRedo,
+  onRemove,
   onRetry,
+  onUndo,
+  pending,
   presentation,
   status,
 }: AccumulatorPanelContentProps) {
@@ -176,8 +182,21 @@ function AccumulatorPanelContent({
         </Button>
       </header>
       {hasItems ? (
-        <div className="min-h-0 flex-1 overflow-auto">
-          <AccumulatorItems items={items} />
+        <div className="min-h-0 flex-1 overflow-auto p-4">
+          <AccumulatorEditingView
+            canRedo={canRedo}
+            canUndo={canUndo}
+            combinedText={combinedText}
+            items={items}
+            onMove={onMove}
+            onRedo={onRedo}
+            onRemove={onRemove}
+            onUndo={onUndo}
+            pending={pending}
+          />
+          <div className="mt-4 flex justify-end border-t border-line pt-4">
+            <CopyAccumulatorAction disabled={pending} onCopy={onCopy} />
+          </div>
         </div>
       ) : (
         <EmptyAccumulatorContent
@@ -194,6 +213,10 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
   const accumulator = useAccumulator()
   const accumulatorItems =
     accumulator.status === "ready" ? accumulator.items : []
+  const combinedText =
+    accumulator.status === "ready"
+      ? combineAccumulatorText(accumulator.accumulator)
+      : ""
   const accumulatorCount = accumulatorItems.length
   const accumulatorCountText = `${accumulatorCount.toLocaleString("ko-KR")}개`
   const [open, setOpen] = useState(false)
@@ -207,6 +230,10 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
   const workspaceLayoutClassName = joinClassNames(
     "h-full min-h-0",
     showInlinePanel ? "grid grid-cols-[minmax(0,1fr)_22rem]" : "block",
+  )
+  const accumulatorTriggerClassName = joinClassNames(
+    "absolute right-3 top-3 z-20 hidden shadow-floating @3xl/notes-workspace:inline-flex sm:right-4",
+    showInlinePanel ? "invisible" : undefined,
   )
   let controlledPanelId: string | undefined = MODAL_PANEL_ID
 
@@ -260,11 +287,18 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
         id="main-content"
         ref={container}
       >
+        <AccumulatorHistoryShortcuts
+          canRedo={accumulator.canRedo}
+          canUndo={accumulator.canUndo}
+          onRedo={accumulator.redo}
+          onUndo={accumulator.undo}
+          pending={accumulator.pending}
+        />
         <Button
           aria-label={`누적 텍스트 ${accumulatorCountText}`}
           aria-controls={controlledPanelId}
           aria-expanded={open}
-          className="absolute right-3 top-3 z-20 hidden shadow-floating @3xl/notes-workspace:inline-flex sm:right-4"
+          className={accumulatorTriggerClassName}
           onClick={() => setOpen((current) => !current)}
           ref={trigger}
           tone="quiet"
@@ -306,10 +340,19 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
               id={INLINE_PANEL_ID}
             >
               <AccumulatorPanelContent
+                canRedo={accumulator.canRedo}
+                canUndo={accumulator.canUndo}
+                combinedText={combinedText}
                 headingId="accumulator-inline-title"
                 items={accumulatorItems}
                 onClose={closePanel}
+                onCopy={accumulator.copyAll}
+                onMove={accumulator.moveItem}
+                onRedo={accumulator.redo}
+                onRemove={accumulator.removeItem}
                 onRetry={accumulator.retry}
+                onUndo={accumulator.undo}
+                pending={accumulator.pending}
                 presentation="inline"
                 status={accumulator.status}
               />
@@ -324,11 +367,20 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
           ref={dialog}
         >
           <AccumulatorPanelContent
+            canRedo={accumulator.canRedo}
+            canUndo={accumulator.canUndo}
+            combinedText={combinedText}
             headingId="accumulator-dialog-title"
             headingRef={dialogHeading}
             items={accumulatorItems}
             onClose={closePanel}
+            onCopy={accumulator.copyAll}
+            onMove={accumulator.moveItem}
+            onRedo={accumulator.redo}
+            onRemove={accumulator.removeItem}
             onRetry={accumulator.retry}
+            onUndo={accumulator.undo}
+            pending={accumulator.pending}
             presentation="modal"
             status={accumulator.status}
           />

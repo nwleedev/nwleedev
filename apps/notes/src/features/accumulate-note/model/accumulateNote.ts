@@ -1,4 +1,7 @@
-import type { AccumulatedTextItem } from "@/entities/accumulator"
+import type {
+  AccumulatedTextItem,
+  Accumulator,
+} from "@/entities/accumulator"
 import type { Note } from "@/entities/note"
 
 import type { AccumulationWriter } from "./AccumulationWriter"
@@ -10,7 +13,11 @@ type AccumulateNoteDependencies = {
 }
 
 export type AccumulateNoteResult =
-  | { item: AccumulatedTextItem; status: "accumulated" }
+  | {
+      accumulator: Accumulator
+      item: AccumulatedTextItem
+      status: "accumulated"
+    }
   | { status: "failure" }
 
 export async function accumulateNote(
@@ -28,8 +35,8 @@ export async function accumulateNote(
   }
 
   try {
-    await dependencies.writer.addAndRecordUsage(item)
-    return { item, status: "accumulated" }
+    const accumulator = await dependencies.writer.addAndRecordUsage(item)
+    return { accumulator, item, status: "accumulated" }
   } catch {
     return { status: "failure" }
   }

@@ -30,7 +30,12 @@ const accumulatorRepository: AccumulatorRepository = {
   save: async (accumulator) => accumulator,
 }
 const accumulationWriter: AccumulationWriter = {
-  addAndRecordUsage: async () => undefined,
+  addAndRecordUsage: async (item) => ({
+    content: { items: [item], separator: "\n" },
+    id: "primary",
+    revision: 0,
+    updatedAt: item.addedAt,
+  }),
 }
 
 function createDeferred<T>() {
@@ -119,6 +124,7 @@ describe("NotesDataProvider", () => {
     await act(async () => {
       root.render(
         <AccumulatorProvider
+          clipboard={clipboard}
           createId={() => "created-note"}
           now={() => timestamp}
           repository={accumulatorRepository}

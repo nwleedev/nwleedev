@@ -226,13 +226,123 @@ async function verifyOrigin(browser, origin, chromiumBrowser) {
     .poll(() => readUsageCounts(page, "Escape로 저장한 메모"))
     .toEqual({ accumulation: 2, ordinaryCopy: 3 })
   await expect.poll(() => readAccumulatorItemCount(page)).toBe(2)
+  await returnedArticle.getByRole("button", { name: "편집" }).click()
+  await noteEditor.fill("편집 뒤 누적한 메모")
+  await page.getByRole("button", { name: "완료" }).click()
   await returnedArticle.getByRole("button", { name: "누적" }).click()
   await expect.poll(() => readAccumulatorItemCount(page)).toBe(3)
+  await expect
+    .poll(() => readUsageCounts(page, "편집 뒤 누적한 메모"))
+    .toEqual({ accumulation: 1, ordinaryCopy: 0 })
+  const usageBeforeAccumulatorEditing = await readStoreRecords(page, "usage")
 
-  await page.setViewportSize({ height: 720, width: 767 })
-  await expect(page.getByRole("button", { name: "메모 이동" })).toBeHidden()
+  await page
+    .getByRole("button", { name: "누적 텍스트 3개" })
+    .click()
+  const editingPanel = page.getByRole("complementary", {
+    name: "누적 텍스트",
+  })
+  const editedItem = editingPanel
+    .getByRole("listitem")
+    .filter({ hasText: "편집 뒤 누적한 메모" })
+  await editedItem.getByRole("button", { name: "위로" }).click()
+  await editedItem.getByRole("button", { name: "위로" }).click()
+  await expect
+    .poll(() => readAccumulatorTexts(page))
+    .toEqual([
+      "편집 뒤 누적한 메모",
+      "Escape로 저장한 메모",
+      "Escape로 저장한 메모",
+    ])
+  await editedItem.getByRole("button", { name: "아래로" }).click()
+  await editedItem.getByRole("button", { name: "아래로" }).click()
+  await expect
+    .poll(() => readAccumulatorTexts(page))
+    .toEqual([
+      "Escape로 저장한 메모",
+      "Escape로 저장한 메모",
+      "편집 뒤 누적한 메모",
+    ])
+
+  const dragHandle = editedItem.getByRole("button", {
+    name: "3 누적 텍스트 순서 변경",
+  })
+  const firstAccumulatedItem = editingPanel.getByRole("listitem").first()
+  const dragBounds = await dragHandle.boundingBox()
+  const firstItemBounds = await firstAccumulatedItem.boundingBox()
+  assert.notEqual(dragBounds, null)
+  assert.notEqual(firstItemBounds, null)
+  await page.mouse.move(dragBounds.x + 12, dragBounds.y + 12)
+  await page.mouse.down()
+  await page.mouse.move(
+    firstItemBounds.x + 12,
+    firstItemBounds.y + 12,
+    { steps: 8 },
+  )
+  await page.mouse.up()
+  await expect
+    .poll(() => readAccumulatorTexts(page))
+    .toEqual([
+      "편집 뒤 누적한 메모",
+      "Escape로 저장한 메모",
+      "Escape로 저장한 메모",
+    ])
+
+  const reorderedHandle = editedItem.getByRole("button", {
+    name: "1 누적 텍스트 순서 변경",
+  })
+  const reorderedBounds = await reorderedHandle.boundingBox()
+  const editingPanelBounds = await editingPanel.boundingBox()
+  assert.notEqual(reorderedBounds, null)
+  assert.notEqual(editingPanelBounds, null)
+  await page.mouse.move(reorderedBounds.x + 12, reorderedBounds.y + 12)
+  await page.mouse.down()
+  await page.mouse.move(editingPanelBounds.x - 24, reorderedBounds.y + 12, {
+    steps: 6,
+  })
+  await reorderedHandle.press("Escape")
+  await page.mouse.up()
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(3)
+
+  await page.mouse.move(reorderedBounds.x + 12, reorderedBounds.y + 12)
+  await page.mouse.down()
+  await page.mouse.move(editingPanelBounds.x - 24, reorderedBounds.y + 12, {
+    steps: 6,
+  })
+  await page.mouse.up()
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(2)
+  await editingPanel.getByRole("button", { name: "실행 취소" }).click()
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(3)
+  await editingPanel.getByRole("button", { name: "다시 실행" }).click()
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(2)
+  await editingPanel.getByRole("button", { name: "실행 취소" }).click()
+  await expect
+    .poll(() => readAccumulatorTexts(page))
+    .toEqual([
+      "편집 뒤 누적한 메모",
+      "Escape로 저장한 메모",
+      "Escape로 저장한 메모",
+    ])
+  assert.deepEqual(
+    await readStoreRecords(page, "usage"),
+    usageBeforeAccumulatorEditing,
+  )
+  await editingPanel.getByRole("button", { name: "닫기" }).click()
+
   await page.setViewportSize({ height: 720, width: 900 })
   await expect(page.getByRole("button", { name: "메모 이동" })).toBeVisible()
+  await page
+    .getByRole("button", { name: "누적 텍스트 3개" })
+    .click()
+  const accumulatorDialog = page.getByRole("dialog", {
+    name: "누적 텍스트",
+  })
+  await expect(
+    accumulatorDialog.getByRole("button", { name: "다시 실행" }),
+  ).toBeEnabled()
+  await accumulatorDialog.getByRole("button", { name: "닫기" }).click()
+  await page.setViewportSize({ height: 720, width: 767 })
+  await expect(page.getByRole("button", { name: "메모 이동" })).toBeHidden()
   await page.setViewportSize({ height: 720, width: 1280 })
   await page
     .getByRole("link", { exact: true, name: "텍스트 분석" })
@@ -241,16 +351,57 @@ async function verifyOrigin(browser, origin, chromiumBrowser) {
     .getByRole("heading", { level: 1, name: "텍스트 분석" })
     .waitFor()
   await expect(page.getByText("아직 분석하지 않았습니다.")).toBeVisible()
+  await page.getByRole("link", { exact: true, name: "메모" }).click()
+  await page
+    .getByRole("button", { name: "누적 텍스트 3개" })
+    .click()
+  const returnedPanel = page.getByRole("complementary", {
+    name: "누적 텍스트",
+  })
+  await expect(
+    returnedPanel.getByRole("button", { name: "다시 실행" }),
+  ).toBeEnabled()
+  await returnedPanel.getByRole("button", { name: "닫기" }).click()
 
-  await page.goto(`${origin}/accumulator/`)
+  await page.setViewportSize({ height: 720, width: 320 })
+  await page
+    .getByRole("link", { name: "누적 텍스트 3개 관리" })
+    .click()
   await page
     .getByRole("heading", { level: 1, name: "누적 텍스트" })
     .waitFor()
   assert.equal(await page.locator("aside").count(), 0)
-  await expect(page.getByRole("button", { name: "복사" })).toBeDisabled()
+  await expect(page.getByRole("button", { name: "복사" })).toBeEnabled()
+  await expect(
+    page.getByRole("region", { name: "합친 텍스트" }),
+  ).toContainText("편집 뒤 누적한 메모")
+  await page.getByRole("button", { name: "복사" }).click()
+  await expect(
+    page.getByText("합친 텍스트를 복사했습니다.", { exact: true }),
+  ).toBeVisible()
+  assert.deepEqual(
+    await readStoreRecords(page, "usage"),
+    usageBeforeAccumulatorEditing,
+  )
+  const accumulatorOrderBeforeCancel = await readAccumulatorTexts(page)
+  await page.getByRole("link", { exact: true, name: "취소" }).click()
+  await page.getByRole("region", { name: "메모 작업 영역" }).waitFor()
+  assert.deepEqual(
+    await readAccumulatorTexts(page),
+    accumulatorOrderBeforeCancel,
+  )
+  await page
+    .getByRole("link", { name: "누적 텍스트 3개 관리" })
+    .click()
+  await expect(
+    page.getByRole("button", { name: "다시 실행" }),
+  ).toBeEnabled()
 
   await page.reload()
   await page.getByRole("heading", { level: 1 }).waitFor()
+  await expect(
+    page.getByRole("button", { name: "다시 실행" }),
+  ).toBeDisabled()
   const reloadedStatuses = await page.getByRole("status").allTextContents()
   assert.equal(reloadedStatuses.includes(completedStatus ?? ""), false)
 
@@ -354,6 +505,45 @@ async function verifyMobileAccumulation(browser, origin) {
   await expect(
     page.getByRole("link", { name: "누적 텍스트 2개 관리" }),
   ).toBeVisible()
+  await page.clock.resume()
+
+  await firstContent.scrollIntoViewIfNeeded()
+  const selectedFirstBounds = await firstContent.boundingBox()
+  assert.notEqual(selectedFirstBounds, null)
+  await touchStart(client, selectedFirstBounds)
+  await touchEnd(client)
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(1)
+  await expect(firstArticle.getByText("누적 선택됨")).toBeHidden()
+  await page
+    .getByRole("link", { name: "누적 텍스트 1개 관리" })
+    .click()
+  await page
+    .getByRole("heading", { level: 1, name: "누적 텍스트" })
+    .waitFor()
+  const usageBeforeMobileEditing = await readStoreRecords(page, "usage")
+  await page.getByRole("button", { name: "실행 취소" }).click()
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(2)
+  await page.getByRole("button", { name: "다시 실행" }).click()
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(1)
+  await page.getByRole("button", { name: "실행 취소" }).click()
+  await expect.poll(() => readAccumulatorItemCount(page)).toBe(2)
+  const secondListItem = page
+    .getByRole("listitem")
+    .filter({ hasText: "두 번째 모바일 메모" })
+  await secondListItem.getByRole("button", { name: "위로" }).click()
+  await expect
+    .poll(() => readAccumulatorTexts(page))
+    .toEqual(["두 번째 모바일 메모", "첫 번째 모바일 메모"])
+  await page.getByRole("button", { name: "복사" }).click()
+  await expect(
+    page.getByText("합친 텍스트를 복사했습니다.", { exact: true }),
+  ).toBeVisible()
+  assert.deepEqual(
+    await readStoreRecords(page, "usage"),
+    usageBeforeMobileEditing,
+  )
+  await page.getByRole("link", { exact: true, name: "취소" }).click()
+  await expect(firstArticle.getByText("누적 선택됨")).toBeVisible()
 
   const cancelledArticle = page
     .getByRole("article")
@@ -371,7 +561,6 @@ async function verifyMobileAccumulation(browser, origin) {
     ],
     type: "touchMove",
   })
-  await page.clock.fastForward(mobileAccumulationHoldMs)
   await touchEnd(client)
   await expect.poll(() => readAccumulatorItemCount(page)).toBe(2)
 
@@ -430,6 +619,16 @@ async function readAccumulatorItemCount(page) {
     (accumulator) => accumulator.id === "primary",
   )
   return primaryAccumulator?.content.items.length ?? 0
+}
+
+async function readAccumulatorTexts(page) {
+  const accumulators = await readStoreRecords(page, "accumulators")
+  const primaryAccumulator = accumulators.find(
+    (accumulator) => accumulator.id === "primary",
+  )
+  return (
+    primaryAccumulator?.content.items.map((item) => item.textSnapshot) ?? []
+  )
 }
 
 async function readUsageCounts(page, textSnapshot) {

@@ -3,7 +3,6 @@ import {
   type TextAnalyzer,
 } from "@/_pages/analysis/composition"
 import {
-  type ClipboardWriter,
   type NoteStorageMonitor,
 } from "@/_pages/notes/composition"
 import {
@@ -31,7 +30,10 @@ import {
   type OrdinaryCopyUsageWriter,
   type TextUsageReader,
 } from "@/entities/usage"
-import { BrowserClipboardWriter } from "@/shared/lib/clipboard"
+import {
+  BrowserClipboardWriter,
+  type ClipboardWriter,
+} from "@/shared/lib/clipboard"
 import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
 
 import { PersonalNotesDatabase } from "./indexed-db/PersonalNotesDatabase"

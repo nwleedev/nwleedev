@@ -27,6 +27,12 @@ class InMemoryAccumulationWriter implements AccumulationWriter {
     }
 
     this.items.push(item)
+    return {
+      content: { items: [...this.items], separator: "\n" },
+      id: "primary",
+      revision: this.items.length - 1,
+      updatedAt: item.addedAt,
+    }
   }
 }
 
@@ -54,6 +60,12 @@ describe("accumulating a note", () => {
     )
 
     expect(result).toEqual({
+      accumulator: {
+        content: { items: [expectedItem], separator: "\n" },
+        id: "primary",
+        revision: 0,
+        updatedAt: expectedItem.addedAt,
+      },
       item: expectedItem,
       status: "accumulated",
     })

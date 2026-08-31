@@ -109,6 +109,7 @@ export class IndexedDbAccumulationWriter implements AccumulationWriter {
       accumulatorStore.put(accumulator)
       usageStore.put(usage)
       await completion
+      return accumulator
     } catch (error) {
       await abortTransaction(transaction, completion)
       throw error
