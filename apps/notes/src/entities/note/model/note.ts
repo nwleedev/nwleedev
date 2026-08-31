@@ -49,8 +49,11 @@ export type Note = z.infer<typeof NoteRecordSchema>
 export type NoteReference = z.infer<typeof NoteReferenceSchema>
 export type NoteContentReference = z.infer<typeof NoteContentReferenceSchema>
 
-export interface NoteRepository {
+export interface NoteReader {
   getAll(): Promise<readonly Note[]>
+}
+
+export interface NoteRepository extends NoteReader {
   save(note: Note): Promise<Note>
   remove(note: NoteReference): Promise<void>
 }

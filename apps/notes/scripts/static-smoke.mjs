@@ -461,6 +461,95 @@ async function verifyOrigin(browser, origin, chromiumBrowser) {
   const reloadedStatuses = await page.getByRole("status").allTextContents()
   assert.equal(reloadedStatuses.includes(completedStatus ?? ""), false)
 
+  await page.setViewportSize({ height: 720, width: 1280 })
+  await page.getByRole("link", { exact: true, name: "취소" }).click()
+  const firstAnalysisArticle = page
+    .getByRole("article")
+    .filter({ hasText: "편집 뒤 누적한 메모", visible: true })
+  await firstAnalysisArticle.getByRole("button", { name: "편집" }).click()
+  await noteEditor.fill("요청 번호 123\n공통 문장")
+  await page.getByRole("button", { name: "완료" }).click()
+  await createNote(page, "요청 번호 456\n공통 문장")
+  await page
+    .getByRole("link", { exact: true, name: "텍스트 분석" })
+    .click()
+  await page
+    .getByRole("heading", { level: 1, name: "텍스트 분석" })
+    .waitFor()
+  assert.equal(page.workers().length, 0)
+  const analysisWorkerStarted = page.waitForEvent("worker")
+  await page.getByRole("button", { name: "분석 실행" }).click()
+  await analysisWorkerStarted
+  await page
+    .getByRole("heading", { level: 2, name: "분석 결과 2개" })
+    .waitFor()
+  await expect(
+    page.getByRole("heading", { level: 3, name: "정확한 반복" }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole("heading", { level: 3, name: "문자열 근접 후보" }),
+  ).toBeVisible()
+  assert.equal(page.workers().length, 1)
+  await page
+    .getByRole("button", { name: "이 두 줄로 템플릿 제안" })
+    .first()
+    .click()
+  await page
+    .getByRole("heading", { level: 2, name: "선택한 원문" })
+    .waitFor()
+  const selectedSourceLines = page.getByRole("listitem")
+  await expect(selectedSourceLines).toHaveCount(2)
+  await expect(selectedSourceLines.first()).toContainText("공통 문장")
+  await selectedSourceLines
+    .first()
+    .getByRole("link", { name: "원본 메모로 이동" })
+    .click()
+  await expect(page).toHaveURL(/#note-/u)
+  await expect(
+    page
+      .getByRole("article")
+      .filter({ hasText: "요청 번호 123", visible: true }),
+  ).toBeVisible()
+
+  const linkedAnalysisArticle = page
+    .getByRole("article")
+    .filter({ hasText: "요청 번호 123", visible: true })
+  await linkedAnalysisArticle.getByRole("button", { name: "편집" }).click()
+  await noteEditor.fill("요청 번호 999\n공통 문장")
+  await page.getByRole("button", { name: "완료" }).click()
+  await page
+    .getByRole("link", { exact: true, name: "텍스트 분석" })
+    .click()
+  await expect(
+    page.getByText(
+      "메모가 바뀌어 이전 분석을 표시하지 않습니다. 다시 분석하세요.",
+      { exact: true },
+    ),
+  ).toBeVisible()
+  await page.getByRole("button", { name: "분석 실행" }).click()
+  await page
+    .getByRole("heading", { level: 2, name: "분석 결과 2개" })
+    .waitFor()
+  assert.equal(page.workers().length, 1)
+  await page.getByRole("link", { exact: true, name: "메모" }).click()
+  const geometryAnalysisArticle = page
+    .getByRole("article")
+    .filter({ hasText: "요청 번호 999", visible: true })
+  await geometryAnalysisArticle
+    .getByRole("button", { name: "메모 이동" })
+    .click()
+  await page.getByLabel("너비").fill("380")
+  await page.getByRole("button", { name: "배치 적용" }).click()
+  await page
+    .getByRole("link", { exact: true, name: "텍스트 분석" })
+    .click()
+  await expect(
+    page.getByRole("heading", { level: 2, name: "분석 결과 2개" }),
+  ).toBeVisible()
+  await page.reload()
+  await expect(page.getByText("아직 분석하지 않았습니다.")).toBeVisible()
+  assert.equal(page.workers().length, 0)
+
   await context.close()
 }
 

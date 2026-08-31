@@ -10,6 +10,7 @@ import {
 } from "@/_pages/settings/composition"
 import { UsageReaderProvider } from "@/_pages/usage/composition"
 import { AccumulatorProvider } from "@/features/accumulate-note"
+import { SelectedSourceLinesProvider } from "@/features/suggest-template"
 
 import {
   createLocalApplication,
@@ -39,7 +40,11 @@ function ApplicationProviders({
         repository={application.accumulator.repository}
         writer={application.accumulator.writer}
       >
-        <TextAnalysisProvider analyzer={application.analysis.analyzer}>
+        <TextAnalysisProvider
+          analyzer={application.analysis.analyzer}
+          now={application.analysis.now}
+          reader={application.notes.repository}
+        >
           <NotesDataProvider
             clipboard={application.notes.clipboard}
             createId={application.notes.createId}
@@ -69,9 +74,11 @@ export function PersonalNotesProvider({ children }: PropsWithChildren) {
       now={application.preferences.now}
       repository={application.preferences.repository}
     >
-      <ApplicationProviders application={application}>
-        {children}
-      </ApplicationProviders>
+      <SelectedSourceLinesProvider>
+        <ApplicationProviders application={application}>
+          {children}
+        </ApplicationProviders>
+      </SelectedSourceLinesProvider>
     </InteractionPreferencesProvider>
   )
 }

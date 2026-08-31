@@ -4,24 +4,45 @@ import {
   createContext,
   useCallback,
   useContext,
+  useRef,
   useState,
   type PropsWithChildren,
 } from "react"
 
-import type {
-  AnalysisInput,
-  AnalysisResponseMessage,
-  TextAnalyzer,
+import type { Note, NoteReader } from "@/entities/note"
+
+import {
+  TEXT_ANALYSIS_ALGORITHM,
+  type AnalysisInput,
+  type AnalysisResponseMessage,
+  type TextAnalyzer,
 } from "./analysisMessage"
+import {
+  analysisResponseIsCurrent,
+  analysisResponseUsesAlgorithm,
+} from "./analysisRunState"
+import {
+  projectAnalysisResults,
+  type AnalysisResultRow,
+} from "./analysisResultProjection"
+
+export type CompletedTextAnalysis = {
+  completedAt: string
+  input: AnalysisInput
+  response: AnalysisResponseMessage
+  rows: readonly AnalysisResultRow[]
+}
 
 type TextAnalysisState =
   | { status: "idle" }
   | { status: "running" }
-  | { result: AnalysisResponseMessage; status: "success" }
+  | { completed: CompletedTextAnalysis; status: "success" }
   | { status: "failure" }
+  | { status: "stale" }
 
 type TextAnalysisContextValue = TextAnalysisState & {
-  run(input: AnalysisInput): Promise<void>
+  run(): Promise<void>
+  validate(): Promise<void>
 }
 
 const TextAnalysisContext = createContext<TextAnalysisContextValue | null>(
@@ -30,29 +51,124 @@ const TextAnalysisContext = createContext<TextAnalysisContextValue | null>(
 
 type TextAnalysisProviderProps = PropsWithChildren<{
   analyzer: TextAnalyzer
+  now(): string
+  reader: NoteReader
 }>
+
+function createAnalysisInput(notes: readonly Note[]): AnalysisInput {
+  return {
+    algorithm: TEXT_ANALYSIS_ALGORITHM,
+    notes: notes.map((note) => ({
+      content: note.content,
+      note: { contentRevision: note.contentRevision, id: note.id },
+    })),
+  }
+}
+
+function contentReferences(notes: readonly Note[]) {
+  return notes.map(({ contentRevision, id }) => ({ contentRevision, id }))
+}
 
 export function TextAnalysisProvider({
   analyzer,
   children,
+  now,
+  reader,
 }: TextAnalysisProviderProps) {
   const [state, setState] = useState<TextAnalysisState>({ status: "idle" })
-  const run = useCallback(
-    async (input: AnalysisInput) => {
-      setState({ status: "running" })
+  const completed = useRef<CompletedTextAnalysis | null>(null)
+  const sequence = useRef(0)
 
-      try {
-        const result = await analyzer.analyze(input)
-        setState({ result, status: "success" })
-      } catch {
+  const run = useCallback(async () => {
+    const runSequence = sequence.current + 1
+    sequence.current = runSequence
+    completed.current = null
+    setState({ status: "running" })
+
+    try {
+      const input = createAnalysisInput(await reader.getAll())
+      const response = await analyzer.analyze(input)
+      const currentNotes = await reader.getAll()
+
+      if (sequence.current !== runSequence) {
+        return
+      }
+
+      if (
+        !analysisResponseUsesAlgorithm(
+          response,
+          TEXT_ANALYSIS_ALGORITHM,
+        )
+      ) {
+        setState({ status: "failure" })
+        return
+      }
+
+      if (
+        !analysisResponseIsCurrent(
+          response,
+          contentReferences(currentNotes),
+          TEXT_ANALYSIS_ALGORITHM,
+        )
+      ) {
+        setState({ status: "stale" })
+        return
+      }
+
+      const rows = projectAnalysisResults(input, response)
+
+      if (rows === null) {
+        setState({ status: "failure" })
+        return
+      }
+
+      const nextCompleted: CompletedTextAnalysis = {
+        completedAt: now(),
+        input,
+        response,
+        rows,
+      }
+      completed.current = nextCompleted
+      setState({ completed: nextCompleted, status: "success" })
+    } catch {
+      if (sequence.current === runSequence) {
         setState({ status: "failure" })
       }
-    },
-    [analyzer],
-  )
+    }
+  }, [analyzer, now, reader])
+
+  const validate = useCallback(async () => {
+    const currentCompleted = completed.current
+
+    if (currentCompleted === null) {
+      return
+    }
+
+    const validationSequence = sequence.current
+
+    try {
+      const notes = await reader.getAll()
+      const current = analysisResponseIsCurrent(
+        currentCompleted.response,
+        contentReferences(notes),
+        TEXT_ANALYSIS_ALGORITHM,
+      )
+
+      if (sequence.current !== validationSequence || current) {
+        return
+      }
+
+      completed.current = null
+      setState({ status: "stale" })
+    } catch {
+      if (sequence.current === validationSequence) {
+        setState({ status: "failure" })
+      }
+    }
+  }, [reader])
 
   return (
-    <TextAnalysisContext value={{ ...state, run }}>
+    <TextAnalysisContext value={{ ...state, run, validate }}>
       {children}
     </TextAnalysisContext>
   )

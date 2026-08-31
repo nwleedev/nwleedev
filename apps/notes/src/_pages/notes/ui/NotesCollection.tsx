@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  useEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -124,6 +125,23 @@ type BoardView = {
   y: number
 }
 
+function initialBoardView(
+  notes: readonly Note[],
+  focusedNoteId: string | null,
+): BoardView {
+  const focusedNote = notes.find(({ id }) => id === focusedNoteId)
+
+  if (focusedNote === undefined) {
+    return { scale: 1, x: 0, y: 0 }
+  }
+
+  return {
+    scale: 1,
+    x: 48 - focusedNote.geometry.x,
+    y: 80 - focusedNote.geometry.y,
+  }
+}
+
 type PanGesture = {
   pointerId: number
   startView: BoardView
@@ -147,11 +165,16 @@ function measureBoard(notes: readonly Note[]): BoardDimensions {
   )
 }
 
-function NotesBoard(props: NotePresentationProps) {
+type NotesBoardProps = NotePresentationProps & {
+  focusedNoteId: string | null
+}
+
+function NotesBoard(props: NotesBoardProps) {
   const {
     accumulatedItemByNote,
     accumulationReady,
     editingDraft,
+    focusedNoteId,
     metaClickEnabled,
     notes,
     onAccumulate,
@@ -167,7 +190,9 @@ function NotesBoard(props: NotePresentationProps) {
   } = props
   const viewport = useRef<HTMLDivElement>(null)
   const panGesture = useRef<PanGesture | null>(null)
-  const [view, setView] = useState<BoardView>({ scale: 1, x: 0, y: 0 })
+  const [view, setView] = useState<BoardView>(() =>
+    initialBoardView(notes, focusedNoteId),
+  )
   const dimensions = measureBoard(notes)
   const scaleText = `${Math.round(view.scale * 100).toLocaleString("ko-KR")}%`
   const boardStyle: CSSProperties = {
@@ -343,6 +368,20 @@ function byCreationTime(left: Note, right: Note) {
   return left.createdAt.localeCompare(right.createdAt)
 }
 
+function noteIdFromHash() {
+  const prefix = "#note-"
+
+  if (!window.location.hash.startsWith(prefix)) {
+    return null
+  }
+
+  try {
+    return decodeURIComponent(window.location.hash.slice(prefix.length))
+  } catch {
+    return null
+  }
+}
+
 export function NotesCollection({
   copyNote,
   createNote,
@@ -356,9 +395,40 @@ export function NotesCollection({
   const [creationError, setCreationError] = useState("")
   const [creationPending, setCreationPending] = useState(false)
   const [editingDraft, setEditingDraft] = useState<EditingDraft | null>(null)
+  const [linkedNoteId, setLinkedNoteId] = useState<string | null>(null)
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
   const createLabel = creationPending ? "메모 만드는 중" : "새 메모"
   const empty = orderedNotes.length === 0
+
+  useEffect(() => {
+    let frame = 0
+
+    function focusLinkedNote() {
+      const noteId = noteIdFromHash()
+      const noteExists = notes.some(({ id }) => id === noteId)
+
+      if (noteId === null || !noteExists) {
+        return
+      }
+
+      setLinkedNoteId(noteId)
+      setSelectedNoteId(noteId)
+      frame = requestAnimationFrame(() => {
+        const encodedNoteId = encodeURIComponent(noteId)
+        document
+          .getElementById(`note-${encodedNoteId}-list`)
+          ?.scrollIntoView({ block: "center" })
+      })
+    }
+
+    focusLinkedNote()
+    window.addEventListener("hashchange", focusLinkedNote)
+
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener("hashchange", focusLinkedNote)
+    }
+  }, [notes])
 
   async function createNewNote() {
     setCreationPending(true)
@@ -442,7 +512,11 @@ export function NotesCollection({
         </p>
       ) : null}
       <NotesList {...presentationProps} />
-      <NotesBoard {...presentationProps} />
+      <NotesBoard
+        {...presentationProps}
+        focusedNoteId={linkedNoteId}
+        key={linkedNoteId ?? "notes-board"}
+      />
     </div>
   )
 }

@@ -2,6 +2,7 @@ export { WorkerTextAnalyzer } from "./api/WorkerTextAnalyzer"
 export {
   AnalysisRequestMessageSchema,
   AnalysisResponseMessageSchema,
+  TEXT_ANALYSIS_ALGORITHM,
   type AnalysisInput,
   type AnalysisResponseMessage,
   type TextAnalyzer,

@@ -4,6 +4,11 @@ import { NoteContentReferenceSchema } from "@/entities/note"
 import { AlgorithmReferenceSchema } from "@/shared/lib/algorithm-reference"
 import { EntityIdSchema } from "@/shared/lib/entity-metadata"
 
+export const TEXT_ANALYSIS_ALGORITHM = {
+  type: "surface-v1",
+  version: "1",
+} as const
+
 export const AnalysisLineReferenceSchema = z
   .object({
     lineIndex: z.number().int().nonnegative().safe(),
@@ -17,9 +22,30 @@ export const AnalysisPairSchema = z
     left: AnalysisLineReferenceSchema,
     relation: z.enum(["exact", "containment", "surface"]),
     right: AnalysisLineReferenceSchema,
-    score: z.number().min(0).max(1),
+    score: z.number().min(0).max(1).nullable(),
   })
   .strict()
+  .superRefine((pair, context) => {
+    if (pair.relation === "surface") {
+      if (pair.score === null || pair.score === 0) {
+        context.addIssue({
+          code: "custom",
+          message: "Surface analysis requires a positive score",
+          path: ["score"],
+        })
+      }
+
+      return
+    }
+
+    if (pair.score !== null) {
+      context.addIssue({
+        code: "custom",
+        message: "Classified relations do not have a score",
+        path: ["score"],
+      })
+    }
+  })
 
 const AnalysisInputNoteSchema = z
   .object({
@@ -57,6 +83,10 @@ export type AnalysisRequestMessage = z.infer<
 export type AnalysisResponseMessage = z.infer<
   typeof AnalysisResponseMessageSchema
 >
+export type AnalysisLineReference = z.infer<
+  typeof AnalysisLineReferenceSchema
+>
+export type AnalysisPair = z.infer<typeof AnalysisPairSchema>
 
 export interface TextAnalyzer {
   analyze(input: AnalysisInput): Promise<AnalysisResponseMessage>

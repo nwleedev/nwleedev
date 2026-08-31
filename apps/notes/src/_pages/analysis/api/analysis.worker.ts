@@ -2,6 +2,7 @@ import {
   AnalysisRequestMessageSchema,
   type AnalysisResponseMessage,
 } from "../model/analysisMessage"
+import { analyzeText } from "../model/analyzeText"
 
 type WorkerScope = {
   addEventListener(
@@ -24,7 +25,7 @@ workerScope.addEventListener("message", (event) => {
     algorithm: request.data.algorithm,
     inputNotes: request.data.notes.map(({ note }) => note),
     requestId: request.data.requestId,
-    results: [],
+    results: [...analyzeText(request.data)],
     type: "analysis-result",
   })
 })

@@ -41,6 +41,7 @@ import { PersonalNotesDatabase } from "./indexed-db/PersonalNotesDatabase"
 export type LocalApplication = {
   analysis: {
     analyzer: TextAnalyzer
+    now(): string
   }
   accumulator: {
     createId(): string
@@ -82,7 +83,7 @@ export function createLocalApplication(): LocalApplication {
   )
 
   return {
-    analysis: { analyzer },
+    analysis: { analyzer, now },
     accumulator: {
       createId: () => identifiers.create(),
       now,

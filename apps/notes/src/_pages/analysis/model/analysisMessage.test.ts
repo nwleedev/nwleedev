@@ -42,4 +42,38 @@ describe("analysis Worker message schemas", () => {
       }).success,
     ).toBe(false)
   })
+
+  it("distinguishes classified relations from calculated scores", () => {
+    const response = {
+      algorithm: request.algorithm,
+      inputNotes: request.notes.map(({ note }) => note),
+      requestId: request.requestId,
+      results: [
+        {
+          algorithm: request.algorithm,
+          left: { lineIndex: 0, note: request.notes[0].note },
+          relation: "exact",
+          right: { lineIndex: 1, note: request.notes[0].note },
+          score: 1,
+        },
+      ],
+      type: "analysis-result",
+    }
+
+    expect(AnalysisResponseMessageSchema.safeParse(response).success).toBe(
+      false,
+    )
+    expect(
+      AnalysisResponseMessageSchema.safeParse({
+        ...response,
+        results: [
+          {
+            ...response.results[0],
+            relation: "surface",
+            score: null,
+          },
+        ],
+      }).success,
+    ).toBe(false)
+  })
 })

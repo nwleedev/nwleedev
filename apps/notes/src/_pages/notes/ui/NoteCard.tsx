@@ -27,6 +27,7 @@ import { NoteGeometryControls } from "./NoteGeometryControls"
 
 const NOTE_LONG_PRESS_DELAY_MS = 500
 const NOTE_LONG_PRESS_MOVEMENT_PX = 10
+const SELECTED_NOTE_LAYER = 2_147_483_647
 
 type GeometryGesture = {
   geometry: NoteGeometry
@@ -163,6 +164,7 @@ export function NoteCard({
   const showGeometryControls = showBoardControls && selected
   const accumulatedSelected = accumulatedItemId !== null
   const contentText = note.content || "빈 메모"
+  const targetId = `note-${encodeURIComponent(note.id)}-${placement}`
   const cardClassName = joinClassNames(
     "flex min-h-40 flex-col gap-3 overflow-auto rounded-note border bg-surface-raised p-3 shadow-note transition-[border-color,box-shadow] duration-[var(--notes-motion-fast)]",
     boardPlacement ? "absolute" : "relative",
@@ -182,7 +184,7 @@ export function NoteCard({
         left: geometry.x,
         top: geometry.y,
         width: geometry.width,
-        zIndex: geometry.zIndex,
+        zIndex: selected ? SELECTED_NOTE_LAYER : geometry.zIndex,
       }
     : undefined
 
@@ -507,6 +509,7 @@ export function NoteCard({
   return (
     <article
       className={cardClassName}
+      id={targetId}
       onFocusCapture={() => onSelect(note.id)}
       onPointerDown={() => onSelect(note.id)}
       style={boardStyle}

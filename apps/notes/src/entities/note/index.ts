@@ -14,6 +14,7 @@ export {
   type Note,
   type NoteContentReference,
   type NoteGeometry,
+  type NoteReader,
   type NoteReference,
   type NoteRepository,
   type NoteRevision,
