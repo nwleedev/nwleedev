@@ -8,6 +8,7 @@ import {
   InteractionPreferencesProvider,
   useInteractionPreferences,
 } from "@/_pages/settings/composition"
+import { UsageReaderProvider } from "@/_pages/usage/composition"
 import { AccumulatorProvider } from "@/features/accumulate-note"
 
 import {
@@ -30,27 +31,29 @@ function ApplicationProviders({
       : false
 
   return (
-    <AccumulatorProvider
-      clipboard={application.notes.clipboard}
-      createId={application.accumulator.createId}
-      now={application.accumulator.now}
-      repository={application.accumulator.repository}
-      writer={application.accumulator.writer}
-    >
-      <TextAnalysisProvider analyzer={application.analysis.analyzer}>
-        <NotesDataProvider
-          clipboard={application.notes.clipboard}
-          createId={application.notes.createId}
-          metaClickEnabled={metaClickEnabled}
-          now={application.notes.now}
-          repository={application.notes.repository}
-          storageMonitor={application.notes.storageMonitor}
-          usage={application.notes.usageWriter}
-        >
-          {children}
-        </NotesDataProvider>
-      </TextAnalysisProvider>
-    </AccumulatorProvider>
+    <UsageReaderProvider reader={application.usage.reader}>
+      <AccumulatorProvider
+        clipboard={application.notes.clipboard}
+        createId={application.accumulator.createId}
+        now={application.accumulator.now}
+        repository={application.accumulator.repository}
+        writer={application.accumulator.writer}
+      >
+        <TextAnalysisProvider analyzer={application.analysis.analyzer}>
+          <NotesDataProvider
+            clipboard={application.notes.clipboard}
+            createId={application.notes.createId}
+            metaClickEnabled={metaClickEnabled}
+            now={application.notes.now}
+            repository={application.notes.repository}
+            storageMonitor={application.notes.storageMonitor}
+            usage={application.notes.usageWriter}
+          >
+            {children}
+          </NotesDataProvider>
+        </TextAnalysisProvider>
+      </AccumulatorProvider>
+    </UsageReaderProvider>
   )
 }
 

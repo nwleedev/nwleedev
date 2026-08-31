@@ -363,7 +363,63 @@ async function verifyOrigin(browser, origin, chromiumBrowser) {
   ).toBeEnabled()
   await returnedPanel.getByRole("button", { name: "닫기" }).click()
 
+  await page
+    .getByRole("link", { exact: true, name: "사용 빈도" })
+    .click()
+  await page
+    .getByRole("heading", { level: 1, name: "사용 빈도" })
+    .waitFor()
+  const previousTextUsageRow = page
+    .getByRole("row")
+    .filter({ hasText: "Escape로 저장한 메모" })
+  await expect(
+    previousTextUsageRow.getByRole("cell").nth(0).getByText("3회", {
+      exact: true,
+    }),
+  ).toBeVisible()
+  await expect(
+    previousTextUsageRow.getByRole("cell").nth(1).getByText("2회", {
+      exact: true,
+    }),
+  ).toBeVisible()
+  await expect(
+    previousTextUsageRow.getByRole("cell").nth(2).getByText("5회", {
+      exact: true,
+    }),
+  ).toBeVisible()
+  const currentTextUsageRow = page
+    .getByRole("row")
+    .filter({ hasText: "편집 뒤 누적한 메모" })
+  await expect(
+    currentTextUsageRow.getByRole("cell").nth(0).getByText("0회", {
+      exact: true,
+    }),
+  ).toBeVisible()
+  await expect(
+    currentTextUsageRow.getByRole("cell").nth(1).getByText("1회", {
+      exact: true,
+    }),
+  ).toBeVisible()
+  await expect(
+    currentTextUsageRow.getByRole("cell").nth(2).getByText("1회", {
+      exact: true,
+    }),
+  ).toBeVisible()
   await page.setViewportSize({ height: 720, width: 320 })
+  await expect(
+    currentTextUsageRow.getByText("일반 복사", { exact: true }),
+  ).toBeVisible()
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    )
+    .toBe(true)
+  await page.getByRole("button", { name: "탐색" }).click()
+  await page.getByRole("link", { exact: true, name: "메모" }).click()
   await page
     .getByRole("link", { name: "누적 텍스트 3개 관리" })
     .click()
