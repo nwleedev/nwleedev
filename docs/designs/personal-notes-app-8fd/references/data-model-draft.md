@@ -2,11 +2,11 @@
 
 ## 결론
 
-현재 로컬 애플리케이션은 메모 원문과 공간 좌표를 기준 정보로 두고, 분석용 줄과 정규화 문자열은 요청할 때 만드는 파생 정보로 다룬다. [로컬 저장과 실행 중 상태 결정](../decisions/local-storage-and-ephemeral-state.md)에 따라 전체 revision과 텍스트 전용 content revision을 구분한다. [일괄 복사 순서와 제거 복구 결정](../decisions/accumulator-ordering-and-recovery.md)에 따라 항목 추가 당시 원문 스냅샷을 저장하고 제거 이력은 애플리케이션 실행 중 메모리에 둔다. 선택한 메모, 속성 입력 초안과 모바일 일괄 복사 작업도 저장 엔티티와 분리한 실행 중 상태로 검토한다. 최우선 계정 및 동기화 백로그를 시작하면 이 논리 객체를 유지하면서 저장 방식만 원격 어댑터로 바꿀 수 있는지 다시 검증한다.
+현재 로컬 애플리케이션은 메모 원문과 공간 좌표를 기준 정보로 두고, 분석용 줄과 정규화 문자열은 요청할 때 만드는 파생 정보로 다룬다. [로컬 저장과 실행 중 상태 결정](../decisions/local-storage-and-ephemeral-state.md)에 따라 전체 revision과 텍스트 전용 content revision을 구분한다. [일괄 복사 순서와 제거 복구 결정](../decisions/accumulator-ordering-and-recovery.md)에 따라 항목 추가 당시 원문 스냅샷을 저장하고 제거 이력은 애플리케이션 실행 중 메모리에 둔다. 선택한 메모, 활성 오른쪽 패널, 속성 입력 초안과 모바일 일괄 복사 확인 작업도 저장 엔티티와 분리한 실행 중 상태로 검토한다. 최우선 계정 및 동기화 백로그를 시작하면 이 논리 객체를 유지하면서 저장 방식만 원격 어댑터로 바꿀 수 있는지 다시 검증한다.
 
 안정적인 ID와 revision은 로컬 분석 결과가 어떤 메모 상태를 대상으로 했는지 식별하는 데에도 필요하다. 계정 동기화에 필요한 삭제 표시, 충돌 해결, 삭제 보존 기간과 계정별 보관 범위는 최우선 백로그에서 다룬다. 이 초안은 데이터베이스 스키마가 아니며, 아래 TypeScript 형태는 논리 객체와 쟁점을 검토하기 위한 예시일 뿐 승인된 API나 구현이 아니다.
 
-이 문서는 [개인 메모 애플리케이션 요구사항](../requirements.md)의 공간형 메모, 일괄 복사와 실행 취소, 사용 빈도, 줄 단위 텍스트 분석과 템플릿에 필요한 값을 조사하고, 최우선 계정 및 동기화 백로그의 추가 쟁점을 구분한 참고 자료다. 도메인 설계 담당자와 데이터 설계 담당자가 객체 책임을 검토하고 결정 책임자가 보관 및 동기화 규칙을 승인할 때 사용한다. 공식 문서와 표준은 2026년 8월 30일에 검토했다.
+이 문서는 [개인 메모 애플리케이션 요구사항](../requirements.md)의 공간형 메모, 일괄 복사와 실행 취소, 사용 빈도, 줄 단위 텍스트 분석과 템플릿에 필요한 값을 조사하고, 최우선 계정 및 동기화 백로그의 추가 쟁점을 구분한 참고 자료다. 도메인 설계 담당자와 데이터 설계 담당자가 객체 책임을 검토하고 결정 책임자가 보관 및 동기화 규칙을 승인할 때 사용한다. 공식 문서와 표준은 2026년 8월 30일에 처음 검토하고 모바일 확인 작업 변경에 맞춰 2026년 9월 2일에 다시 확인했다.
 
 ## 조사 근거
 
@@ -105,9 +105,12 @@ interface NoteGeometryDraft {
   fields: NoteGeometryFields;
 }
 
+type RightPanel = "note-properties" | "batch-copy";
+
 interface NoteWorkspaceSession {
   selectedNoteId?: EntityId;
   geometryDraft?: NoteGeometryDraft;
+  activeRightPanel?: RightPanel;
 }
 
 interface RemovedNoteSnapshot {
@@ -120,15 +123,15 @@ interface RemovedNoteSnapshot {
 
 `NoteGeometry`는 화면 픽셀이 아니라 작업 공간 좌표로 해석한다. 그래야 zoom을 바꿔도 메모의 논리 위치와 크기가 바뀌지 않는다. `revision`은 원문과 geometry를 포함한 저장 변경에 증가하고, `contentRevision`은 원문이 달라질 때만 증가한다. 이 구분은 위치, 크기와 겹침 순서만 바꿨을 때 사용 빈도와 분석 결과를 유지한다.
 
-`zIndex`는 한 보드 안의 전체 겹침 순서를 나타낸다. 맨 앞으로 보내기는 대상 메모를 모든 메모 위에, 맨 뒤로 보내기는 모든 메모 아래에 놓고 나머지 메모의 상대 순서는 유지해야 한다. 여러 `zIndex`를 바꾸는 경우 `notes` store의 한 transaction으로 완료한다. 연속 정수로 다시 번호를 매길지, 간격을 둔 순서를 사용하다가 필요할 때 정리할지와 오래된 동률 자료의 보조 정렬 기준은 구현 전에 결정해야 한다. 이 규칙을 정하지 않은 채 현재 최댓값 또는 최솟값만 계속 더하지 않는다.
+`zIndex`는 한 보드 안의 전체 겹침 순서를 나타낸다. 맨 앞으로 보내기는 대상 메모를 모든 메모 위에, 맨 뒤로 보내기는 모든 메모 아래에 놓고 나머지 메모의 상대 순서는 유지해야 한다. 여러 `zIndex`를 바꾸는 경우 `notes` store의 한 transaction으로 완료한다. 키보드 Tab 순서는 높은 `zIndex`부터 낮은 `zIndex` 순으로 같은 전체 순서를 사용하고 양의 `tabindex` 값으로 별도 순서를 만들지 않는다. 연속 정수로 다시 번호를 매길지, 간격을 둔 순서를 사용하다가 필요할 때 정리할지와 오래된 동률 자료의 보조 정렬 기준은 구현 전에 결정해야 한다. 이 규칙을 정하지 않은 채 현재 최댓값 또는 최솟값만 계속 더하지 않는다.
 
-최소 크기, 최대 크기와 좌표 범위는 실제 화면과 성능을 검증하면서 정한다. 작은 화면 목록의 최대 세로 길이는 화면 표현 token이며 `Note.geometry.height`를 바꾸지 않는다.
+오른쪽 속성 패널에서 새로 적용하는 X, Y, 너비와 높이는 유한한 수이고 `0`보다 크며 애플리케이션이 한 곳에서 관리하는 해당 상한 이하여야 한다. 정확한 상한은 실제 화면과 보드 조작 성능을 검증한 뒤 승인한다. HTML 입력 제약과 폼 schema는 같은 규칙을 사용하되 application command가 저장 전에 다시 검사한다. 기존 `0` 좌표 record는 새 입력 검증 때문에 읽지 못하게 만들지 않고 migration 여부를 별도로 결정한다. 작은 화면 목록의 최대 세로 길이는 화면 표현 token이며 `Note.geometry.height`를 바꾸지 않는다.
 
 메모 작업 영역의 너비가 작은 환경의 목록은 별도 메모 엔티티가 아니라 같은 `Note` 객체를 다른 형태로 표시한다. [공간형 보드와 작은 화면 목록 결정](../decisions/responsive-note-presentation.md)에 따라 작업 영역의 inline size가 `48rem` 미만이면 생성 순서로 표시하고, 목록으로 전환할 때 `Note.geometry`를 수정하지 않는다.
 
 `ViewportState`는 기본적으로 기기 로컬에 둔다. 여러 기기에서 같은 보드를 열 때 마지막 pan과 zoom까지 동기화할지는 사용자 기대를 확인한 뒤 결정해야 한다.
 
-`NoteWorkspaceSession.selectedNoteId`는 오른쪽 속성 패널의 대상을 식별할 뿐 메모 자체의 영구 속성이 아니다. 선택이 바뀌거나 route를 벗어나면 유지할 범위는 화면 조작 결정에 따르고, IndexedDB `notes` record에 선택 여부를 추가하지 않는다.
+`NoteWorkspaceSession.selectedNoteId`는 오른쪽 속성 패널의 대상을 식별할 뿐 메모 자체의 영구 속성이 아니다. `activeRightPanel`은 메모 속성 패널과 일괄 복사 패널 가운데 마지막으로 활성화한 패널을 나타낸다. 메모 선택은 `note-properties`를, 일괄 복사 동작은 `batch-copy`를 활성화하지만 패널 전환만으로 선택, 입력 초안이나 일괄 복사 항목을 지우지 않는다. 선택과 활성 패널이 바뀌거나 route를 벗어나면 유지할 범위는 화면 조작 결정에 따르고, IndexedDB `notes` record에 이 상태를 추가하지 않는다.
 
 속성 입력은 사용자가 `-`나 빈 문자열처럼 아직 완성되지 않은 값을 입력할 수 있으므로 저장용 `NoteGeometry`와 별도 문자열 초안으로 둔다. `blur`, 패널 밖 클릭과 `Enter`는 같은 검증 및 적용 동작을 사용하며 유효하고 실제로 달라진 값만 `Note.geometry`에 반영한다. geometry 변경은 전체 revision만 증가시키고 content revision은 유지한다.
 
@@ -175,24 +178,30 @@ interface BatchCopyRemovalHistory {
 
 제거 이력은 애플리케이션 실행 동안 메모리에 두어 라우트 이동 뒤에도 유지하고 새로고침하면 지운다. 실행 취소 뒤 추가, 재정렬 또는 제거가 성공하면 `redo`를 비운다. 추가와 순서 변경 자체는 undo 대상이 아니다.
 
-후속 모바일 요구는 길게 누르기 항목 추가를 폐기하고 화면 헤더 아이콘으로 시작하는 일괄 복사 상태를 도입했다. 같은 메모를 반복해서 누르면 별도 항목과 클릭 횟수를 늘리고 `초기화`로 현재 작업을 비우는 결과는 확정됐다. 다만 `다음`의 목적지, 기존 저장 목록과의 결합, 헤더 뒤로가기와 route 이동 및 새로고침 뒤 수명은 정해지지 않았으므로 아직 IndexedDB record에 넣지 않는다.
+후속 모바일 요구는 길게 누르기 항목 추가를 폐기하고 화면 헤더 아이콘으로 시작하는 일괄 복사 상태를 도입했다. 같은 메모를 반복해서 누르면 별도 항목과 클릭 횟수를 늘리고 `초기화`로 현재 작업을 비우는 결과는 확정됐다. `다음`은 별도 일괄 복사 확인 페이지로 이동한다. 확인 페이지의 재정렬, 복제와 삭제는 이 작업 사본만 바꾸며 원본 메모나 사용 횟수를 바꾸지 않는다. 다만 기존 저장 목록과의 결합, 헤더 뒤로가기, 확인 페이지 이탈과 새로고침 뒤 수명은 정해지지 않았으므로 아직 IndexedDB record에 넣지 않는다.
 
 일괄 복사 상태의 현재 작업이 저장 목록과 분리된 임시 작업으로 승인되는 경우 다음과 같은 실행 중 객체를 검토할 수 있다. 이 예시는 자료 수명 결정이 아니며 `다음`의 저장 결과를 승인하기 전 구현하지 않는다.
 
 ```ts
 interface MobileBatchCopyEntry {
+  id: EntityId;
   sourceNote: NoteContentRef;
   textSnapshot: string;
 }
 
+type MobileBatchCopyStep = "collecting" | "confirming";
+
 interface MobileBatchCopySession {
-  entriesInClickOrder: readonly MobileBatchCopyEntry[];
+  step: MobileBatchCopyStep;
+  entries: readonly MobileBatchCopyEntry[];
   clickCount: number;
   startedAt: IsoDateTime;
 }
 ```
 
-`clickCount`는 `entriesInClickOrder.length`와 같아야 한다. 같은 메모를 반복해서 눌러도 각 클릭 당시의 content revision과 원문 스냅샷을 별도 entry로 남긴다. `초기화`는 두 값을 함께 비우고 일괄 복사 상태는 유지한다.
+`collecting` 단계에서는 `clickCount`가 `entries.length`와 같아야 한다. 같은 메모를 반복해서 눌러도 각 클릭 당시의 content revision과 원문 스냅샷을 고유 ID의 entry로 남긴다. `초기화`는 두 값을 함께 비우고 `collecting` 단계를 유지한다. `다음`은 Clipboard 쓰기 없이 `confirming` 단계로 바꾸고 별도 확인 페이지로 이동한다.
+
+`confirming` 단계에서 재정렬은 `entries` 순서만 바꾼다. 복제는 같은 `sourceNote`와 `textSnapshot`을 가지되 새 ID를 가진 entry를 만들고, 삭제는 대상 ID의 entry 하나만 제거한다. 이 세 동작은 `clickCount`를 바꾸지 않는다. 따라서 확인 단계부터 `clickCount`와 `entries.length`는 달라질 수 있다. 복제한 entry의 삽입 위치, 확인 작업과 저장된 `BatchCopyState`의 결합 방식 및 확인 페이지 이탈 뒤 수명은 별도 결정이 필요하다.
 
 ## 사용 빈도
 
@@ -213,7 +222,7 @@ interface TextUsageAggregate {
 }
 ```
 
-개별 복사는 넓은 화면의 `Command+클릭` 또는 모바일 목록의 길게 누르기로 Clipboard 쓰기와 횟수 저장이 완료된 경우에만 집계한다. Clipboard 쓰기는 성공했지만 횟수 저장이 실패하면 복사 성공을 되돌리지 않고 빈도 기록 실패를 별도로 알린다. 저장된 일괄 복사 항목 추가와 해당 횟수 증가는 `BatchCopyItemWriter`의 한 동작이 같은 IndexedDB transaction으로 완료하며, 제거, 순서 변경, 실행 취소와 다시 실행은 횟수를 바꾸지 않는다. 같은 텍스트를 다시 추가하면 성공한 횟수만큼 증가하고, 서로 다른 메모의 같은 원문은 합치지 않는다. 모바일 작업 초안의 `clickCount`는 사용 빈도가 아니며, `다음`의 저장 결과가 정해지면 실제로 저장한 항목과 해당 횟수를 같은 transaction에 반영한다.
+개별 복사는 넓은 화면의 `Command+클릭` 또는 모바일 목록의 길게 누르기로 Clipboard 쓰기와 횟수 저장이 완료된 경우에만 집계한다. Clipboard 쓰기는 성공했지만 횟수 저장이 실패하면 복사 성공을 되돌리지 않고 빈도 기록 실패를 별도로 알린다. 저장된 일괄 복사 항목 추가와 해당 횟수 증가는 `BatchCopyItemWriter`의 한 동작이 같은 IndexedDB transaction으로 완료하며, 제거, 순서 변경, 실행 취소와 다시 실행은 횟수를 바꾸지 않는다. 같은 텍스트를 다시 추가하면 성공한 횟수만큼 증가하고, 서로 다른 메모의 같은 원문은 합치지 않는다. 모바일 작업 초안의 `clickCount`와 확인 단계의 재정렬, 복제 및 삭제는 사용 빈도가 아니다. 확인 작업의 저장 목록 반영 방식이 정해지면 실제로 저장한 항목과 해당 횟수를 같은 transaction에 반영한다.
 
 시간대별 사용 추이나 감사 기록이 요구되지 않는 초기 범위에서는 모든 클릭 이벤트를 영구 저장하기보다 집계 객체를 갱신하는 편이 데이터 양과 개인정보 노출을 줄인다. 나중에 시계열 분석이 승인되면 별도 이벤트 모델과 보존 기간을 설계해야 한다.
 
