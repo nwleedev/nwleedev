@@ -490,18 +490,58 @@ async function verifyOrigin(browser, origin, chromiumBrowser) {
     page.getByRole("heading", { level: 3, name: "문자열 근접 후보" }),
   ).toBeVisible()
   assert.equal(page.workers().length, 1)
-  await page
+  const surfaceAnalysisResult = page
+    .getByRole("listitem")
+    .filter({ hasText: "문자열 근접 후보" })
+  await surfaceAnalysisResult
     .getByRole("button", { name: "이 두 줄로 템플릿 제안" })
-    .first()
     .click()
   await page
     .getByRole("heading", { level: 2, name: "선택한 원문" })
     .waitFor()
-  const selectedSourceLines = page.getByRole("listitem")
+  const selectedSourceLines = page
+    .getByRole("region", { name: "선택한 원문" })
+    .getByRole("listitem")
   await expect(selectedSourceLines).toHaveCount(2)
-  await expect(selectedSourceLines.first()).toContainText("공통 문장")
+  await expect(
+    selectedSourceLines.filter({ hasText: "요청 번호 123" }),
+  ).toHaveCount(1)
+  await expect(
+    selectedSourceLines.filter({ hasText: "요청 번호 456" }),
+  ).toHaveCount(1)
+  await expect(
+    page.getByRole("heading", { level: 2, name: "제안 편집" }),
+  ).toBeVisible()
+  assert.equal((await readStoreRecords(page, "templates")).length, 0)
+  const suggestedPlaceholderName = page.getByLabel("플레이스홀더 이름")
+  await expect(suggestedPlaceholderName).toHaveValue("입력값 1")
+  await suggestedPlaceholderName.fill("")
+  await page.getByLabel("템플릿 이름").fill("요청 안내")
+  await page.getByRole("button", { name: "템플릿 저장" }).click()
+  await expect(
+    page.getByText("플레이스홀더 이름을 입력하세요.", { exact: true }),
+  ).toBeVisible()
+  await suggestedPlaceholderName.fill("번호")
+  await page.getByRole("button", { name: "템플릿 저장" }).click()
+  await expect(
+    page.getByText("템플릿을 저장했습니다.", { exact: true }),
+  ).toBeVisible()
+  assert.equal((await readStoreRecords(page, "templates")).length, 1)
+  const suggestedTemplateInput = page.getByRole("region", {
+    name: "요청 안내",
+  })
+  await suggestedTemplateInput.getByLabel("번호").fill("777")
+  await suggestedTemplateInput
+    .getByRole("button", { name: "텍스트 생성" })
+    .click()
+  const generatedText = page.getByRole("region", {
+    name: "생성한 텍스트",
+  })
+  await expect(generatedText).toContainText("요청 번호 777")
+  await generatedText.getByRole("button", { name: "복사" }).click()
+  await expect(generatedText.getByRole("status")).toHaveText("복사했습니다.")
   await selectedSourceLines
-    .first()
+    .filter({ hasText: "요청 번호 123" })
     .getByRole("link", { name: "원본 메모로 이동" })
     .click()
   await expect(page).toHaveURL(/#note-/u)
@@ -550,6 +590,103 @@ async function verifyOrigin(browser, origin, chromiumBrowser) {
   await expect(page.getByText("아직 분석하지 않았습니다.")).toBeVisible()
   assert.equal(page.workers().length, 0)
 
+  await page.getByRole("link", { exact: true, name: "템플릿" }).click()
+  await page
+    .getByRole("heading", { level: 1, name: "템플릿" })
+    .waitFor()
+  await expect(
+    page.getByText(
+      "분석에서 두 줄을 선택하거나 새 템플릿을 직접 작성하세요.",
+      { exact: true },
+    ),
+  ).toBeVisible()
+  assert.equal(
+    await page.getByRole("region", { name: "생성한 텍스트" }).count(),
+    0,
+  )
+  const savedSuggestedTemplate = page
+    .getByRole("listitem")
+    .filter({ hasText: "요청 안내" })
+  await savedSuggestedTemplate.getByRole("button", { name: "사용" }).click()
+  await expect(
+    page.getByRole("region", { name: "요청 안내" }),
+  ).toBeVisible()
+
+  if (chromiumBrowser) {
+    await page.getByRole("button", { name: "수동으로 작성" }).click()
+    const manualSource = page.getByLabel("원문")
+    await manualSource.fill(
+      "안녕하세요 민지님, 주문 A123을 확인했습니다.",
+    )
+    await selectTextInTextarea(manualSource, "민지")
+    await page
+      .getByRole("button", { name: "플레이스홀더로 지정" })
+      .click()
+    const manualPlaceholderNames = page.getByLabel("플레이스홀더 이름")
+    await expect(manualPlaceholderNames.first()).toBeFocused()
+    await manualPlaceholderNames.first().fill("이름")
+    await selectTextInTextarea(manualSource, "A123")
+    await page
+      .getByRole("button", { name: "플레이스홀더로 지정" })
+      .click()
+    await expect(manualPlaceholderNames).toHaveCount(2)
+    await expect(manualPlaceholderNames.nth(1)).toBeFocused()
+    await selectTextInTextarea(manualSource, "민지님")
+    await page
+      .getByRole("button", { name: "플레이스홀더로 지정" })
+      .click()
+    await expect(
+      page.getByText(
+        "이미 지정한 플레이스홀더와 겹치지 않는 텍스트를 선택하세요.",
+        { exact: true },
+      ),
+    ).toBeVisible()
+    await manualPlaceholderNames.nth(1).fill("이름")
+    await page.getByLabel("템플릿 이름").fill("주문 확인")
+    await page.getByRole("button", { name: "템플릿 저장" }).click()
+    await expect(
+      page.getByText("다른 플레이스홀더 이름을 입력하세요.", {
+        exact: true,
+      }),
+    ).toHaveCount(2)
+    await manualPlaceholderNames.first().fill("고객 이름")
+    await manualPlaceholderNames.nth(1).fill("주문 번호")
+    await page
+      .getByRole("button", { name: "일반 텍스트로 되돌리기" })
+      .nth(1)
+      .click()
+    await expect(manualSource).toHaveValue(
+      "안녕하세요 민지님, 주문 A123을 확인했습니다.",
+    )
+    await selectTextInTextarea(manualSource, "A123")
+    await page
+      .getByRole("button", { name: "플레이스홀더로 지정" })
+      .click()
+    await page.getByLabel("플레이스홀더 이름").nth(1).fill("주문 번호")
+    await page.getByRole("button", { name: "템플릿 저장" }).click()
+    await expect(
+      page.getByText("템플릿을 저장했습니다.", { exact: true }),
+    ).toBeVisible()
+    assert.equal((await readStoreRecords(page, "templates")).length, 2)
+    await page.reload()
+    await page
+      .getByRole("heading", { level: 1, name: "템플릿" })
+      .waitFor()
+    const savedManualTemplate = page
+      .getByRole("listitem")
+      .filter({ hasText: "주문 확인" })
+    await savedManualTemplate.getByRole("button", { name: "사용" }).click()
+    const manualTemplateInput = page.getByRole("region", {
+      name: "주문 확인",
+    })
+    await expect(manualTemplateInput.getByLabel("고객 이름")).toBeVisible()
+    await expect(manualTemplateInput.getByLabel("주문 번호")).toBeVisible()
+    assert.equal(
+      await page.getByRole("region", { name: "생성한 텍스트" }).count(),
+      0,
+    )
+  }
+
   await context.close()
 }
 
@@ -577,6 +714,19 @@ async function createNote(page, content) {
   const editor = page.getByRole("textbox", { name: "메모 내용" })
   await editor.fill(content)
   await page.getByRole("button", { name: "완료" }).click()
+}
+
+async function selectTextInTextarea(field, selectedText) {
+  await field.evaluate((element, text) => {
+    const start = element.value.indexOf(text)
+
+    if (start < 0) {
+      throw new Error(`Text not found in textarea: ${text}`)
+    }
+
+    element.focus()
+    element.setSelectionRange(start, start + text.length)
+  }, selectedText)
 }
 
 async function touchStart(client, bounds) {
@@ -935,7 +1085,7 @@ async function run() {
     }
 
     process.stdout.write(
-      "Static HTTP and HTTPS storage isolation, Worker, and address checks passed in Chromium, Firefox, and WebKit.\n",
+      "Static HTTP and HTTPS storage isolation, Worker, template, and address checks passed in Chromium, Firefox, and WebKit.\n",
     )
   } finally {
     await Promise.all(browsers.map((browser) => browser.close()))

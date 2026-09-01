@@ -62,6 +62,9 @@ export type LocalApplication = {
     repository: InteractionPreferencesRepository
   }
   templates: {
+    clipboard: ClipboardWriter
+    createId(): string
+    now(): string
     repository: TemplateRepository
   }
   usage: {
@@ -107,6 +110,9 @@ export function createLocalApplication(): LocalApplication {
       repository: new IndexedDbInteractionPreferencesRepository(database),
     },
     templates: {
+      clipboard: new BrowserClipboardWriter(),
+      createId: () => identifiers.create(),
+      now,
       repository: new IndexedDbTemplateRepository(database),
     },
     usage: { reader: usage, writer: usage },

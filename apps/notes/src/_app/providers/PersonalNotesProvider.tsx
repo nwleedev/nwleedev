@@ -9,6 +9,7 @@ import {
   useInteractionPreferences,
 } from "@/_pages/settings/composition"
 import { UsageReaderProvider } from "@/_pages/usage/composition"
+import { TemplateDataProvider } from "@/_pages/templates/composition"
 import { AccumulatorProvider } from "@/features/accumulate-note"
 import { SelectedSourceLinesProvider } from "@/features/suggest-template"
 
@@ -75,9 +76,16 @@ export function PersonalNotesProvider({ children }: PropsWithChildren) {
       repository={application.preferences.repository}
     >
       <SelectedSourceLinesProvider>
-        <ApplicationProviders application={application}>
-          {children}
-        </ApplicationProviders>
+        <TemplateDataProvider
+          clipboard={application.templates.clipboard}
+          createId={application.templates.createId}
+          now={application.templates.now}
+          repository={application.templates.repository}
+        >
+          <ApplicationProviders application={application}>
+            {children}
+          </ApplicationProviders>
+        </TemplateDataProvider>
       </SelectedSourceLinesProvider>
     </InteractionPreferencesProvider>
   )

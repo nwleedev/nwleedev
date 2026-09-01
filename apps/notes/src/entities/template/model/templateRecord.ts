@@ -16,9 +16,9 @@ const LiteralSegmentSchema = z
 const PlaceholderSegmentSchema = z
   .object({
     defaultValue: z.string().optional(),
-    key: z.string().min(1),
+    key: z.string().trim().min(1),
     kind: z.literal("placeholder"),
-    label: z.string().min(1),
+    label: z.string().trim().min(1),
   })
   .strict()
 
@@ -26,6 +26,44 @@ export const TemplateSegmentSchema = z.discriminatedUnion("kind", [
   LiteralSegmentSchema,
   PlaceholderSegmentSchema,
 ])
+
+export type TemplateSegment = z.infer<typeof TemplateSegmentSchema>
+
+export type PlaceholderLabelIssue = {
+  key: string
+  reason: "duplicate" | "empty"
+}
+
+export function findPlaceholderLabelIssues(
+  segments: readonly TemplateSegment[],
+): readonly PlaceholderLabelIssue[] {
+  const placeholders = segments.filter(
+    (segment) => segment.kind === "placeholder",
+  )
+  const labelCounts = new Map<string, number>()
+
+  for (const placeholder of placeholders) {
+    const label = placeholder.label.trim()
+    labelCounts.set(label, (labelCounts.get(label) ?? 0) + 1)
+  }
+
+  const issues: PlaceholderLabelIssue[] = []
+
+  for (const placeholder of placeholders) {
+    const label = placeholder.label.trim()
+
+    if (label.length === 0) {
+      issues.push({ key: placeholder.key, reason: "empty" })
+      continue
+    }
+
+    if ((labelCounts.get(label) ?? 0) > 1) {
+      issues.push({ key: placeholder.key, reason: "duplicate" })
+    }
+  }
+
+  return issues
+}
 
 export const TemplateRecordSchema = z
   .object({
@@ -38,9 +76,11 @@ export const TemplateRecordSchema = z
   })
   .strict()
   .superRefine(({ segments }, context) => {
-    const keys = segments.flatMap((segment) =>
-      segment.kind === "placeholder" ? [segment.key] : [],
+    const placeholders = segments.filter(
+      (segment) => segment.kind === "placeholder",
     )
+    const keys = placeholders.map(({ key }) => key)
+    const labelIssues = findPlaceholderLabelIssues(segments)
 
     if (new Set(keys).size !== keys.length) {
       context.addIssue({
@@ -49,9 +89,16 @@ export const TemplateRecordSchema = z
         path: ["segments"],
       })
     }
+
+    if (labelIssues.length > 0) {
+      context.addIssue({
+        code: "custom",
+        message: "Placeholder labels must be unique",
+        path: ["segments"],
+      })
+    }
   })
 
-export type TemplateSegment = z.infer<typeof TemplateSegmentSchema>
 export type TextTemplate = z.infer<typeof TemplateRecordSchema>
 
 export interface TemplateRepository {

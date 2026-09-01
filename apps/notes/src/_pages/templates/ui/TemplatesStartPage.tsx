@@ -1,12 +1,25 @@
 "use client"
 
+import { useState } from "react"
+
 import { useSelectedSourceLines } from "@/features/suggest-template"
 import { PageHeading } from "@/shared/ui/page-heading"
 
+import { useTemplateData } from "../model/TemplateDataProvider"
+import { SavedTemplates } from "./SavedTemplates"
 import { SelectedSourceLinesPreview } from "./SelectedSourceLinesPreview"
+import { TemplateAuthoring } from "./TemplateAuthoring"
+import { TemplateInputForm } from "./TemplateInputForm"
 
 export function TemplatesStartPage() {
   const sourceLines = useSelectedSourceLines()
+  const templates = useTemplateData()
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    null,
+  )
+  const selectedTemplate = templates.status === "ready"
+    ? templates.templates.find(({ id }) => id === selectedTemplateId)
+    : undefined
 
   return (
     <main
@@ -18,9 +31,22 @@ export function TemplatesStartPage() {
         {sourceLines.selection ? (
           <SelectedSourceLinesPreview selection={sourceLines.selection} />
         ) : null}
-        <section className="grid min-h-[24rem] place-items-center rounded-panel border border-line bg-surface-raised p-6 shadow-note">
-          <p className="text-sm text-soft-ink">템플릿이 없습니다.</p>
+        <TemplateAuthoring onSaved={setSelectedTemplateId} />
+        <section aria-labelledby="saved-templates-title" className="grid gap-3">
+          <h2 className="font-display text-base font-bold" id="saved-templates-title">
+            저장된 템플릿
+          </h2>
+          <SavedTemplates
+            onSelect={setSelectedTemplateId}
+            selectedTemplateId={selectedTemplateId}
+          />
         </section>
+        {selectedTemplate ? (
+          <TemplateInputForm
+            key={selectedTemplate.id}
+            template={selectedTemplate}
+          />
+        ) : null}
       </div>
     </main>
   )

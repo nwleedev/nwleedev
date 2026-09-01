@@ -1,13 +1,6 @@
-const graphemeSegmenter = new Intl.Segmenter(undefined, {
-  granularity: "grapheme",
-})
+import { splitGraphemes } from "@/shared/lib/grapheme"
 
-export function splitGraphemes(text: string) {
-  return Array.from(
-    graphemeSegmenter.segment(text),
-    ({ segment }) => segment,
-  )
-}
+export { splitGraphemes }
 
 export function createGraphemeNgrams(text: string, size = 3) {
   const graphemes = splitGraphemes(text)
