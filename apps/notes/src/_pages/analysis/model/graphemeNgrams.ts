@@ -2,8 +2,10 @@ import { splitGraphemes } from "@/shared/lib/grapheme"
 
 export { splitGraphemes }
 
-export function createGraphemeNgrams(text: string, size = 3) {
-  const graphemes = splitGraphemes(text)
+export function createGraphemeNgramsFromSegments(
+  graphemes: readonly string[],
+  size = 3,
+) {
   const ngrams = new Set<string>()
 
   for (let index = 0; index <= graphemes.length - size; index += 1) {
@@ -11,6 +13,10 @@ export function createGraphemeNgrams(text: string, size = 3) {
   }
 
   return ngrams
+}
+
+export function createGraphemeNgrams(text: string, size = 3) {
+  return createGraphemeNgramsFromSegments(splitGraphemes(text), size)
 }
 
 export function calculateJaccard(

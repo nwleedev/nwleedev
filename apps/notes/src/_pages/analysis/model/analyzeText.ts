@@ -1,71 +1,43 @@
 import type {
   AnalysisInput,
   AnalysisPair,
-  AnalysisLineReference,
+  AnalysisSourceLine,
 } from "./analysisMessage"
+import { compareAnalysisPairs } from "./analysisOrder"
 import {
   calculateJaccard,
-  createGraphemeNgrams,
+  createGraphemeNgramsFromSegments,
   splitGraphemes,
 } from "./graphemeNgrams"
 import {
-  compareCodePointStrings,
   prepareAnalysisLines,
   type PreparedAnalysisLine,
 } from "./normalizeLines"
 
-const relationOrder = {
-  exact: 0,
-  containment: 1,
-  surface: 2,
-} as const
-
-function lineReference(line: PreparedAnalysisLine): AnalysisLineReference {
-  return { lineIndex: line.lineIndex, note: line.note }
+type SurfaceFeatures = {
+  graphemeCount: number
+  ngrams: ReadonlySet<string>
 }
 
-function compareReferences(
-  left: AnalysisLineReference,
-  right: AnalysisLineReference,
-) {
-  const noteComparison = compareCodePointStrings(left.note.id, right.note.id)
-
-  if (noteComparison !== 0) {
-    return noteComparison
+function lineReference(line: PreparedAnalysisLine) {
+  return {
+    lineIndex: line.lineIndex,
+    note: line.note,
   }
-
-  return left.lineIndex - right.lineIndex
 }
 
-function comparePairs(left: AnalysisPair, right: AnalysisPair) {
-  const relationComparison =
-    relationOrder[left.relation] - relationOrder[right.relation]
-
-  if (relationComparison !== 0) {
-    return relationComparison
+function sourceLine(line: PreparedAnalysisLine): AnalysisSourceLine {
+  return {
+    ...lineReference(line),
+    rawText: line.rawText,
   }
-
-  if (left.relation === "surface" && right.relation === "surface") {
-    const scoreComparison = (right.score ?? 0) - (left.score ?? 0)
-
-    if (scoreComparison !== 0) {
-      return scoreComparison
-    }
-  }
-
-  const leftComparison = compareReferences(left.left, right.left)
-
-  if (leftComparison !== 0) {
-    return leftComparison
-  }
-
-  return compareReferences(left.right, right.right)
 }
 
 function classifyPair(
   input: AnalysisInput,
   left: PreparedAnalysisLine,
   right: PreparedAnalysisLine,
+  surfaceFeatures: (line: PreparedAnalysisLine) => SurfaceFeatures,
 ): AnalysisPair | null {
   const commonPair = {
     algorithm: input.algorithm,
@@ -85,16 +57,16 @@ function classifyPair(
     return { ...commonPair, relation: "containment", score: null }
   }
 
-  const leftGraphemes = splitGraphemes(left.normalizedText)
-  const rightGraphemes = splitGraphemes(right.normalizedText)
+  const leftSurface = surfaceFeatures(left)
+  const rightSurface = surfaceFeatures(right)
 
-  if (leftGraphemes.length < 3 || rightGraphemes.length < 3) {
+  if (leftSurface.graphemeCount < 3 || rightSurface.graphemeCount < 3) {
     return null
   }
 
   const score = calculateJaccard(
-    createGraphemeNgrams(left.normalizedText),
-    createGraphemeNgrams(right.normalizedText),
+    leftSurface.ngrams,
+    rightSurface.ngrams,
   )
 
   if (score === 0) {
@@ -104,9 +76,32 @@ function classifyPair(
   return { ...commonPair, relation: "surface", score }
 }
 
-export function analyzeText(input: AnalysisInput): readonly AnalysisPair[] {
+export type TextAnalysisComputation = {
+  results: AnalysisPair[]
+  sourceLines: AnalysisSourceLine[]
+}
+
+export function analyzeText(input: AnalysisInput): TextAnalysisComputation {
   const lines = prepareAnalysisLines(input.notes)
   const results: AnalysisPair[] = []
+  const resultLines = new Set<PreparedAnalysisLine>()
+  const surfaceByLine = new Map<PreparedAnalysisLine, SurfaceFeatures>()
+
+  function surfaceFeatures(line: PreparedAnalysisLine) {
+    const existing = surfaceByLine.get(line)
+
+    if (existing !== undefined) {
+      return existing
+    }
+
+    const graphemes = splitGraphemes(line.normalizedText)
+    const features = {
+      graphemeCount: graphemes.length,
+      ngrams: createGraphemeNgramsFromSegments(graphemes),
+    }
+    surfaceByLine.set(line, features)
+    return features
+  }
 
   for (let leftIndex = 0; leftIndex < lines.length; leftIndex += 1) {
     for (
@@ -114,13 +109,23 @@ export function analyzeText(input: AnalysisInput): readonly AnalysisPair[] {
       rightIndex < lines.length;
       rightIndex += 1
     ) {
-      const pair = classifyPair(input, lines[leftIndex], lines[rightIndex])
+      const pair = classifyPair(
+        input,
+        lines[leftIndex],
+        lines[rightIndex],
+        surfaceFeatures,
+      )
 
       if (pair !== null) {
         results.push(pair)
+        resultLines.add(lines[leftIndex])
+        resultLines.add(lines[rightIndex])
       }
     }
   }
 
-  return results.sort(comparePairs)
+  return {
+    results: results.sort(compareAnalysisPairs),
+    sourceLines: lines.filter((line) => resultLines.has(line)).map(sourceLine),
+  }
 }

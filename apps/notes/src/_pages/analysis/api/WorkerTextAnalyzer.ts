@@ -7,10 +7,16 @@ import {
   type AnalysisResponseMessage,
   type TextAnalyzer,
 } from "../model/analysisMessage"
+import { analysisResponseMatchesInput } from "../model/analysisRunState"
 
 type PendingAnalysis = {
+  input: AnalysisInput
   reject(reason: Error): void
   resolve(result: AnalysisResponseMessage): void
+}
+
+function analysisError(reason: unknown, fallback: string) {
+  return reason instanceof Error ? reason : new Error(fallback)
 }
 
 export class WorkerTextAnalyzer implements TextAnalyzer {
@@ -29,20 +35,32 @@ export class WorkerTextAnalyzer implements TextAnalyzer {
       requestId,
       type: "analyze",
     })
-    const worker = this.#getWorker()
+    const requestInput: AnalysisInput = {
+      algorithm: message.algorithm,
+      notes: message.notes,
+    }
+    let worker: Worker
+
+    try {
+      worker = this.#getWorker()
+    } catch (reason) {
+      return Promise.reject(
+        analysisError(reason, "Text analysis could not start"),
+      )
+    }
 
     return new Promise<AnalysisResponseMessage>((resolve, reject) => {
-      this.#pending.set(requestId, { reject, resolve })
+      this.#pending.set(requestId, {
+        input: requestInput,
+        reject,
+        resolve,
+      })
 
       try {
         worker.postMessage(message)
       } catch (reason) {
         this.#pending.delete(requestId)
-        reject(
-          reason instanceof Error
-            ? reason
-            : new Error("Text analysis could not start"),
-        )
+        reject(analysisError(reason, "Text analysis could not start"))
       }
     })
   }
@@ -73,7 +91,7 @@ export class WorkerTextAnalyzer implements TextAnalyzer {
     const parsed = AnalysisResponseMessageSchema.safeParse(event.data)
 
     if (!parsed.success) {
-      this.#rejectPending(new Error("Text analysis returned invalid data"))
+      this.#failWorker(new Error("Text analysis returned invalid data"))
       return
     }
 
@@ -83,14 +101,25 @@ export class WorkerTextAnalyzer implements TextAnalyzer {
       return
     }
 
+    if (!analysisResponseMatchesInput(parsed.data, pending.input)) {
+      this.#failWorker(
+        new Error("Text analysis returned data for another request"),
+      )
+      return
+    }
+
     this.#pending.delete(parsed.data.requestId)
     pending.resolve(parsed.data)
   }
 
   #handleError = () => {
+    this.#failWorker(new Error("Text analysis failed"))
+  }
+
+  #failWorker(error: Error) {
     this.#worker?.terminate()
     this.#worker = null
-    this.#rejectPending(new Error("Text analysis failed"))
+    this.#rejectPending(error)
   }
 
   #rejectPending(error: Error) {

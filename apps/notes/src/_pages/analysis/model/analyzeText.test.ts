@@ -15,8 +15,26 @@ describe("createGraphemeNgrams", () => {
 })
 
 describe("analyzeText", () => {
+  it.each([
+    ["한 줄", 0],
+    ["첫 줄\n첫 줄", 1],
+    ["첫 줄\n첫 줄\n첫 줄", 3],
+  ])("creates every source pair for %s", (content, pairCount) => {
+    const analysis = analyzeText({
+      algorithm,
+      notes: [
+        {
+          content,
+          note: { contentRevision: 1, id: "note-one" },
+        },
+      ],
+    })
+
+    expect(analysis.results).toHaveLength(pairCount)
+  })
+
   it("compares each source position once inside the same note", () => {
-    const results = analyzeText({
+    const analysis = analyzeText({
       algorithm,
       notes: [
         {
@@ -26,8 +44,9 @@ describe("analyzeText", () => {
       ],
     })
 
-    expect(results).toHaveLength(3)
-    expect(results.map(({ left, relation, right, score }) => ({
+    expect(analysis.results).toHaveLength(3)
+    expect(analysis.sourceLines).toHaveLength(3)
+    expect(analysis.results.map(({ left, relation, right, score }) => ({
       left: left.lineIndex,
       relation,
       right: right.lineIndex,
@@ -40,7 +59,7 @@ describe("analyzeText", () => {
   })
 
   it("returns positive surface candidates and excludes zero or short comparisons", () => {
-    const results = analyzeText({
+    const { results } = analyzeText({
       algorithm,
       notes: [
         {
@@ -68,7 +87,7 @@ describe("analyzeText", () => {
   })
 
   it("uses source positions as stable tie breakers", () => {
-    const results = analyzeText({
+    const { results } = analyzeText({
       algorithm,
       notes: [
         {
@@ -85,6 +104,31 @@ describe("analyzeText", () => {
       [0, 1],
       [0, 2],
       [1, 2],
+    ])
+  })
+
+  it("uses note identifiers before line positions for equal scores", () => {
+    const { results } = analyzeText({
+      algorithm,
+      notes: [
+        {
+          content: "abcdef",
+          note: { contentRevision: 1, id: "note-b" },
+        },
+        {
+          content: "abcxyz\nabcuvw",
+          note: { contentRevision: 1, id: "note-a" },
+        },
+      ],
+    })
+
+    expect(results.map(({ left, right }) => [
+      [left.note.id, left.lineIndex],
+      [right.note.id, right.lineIndex],
+    ])).toEqual([
+      [["note-a", 0], ["note-a", 1]],
+      [["note-a", 0], ["note-b", 0]],
+      [["note-a", 1], ["note-b", 0]],
     ])
   })
 })

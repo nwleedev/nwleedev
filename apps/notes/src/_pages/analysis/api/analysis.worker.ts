@@ -21,11 +21,14 @@ workerScope.addEventListener("message", (event) => {
     return
   }
 
+  const analysis = analyzeText(request.data)
+
   workerScope.postMessage({
     algorithm: request.data.algorithm,
     inputNotes: request.data.notes.map(({ note }) => note),
     requestId: request.data.requestId,
-    results: [...analyzeText(request.data)],
+    results: analysis.results,
+    sourceLines: analysis.sourceLines,
     type: "analysis-result",
   })
 })

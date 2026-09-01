@@ -18,13 +18,12 @@ import {
   type TextAnalyzer,
 } from "./analysisMessage"
 import {
-  analysisResponseIsCurrent,
-  analysisResponseUsesAlgorithm,
-} from "./analysisRunState"
-import {
-  projectAnalysisResults,
+  createAnalysisRows,
   type AnalysisResultRow,
-} from "./analysisResultProjection"
+} from "./analysisRows"
+import {
+  analysisResponseIsCurrent,
+} from "./analysisRunState"
 
 export type CompletedTextAnalysis = {
   completedAt: string
@@ -95,16 +94,6 @@ export function TextAnalysisProvider({
       }
 
       if (
-        !analysisResponseUsesAlgorithm(
-          response,
-          TEXT_ANALYSIS_ALGORITHM,
-        )
-      ) {
-        setState({ status: "failure" })
-        return
-      }
-
-      if (
         !analysisResponseIsCurrent(
           response,
           contentReferences(currentNotes),
@@ -115,7 +104,7 @@ export function TextAnalysisProvider({
         return
       }
 
-      const rows = projectAnalysisResults(input, response)
+      const rows = createAnalysisRows(response)
 
       if (rows === null) {
         setState({ status: "failure" })

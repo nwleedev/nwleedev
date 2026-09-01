@@ -1,7 +1,12 @@
 import type { NoteContentReference } from "@/entities/note"
 import type { AlgorithmReference } from "@/shared/lib/algorithm-reference"
 
-import type { AnalysisResponseMessage } from "./analysisMessage"
+import type {
+  AnalysisInput,
+  AnalysisResponseMessage,
+  AnalysisSourceLine,
+} from "./analysisMessage"
+import { normalizeAnalysisText } from "./normalizeLines"
 
 function algorithmsAreEqual(
   left: AlgorithmReference,
@@ -24,23 +29,81 @@ export function analysisResponseUsesAlgorithm(
 }
 
 function contentReferencesAreEqual(
-  expected: readonly NoteContentReference[],
-  current: readonly NoteContentReference[],
+  left: readonly NoteContentReference[],
+  right: readonly NoteContentReference[],
 ) {
-  if (expected.length !== current.length) {
+  if (left.length !== right.length) {
     return false
   }
 
-  const currentRevisionByNote = new Map(
-    current.map(({ contentRevision, id }) => [id, contentRevision]),
+  const leftRevisionByNote = new Map(
+    left.map(({ contentRevision, id }) => [id, contentRevision]),
+  )
+  const rightRevisionByNote = new Map(
+    right.map(({ contentRevision, id }) => [id, contentRevision]),
   )
 
-  if (currentRevisionByNote.size !== current.length) {
+  if (
+    leftRevisionByNote.size !== left.length ||
+    rightRevisionByNote.size !== right.length
+  ) {
     return false
   }
 
-  return expected.every(({ contentRevision, id }) =>
-    currentRevisionByNote.get(id) === contentRevision,
+  return left.every(({ contentRevision, id }) =>
+    rightRevisionByNote.get(id) === contentRevision,
+  )
+}
+
+function resultLinesMatchInput(
+  response: AnalysisResponseMessage,
+  input: AnalysisInput,
+) {
+  const sourceNotes = new Map(
+    input.notes.map((source) => [source.note.id, source]),
+  )
+  const rawLinesByNote = new Map<string, readonly string[]>()
+
+  function lineMatchesInput(line: AnalysisSourceLine) {
+    const source = sourceNotes.get(line.note.id)
+
+    if (
+      source === undefined ||
+      source.note.contentRevision !== line.note.contentRevision
+    ) {
+      return false
+    }
+
+    let rawLines = rawLinesByNote.get(line.note.id)
+
+    if (rawLines === undefined) {
+      rawLines = source.content.split(/\r\n|\r|\n/u)
+      rawLinesByNote.set(line.note.id, rawLines)
+    }
+
+    const rawText = rawLines[line.lineIndex]
+    return (
+      rawText !== undefined &&
+      rawText === line.rawText &&
+      normalizeAnalysisText(rawText).length > 0
+    )
+  }
+
+  return response.sourceLines.every(lineMatchesInput)
+}
+
+export function analysisResponseMatchesInput(
+  response: AnalysisResponseMessage,
+  input: AnalysisInput,
+) {
+  if (!analysisResponseUsesAlgorithm(response, input.algorithm)) {
+    return false
+  }
+
+  const inputNotes = input.notes.map(({ note }) => note)
+  return (
+    contentReferencesAreEqual(response.inputNotes, inputNotes) &&
+    resultLinesMatchInput(response, input)
   )
 }
 

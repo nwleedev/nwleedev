@@ -1,5 +1,7 @@
 import type { NoteContentReference } from "@/entities/note"
 
+import { compareCodePointStrings } from "./analysisOrder"
+
 export type AnalysisSourceNote = {
   content: string
   note: NoteContentReference
@@ -10,23 +12,6 @@ export type PreparedAnalysisLine = {
   normalizedText: string
   note: NoteContentReference
   rawText: string
-}
-
-export function compareCodePointStrings(left: string, right: string) {
-  const leftCodePoints = Array.from(left)
-  const rightCodePoints = Array.from(right)
-  const sharedLength = Math.min(leftCodePoints.length, rightCodePoints.length)
-
-  for (let index = 0; index < sharedLength; index += 1) {
-    const leftValue = leftCodePoints[index].codePointAt(0) ?? 0
-    const rightValue = rightCodePoints[index].codePointAt(0) ?? 0
-
-    if (leftValue !== rightValue) {
-      return leftValue - rightValue
-    }
-  }
-
-  return leftCodePoints.length - rightCodePoints.length
 }
 
 export function normalizeAnalysisText(rawText: string) {

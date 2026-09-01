@@ -3,9 +3,9 @@ import Link from "next/link"
 import type { SelectedSourceLines } from "@/features/suggest-template"
 import { Button } from "@/shared/ui/button"
 
+import type { AnalysisSourceLine as AnalysisSourceLineValue } from "../model/analysisMessage"
+import type { AnalysisResultRow } from "../model/analysisRows"
 import type { CompletedTextAnalysis } from "../model/TextAnalysisProvider"
-import type { AnalysisResultRow } from "../model/analysisResultProjection"
-import type { PreparedAnalysisLine } from "../model/normalizeLines"
 
 const completedTimeFormatter = new Intl.DateTimeFormat("ko-KR", {
   dateStyle: "medium",
@@ -24,7 +24,7 @@ const relationLabels = {
 } as const
 
 type AnalysisSourceLineProps = {
-  line: PreparedAnalysisLine
+  line: AnalysisSourceLineValue
 }
 
 function AnalysisSourceLine({ line }: AnalysisSourceLineProps) {
