@@ -131,6 +131,21 @@ function isMetaAccumulationClick(
   return event.button === 0
 }
 
+function clipboardFailureMessage(result: Extract<
+  CopyNoteResult,
+  { status: "clipboard-failure" }
+>) {
+  if (result.reason === "api-unavailable") {
+    return "이 브라우저에서는 클립보드에 복사할 수 없습니다. 텍스트를 직접 선택해 복사하세요."
+  }
+
+  if (result.reason === "not-allowed") {
+    return "클립보드 쓰기가 허용되지 않았습니다. 브라우저의 사이트 권한을 확인한 뒤 다시 시도하세요."
+  }
+
+  return "클립보드에 쓰지 못했습니다. 다시 시도하거나 텍스트를 직접 선택해 복사하세요."
+}
+
 export function NoteCard({
   accumulatedItemId,
   accumulationReady,
@@ -152,7 +167,8 @@ export function NoteCard({
   selected,
 }: NoteCardProps) {
   const [errorMessage, setErrorMessage] = useState("")
-  const [geometry, setGeometry] = useState(note.geometry)
+  const [geometryPreview, setGeometryPreview] =
+    useState<NoteGeometry | null>(null)
   const [mobilePressActive, setMobilePressActive] = useState(false)
   const [notice, setNotice] = useState<NoteInteractionNotice | null>(null)
   const [pending, setPending] = useState(false)
@@ -163,6 +179,7 @@ export function NoteCard({
   const showBoardControls = boardPlacement && !editing
   const showGeometryControls = showBoardControls && selected
   const accumulatedSelected = accumulatedItemId !== null
+  const geometry = geometryPreview ?? note.geometry
   const contentText = note.content || "빈 메모"
   const targetId = `note-${encodeURIComponent(note.id)}-${placement}`
   const cardClassName = joinClassNames(
@@ -220,7 +237,7 @@ export function NoteCard({
       return
     }
 
-    setGeometry(geometryFromGesture(event, currentGesture, scale))
+    setGeometryPreview(geometryFromGesture(event, currentGesture, scale))
   }
 
   async function persistGeometry(nextGeometry: NoteGeometry) {
@@ -229,6 +246,7 @@ export function NoteCard({
 
     try {
       await onSaveGeometry(note, nextGeometry)
+      setGeometryPreview(null)
     } catch {
       setErrorMessage("메모 배치를 저장하지 못했습니다. 다시 시도하세요.")
     } finally {
@@ -246,7 +264,7 @@ export function NoteCard({
     const nextGeometry = geometryFromGesture(event, currentGesture, scale)
     gesture.current = null
     event.currentTarget.releasePointerCapture(event.pointerId)
-    setGeometry(nextGeometry)
+    setGeometryPreview(nextGeometry)
     void persistGeometry(nextGeometry)
   }
 
@@ -258,7 +276,7 @@ export function NoteCard({
     }
 
     gesture.current = null
-    setGeometry(currentGesture.geometry)
+    setGeometryPreview(currentGesture.geometry)
   }
 
   async function completeEditing() {
@@ -303,8 +321,7 @@ export function NoteCard({
     } else {
       setNotice({
         kind: "error",
-        message:
-          "복사하지 못했습니다. 브라우저의 클립보드 권한을 확인하세요.",
+        message: clipboardFailureMessage(result),
         retry: "copy",
       })
     }
@@ -576,7 +593,7 @@ export function NoteCard({
       {showGeometryControls ? (
         <NoteGeometryControls
           geometry={geometry}
-          onChange={setGeometry}
+          onChange={setGeometryPreview}
           onCommit={persistGeometry}
           pending={pending}
         />

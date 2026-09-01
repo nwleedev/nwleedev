@@ -1,6 +1,9 @@
 import type { Note } from "@/entities/note"
 import type { OrdinaryCopyUsageWriter } from "@/entities/usage"
-import type { ClipboardWriter } from "@/shared/lib/clipboard"
+import type {
+  ClipboardWriteFailureReason,
+  ClipboardWriter,
+} from "@/shared/lib/clipboard"
 
 type CopyNoteDependencies = {
   clipboard: ClipboardWriter
@@ -9,17 +12,23 @@ type CopyNoteDependencies = {
 
 export type CopyNoteResult =
   | { status: "copied" }
-  | { status: "clipboard-failure" }
+  | {
+      reason: ClipboardWriteFailureReason
+      status: "clipboard-failure"
+    }
   | { status: "usage-failure" }
 
 export async function copyNote(
   dependencies: CopyNoteDependencies,
   note: Note,
 ): Promise<CopyNoteResult> {
-  try {
-    await dependencies.clipboard.writeText(note.content)
-  } catch {
-    return { status: "clipboard-failure" }
+  const clipboard = await dependencies.clipboard.writeText(note.content)
+
+  if (clipboard.status === "failed") {
+    return {
+      reason: clipboard.reason,
+      status: "clipboard-failure",
+    }
   }
 
   try {

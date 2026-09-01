@@ -14,7 +14,10 @@ import {
   type TemplateSegment,
   type TextTemplate,
 } from "@/entities/template"
-import type { ClipboardWriter } from "@/shared/lib/clipboard"
+import type {
+  ClipboardWriteFailureReason,
+  ClipboardWriter,
+} from "@/shared/lib/clipboard"
 
 type TemplateDataState =
   | { status: "loading" }
@@ -27,7 +30,7 @@ export type CreateTemplateResult =
 
 export type CopyTemplateResult =
   | { status: "copied" }
-  | { status: "failure" }
+  | { reason: ClipboardWriteFailureReason; status: "failure" }
 
 type TemplateDataContextValue = TemplateDataState & {
   copyText(text: string): Promise<CopyTemplateResult>
@@ -126,12 +129,13 @@ export function TemplateDataProvider({
   }
 
   async function copyText(text: string): Promise<CopyTemplateResult> {
-    try {
-      await clipboard.writeText(text)
-      return { status: "copied" }
-    } catch {
-      return { status: "failure" }
+    const result = await clipboard.writeText(text)
+
+    if (result.status === "failed") {
+      return { reason: result.reason, status: "failure" }
     }
+
+    return { status: "copied" }
   }
 
   return (

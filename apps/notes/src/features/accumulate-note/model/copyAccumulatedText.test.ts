@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest"
 
 import type { Accumulator } from "@/entities/accumulator"
-import type { ClipboardWriter } from "@/shared/lib/clipboard"
+import type {
+  ClipboardWriteResult,
+  ClipboardWriter,
+} from "@/shared/lib/clipboard"
 
 import { copyAccumulatedText } from "./copyAccumulatedText"
 
@@ -31,19 +34,22 @@ const accumulator: Accumulator = {
 class RecordingClipboard implements ClipboardWriter {
   text: string | null = null
 
-  constructor(private readonly failure: Error | null = null) {}
+  constructor(
+    private readonly result: ClipboardWriteResult = { status: "written" },
+  ) {}
 
   async writeText(text: string) {
-    if (this.failure !== null) {
-      throw this.failure
+    if (this.result.status === "failed") {
+      return this.result
     }
 
     this.text = text
+    return this.result
   }
 }
 
 describe("copying accumulated text", () => {
-  it("writes the current combined preview without changing usage data", async () => {
+  it("writes the current combined text in accumulator order", async () => {
     const clipboard = new RecordingClipboard()
 
     const result = await copyAccumulatedText(clipboard, accumulator)
@@ -53,11 +59,17 @@ describe("copying accumulated text", () => {
   })
 
   it("reports a Clipboard failure without a copied value", async () => {
-    const clipboard = new RecordingClipboard(new Error("permission denied"))
+    const clipboard = new RecordingClipboard({
+      reason: "not-allowed",
+      status: "failed",
+    })
 
     const result = await copyAccumulatedText(clipboard, accumulator)
 
-    expect(result).toEqual({ status: "clipboard-failure" })
+    expect(result).toEqual({
+      reason: "not-allowed",
+      status: "clipboard-failure",
+    })
     expect(clipboard.text).toBeNull()
   })
 })

@@ -85,7 +85,7 @@ function NotesList({
           editingDraft?.noteId === note.id
             ? editingDraft.content
             : note.content
-        const itemKey = `${note.id}:${note.revision}:list`
+        const itemKey = `${note.id}:list`
 
         return (
           <NoteCard
@@ -303,7 +303,7 @@ function NotesBoard(props: NotesBoardProps) {
             editingDraft?.noteId === note.id
               ? editingDraft.content
               : note.content
-          const itemKey = `${note.id}:${note.revision}:board`
+          const itemKey = `${note.id}:board`
 
           return (
             <NoteCard

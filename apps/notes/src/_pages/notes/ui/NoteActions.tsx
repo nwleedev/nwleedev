@@ -1,5 +1,3 @@
-import Link from "next/link"
-
 import { Button } from "@/shared/ui/button"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
@@ -19,9 +17,6 @@ type NoteActionsProps = {
   onRetry(): void
 }
 
-const settingsLinkClassName =
-  "inline-flex min-h-[var(--notes-control-size)] items-center rounded-control border border-line bg-surface-raised px-3 py-1.5 text-sm font-semibold text-ink hover:border-line-strong hover:bg-canvas"
-
 export function NoteActions({
   accumulationReady,
   notice,
@@ -33,7 +28,6 @@ export function NoteActions({
 }: NoteActionsProps) {
   const accumulationUnavailable = !accumulationReady
   const accumulationAriaDisabled = pending || accumulationUnavailable
-  const showClipboardSettings = notice?.retry === "copy"
 
   return (
     <>
@@ -60,11 +54,6 @@ export function NoteActions({
             <Button onClick={onRetry} tone="quiet">
               다시 시도
             </Button>
-          ) : null}
-          {showClipboardSettings ? (
-            <Link className={settingsLinkClassName} href="/settings/">
-              설정 확인
-            </Link>
           ) : null}
         </StatusNotice>
       ) : null}

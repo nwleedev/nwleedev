@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest"
 
 import type { Note } from "@/entities/note"
 import type { OrdinaryCopyUsageWriter } from "@/entities/usage"
-import type { ClipboardWriter } from "@/shared/lib/clipboard"
+import type {
+  ClipboardWriteResult,
+  ClipboardWriter,
+} from "@/shared/lib/clipboard"
 
 import { copyNote } from "./copyNote"
 
@@ -19,14 +22,17 @@ const note: Note = {
 class RecordingClipboardWriter implements ClipboardWriter {
   text: string | null = null
 
-  constructor(private readonly failure: Error | null = null) {}
+  constructor(
+    private readonly result: ClipboardWriteResult = { status: "written" },
+  ) {}
 
   async writeText(text: string) {
-    if (this.failure !== null) {
-      throw this.failure
+    if (this.result.status === "failed") {
+      return this.result
     }
 
     this.text = text
+    return this.result
   }
 }
 
@@ -62,18 +68,29 @@ describe("copying a note", () => {
     })
   })
 
-  it("does not record use when the clipboard rejects the text", async () => {
-    const clipboard = new RecordingClipboardWriter(
-      new Error("clipboard unavailable"),
-    )
-    const usage = new RecordingUsageWriter()
+  it.each([
+    "api-unavailable",
+    "not-allowed",
+    "write-failed",
+  ] as const)(
+    "reports %s without recording an ordinary use",
+    async (reason) => {
+      const clipboard = new RecordingClipboardWriter({
+        reason,
+        status: "failed",
+      })
+      const usage = new RecordingUsageWriter()
 
-    const result = await copyNote({ clipboard, usage }, note)
+      const result = await copyNote({ clipboard, usage }, note)
 
-    expect(result).toEqual({ status: "clipboard-failure" })
-    expect(clipboard.text).toBeNull()
-    expect(usage.input).toBeNull()
-  })
+      expect(result).toEqual({
+        reason,
+        status: "clipboard-failure",
+      })
+      expect(clipboard.text).toBeNull()
+      expect(usage.input).toBeNull()
+    },
+  )
 
   it("keeps the clipboard result distinct when usage recording fails", async () => {
     const clipboard = new RecordingClipboardWriter()

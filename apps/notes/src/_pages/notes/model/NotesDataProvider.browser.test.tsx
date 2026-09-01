@@ -21,7 +21,9 @@ import { NotesStartPage } from "../ui/NotesStartPage"
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
 const timestamp = "2026-08-31T01:00:00.000Z"
-const clipboard = { writeText: async () => undefined }
+const clipboard = {
+  writeText: async () => ({ status: "written" }) as const,
+}
 const usage: OrdinaryCopyUsageWriter = {
   recordOrdinaryCopy: async () => undefined,
 }

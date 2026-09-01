@@ -44,10 +44,19 @@ export function NoteGeometryControls({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (pending) {
+      return
+    }
+
     void onCommit(geometry)
   }
 
   function commitGeometry() {
+    if (pending) {
+      return
+    }
+
     void onCommit(geometry)
   }
 
@@ -106,8 +115,8 @@ export function NoteGeometryControls({
         />
       </label>
       <Button
+        aria-disabled={pending}
         className="col-span-2"
-        disabled={pending}
         onClick={commitGeometry}
       >
         배치 적용

@@ -263,6 +263,7 @@ export function AccumulatorProvider({
 
     if (currentSession === null) {
       return Promise.resolve<CopyAccumulatedTextResult>({
+        reason: "write-failed",
         status: "clipboard-failure",
       })
     }
