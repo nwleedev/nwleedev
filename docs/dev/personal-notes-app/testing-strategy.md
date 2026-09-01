@@ -2,7 +2,7 @@
 
 이 애플리케이션은 모든 모듈에 TDD를 적용하지 않는다. [모듈별 TDD와 동작 검증 결정](../../designs/personal-notes-app-8fd/decisions/verification-strategy.md)이 TDD 대상과 다른 검증 방식을 정하며, 구현자와 검토자는 이 문서의 판정 절차로 새 모듈과 변경된 책임에 알맞은 증거를 선택한다. 개별 테스트의 검증문과 선택자 품질은 [테스트 안티패턴 지침](test-anti-patterns.md)이 관리한다.
 
-이 지침의 상태는 `current`다. 현재 애플리케이션 소스와 테스트 도구는 아직 없지만 승인된 결정이 구현 계획과 이후 변경에 적용된다. 특정 테스트 실행 도구, 브라우저 자동화 라이브러리나 coverage 목표를 승인하지 않는다.
+이 지침의 상태는 `current`다. 순수 규칙은 Vitest, IndexedDB 운영 모듈은 Vitest Browser Mode, Next.js 운영 서버의 사용자 과업은 Playwright Test로 확인한다. coverage 수치는 완료 목표로 사용하지 않는다.
 
 ## TDD 적용 판정
 

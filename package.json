@@ -10,7 +10,9 @@
     "notes:build": "pnpm --filter notes-app build",
     "notes:dev": "pnpm --filter notes-app dev",
     "notes:lint": "pnpm --filter notes-app lint",
+    "notes:start": "pnpm --filter notes-app start",
     "notes:test": "pnpm --filter notes-app test",
+    "notes:test:e2e": "pnpm --filter notes-app test:e2e",
     "notes:typecheck": "pnpm --filter notes-app typecheck"
   }
 }

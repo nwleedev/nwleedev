@@ -1,33 +1,28 @@
 # 개인 메모 애플리케이션 실행
 
-개인 메모 애플리케이션은 `apps/notes/`에 있는 독립 실행용 Next.js 애플리케이션이다. 로컬 모드는 별도의 백엔드와 데이터베이스 없이 현재 과업을 완료할 수 있으며, 지금은 배포 방식으로 정적 내보내기를 사용한다.
+개인 메모 애플리케이션은 `apps/notes/`에 있는 독립 실행용 Next.js 애플리케이션이다. 로컬 모드는 별도의 애플리케이션 백엔드와 데이터베이스 서버 없이 현재 과업을 완료하며, 운영용 빌드는 Next.js Node.js 서버에서 실행한다.
 
-## 개발과 정적 빌드
+## 개발과 운영용 빌드
 
 저장소 루트에서 다음 명령을 실행한다.
 
 ```sh
 pnpm notes:dev
 pnpm notes:build
+pnpm notes:start
 ```
 
-개발 서버는 `http://localhost:3000`에서 실행된다. 정적 빌드 결과는 `apps/notes/out/`에 만들어진다. Worker를 JavaScript 자산으로 내보내기 위해 개발과 빌드는 Webpack을 사용한다.
+개발 서버와 운영 서버는 기본적으로 `http://localhost:3000`에서 실행된다. Worker 자산을 운영용 빌드에 포함하기 위해 개발과 빌드는 Webpack을 사용한다.
 
-## 정적 결과물 제공
+## 브라우저 검사
 
-HTTP에서는 호스트 이름이 정확히 `localhost`인 주소만 지원한다.
+Next.js 운영 서버의 사용자 동작과 Worker 자산은 Playwright Test로 확인한다.
 
 ```sh
-pnpm --filter notes-app serve:http
+pnpm notes:test:e2e
 ```
 
-HTTPS에서는 사용할 인증서와 개인 키 파일을 `serve:https` 명령의 `--cert`와 `--key` 인수로 전달한다. 인증서와 개인 키는 저장소에 보관하지 않는다.
-
-정적 결과물 기본 실행 검사는 임시 자체 서명 인증서를 저장소의 무시된 `temps/` 아래에서 만들고 Chromium, Firefox와 WebKit에서 HTTP 및 HTTPS를 각각 확인한 뒤 인증서를 지운다.
-
-```sh
-pnpm --filter notes-app smoke:static
-```
+HTTP에서는 호스트 이름이 정확히 `localhost`인 주소만 지원한다. HTTPS는 같은 운영용 빌드 앞에서 TLS를 종료하는 배포 환경에서 확인하며, 인증서와 개인 키는 저장소에 보관하지 않는다.
 
 ## 지원 브라우저
 

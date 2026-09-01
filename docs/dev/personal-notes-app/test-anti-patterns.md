@@ -2,7 +2,7 @@
 
 테스트는 함수, 변수, React 내부 상태, CSS와 DOM 구조가 아니라 사용자가 확인할 결과, 저장 불변 조건, 외부 시스템과 정한 동작 또는 순수 알고리즘 결과를 검증해야 한다. ESLint는 정적으로 식별할 수 있는 일부 위반만 차단하며, 문자열과 모의 구현이 실제 요구사항을 나타내는지는 구현 담당자와 검토자가 요구사항 근거로 판정한다.
 
-이 지침의 상태는 `current`다. [모듈별 TDD 결정](../../designs/personal-notes-app-8fd/decisions/verification-strategy.md)과 [테스트 전략](testing-strategy.md)에 따라 테스트를 작성하고 검토할 때 적용한다. U1과 U2에서 Vitest 4.1.11 및 `@vitest/eslint-plugin` 1.6.27을 선택하고 위반 및 정상 사례를 확인했다. U3의 IndexedDB 검사는 `@vitest/browser-playwright` 4.1.11로 운영 모듈을 실제 브라우저에서 실행한다. 아래 후보 가운데 설치하지 않은 플러그인은 채택된 설정이 아니다.
+이 지침의 상태는 `current`다. [모듈별 TDD 결정](../../designs/personal-notes-app-8fd/decisions/verification-strategy.md)과 [테스트 전략](testing-strategy.md)에 따라 테스트를 작성하고 검토할 때 적용한다. Vitest 4.1.11과 `@vitest/eslint-plugin` 1.6.27은 순수 규칙 및 브라우저 통합 검사에 사용한다. IndexedDB 검사는 `@vitest/browser-playwright` 4.1.11로 운영 모듈을 실행하고, Next.js 운영 서버의 과업별 검사는 Playwright Test 1.62.1과 `eslint-plugin-playwright` 2.11.0을 사용한다. 아래 후보 가운데 설치하지 않은 플러그인은 채택된 설정이 아니다.
 
 ## 판정 이력
 
@@ -309,7 +309,7 @@ Jest와 Vitest의 `no-duplicate-hooks` 및 hook 순서 규칙은 setup 형태만
 - `@vitest/eslint-plugin` `1.6.27`: ESLint `>=8.57.0`; Node.js `>=18`
 - `eslint-plugin-playwright` `2.11.0`: ESLint `>=8.40.0`; Node.js `>=16.9.0`
 
-현재 `@vitest/eslint-plugin` 1.6.27만 테스트 문법 검사에 사용한다. `@vitest/browser-playwright`는 Vitest Browser Mode의 실행 provider이며 테스트 파일은 Vitest API를 사용하므로 `eslint-plugin-playwright`를 적용하지 않는다. Testing Library와 Jest 플러그인도 설치하지 않는다. 새 테스트 문법이나 실행기를 도입하면 해당 플러그인의 정확한 버전, peer 조건, 전이 의존성과 규칙 적용 대상을 다시 확인한다.
+현재 `@vitest/eslint-plugin` 1.6.27은 Vitest 파일에 적용하고, `eslint-plugin-playwright` 2.11.0은 `apps/notes/e2e/**/*.spec.ts`에만 적용한다. `@vitest/browser-playwright`는 Vitest Browser Mode의 실행 provider이므로 그 파일에는 Playwright ESLint 규칙을 적용하지 않는다. Playwright 플러그인이 추가한 실행 의존성은 `globals` 17.11.0 하나이며 애플리케이션 묶음에는 포함되지 않는다. Testing Library와 Jest 플러그인은 설치하지 않는다. 새 테스트 문법이나 실행기를 도입하면 해당 플러그인의 정확한 버전, peer 조건, 전이 의존성과 규칙 적용 대상을 다시 확인한다.
 
 ### Testing Library를 선택했을 때의 제안
 
@@ -358,35 +358,26 @@ Jest를 고르면 다음 후보를 테스트 파일에 적용한다.
 }
 ```
 
-Vitest를 고르면 같은 책임의 `vitest/expect-expect`, `vitest/no-commented-out-tests`, `vitest/no-conditional-expect`, `vitest/no-conditional-in-test`, `vitest/no-disabled-tests`, `vitest/no-focused-tests`, `vitest/no-large-snapshots`, `vitest/no-standalone-expect`와 `vitest/valid-expect`를 사용한다. Vitest 설정에서도 `*.browser.test.*`를 제외한다. Jest와 Vitest 플러그인을 같은 테스트 파일에 동시에 적용하지 않는다.
+Vitest를 고르면 같은 책임의 `vitest/expect-expect`, `vitest/no-commented-out-tests`, `vitest/no-conditional-expect`, `vitest/no-conditional-in-test`, `vitest/no-disabled-tests`, `vitest/no-focused-tests`, `vitest/no-large-snapshots`, `vitest/no-standalone-expect`와 `vitest/valid-expect`를 사용한다. 현재 설정은 `e2e/**/*.spec.ts`를 Vitest 규칙에서 제외한다. Jest와 Vitest 플러그인을 같은 테스트 파일에 동시에 적용하지 않는다.
 
-### Playwright를 선택했을 때의 제안
+### Playwright Test에 적용한 규칙
 
 ```ts
 {
-  files: ['**/*.browser.test.{ts,tsx}'],
+  files: ['e2e/**/*.spec.ts'],
+  extends: [playwright.configs['flat/recommended']],
   rules: {
-    'playwright/expect-expect': 'error',
-    'playwright/missing-playwright-await': 'error',
     'playwright/no-commented-out-tests': 'error',
-    'playwright/no-conditional-expect': 'error',
-    'playwright/no-conditional-in-test': 'error',
-    'playwright/no-focused-test': 'error',
-    'playwright/no-force-option': 'error',
     'playwright/no-nth-methods': 'error',
     'playwright/no-raw-locators': 'error',
     'playwright/no-skipped-test': 'error',
-    'playwright/no-unnecessary-assertions': 'error',
-    'playwright/no-unused-locators': 'error',
     'playwright/no-wait-for-timeout': 'error',
     'playwright/prefer-native-locators': 'error',
-    'playwright/prefer-web-first-assertions': 'error',
-    'playwright/valid-expect': 'error',
   },
 }
 ```
 
-raw locator 예외는 플러그인의 `allowed` option에 허용할 선택자와 다른 방법이 없는 이유를 기록한다. `no-raw-locators`를 끄거나 테스트 파일 전체를 제외하지 않는다.
+flat recommended 설정이 `await` 누락, 조건부 검증, 초점 및 비활성화된 테스트, 강제 클릭, 임의 대기와 약한 검증을 막는다. 명시적으로 추가한 규칙은 raw locator, 순서 번호 선택, 주석 처리 및 건너뛴 테스트를 막고 의미 기반 locator를 요구한다. raw locator 예외가 필요하면 플러그인의 `allowed` option에 허용할 선택자와 다른 방법이 없는 이유를 기록한다. `no-raw-locators`를 끄거나 테스트 파일 전체를 제외하지 않는다.
 
 ### 현재 만들지 않을 규칙
 

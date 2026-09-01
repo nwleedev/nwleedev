@@ -3,6 +3,7 @@ import boundaries from "@boundaries/eslint-plugin"
 import vitest from "@vitest/eslint-plugin"
 import nextVitals from "eslint-config-next/core-web-vitals"
 import nextTypeScript from "eslint-config-next/typescript"
+import playwright from "eslint-plugin-playwright"
 
 const sourceFiles = ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"]
 const publicEntryPoint = "index.{ts,tsx}"
@@ -182,6 +183,7 @@ export default defineConfig([
   },
   {
     files: ["**/*.{test,spec}.{ts,tsx}"],
+    ignores: ["e2e/**/*.spec.ts"],
     plugins: {
       vitest,
     },
@@ -195,6 +197,18 @@ export default defineConfig([
       "vitest/no-large-snapshots": "error",
       "vitest/no-standalone-expect": "error",
       "vitest/valid-expect": "error",
+    },
+  },
+  {
+    files: ["e2e/**/*.spec.ts"],
+    extends: [playwright.configs["flat/recommended"]],
+    rules: {
+      "playwright/no-commented-out-tests": "error",
+      "playwright/no-nth-methods": "error",
+      "playwright/no-raw-locators": "error",
+      "playwright/no-skipped-test": "error",
+      "playwright/no-wait-for-timeout": "error",
+      "playwright/prefer-native-locators": "error",
     },
   },
   globalIgnores([".next/**", "out/**", "next-env.d.ts", "temps/**"]),
