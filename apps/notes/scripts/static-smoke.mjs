@@ -13,6 +13,11 @@ const packageRoot = path.resolve(fileURLToPath(new URL("..", import.meta.url)))
 const repositoryRoot = path.resolve(packageRoot, "../..")
 const temporaryRoot = path.join(repositoryRoot, "temps")
 const mobileAccumulationHoldMs = 500
+const analysisDurationsMs = []
+const boardUpdateDurationsMs = []
+const indexedDbReadSamples = []
+const mainThreadResponseDurationsMs = []
+const noteCreationDurationsMs = []
 
 async function listen(server, host = "localhost") {
   await new Promise((resolve, reject) => {
@@ -65,10 +70,12 @@ async function verifyOrigin(browser, origin, chromiumBrowser) {
 
   const workerStarted = page.waitForEvent("worker")
 
+  const initialAnalysisStartedAt = performance.now()
   await button.click()
   const worker = await workerStarted
   await expect(button).toBeEnabled()
   await page.getByRole("status").waitFor()
+  analysisDurationsMs.push(performance.now() - initialAnalysisStartedAt)
   const completedStatus = await page.getByRole("status").textContent()
   assert.equal(page.workers().length, 1)
 
@@ -190,8 +197,10 @@ async function verifyOrigin(browser, origin, chromiumBrowser) {
 
   const widthInput = page.getByLabel("너비")
   await widthInput.fill("360")
+  const boardUpdateStartedAt = performance.now()
   await page.getByRole("button", { name: "배치 적용" }).click()
   await expect.poll(() => readNoteWidth(page, "Escape로 저장한 메모")).toBe(360)
+  boardUpdateDurationsMs.push(performance.now() - boardUpdateStartedAt)
   await page.reload()
   await expect(page.getByRole("article")).toContainText("Escape로 저장한 메모")
   await page.getByRole("button", { name: "메모 이동" }).click()
@@ -470,6 +479,21 @@ async function verifyOrigin(browser, origin, chromiumBrowser) {
   await noteEditor.fill("요청 번호 123\n공통 문장")
   await page.getByRole("button", { name: "완료" }).click()
   await createNote(page, "요청 번호 456\n공통 문장")
+  const firstAnalysisNoteBounds = await readVisibleBounds(
+    page
+      .getByRole("article")
+      .filter({ hasText: "요청 번호 123" }),
+  )
+  const secondAnalysisNoteBounds = await readVisibleBounds(
+    page
+      .getByRole("article")
+      .filter({ hasText: "요청 번호 456" }),
+  )
+  assert.equal(
+    rectanglesOverlap(firstAnalysisNoteBounds, secondAnalysisNoteBounds),
+    false,
+    `New notes overlap: ${JSON.stringify({ firstAnalysisNoteBounds, secondAnalysisNoteBounds })}`,
+  )
   await page
     .getByRole("link", { exact: true, name: "텍스트 분석" })
     .click()
@@ -478,11 +502,20 @@ async function verifyOrigin(browser, origin, chromiumBrowser) {
     .waitFor()
   assert.equal(page.workers().length, 0)
   const analysisWorkerStarted = page.waitForEvent("worker")
+  const textAnalysisStartedAt = performance.now()
   await page.getByRole("button", { name: "분석 실행" }).click()
   await analysisWorkerStarted
+  const mainThreadResponseStartedAt = performance.now()
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(resolve)),
+  )
+  const mainThreadResponseDurationMs =
+    performance.now() - mainThreadResponseStartedAt
+  mainThreadResponseDurationsMs.push(mainThreadResponseDurationMs)
   await page
     .getByRole("heading", { level: 2, name: "분석 결과 2개" })
     .waitFor()
+  analysisDurationsMs.push(performance.now() - textAnalysisStartedAt)
   await expect(
     page.getByRole("heading", { level: 3, name: "정확한 반복" }),
   ).toBeVisible()
@@ -687,6 +720,40 @@ async function verifyOrigin(browser, origin, chromiumBrowser) {
     )
   }
 
+  await page.goto(`${origin}/analysis/`)
+  await page
+    .getByRole("heading", { level: 1, name: "텍스트 분석" })
+    .waitFor()
+  await page.route(workerUrl, (route) => route.abort("failed"))
+  await page.getByRole("button", { name: "분석 실행" }).click()
+  await expect(
+    page.getByText("분석을 완료하지 못했습니다. 다시 시도하세요.", {
+      exact: true,
+    }),
+  ).toBeVisible()
+  await page.unroute(workerUrl)
+
+  await page.goto(origin)
+  await page.getByRole("region", { name: "메모 작업 영역" }).waitFor()
+  const indexedDbReadStartedAt = performance.now()
+  const noteRecordsBeforeCorruption = await readStoreRecords(page, "notes")
+  indexedDbReadSamples.push({
+    durationMs: performance.now() - indexedDbReadStartedAt,
+    recordCount: noteRecordsBeforeCorruption.length,
+  })
+  await writeUnreadableNoteRecord(page)
+  await page.reload()
+  await expect(
+    page.getByText(
+      "메모를 불러오지 못했습니다. 기존 메모는 변경하지 않았습니다.",
+      { exact: true },
+    ),
+  ).toBeVisible()
+  assert.equal(
+    (await readStoreRecords(page, "notes")).length,
+    noteRecordsBeforeCorruption.length + 1,
+  )
+
   await context.close()
 }
 
@@ -710,10 +777,45 @@ async function verifyUnsupportedOrigin(browser, origin) {
 }
 
 async function createNote(page, content) {
+  const noteCreationStartedAt = performance.now()
   await page.getByRole("button", { name: "새 메모" }).click()
   const editor = page.getByRole("textbox", { name: "메모 내용" })
   await editor.fill(content)
   await page.getByRole("button", { name: "완료" }).click()
+  await expect(
+    page
+      .getByRole("article")
+      .filter({ hasText: content, visible: true }),
+  ).toHaveCount(1)
+  noteCreationDurationsMs.push(performance.now() - noteCreationStartedAt)
+}
+
+function rectanglesOverlap(left, right) {
+  const separatedHorizontally =
+    left.x + left.width <= right.x || right.x + right.width <= left.x
+  const separatedVertically =
+    left.y + left.height <= right.y || right.y + right.height <= left.y
+
+  return !separatedHorizontally && !separatedVertically
+}
+
+async function readVisibleBounds(locator) {
+  const visibleBounds = await locator.evaluateAll((elements) =>
+    elements
+      .filter((element) => element.checkVisibility())
+      .map((element) => {
+        const bounds = element.getBoundingClientRect()
+        return {
+          height: bounds.height,
+          width: bounds.width,
+          x: bounds.x,
+          y: bounds.y,
+        }
+      }),
+  )
+
+  assert.equal(visibleBounds.length, 1)
+  return visibleBounds[0]
 }
 
 async function selectTextInTextarea(field, selectedText) {
@@ -741,6 +843,184 @@ async function touchEnd(client) {
     touchPoints: [],
     type: "touchEnd",
   })
+}
+
+async function verifyClipboardDenial(browser, origin) {
+  const context = await browser.newContext({ ignoreHTTPSErrors: true })
+  const page = await context.newPage()
+
+  await page.goto(origin)
+  await page.getByText("메모가 없습니다.", { exact: true }).waitFor()
+  const client = await context.newCDPSession(page)
+  await client.send("Browser.setPermission", {
+    origin,
+    permission: { name: "clipboard-write" },
+    setting: "denied",
+  })
+  await createNote(page, "클립보드 거절 확인")
+  const note = page
+    .getByRole("article")
+    .filter({ hasText: "클립보드 거절 확인", visible: true })
+  await note.getByRole("button", { name: "복사" }).click()
+  await expect(
+    note.getByText(
+      "복사하지 못했습니다. 브라우저의 클립보드 권한을 확인하세요.",
+      { exact: true },
+    ),
+  ).toBeVisible()
+  await expect(
+    note.getByRole("link", { name: "설정 확인" }),
+  ).toBeVisible()
+  assert.equal((await readStoreRecords(page, "usage")).length, 0)
+
+  await note.getByRole("button", { name: "누적" }).click()
+  const panel = page.getByRole("complementary", { name: "누적 텍스트" })
+  await panel.waitFor()
+  const usageBeforeCombinedCopy = await readStoreRecords(page, "usage")
+  await panel.getByRole("button", { name: "복사" }).click()
+  await expect(
+    panel.getByText("복사하지 못했습니다. 복사 버튼으로 다시 시도하세요.", {
+      exact: true,
+    }),
+  ).toBeVisible()
+  assert.deepEqual(
+    await readStoreRecords(page, "usage"),
+    usageBeforeCombinedCopy,
+  )
+
+  await context.close()
+}
+
+async function verifyAccessibilityPresentation(browser, origin) {
+  const context = await browser.newContext({
+    forcedColors: "active",
+    ignoreHTTPSErrors: true,
+    reducedMotion: "reduce",
+    viewport: { height: 720, width: 320 },
+  })
+  const page = await context.newPage()
+
+  await page.goto(origin)
+  const main = page.getByRole("main")
+  await main.waitFor()
+  await page.keyboard.press("Tab")
+  const skipLink = page.getByRole("link", { name: "본문으로 이동" })
+  await expect(skipLink).toBeFocused()
+  await expect(skipLink).toBeInViewport()
+  const focusStyle = await skipLink.evaluate((element) => {
+    const style = getComputedStyle(element)
+    return {
+      outlineStyle: style.outlineStyle,
+      outlineWidth: Number.parseFloat(style.outlineWidth),
+    }
+  })
+  assert.notEqual(focusStyle.outlineStyle, "none")
+  assert.equal(focusStyle.outlineWidth > 0, true)
+  await skipLink.press("Enter")
+  await expect(page).toHaveURL(/#main-content$/u)
+
+  const routes = [
+    "/",
+    "/usage/",
+    "/analysis/",
+    "/templates/",
+    "/settings/",
+    "/accumulator/",
+  ]
+
+  for (const route of routes) {
+    await page.goto(`${origin}${route}`)
+    const routeMain = page.getByRole("main")
+    await routeMain.waitFor()
+    const presentation = await routeMain.evaluate((element) => {
+      function durationInMilliseconds(value) {
+        const duration = Number.parseFloat(value)
+        return value.endsWith("ms") ? duration : duration * 1_000
+      }
+
+      const descendants = [element, ...element.querySelectorAll("*")]
+      const visibleElements = descendants.filter((candidate) => {
+        const bounds = candidate.getBoundingClientRect()
+        const style = getComputedStyle(candidate)
+        return (
+          bounds.height > 0 &&
+          bounds.width > 0 &&
+          style.visibility !== "hidden"
+        )
+      })
+      const textElements = visibleElements.filter(
+        (candidate) => candidate.textContent?.trim(),
+      )
+      const fontFamilies = textElements.map(
+        (candidate) => getComputedStyle(candidate).fontFamily,
+      )
+      const maximumMotionDurationMs = visibleElements.reduce(
+        (maximum, candidate) => {
+          const style = getComputedStyle(candidate)
+          const durations = [
+            ...style.animationDuration.split(","),
+            ...style.transitionDuration.split(","),
+          ].map((value) => durationInMilliseconds(value.trim()))
+          return Math.max(maximum, ...durations)
+        },
+        0,
+      )
+
+      return {
+        fontFamilies,
+        forcedColors: matchMedia("(forced-colors: active)").matches,
+        horizontalOverflow:
+          document.documentElement.scrollWidth >
+          document.documentElement.clientWidth,
+        maximumMotionDurationMs,
+        reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
+      }
+    })
+
+    assert.equal(presentation.forcedColors, true)
+    assert.equal(presentation.reducedMotion, true)
+    assert.equal(presentation.horizontalOverflow, false)
+    assert.equal(presentation.maximumMotionDurationMs <= 0.01, true)
+    assert.equal(presentation.fontFamilies.length > 0, true)
+    assert.equal(
+      presentation.fontFamilies.every((family) => {
+        const names = family
+          .split(",")
+          .map((name) => name.trim().replaceAll('"', "").toLowerCase())
+        return names[0]?.includes("pretendard") && !names.includes("serif")
+      }),
+      true,
+    )
+
+    if (route === "/") {
+      assert.equal(await page.getByRole("complementary").count(), 0)
+      const workspace = page.getByRole("region", { name: "메모 작업 영역" })
+      const backgroundImages = await workspace.evaluate((element) =>
+        [element, ...element.querySelectorAll("*")].map(
+          (candidate) => getComputedStyle(candidate).backgroundImage,
+        ),
+      )
+      assert.equal(
+        backgroundImages.every((backgroundImage) => backgroundImage === "none"),
+        true,
+      )
+    }
+
+    if (route === "/settings/") {
+      const checkbox = page.getByRole("checkbox", {
+        name: "Command+클릭으로 누적",
+      })
+      assert.equal(
+        await checkbox.evaluate(
+          (element) =>
+            element instanceof HTMLInputElement && element.type === "checkbox",
+        ),
+        true,
+      )
+    }
+  }
+
+  await context.close()
 }
 
 async function verifyMobileAccumulation(browser, origin) {
@@ -905,6 +1185,29 @@ async function readStoreRecords(page, storeName) {
         }
       }),
     storeName,
+  )
+}
+
+async function writeUnreadableNoteRecord(page) {
+  await page.evaluate(
+    () =>
+      new Promise((resolve, reject) => {
+        const request = indexedDB.open("personal-notes", 1)
+        request.onerror = () => reject(request.error)
+        request.onsuccess = () => {
+          const database = request.result
+          const transaction = database.transaction("notes", "readwrite")
+          transaction.objectStore("notes").put({
+            content: "읽을 수 없는 저장 레코드",
+            id: "unreadable-note-record",
+          })
+          transaction.onabort = () => reject(transaction.error)
+          transaction.oncomplete = () => {
+            database.close()
+            resolve()
+          }
+        }
+      }),
   )
 }
 
@@ -1079,10 +1382,27 @@ async function run() {
       await verifyUnsupportedOrigin(browser, unsupportedHttpOrigin)
 
       if (browserType === chromium) {
+        await verifyClipboardDenial(browser, httpOrigin)
+        await verifyAccessibilityPresentation(browser, httpOrigin)
         await verifyMobileAccumulation(browser, httpOrigin)
         await verifyMobileAccumulation(browser, httpsOrigin)
       }
     }
+
+    const maximumAnalysisDurationMs = Math.max(...analysisDurationsMs)
+    const maximumBoardUpdateDurationMs = Math.max(...boardUpdateDurationsMs)
+    const maximumMainThreadResponseDurationMs = Math.max(
+      ...mainThreadResponseDurationsMs,
+    )
+    const maximumNoteCreationDurationMs = Math.max(...noteCreationDurationsMs)
+    const maximumIndexedDbReadSample = indexedDbReadSamples.reduce(
+      (maximum, sample) =>
+        sample.durationMs > maximum.durationMs ? sample : maximum,
+    )
+
+    process.stdout.write(
+      `Observed browser baselines: analysis ${maximumAnalysisDurationMs.toFixed(1)} ms (${analysisDurationsMs.length} samples), main-thread frame ${maximumMainThreadResponseDurationMs.toFixed(1)} ms (${mainThreadResponseDurationsMs.length} samples), board update ${maximumBoardUpdateDurationMs.toFixed(1)} ms (${boardUpdateDurationsMs.length} samples), note creation ${maximumNoteCreationDurationMs.toFixed(1)} ms (${noteCreationDurationsMs.length} samples), IndexedDB read ${maximumIndexedDbReadSample.durationMs.toFixed(1)} ms (${maximumIndexedDbReadSample.recordCount} records).\n`,
+    )
 
     process.stdout.write(
       "Static HTTP and HTTPS storage isolation, Worker, template, and address checks passed in Chromium, Firefox, and WebKit.\n",
