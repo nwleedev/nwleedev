@@ -19,6 +19,7 @@ export type TemplateSaveFields = {
 type PlaceholderNameFieldProps = {
   errors: FieldErrors<TemplateSaveFields>
   placeholder: TemplatePlaceholderRange
+  sourceText: string
   register: UseFormRegister<TemplateSaveFields>
   onRename(key: string, label: string): void
   onRestore(key: string): void
@@ -30,11 +31,17 @@ function PlaceholderNameField({
   onRestore,
   placeholder,
   register,
+  sourceText,
 }: PlaceholderNameFieldProps) {
   const fieldName = `labels.${placeholder.key}` as const
   const error = errors.labels?.[placeholder.key]
   const errorId = `placeholder-${placeholder.key}-error`
   const selectionTextId = `placeholder-${placeholder.key}-text`
+  const selectedText = sourceText.slice(placeholder.start, placeholder.end)
+  const describedBy = error
+    ? `${selectionTextId} ${errorId}`
+    : selectionTextId
+  const restoreButtonLabel = `${placeholder.label}: 일반 텍스트로 되돌리기`
   const registration = register(fieldName, {
     onChange(event: ChangeEvent<HTMLInputElement>) {
       onRename(placeholder.key, event.target.value)
@@ -48,25 +55,33 @@ function PlaceholderNameField({
           플레이스홀더 이름
         </label>
         <TextField
-          aria-describedby={error ? errorId : selectionTextId}
+          aria-describedby={describedBy}
           aria-invalid={error ? "true" : undefined}
           defaultValue={placeholder.label}
           id={fieldName}
           {...registration}
         />
-        <p
-          className="truncate text-xs text-soft-ink"
-          id={selectionTextId}
-        >
-          선택한 텍스트 {placeholder.start + 1}–{placeholder.end}
-        </p>
+        <div className="grid gap-1 text-xs text-soft-ink">
+          <p>되돌릴 텍스트</p>
+          <p
+            className="max-h-24 overflow-auto whitespace-pre-wrap break-words text-ink"
+            id={selectionTextId}
+          >
+            {selectedText}
+          </p>
+        </div>
         {error ? (
           <p className="text-xs font-semibold text-danger" id={errorId}>
             {error.message}
           </p>
         ) : null}
       </div>
-      <Button onClick={() => onRestore(placeholder.key)} tone="quiet">
+      <Button
+        aria-describedby={selectionTextId}
+        aria-label={restoreButtonLabel}
+        onClick={() => onRestore(placeholder.key)}
+        tone="quiet"
+      >
         일반 텍스트로 되돌리기
       </Button>
     </li>
@@ -102,6 +117,7 @@ export function TemplatePlaceholderFields({
           onRestore={onRestore}
           placeholder={placeholder}
           register={register}
+          sourceText={draft.sourceText}
         />
       ))}
     </ol>

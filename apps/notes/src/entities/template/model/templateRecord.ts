@@ -27,6 +27,8 @@ export const TemplateSegmentSchema = z.discriminatedUnion("kind", [
   PlaceholderSegmentSchema,
 ])
 
+export const TemplateTitleSchema = z.string().trim().min(1)
+
 export type TemplateSegment = z.infer<typeof TemplateSegmentSchema>
 
 export type PlaceholderLabelIssue = {
@@ -71,7 +73,7 @@ export const TemplateRecordSchema = z
     id: EntityIdSchema,
     revision: RevisionSchema,
     segments: z.array(TemplateSegmentSchema),
-    title: z.string().min(1),
+    title: TemplateTitleSchema,
     updatedAt: IsoDateTimeSchema,
   })
   .strict()

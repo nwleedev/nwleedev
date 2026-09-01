@@ -12,6 +12,7 @@ import {
   markPlaceholder,
   renamePlaceholder,
   restorePlaceholder,
+  TemplateTitleSchema,
   toTemplateSegments,
   type TemplateDraft,
 } from "@/entities/template"
@@ -41,6 +42,13 @@ const editorStatusMessages: Record<Exclude<EditorStatus, "idle">, string> = {
   "placeholder-required": "플레이스홀더를 하나 이상 지정하세요.",
   "save-failure": "템플릿을 저장하지 못했습니다. 다시 시도하세요.",
   saved: "템플릿을 저장했습니다.",
+}
+
+const templateTitleRequiredMessage = "템플릿 이름을 입력하세요."
+
+function validateTemplateTitle(value: string) {
+  return TemplateTitleSchema.safeParse(value).success
+    || templateTitleRequiredMessage
 }
 
 function createLabelValues(draft: TemplateDraft) {
@@ -90,7 +98,7 @@ export function TemplateEditor({
     shouldUnregister: true,
   })
   const titleRegistration = register("title", {
-    required: "템플릿 이름을 입력하세요.",
+    validate: validateTemplateTitle,
   })
   const segments = toTemplateSegments(draft)
   const sourceReadOnly = draft.placeholders.length > 0
@@ -146,6 +154,14 @@ export function TemplateEditor({
   }
 
   async function saveTemplate(fields: TemplateSaveFields) {
+    const title = TemplateTitleSchema.safeParse(fields.title)
+
+    if (!title.success) {
+      setError("title", { message: templateTitleRequiredMessage })
+      setFocus("title")
+      return
+    }
+
     if (draft.placeholders.length === 0) {
       setStatus("placeholder-required")
       return
@@ -175,7 +191,7 @@ export function TemplateEditor({
 
     const result = await templates.createTemplate({
       segments: namedSegments,
-      title: fields.title.trim(),
+      title: title.data,
     })
 
     if (result.status === "failure") {

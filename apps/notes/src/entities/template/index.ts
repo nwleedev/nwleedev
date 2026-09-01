@@ -5,6 +5,7 @@ export {
 export {
   TemplateRecordSchema,
   TemplateSegmentSchema,
+  TemplateTitleSchema,
   findPlaceholderLabelIssues,
   parseTemplateRecord,
   type PlaceholderLabelIssue,

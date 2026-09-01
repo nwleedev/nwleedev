@@ -22,6 +22,24 @@ describe("TemplateRecordSchema", () => {
     expect(TemplateRecordSchema.safeParse(templateRecord).success).toBe(true)
   })
 
+  it("rejects a template title that is empty after trimming", () => {
+    expect(
+      TemplateRecordSchema.safeParse({
+        ...templateRecord,
+        title: "   ",
+      }).success,
+    ).toBe(false)
+  })
+
+  it("stores a template title without surrounding whitespace", () => {
+    expect(
+      TemplateRecordSchema.parse({
+        ...templateRecord,
+        title: "  인사  ",
+      }).title,
+    ).toBe("인사")
+  })
+
   it("rejects duplicate placeholder keys", () => {
     const placeholder = templateRecord.segments[1]
 

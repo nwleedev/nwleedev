@@ -12,6 +12,7 @@ import {
   type TemplateSegment,
   type TextTemplate,
 } from "@/entities/template"
+import type { ClipboardWriteFailureReason } from "@/shared/lib/clipboard"
 import { Button } from "@/shared/ui/button"
 import { StatusNotice } from "@/shared/ui/status-notice"
 import { TextField } from "@/shared/ui/text-field"
@@ -92,7 +93,43 @@ function TemplateValueFieldList({
   )
 }
 
-type OutputStatus = "idle" | "copy-failure" | "copied"
+type OutputStatus = "idle" | "copied" | ClipboardWriteFailureReason
+
+const outputCopyFailureMessages: Record<
+  ClipboardWriteFailureReason,
+  string
+> = {
+  "api-unavailable":
+    "이 브라우저에서는 자동 복사를 사용할 수 없습니다. 생성한 텍스트를 직접 선택해 복사하세요.",
+  "not-allowed":
+    "클립보드 쓰기가 허용되지 않았습니다. 브라우저의 사이트 권한을 확인한 뒤 다시 시도하세요.",
+  "write-failed":
+    "클립보드에 쓰지 못했습니다. 다시 시도하거나 생성한 텍스트를 직접 선택해 복사하세요.",
+}
+
+type OutputCopyNoticeProps = {
+  status: OutputStatus
+}
+
+function OutputCopyNotice({ status }: OutputCopyNoticeProps) {
+  if (status === "idle") {
+    return null
+  }
+
+  if (status === "copied") {
+    return (
+      <p className="text-xs font-semibold text-soft-ink" role="status">
+        복사했습니다.
+      </p>
+    )
+  }
+
+  return (
+    <StatusNotice kind="error">
+      <p>{outputCopyFailureMessages[status]}</p>
+    </StatusNotice>
+  )
+}
 
 type GeneratedTemplateOutputProps = {
   output: string
@@ -118,16 +155,7 @@ function GeneratedTemplateOutput({
       <p className="whitespace-pre-wrap break-words rounded-control border border-line bg-canvas px-4 py-3 text-sm leading-7">
         {output}
       </p>
-      {status === "copied" ? (
-        <p className="text-xs font-semibold text-soft-ink" role="status">
-          복사했습니다.
-        </p>
-      ) : null}
-      {status === "copy-failure" ? (
-        <StatusNotice kind="error">
-          <p>복사하지 못했습니다. 브라우저의 클립보드 권한을 확인하세요.</p>
-        </StatusNotice>
-      ) : null}
+      <OutputCopyNotice status={status} />
     </section>
   )
 }
@@ -162,7 +190,13 @@ export function TemplateInputForm({ template }: TemplateInputFormProps) {
     }
 
     const result = await templates.copyText(output)
-    setStatus(result.status === "copied" ? "copied" : "copy-failure")
+
+    if (result.status === "copied") {
+      setStatus("copied")
+      return
+    }
+
+    setStatus(result.reason)
   }
 
   const submitValues = handleSubmit(generateText)
