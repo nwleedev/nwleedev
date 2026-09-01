@@ -15,7 +15,7 @@
 
 하나라도 충족하지 못하면 더 직접적인 검증 방식을 선택한다. 타입 및 스키마 검사는 자료 형태를, 브라우저 통합 검사는 외부 구현의 동작을, 운영용 기본 실행 검사는 빌드와 자산을, 실제 브라우저 검사는 사용 흐름과 Web API를, 담당자 검토는 시각 품질과 조작 가능성을 판정한다.
 
-IndexedDB repository는 Vitest Browser Mode와 Playwright provider로 운영 모듈을 세 브라우저에서 직접 실행한다. `static-smoke.mjs`는 Vite 개발 서버가 대신할 수 없는 Next.js 운영 산출물의 Worker URL 및 MIME type, CSS, HTTP와 HTTPS 접속 및 origin 분리만 맡는다. 같은 결과를 두 도구가 검사하게 되면 더 간접적인 검사를 제거하고, 일회용 fixture나 진단 스크립트를 저장소에 남기지 않는다.
+IndexedDB repository는 Vitest Browser Mode와 Playwright provider로 운영 모듈을 세 브라우저에서 직접 실행한다. Next.js 운영 빌드의 라우트, Worker URL 및 MIME type, CSS와 사용자 흐름은 Playwright Test의 `webServer`가 `next start`를 실행한 상태에서 확인한다. HTTPS는 TLS를 종료하는 배포 환경에서 같은 애플리케이션 revision으로 확인한다. 같은 결과를 두 도구가 검사하면 더 간접적인 검사를 제거하고, 일회용 fixture나 진단 스크립트를 저장소에 남기지 않는다.
 
 ## TDD 실행 규칙
 
@@ -27,7 +27,7 @@ TDD 대상으로 승인된 모듈은 한 번에 하나의 동작을 나타내는
 
 - Clipboard 대역은 명령이 성공과 실패를 처리하는 규칙을 확인할 때만 사용한다. 실제 쓰기, 사용자 활성화와 권한 알림은 대상 브라우저에서 별도로 확인한다.
 - IndexedDB 대역은 application interface를 빠르게 검사하는 보조 수단일 수 있지만 transaction 완료, upgrade, `blocked`, `versionchange`, quota와 새로고침 보존의 증거가 될 수 없다.
-- Worker의 가짜 메시지 수신기는 오래된 응답 판정 규칙을 검사할 수 있다. 자산 URL, MIME type, 실제 메시지 왕복과 주 실행 흐름의 응답성은 운영용 정적 결과물에서 확인한다.
+- Worker의 제어 가능한 메시지 수신기는 오래된 응답 판정 규칙을 검사할 수 있다. 자산 URL, MIME type, 실제 메시지 왕복과 주 실행 흐름의 응답성은 Next.js 운영 서버를 연 브라우저에서 확인한다.
 - 메모 본문 클릭, 텍스트 선택, `Command+클릭`과 편집 전환은 순수 판정 함수로 복제하지 않는다. 실제 Selection API, 이벤트 순서와 브라우저 기본 동작을 사용하는 브라우저 검사에서 복사, 누적 또는 편집 가운데 의도한 결과 하나만 발생하는지 확인한다.
 - 드래그 모의 동작은 최종 순서와 제거 결과를 확인한다. 라이브러리의 중간 이벤트 수나 정확한 포인터 좌표를 고정하지 않는다.
 

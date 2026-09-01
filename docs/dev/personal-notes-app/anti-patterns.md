@@ -22,10 +22,10 @@
 
 다음 항목이 확정되지 않으면 관련 모듈 구현을 시작하지 않는다.
 
-- Next.js와 React의 정확한 버전 및 현재 독립 실행 배포로 선택한 App Router 정적 내보내기의 호환성
+- Next.js와 React의 정확한 버전 및 현재 독립 실행 배포로 선택한 Node.js 운영 서버의 호환성
 - 작업 단위에서 실제로 만들 FSD layer와 slice 및 확정된 ESLint 규칙
-- 현재 독립 실행 배포의 정적 결과물을 제공할 HTTPS 호스팅과 localhost HTTP 서버의 구현 및 실행 방식
-- 이후 작업에서 Server Actions나 Route Handlers가 필요해질 때 정적 내보내기를 중단하고 Node.js 배포로 바꾸는 결정 절차
+- localhost HTTP를 제공할 Next.js 운영 서버와 HTTPS를 종료할 reverse proxy 또는 배포 플랫폼의 책임
+- 이후 작업에서 Server Actions나 Route Handlers가 필요해질 때 현재 Node.js 배포와 자료 책임에 미치는 영향을 검토하는 절차
 - Clipboard, IndexedDB, Dedicated Worker와 필요한 Intl API를 제공하는 지원 브라우저 및 최소 버전
 - IndexedDB schema version, 업그레이드 중 다른 탭을 닫도록 안내하는 UI, 내보내기와 복구 정책
 - React Hook Form과 Zod를 연결하는 방식을 직접 작성할지 검토된 resolver를 추가할지 여부
@@ -106,7 +106,7 @@ export function NoteBoard({ initialViewport }: NoteBoardProps) {
 
 ### 검증
 
-리뷰어는 `'use client'` 파일마다 브라우저 상호작용이 필요한 가장 가까운 경계인지 확인한다. TypeScript와 lint는 서버 HTML과 브라우저 HTML이 같은지 판단하지 못한다. 개발 환경의 hydration 경고, 느린 네트워크에서의 첫 화면, 프로덕션 build의 client bundle 구성과 실제 브라우저 렌더링을 검사한다. cache하지 않은 조회 하나가 전체 경로를 막는지도 Next.js 개발 overlay와 streaming 응답으로 확인한다. 현재 선택한 정적 배포에는 필요하지 않은 서버 기능과 계정 UI가 포함되지 않는지 확인한다. 최우선 계정 및 동기화 백로그에서는 계정 빌드를 추가해 공통 화면과 실행 환경 분리를 별도로 확인한다.
+리뷰어는 `'use client'` 파일마다 브라우저 상호작용이 필요한 가장 가까운 경계인지 확인한다. TypeScript와 lint는 서버 HTML과 브라우저 HTML이 같은지 판단하지 못한다. 개발 환경의 hydration 경고, 느린 네트워크에서의 첫 화면, 프로덕션 build의 client bundle 구성과 실제 브라우저 렌더링을 검사한다. cache하지 않은 조회 하나가 전체 경로를 막는지도 Next.js 개발 overlay와 streaming 응답으로 확인한다. 현재 로컬 배포에는 필요하지 않은 서버 자료 처리와 계정 UI가 포함되지 않는지 확인한다. 최우선 계정 및 동기화 백로그에서는 계정 빌드를 추가해 공통 화면과 실행 환경 분리를 별도로 확인한다.
 
 ## React 내부 상태 흐름을 useEffect로 조정하지 않는다
 
@@ -309,7 +309,7 @@ Clipboard API 초안은 비동기 clipboard 접근을 permission으로 제어되
 - 현재 로컬 애플리케이션에는 계정 동기화 동작을 navigation과 command에 만들지 않는다. 최우선 계정 및 동기화 백로그에서 사용할 수 있는 동작을 조립 지점의 capability로 계산한다.
 - 실행 형태를 나누는 환경변수는 최우선 계정 및 동기화 백로그의 composition root에서 한 번 검증한다. component는 환경변수 원문이 아니라 검증된 capability와 port를 받는다.
 - `NEXT_PUBLIC_` 값은 build 시점에 브라우저 bundle에 포함되고 build 뒤에는 바뀌지 않는다. 최우선 계정 및 동기화 백로그에서 비밀값, runtime authorization 또는 배포 후 바뀌어야 하는 동기화 허용 여부에 사용하지 않는다.
-- 현재 선택한 정적 내보내기 결과물은 HTTPS URL 또는 `location.hostname`이 정확히 `localhost`인 HTTP URL에서만 제공한다. 이후 Next.js 서버 배포로 바뀌어도 같은 URL 조건을 적용한다. `file://` URL, loopback IP를 포함한 다른 호스트의 HTTP URL과 원격 HTTP URL은 지원 대상으로 간주하지 않는다.
+- 현재 Next.js 운영 서버는 HTTPS URL 또는 `location.hostname`이 정확히 `localhost`인 HTTP URL에서만 애플리케이션 사용을 허용한다. `file://` URL, loopback IP를 포함한 다른 호스트의 HTTP URL과 원격 HTTP URL은 지원 대상으로 간주하지 않는다.
 - 접속 프로토콜과 호스트 이름을 환경변수로 판정하지 않는다. 실행 시점의 `location.protocol`, `location.hostname`과 `isSecureContext`를 검사하고, 지원하지 않는 주소로 접속했을 때 필요한 주소 형식을 알리는 UI를 제공한다.
 - Web API의 rejection을 빈 catch로 삼키지 않는다. 사용자에게 다음 행동이 있는 알림을 제공하고, 실패한 작업의 상태 변경은 되돌린다.
 
@@ -888,7 +888,7 @@ FSD 공식 문서는 모든 layer를 사용할 필요가 없고 모든 상호작
 - Entities slice 사이의 자료 관계를 type으로 직접 표현해야 할 때에만 `@x` public API를 사용한다. 그 밖의 같은 layer import를 예외로 만들지 않는다.
 - `export *`로 내부 전체를 public API에 노출하지 않는다. export 목록을 명시하고 server, client와 공통 module을 서로 재수출하지 않는다.
 - FSD는 frontend 구조화 방법이다. PostgreSQL schema, migration, background job과 큰 API 구현을 frontend layer 규칙에 억지로 넣지 않는다.
-- 현재 local composition root는 `apps/notes/src/_app/composition/`에 두고 Pages slice의 `composition.ts` 및 아래 계층의 명시적인 public API만 가져온다. 아래 계층은 `_app`을 가져오지 않으며, route가 Pages slice의 `composition.ts`에 도달하거나 정적 build가 `index.server.ts`에 도달하면 실패로 처리한다. 최우선 계정 및 동기화 백로그에서는 sync server graph가 browser adapter를 직접 import하지 않는지도 확인한다.
+- 현재 local composition root는 `apps/notes/src/_app/composition/`에 두고 Pages slice의 `composition.ts` 및 아래 계층의 명시적인 public API만 가져온다. 아래 계층은 `_app`을 가져오지 않으며, route가 Pages slice의 `composition.ts`에 도달하거나 client build가 `index.server.ts`에 도달하면 실패로 처리한다. 최우선 계정 및 동기화 백로그에서는 sync server graph가 browser adapter를 직접 import하지 않는지도 확인한다.
 
 안티패턴:
 
@@ -929,7 +929,7 @@ export { NotesProvider } from './ui/notes-provider'
 
 U1의 의존성 조사는 FSD 팀의 legacy ESLint config, 별도 실행 도구인 Steiger, FSD 전용 ESLint 플러그인, `@boundaries/eslint-plugin`과 내부 검사 스크립트를 비교했다. 현재 ESLint flat config, TypeScript alias와 저장소 고유 계층을 함께 구성할 수 있는 `@boundaries/eslint-plugin` 7.2.0 및 `eslint-import-resolver-typescript` 4.4.5를 사용한다. `boundaries/dependencies`를 기본 거부 방식으로 구성해 layer 역방향 import, 허용된 Entities `@x` 외의 같은 layer import, public API 우회와 server 및 client 진입점 교차 import를 검사한다. ESLint core 규칙은 `export *`를 거부한다.
 
-설정 판별만을 위한 fixture나 별도 검사 스크립트는 커밋하지 않는다. 저장소의 무시된 임시 입력에서 정상 import, 정적 및 동적 위반 import를 한 번 구분한 뒤 실제 소스의 lint를 반복 검증 명령으로 사용한다. Next.js의 현재 독립 실행 빌드로 환경 오염 오류와 client bundle을 확인하고, 현재 정적 결과물에 PostgreSQL client, 사용하지 않는 Server Actions와 비밀 환경변수 접근 코드가 없는지 검사한다. 파일명이 맞는지만으로 통과시키지 않는다.
+설정 판별만을 위한 fixture나 별도 검사 스크립트는 커밋하지 않는다. 저장소의 무시된 임시 입력에서 정상 import, 정적 및 동적 위반 import를 한 번 구분한 뒤 실제 소스의 lint를 반복 검증 명령으로 사용한다. Next.js의 현재 독립 실행 빌드로 환경 오염 오류와 client bundle을 확인하고, 브라우저 묶음에 PostgreSQL client, 사용하지 않는 Server Actions와 비밀 환경변수 접근 코드가 없는지 검사한다. 파일명이 맞는지만으로 통과시키지 않는다.
 
 ## 백로그: 라이브러리 빌드에서 호스트와 실행 환경을 다시 묶지 않는다
 
@@ -1109,7 +1109,7 @@ async function acceptAnalysis(response: AnalysisResponse, notes: NoteReader) {
 
 ### 검증
 
-TypeScript는 union의 exhaustiveness와 message shape를 확인하지만 도착 순서와 browser lifecycle은 보장하지 못한다. Worker 경계에서 Zod 또는 명시적 validator로 message를 검사한다. 오래된 response를 수락하거나 폐기하는 순수 상태는 TDD로 개발하고, 실제 브라우저에서는 빠른 연속 수정, Worker 실행 오류와 production 정적 결과물의 asset URL, MIME type 및 message 왕복을 확인한다. 분석 크기별 main thread long task, Worker 시작 시간과 message 복사 비용도 측정한다.
+TypeScript는 union의 exhaustiveness와 message shape를 확인하지만 도착 순서와 browser lifecycle은 보장하지 못한다. Worker 경계에서 Zod 또는 명시적 validator로 message를 검사한다. 오래된 response를 수락하거나 폐기하는 순수 상태는 TDD로 개발하고, 실제 브라우저에서는 빠른 연속 수정, Worker 실행 오류와 production build의 asset URL, MIME type 및 message 왕복을 확인한다. 분석 크기별 main thread long task, Worker 시작 시간과 message 복사 비용도 측정한다.
 
 ## IndexedDB transaction과 저장 내구성을 과신하지 않는다
 

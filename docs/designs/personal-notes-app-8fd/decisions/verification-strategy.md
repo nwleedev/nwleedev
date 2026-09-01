@@ -17,7 +17,8 @@ TDD는 구현 전에 안정된 입력, 결과와 불변 조건을 표현할 수 
 - 초기 계획 후보는 모든 기능 단위에 자동화된 테스트 사례를 두되 선후 관계를 구분하지 않았다.
 - 재검토에서는 TDD 적용 기준을 모듈 복잡도가 아니라 구현 전에 안정된 사용자 동작 규칙을 쓸 수 있는지로 바꿨다.
 - 추가 재검토에서는 메모 클릭, 텍스트 선택과 보조 키 입력을 순수 판정 함수로 옮기면 실제 브라우저 동작을 복제한 내부 모델만 검사할 수 있다는 문제가 확인됐다. 이 상호작용은 TDD 대상에서 제외하고 브라우저에서 사용자 결과를 확인하기로 했다.
-- 실행 도구 재검토에서는 Vitest Browser Mode가 Vite 개발 서버에서 운영 모듈을 직접 검사하지만 Next.js의 운영 산출물을 제공하지 않는다는 차이를 확인했다. IndexedDB repository는 Vitest Browser Mode로, 정적 산출물의 Worker URL, MIME type, CSS, HTTP 및 HTTPS 접속과 origin 분리는 하나의 `static-smoke.mjs`로 확인한다. 어느 도구가 같은 결과를 맡게 되면 중복 검사를 제거한다.
+- 실행 도구 재검토에서는 Vitest Browser Mode가 Vite 개발 서버에서 운영 모듈을 직접 검사하지만 Next.js의 운영 빌드와 라우트를 제공하지 않는다는 차이를 확인했다. IndexedDB repository는 Vitest Browser Mode로, Next.js 운영 서버의 라우트, Worker URL 및 MIME type, CSS와 사용자 흐름은 Playwright Test로 확인한다.
+- 정적 사이트 배포가 범위에서 제외되면서 자체 정적 서버와 `static-smoke.mjs`의 독립 책임이 사라졌다. 전용 스크립트에 모인 검증 가운데 사용자 결과는 과업별 Playwright Test로 옮기고, IndexedDB 내부 store 이름, 레코드 형태, DOM 순서와 임의 대기 시간에 의존한 검사는 제거하기로 했다.
 - 현재 결정은 아래 분류에만 TDD를 적용하고, 나머지 모듈은 더 직접적인 검증으로 완료를 판정하는 것이다.
 
 ## 승인된 결정
@@ -37,12 +38,13 @@ TDD는 구현 전에 안정된 입력, 결과와 불변 조건을 표현할 수 
 
 ### TDD를 적용하지 않는 모듈
 
-- Next.js, TypeScript, CSS와 정적 내보내기 설정은 빌드 및 기본 실행 검사로 확인한다.
+- Next.js, TypeScript와 CSS 설정은 운영용 빌드 및 Next.js 서버 기본 실행 검사로 확인한다.
 - composition root와 React provider 연결은 타입, import 방향과 라우트 기본 실행 검사로 확인한다.
 - IndexedDB repository와 migration은 실제 브라우저 저장소를 사용한 통합 검사로 확인한다.
 - Clipboard 구현과 권한 알림은 성공, 거절과 부분 실패를 실제 브라우저에서 확인한다. 명령의 성공 및 실패 분기는 TDD 범위에 남긴다.
-- Worker 구현, 자산 URL, MIME type과 메시지 왕복은 운영용 정적 결과물에서 확인한다. Worker 안의 순수 분석기는 TDD 범위다.
-- `static-smoke.mjs`는 운영용 정적 결과물에서만 드러나는 위 항목을 반복 검증하는 동안 유지한다. 설정 판정용 fixture, 임시 진단과 다른 테스트가 이미 확인하는 결과를 위해 별도 스크립트를 만들지 않는다.
+- Worker 구현, 자산 URL, MIME type과 메시지 왕복은 Next.js 운영 서버를 대상으로 한 Playwright Test에서 확인한다. Worker 안의 순수 분석기는 TDD 범위다.
+- 사용자 과업의 end-to-end 검증은 Playwright Test 설정의 `webServer`가 `next start`를 실행하게 한다. 각 spec은 사용자 과업 하나를 맡고, 구현 내부를 읽거나 여러 화면의 모든 책임을 한 테스트에 합치지 않는다.
+- HTTPS는 배포 환경에서 reverse proxy 또는 플랫폼이 TLS를 종료한 같은 애플리케이션 revision으로 확인한다. 인증서 발급과 TLS 서버 구현을 자동 검사만을 위해 저장소에 추가하지 않는다.
 - 메모 본문 클릭, 텍스트 선택, 보조 키, 편집 전환, 공간형 보드, 크기 조절, 드래그, 포커스, 반응형 전환과 시각 상태는 브라우저 테스트와 수동 사용성 검토로 확인한다.
 - React Hook Form 연결과 구성요소 내부 구조는 직접 테스트 대상이 아니다. 승인된 스키마와 사용자가 보는 오류 결과를 검사한다.
 

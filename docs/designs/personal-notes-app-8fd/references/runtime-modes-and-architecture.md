@@ -20,7 +20,7 @@
 
 [Vite의 환경변수와 모드 문서](https://vite.dev/guide/env-and-mode)는 클라이언트에 노출되는 `import.meta.env` 값이 빌드 시 정적으로 치환된다고 설명한다. [Next.js 환경변수 문서](https://nextjs.org/docs/pages/guides/environment-variables)도 `NEXT_PUBLIC_` 변수가 브라우저 번들에 포함되며 빌드 뒤 값이 고정된다고 설명한다. 두 도구의 공통점은 공개 환경변수가 실행 중 바뀌는 비밀 설정이 아니라 빌드 결과를 만드는 공개 입력이라는 점이다.
 
-[Next.js SPA 가이드](https://nextjs.org/docs/app/guides/single-page-applications)는 정적 내보내기를 선택 사항으로 설명한다. [Next.js 정적 내보내기 문서](https://nextjs.org/docs/app/guides/static-exports)는 정적 결과물이 HTML, CSS와 JavaScript 파일로 만들어지며 요청마다 서버가 실행되어야 하는 기능은 지원하지 않는다고 명시한다. [Next.js Backend for Frontend 가이드](https://nextjs.org/docs/app/guides/backend-for-frontend)는 Server Actions와 Route Handlers가 Next.js 실행 환경을 사용하고 정적 내보내기에서는 제한된다고 설명한다. 따라서 로컬 모드는 정적 결과물과 같은 뜻이 아니며, 필요한 Next.js 서버 기능을 확인한 뒤 정적 내보내기 또는 Node.js 배포를 선택해야 한다. 현재 과업에는 요청 시점 서버 기능이 필요하지 않아 정적 내보내기를 선택했다.
+[Next.js SPA 가이드](https://nextjs.org/docs/app/guides/single-page-applications)는 정적 내보내기를 선택 사항으로 설명하고 [Next.js 정적 내보내기 문서](https://nextjs.org/docs/app/guides/static-exports)는 서버 기능 제한을 명시한다. [Next.js 배포 문서](https://nextjs.org/docs/app/getting-started/deploying)는 `next build`와 `next start`를 Node.js 배포의 표준 명령으로 안내하고, [Next.js 자체 호스팅 문서](https://nextjs.org/docs/app/guides/self-hosting)는 공개 배포에서 reverse proxy 사용을 권장한다. 따라서 로컬 모드는 정적 결과물과 같은 뜻이 아니며 현재 독립 실행 애플리케이션은 Node.js 서버를 사용한다. 이 선택은 요청 시점 서버 기능을 지금 추가한다는 뜻이 아니라, 정적 사이트 배포에 필요한 별도 서버와 검증 스크립트를 유지하지 않기 위한 것이다.
 
 [Twelve-Factor App의 설정 원칙](https://12factor.net/config)은 배포마다 달라지는 설정을 코드에서 분리해 환경변수로 관리하라고 권한다. 그러나 이 원칙은 UI와 도메인 코드가 환경변수를 직접 읽어도 된다는 뜻이 아니다. 환경변수는 배포 설정을 전달하고, 애플리케이션 내부에서는 타입이 있는 구성 객체로 변환하는 책임을 별도로 두는 편이 역할을 분명히 한다.
 
@@ -68,7 +68,7 @@ personal notes package
 
 [Next.js의 `output` 문서](https://nextjs.org/docs/app/api-reference/config/next-config-js/output)는 `standalone`이 운영 서버를 배포하는 데 필요한 파일과 최소 서버를 `.next/standalone`에 모으는 설정이라고 설명한다. 이 결과는 다른 애플리케이션이 React 모듈로 가져오는 패키지가 아니다. 이름이 같다는 이유로 독립 실행 요구사항이나 라이브러리 요구사항의 완료 증거로 사용하면 안 된다.
 
-독립적인 로컬 웹 애플리케이션에는 기존 조사처럼 [Next.js static export](https://nextjs.org/docs/app/guides/static-exports)를 사용할 수 있다. 정적 export도 다른 애플리케이션이 import할 라이브러리 산출물은 아니므로 라이브러리 빌드와 별도로 검증해야 한다.
+독립적인 로컬 웹 애플리케이션은 현재 [Next.js Node.js 배포](https://nextjs.org/docs/app/getting-started/deploying)를 사용한다. 이 운영용 빌드는 다른 애플리케이션이 import할 라이브러리 산출물이 아니므로 라이브러리 빌드와 별도로 검증해야 한다.
 
 ### 비교할 빌드 방식
 
@@ -210,7 +210,7 @@ Service Locator처럼 application 동작이 전역 레지스트리에서 의존�
 
 [Secure Contexts 표준](https://www.w3.org/TR/secure-contexts/)은 HTTPS, loopback과 규칙을 지키는 localhost를 잠재적으로 신뢰할 수 있는 출처로 다룬다. `file:`도 기본 알고리즘에서는 신뢰 대상으로 볼 수 있지만 브라우저가 더 엄격하게 제외할 수 있다고 허용한다. [MDN의 secure context 설명](https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts)도 일반적인 원격 출처에는 HTTPS가 필요하고 localhost 계열 출처는 잠재적으로 신뢰할 수 있다고 설명한다.
 
-Secure Contexts 표준은 이 프로젝트에서 허용하지 않는 일부 주소도 잠재적으로 신뢰할 수 있다고 판정할 수 있다. 이 프로젝트의 로컬 모드는 HTTPS URL 또는 호스트 이름이 정확히 `localhost`인 HTTP URL로만 접속한다. `file://`, loopback IP를 포함한 다른 호스트 이름의 HTTP URL과 원격 HTTP URL은 지원하지 않는다. 현재 선택한 Next.js 정적 내보내기는 HTML, CSS와 JavaScript 결과물을 웹 서버에서 제공하며 파일을 직접 열지 않는다. 이후 Next.js 서버 배포를 선택해도 같은 URL 조건을 유지한다.
+Secure Contexts 표준은 이 프로젝트에서 허용하지 않는 일부 주소도 잠재적으로 신뢰할 수 있다고 판정할 수 있다. 이 프로젝트의 로컬 모드는 HTTPS URL 또는 호스트 이름이 정확히 `localhost`인 HTTP URL로만 접속한다. `file://`, loopback IP를 포함한 다른 호스트 이름의 HTTP URL과 원격 HTTP URL은 지원하지 않는다. 현재 Next.js 운영 서버도 같은 URL 조건을 적용한다.
 
 접속 프로토콜과 호스트 이름은 환경변수로 선택하지 않는다. 배포 구성이 URL을 정하고, 애플리케이션은 실행 시점의 `location.protocol`, `location.hostname`과 `isSecureContext`를 검사해 잘못된 접속 주소를 안내해야 한다. 지원 주소에서도 브라우저 권한과 사용자 활성화 조건이 남으므로 클립보드 성공 여부는 실제 `writeText` 결과로 판정한다.
 
@@ -224,8 +224,8 @@ Secure Contexts 표준은 이 프로젝트에서 허용하지 않는 일부 주�
 
 ## 현재 범위의 결정과 계획 영향
 
-- 현재 선택한 정적 결과물을 제공할 HTTPS 호스팅과 localhost HTTP 서버의 구현 및 실행 방식을 결정해야 배포와 브라우저 검증 명령을 확정할 수 있다.
-- 현재 배포 형식과 Dedicated Worker 구조는 [로컬 실행과 텍스트 분석 Worker 결정](../decisions/local-runtime-and-analysis-worker.md)을 따른다. 기능 구현 전에 운영용 결과물에서 Worker URL, MIME type과 메시지 왕복을 검증한다.
+- localhost HTTP는 `next start`로 제공하고 HTTPS는 reverse proxy 또는 배포 플랫폼에서 TLS를 종료한다. 운영용 브라우저 검증은 Playwright Test의 `webServer`로 Next.js 서버를 시작하며, HTTPS 검증은 배포 환경에서 같은 revision을 사용한다.
+- 현재 배포 형식과 Dedicated Worker 구조는 [로컬 실행과 텍스트 분석 Worker 결정](../decisions/local-runtime-and-analysis-worker.md)을 따른다. 기능 구현 전에 운영용 빌드에서 Worker URL, MIME type과 메시지 왕복을 검증한다.
 - 정규화, 정확한 반복, 포함 관계와 Jaccard 점수는 [줄 단위 텍스트 분석 결정](../decisions/text-analysis.md)을 따른다. 고정 합격 기준을 만들지 않는다.
 - 현재는 외부 의존성이나 버전을 추가하지 않는다. 기술 스택과 매니페스트가 생긴 뒤 플랫폼 기능, 내부 구현과 후보 패키지의 직접 및 전이 의존성을 다시 비교해야 한다.
 

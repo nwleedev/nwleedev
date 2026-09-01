@@ -10,7 +10,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 다음 미완료 작업을 시작하기 전에 현재 사용자 동작, 외부에서 사용하는 API, IndexedDB 자료 형식과 오류 처리를 보존 기준으로 확인하고, 적용할 개발 지침을 검토하는 선행 작업을 먼저 완료한다. 기존 코드의 작성 방식을 그대로 복사하지 않고, 요구사항과 승인된 결정이 바꾸도록 정한 부분을 제외한 현재 사용자 동작과 자료 처리를 유지하면서 알려진 안티패턴을 제거한다.
 
-실행 순서는 현재 독립 실행 배포 선택인 정적 내보내기와 Dedicated Worker가 실제 빌드에서 동작하는지 먼저 확인한 뒤, 자료 형태와 브라우저 저장, 디자인 시스템과 공통 화면 구조, 메모, 복사 및 누적, 사용 빈도, 텍스트 분석과 템플릿 순으로 진행한다. 정적 내보내기는 로컬 모드의 정의가 아니며, 이후 작업에 Next.js Server Actions나 Route Handlers가 필요하다고 확인되면 영향을 받는 작업을 멈추고 배포 결정을 갱신한다. 각 단위는 선행 결과와 중단 조건을 만족해야 다음 단위의 완료 근거가 될 수 있다.
+실행 순서는 현재 독립 실행 배포 선택인 Next.js Node.js 서버와 Dedicated Worker가 운영용 빌드에서 동작하는지 먼저 확인한 뒤, 자료 형태와 브라우저 저장, 디자인 시스템과 공통 화면 구조, 메모, 복사 및 누적, 사용 빈도, 텍스트 분석과 템플릿 순으로 진행한다. 정적 사이트 산출물은 만들지 않으며, 이후 작업에 Next.js Server Actions나 Route Handlers가 필요하다고 확인되면 현재 자료 책임과 배포에 미치는 영향을 먼저 검토한다. 각 단위는 선행 결과와 중단 조건을 만족해야 다음 단위의 완료 근거가 될 수 있다.
 
 독립 실행 애플리케이션은 `apps/notes/package.json`이 관리한다. Next.js 라우트는 `apps/notes/app/`에 두고 FSD 코드는 `apps/notes/src/`에 둔다. 모든 FSD 계층을 먼저 만드는 대신 현재 화면, 메모와 템플릿 자료 및 사용자 동작에 필요한 계층만 추가하고, 계층 의존 방향과 slice public API를 각 작업 단위에서 확인한다.
 
@@ -43,12 +43,12 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 
 ### 추가 요구사항의 영향
 
-- U1은 로컬 모드를 정적 HTML과 동일시하지 않고, 현재 정적 내보내기를 과업에 필요한 서버 기능이 없는 동안의 배포 선택으로 다룬다. FSD 위반 판정은 커밋된 별도 검사 스크립트 대신 ESLint가 맡는다.
+- U1은 로컬 모드를 정적 HTML과 동일시하지 않고, `next build`와 `next start`를 현재 독립 실행 배포로 사용한다. FSD 위반 판정은 커밋된 별도 검사 스크립트 대신 ESLint가 맡는다.
 - U2와 U4는 자료형, 화면과 공개 진입점에서 `analysis`를 사용한다. U9는 분석 slice, Worker, 메시지와 결과 자료의 이름을 같은 용어로 맞춘다.
-- U11은 별도의 백엔드와 데이터베이스 없이 사용자 과업이 완료되는지를 확인한다. 현재 정적 내보내기는 HTTP와 HTTPS에서 따로 검증하지만, 이 결과가 로컬 모드의 영구적인 실행 형식을 정하지 않는다.
+- U11은 별도의 애플리케이션 백엔드와 데이터베이스 서버 없이 사용자 과업이 완료되는지를 확인한다. localhost HTTP는 Next.js 운영 서버에서 자동 검증하고, HTTPS는 같은 revision을 TLS reverse proxy 또는 배포 플랫폼에서 제공해 확인한다.
 - 로컬 실행 형식과 분석 명칭 정정은 U3, U5, U6, U7, U8과 U10의 사용자 동작 및 자료 규칙을 바꾸지 않는다. U10이 참조하는 입력 화면의 이름만 텍스트 분석으로 맞춘다.
 - 설정 판정만을 위한 fixture와 일회용 검사 스크립트는 저장소에 추가하지 않는다. 임시 입력이 필요한 한 번의 ESLint 설정 검증은 Git이 무시하는 `temps/`에서 수행하고, 이후에는 실제 소스의 lint와 운영용 빌드를 반복 검증 근거로 사용한다.
-- `static-smoke.mjs`는 Next.js 운영 산출물의 Worker URL과 MIME type, CSS, HTTP 및 HTTPS 접속과 origin별 저장 분리를 다른 검사 도구가 확인하지 못하는 동안만 유지한다. Vitest Browser Mode가 같은 산출물을 직접 확인하게 되거나 검사 책임이 겹치면 이 스크립트를 제거하며, 같은 목적의 일회용 스크립트를 추가하지 않는다.
+- 정적 사이트 배포가 범위에서 제외됐으므로 `static-smoke.mjs`와 자체 정적 서버를 제거한다. 이 스크립트가 맡았던 사용자 결과는 과업별 Playwright Test로 옮기고, IndexedDB 내부 schema, DOM 순서, 운영 코드의 조작 시간과 임의 대기에 결합된 검사는 삭제한다. 같은 목적의 다른 전용 스크립트는 추가하지 않는다.
 - U3 브라우저 검사에서 `_pages` slice의 하나뿐인 `index.ts`가 route UI와 조립용 IndexedDB 구현을 함께 다시 내보내면 저장 검사만 가져와도 `next/link`가 평가되는 문제가 확인됐다. route는 `index.ts`, `_app` 조립 지점은 같은 slice의 명시적 `composition.ts`를 가져오도록 public API 책임을 나눈다. 이는 server 및 client 환경 분리가 아니므로 대칭적인 `index.server.ts`와 `index.client.ts`를 만들지 않는다.
 - 누적 기능의 첫 위치 변경은 독립 route와 `_pages/accumulator` slice를 제거하고 메모 route의 보조 패널을 추가했다. 이후 모바일 누적 요구사항은 `48rem` 미만의 목록 표현에만 `/accumulator`와 `_pages/accumulator`를 다시 추가하고, `48rem` 이상에서는 승인된 보조 패널을 유지한다. U3부터 U7과 U11이 영향을 받으며 누적 스냅샷, 사용 빈도와 제거 이력의 기존 규칙은 바뀌지 않는다.
 - 화면 문구 제한은 U1의 최소 화면, U4의 공통 화면 구조와 U5부터 U10까지 추가할 모든 사용자 문구에 적용한다. U11은 보이는 문자열의 역할과 중복을 최종 확인하며, 자료 규칙과 라우트 수는 바뀌지 않는다.
@@ -56,6 +56,22 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 - 메모 화면의 왼쪽 사이드바 제거는 공통 화면 구조, 메모 영역의 반응형 전환과 통합 화면 검증에 영향을 준다. 저장 자료, 복사, 누적, 사용 빈도와 분석 규칙은 바뀌지 않는다.
 - 현재 동작 보존과 개발 지침 검토는 다음 미완료 작업보다 먼저 수행하고, 이후 각 작업 단위에서 변경한 모듈에 다시 적용한다. 이 선행 작업은 사용자 과업이나 TDD 분류를 바꾸지 않으며, 지침을 따르려면 승인된 동작, 외부 API 또는 저장 자료를 바꿔야 하는 경우 영향을 받는 구현을 멈춘다.
 - Pretendard, Figma식 애플리케이션 프레임과 밝은 목재 메모 캔버스 요구는 U4의 글꼴 및 색 토큰, 공통 탐색, 메모 표면과 캔버스 배경을 바꾼다. 별도 메모 제목과 상단 작업 행을 제거하고 캔버스를 상단 탐색 아래의 나머지 화면에 채우며, `48rem` 이상의 누적 제어를 우측 상단에 유지하는 요구는 U4의 화면 구조와 U6 및 U7의 패널 표시 시점을 바꾼다. 모바일 누적 요구는 작은 화면의 우측 하단 항목 수 제어, `/accumulator` 목록과 하단 동작을 같은 디자인 시스템에 추가한다. U11은 실제 브라우저에서 계산된 글꼴, 화면 구성, 두 고정 제어와 목재 결 위의 상태 대비를 확인한다.
+
+### 현재 코드 검토 결과에 따른 선행 정리
+
+현재 코드 검토에서 확인한 다음 문제를 기존 기능을 확장하기 전에 순서대로 해결한다. 각 묶음은 변경 뒤 적용 가능한 자동 검사와 브라우저 결과를 한 차례만 검토하고, 통과한 커밋을 만든 뒤 다음 묶음으로 이동한다.
+
+1. 배포와 검증 책임을 먼저 바로잡는다. 정적 사이트 전용 설정, 자체 정적 서버와 거대한 기본 실행 스크립트를 제거하고, Next.js 운영 서버와 과업별 Playwright Test로 바꾼다. 사용자 결과와 무관한 IndexedDB store 이름, record shape, DOM 순서와 고정 대기 시간 검사는 옮기지 않는다.
+2. 메모 편집 중 component가 revision 변화로 다시 mount되지 않게 key를 메모 식별자와 표현 종류에만 연결한다. 제스처 중 geometry는 일시 상태로만 두고 저장 완료 뒤에는 provider가 준 geometry를 사용해 외부 변경도 반영한다. 편집 포커스, 커서와 저장된 배치를 실제 브라우저에서 확인한다.
+3. Clipboard adapter는 API 부재, 권한 거절과 그 밖의 쓰기 실패를 구분한 결과를 돌려준다. 알림은 원인에 맞는 다음 행동과 같은 텍스트의 재시도를 제공하고, `Command+클릭`만 설정하는 화면을 Clipboard 권한 해결 경로처럼 연결하지 않는다.
+4. 누적 항목 제거 뒤 같은 메모를 다시 선택한 상태에서 실행 취소하면 복원된 항목이 선택 연결을 되찾도록 상태 전이를 고친다. 나란한 패널과 모바일 관리 페이지가 함께 쓰는 편집 명령, 이력, 전체 복사와 목록 UI는 `features/edit-accumulated-text`가 맡고 `features/accumulate-note`는 누적 시작과 선택 연결만 맡는다.
+5. `shared/lib/clipboard`와 `shared/lib/join-class-names`에는 허용 책임과 제외 책임을 설명하는 짧은 README를 둔다. public API 밖의 내부 파일을 가져오거나 개인 메모 업무 규칙을 공통 라이브러리로 옮기지 않는다.
+6. 테스트 이름과 검증문은 실제로 확인하는 결과만 설명하도록 맞춘다. 전체 텍스트 복사 검사는 정확한 Clipboard 문자열만 주장하고, 사용 빈도 projection은 메모 ID, content revision, 원문 스냅샷과 세 횟수를 행 순서와 무관하게 확인한다.
+7. Worker response는 원래 request의 request ID, algorithm, 입력 메모 집합과 결과의 두 줄 참조에 묶어 검증한다. 누락 및 중복 입력, 자기 비교, 입력 밖 참조, 같은 쌍의 역순 중복과 비결정적 순서를 거절한다. Worker 오류, 잘못된 message, 종료 시 pending request 거절과 최신 실행만 수락하는 경합을 각각 확인한다.
+8. Worker가 표시용 원문과 위치를 response에 포함해 main thread가 줄 정규화와 조합 생성을 다시 수행하지 않게 한다. grapheme 분리와 n-gram 집합을 쌍마다 다시 계산하는 비용은 대표 입력에서 먼저 측정하고, 영향이 확인된 경우에만 한 실행 안에서 줄별로 계산한 값을 재사용한다.
+9. Provider value와 callback의 참조 변화는 React Profiler로 실제 영향을 확인하기 전에는 `useMemo`나 `useCallback`을 일괄 추가하지 않는다. 측정에서 불필요한 consumer render가 확인되면 상태와 command Context 분리 또는 안정화 가운데 책임이 더 분명한 방법을 적용한다.
+
+U4의 시각 및 접근성 담당자 승인은 자동 검사나 에이전트 검토로 대신하지 않는다. 그 승인이 없다는 사실은 다른 코드 결함 수정의 중단 사유가 아니지만, 최종 완료 판정은 `needs human input`으로 유지한다.
 
 ## 결정 이력과 현재 선택
 
@@ -70,7 +86,7 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 - [텍스트 사용 빈도 집계](decisions/usage-counting.md): 메모 ID, content revision과 원문 상태별 두 횟수 및 성공 조건
 - [줄 단위 텍스트 분석](decisions/text-analysis.md): 줄 정규화, 정확한 반복, 포함 관계와 grapheme 3-gram Jaccard 정렬
 - [템플릿 제안 생성](decisions/template-suggestion.md): 결과 행의 두 원문 전달, 결정적 차이 분석과 범위 선택 기반 수동 작성
-- [로컬 실행과 텍스트 분석 Worker](decisions/local-runtime-and-analysis-worker.md): 별도 백엔드와 데이터베이스 없이 동작하는 로컬 모드, 현재의 Next.js 정적 내보내기와 요청 뒤 만드는 Dedicated Worker
+- [로컬 실행과 텍스트 분석 Worker](decisions/local-runtime-and-analysis-worker.md): 별도 애플리케이션 백엔드와 데이터베이스 서버 없이 동작하는 로컬 모드, Next.js Node.js 서버와 요청 뒤 만드는 Dedicated Worker
 - [모듈별 TDD와 동작 검증](decisions/verification-strategy.md): 순수 규칙만 TDD로 개발하고 브라우저 기능은 실제 실행 결과로 확인하는 분류
 - [애플리케이션 패키지 위치와 FSD 구조](decisions/application-package-and-fsd.md): `apps/notes/` 패키지, 얇은 Next.js 라우트와 필요한 FSD 계층만 만드는 구조
 - [개인 메모 디자인 시스템과 UI 기반](decisions/application-design-system.md): Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`, 그리고 폼과 무관한 접근성 부품의 제한적 사용
@@ -269,7 +285,7 @@ U7과 U9는 U6이 끝난 뒤 병렬로 진행할 수 있다. U8은 U7의 제거 
 
 ### 목적과 기준
 
-정확한 도구와 버전을 선택하고 Tailwind CSS 및 최소 Dedicated Worker가 현재 선택한 운영용 정적 결과물에서 실제로 동작하는지 먼저 확인한다. [로컬 실행과 텍스트 분석 Worker 결정](decisions/local-runtime-and-analysis-worker.md), [개인 메모 디자인 시스템과 UI 기반 결정](decisions/application-design-system.md)과 [요구사항의 로컬 실행 조건](requirements.md#반드시-지킬-조건)이 기준이다.
+정확한 도구와 버전을 선택하고 Tailwind CSS 및 최소 Dedicated Worker가 Next.js 운영용 빌드와 Node.js 서버에서 실제로 동작하는지 먼저 확인한다. [로컬 실행과 텍스트 분석 Worker 결정](decisions/local-runtime-and-analysis-worker.md), [개인 메모 디자인 시스템과 UI 기반 결정](decisions/application-design-system.md)과 [요구사항의 로컬 실행 조건](requirements.md#반드시-지킬-조건)이 기준이다.
 
 ### 선행 조건
 
@@ -288,37 +304,37 @@ U7과 U9는 U6이 끝난 뒤 병렬로 진행할 수 있다. U8은 U7의 제거 
 - `apps/notes/src/_app/styles/globals.css`
 - `apps/notes/src/_pages/notes/index.ts`
 - `apps/notes/src/_pages/analysis/api/analysis.worker.ts`
-- 필요한 정적 호스팅 및 브라우저 검사 설정
+- Next.js 운영 서버와 Playwright 브라우저 검사 설정
 
 ### 작업
 
 - 구현 시점의 Next.js, React, TypeScript, React Hook Form, Zod, Tailwind CSS와 필요한 PostCSS 연결의 공식 문서를 다시 확인하고 서로 호환되는 정확한 버전을 고정한다.
 - 각 직접 및 전이 의존성의 기능, 버전, 라이선스, 유지보수 상태, peer 조건, 잠재적 문제와 적용할 작성 방식을 확인한다. TanStack Query, DI 컨테이너, IndexedDB wrapper, drag library와 외부 접근성 부품은 현재 필요와 플랫폼 API를 비교해 근거가 없으면 추가하지 않는다. U4에서 실제 필요가 확인되지 않은 외부 접근성 부품을 U1에서 미리 설치하지 않는다.
 - `apps/notes/package.json`을 애플리케이션 매니페스트로 만들고 저장소 루트의 workspace 설정이 이 패키지를 선택해 실행할 수 있게 한다. package manager와 workspace 파일 형식은 의존성 조사 뒤 확정한다.
-- App Router와 현재 배포 선택인 정적 내보내기를 구성한다. 현재 과업은 IndexedDB, Clipboard와 Worker만으로 완료할 수 있으므로 Server Actions, 동적 Route Handlers와 요청 시점 서버 기능을 추가하지 않는다. 이후 작업에서 필요가 확인되면 이 선택을 고정한 채 우회하지 않고 요구사항 변경 절차에 따라 배포 결정을 다시 검토한다.
-- Tailwind CSS와 전역 스타일을 루트 layout에서 한 번 연결하고, 의미 기반 디자인 토큰과 utility class가 운영용 정적 CSS에 포함되는 최소 화면을 만든다. 완성형 UI 라이브러리나 외부 기본 테마를 함께 설치하지 않는다.
+- App Router와 `next build` 및 `next start`를 사용하는 Node.js 배포를 구성한다. 현재 과업은 IndexedDB, Clipboard와 Worker만으로 완료할 수 있으므로 Server Actions, 동적 Route Handlers와 요청 시점 서버 자료 처리를 추가하지 않는다. 이후 작업에서 필요가 확인되면 현재 자료 책임에 미치는 영향을 요구사항 변경 절차에 따라 다시 검토한다.
+- Tailwind CSS와 전역 스타일을 루트 layout에서 한 번 연결하고, 의미 기반 디자인 토큰과 utility class가 운영용 CSS에 포함되는 최소 화면을 만든다. 완성형 UI 라이브러리나 외부 기본 테마를 함께 설치하지 않는다.
 - `apps/notes/app/`에는 framework 진입 파일만 두고 `apps/notes/src/`에는 필요한 FSD 계층만 만든다. `@boundaries/eslint-plugin`과 TypeScript resolver를 ESLint flat config에 연결해 `_app`, `_pages`, `features`, `entities`, `shared`의 import 방향, 허용된 Entities `@x`, public API 우회, `export *`와 Next.js route 연결을 검사한다. 정적 import와 동적 import를 모두 검사하며, 설정 판별은 저장소의 무시된 임시 입력에서 한 번 확인하고 fixture나 별도 구조 검사 script를 커밋하지 않는다.
 - 분석 요청을 흉내 내는 최소 버튼에서 module-relative URL로 Dedicated Worker를 지연 생성하고 ping 및 응답을 주고받는다.
 - 최소 화면은 사용자 동작과 결과만 표현하며 Tailwind CSS 적용, 독립 실행, Worker 생성 및 빌드 성공 같은 구현 검증 내용을 문구로 설명하지 않는다. Worker 왕복 여부는 브라우저 검사에서 판정한다.
-- 운영용 정적 결과물을 HTTPS와 호스트 이름이 `localhost`인 HTTP에서 제공할 개발 및 검증 방식을 정한다. 현재 로컬 결과물에는 실행 모드 환경변수를 추가하지 않는다.
+- localhost HTTP는 `next start`로 제공하고 HTTPS는 reverse proxy 또는 배포 플랫폼이 TLS를 종료한다. 자동 브라우저 검사는 Playwright Test의 `webServer`가 Next.js 운영 서버를 시작하게 하고, HTTPS는 같은 revision의 배포 환경에서 확인한다. 현재 로컬 결과물에는 실행 모드 환경변수를 추가하지 않는다.
 - 지원 브라우저와 최소 버전을 정하고 Clipboard, IndexedDB, Dedicated Worker, Pointer Events, container query와 필요한 `Intl` 기능을 실제 지원 범위와 대조한다.
 
 ### 검증 방식
 
-TDD를 적용하지 않는다. 이 단위의 위험은 빌드 도구가 만든 Worker URL, MIME type, 정적 자산과 실행 주소이므로 가짜 Worker 단위 검사보다 운영용 빌드와 실제 브라우저 왕복이 직접적인 근거다.
+TDD를 적용하지 않는다. 이 단위의 위험은 빌드 도구가 만든 Worker URL, MIME type, 브라우저 자산과 실행 주소이므로 가짜 Worker 단위 검사보다 운영용 빌드와 실제 브라우저 왕복이 직접적인 근거다.
 
-- package script로 운영용 정적 내보내기가 성공한다.
+- package script로 운영용 빌드가 성공하고 `next start`가 빌드 결과를 제공한다.
 - 운영용 CSS 파일에 Tailwind CSS utility와 의미 기반 디자인 토큰이 포함되고, 최소 네이티브 제어 요소에 고유 스타일이 적용된다. 개발 실행과 운영용 빌드의 CSS 순서 차이로 외형이 바뀌지 않는다.
 - 저장소 루트에서 `apps/notes`만 선택한 실행과 `apps/notes/package.json`의 package script 실행이 같은 애플리케이션을 대상으로 한다.
 - ESLint가 계층 역방향 import, 허용되지 않은 같은 계층 import와 public API 우회를 각각 실패로 판정하고 Entities `@x`를 포함한 승인된 import는 통과시킨다.
-- 내보낸 파일을 두 허용 접속 방식에서 열고 첫 분석 요청 전에는 Worker가 없으며, 요청 뒤 사용자가 이해할 수 있는 분석 상태가 표시되고 검사 도구가 Worker 응답을 확인한다.
+- localhost HTTP의 운영 서버와 TLS를 종료한 배포 환경에서 첫 분석 요청 전에는 Worker가 없으며, 요청 뒤 사용자가 이해할 수 있는 분석 상태가 표시되고 검사 도구가 Worker 응답을 확인한다.
 - 잘못된 Worker URL이나 MIME type이면 smoke가 실패한다.
 - 결과물에서 현재 범위에 없는 서버 실행 코드와 계정 UI를 찾을 수 없다.
 - 최소 화면에 구현 기술, 빌드 상태 또는 화면 역할을 되풀이하는 안내 문구가 없다.
 
 ### 중단 조건
 
-Worker URL, MIME type 또는 현재 정적 호스팅에서의 메시지 왕복을 확인하지 못하면 U9를 시작하지 않는다. Tailwind CSS가 내보낸 CSS 파일에 포함되지 않거나 버전 호환성, 대상 브라우저, workspace 설정 또는 FSD ESLint 검사가 결정되지 않으면 의존하는 소스 구조를 만들지 않는다.
+Worker URL, MIME type 또는 Next.js 운영 서버에서의 메시지 왕복을 확인하지 못하면 U9를 시작하지 않는다. Tailwind CSS가 운영용 CSS에 포함되지 않거나 버전 호환성, 대상 브라우저, workspace 설정 또는 FSD ESLint 검사가 결정되지 않으면 의존하는 소스 구조를 만들지 않는다.
 
 ## U2. 자료 규칙과 의존성 조립 구조
 
@@ -411,7 +427,7 @@ TDD를 적용하지 않는다. IndexedDB의 transaction 수명, upgrade와 origi
 - 메모, 누적 목록, 횟수, 템플릿과 설정은 새로고침 뒤 복원된다.
 - 첫 자료 읽기 전에는 빈 상태를 표시하거나 새 메모를 만들 수 없고, 읽기 완료 뒤에만 실제 빈 상태 또는 저장된 자료를 보여준다.
 - 분석 결과, 저장 전 제안, 제거 이력과 모바일 메모 선택 연결은 라우트 이동 뒤 유지되지만 새로고침 뒤에는 없다. 새로고침 뒤에도 IndexedDB의 누적 항목은 남는다.
-- 운영용 정적 빌드 중 Provider 조립이 브라우저 전역 접근으로 실패하지 않고, 라우트 이동 뒤에도 같은 실행 중 상태를 읽는다.
+- 운영용 빌드 중 Provider 조립이 브라우저 전역 접근으로 실패하지 않고, Next.js 운영 서버의 라우트 이동 뒤에도 같은 실행 중 상태를 읽는다.
 - 의도적으로 transaction을 중단하면 그 transaction이 바꾸는 object store가 일부만 갱신되지 않는다.
 - 누적 항목 쓰기를 등록한 뒤 같은 transaction의 사용 횟수 쓰기를 실패시키면 두 object store가 모두 이전 상태를 유지한다.
 - 다른 database version을 연 탭이 있을 때 `blocked` 안내가 나타나고 방해하는 연결을 닫으면 원래 open 요청이 완료된다. `versionchange` 안내에서는 현재 연결을 닫고 다시 시도할 수 있다.
@@ -478,7 +494,7 @@ U1의 라우트, Tailwind CSS 및 운영용 CSS 확인과 U2의 provider가 필�
 
 TDD를 적용하지 않는다. 디자인 토큰, 구성요소 외형, 라우트 구성, container query, 읽기 흐름과 시각적 위계는 class 이름이나 DOM 내부 구조를 고정하는 단위 검사보다 실제 렌더링, 접근성 검사와 담당자 검토가 직접적인 근거다.
 
-- 다섯 주요 route와 `/accumulator`를 직접 열고 새로고침해도 정적 hosting에서 화면이 열린다. `/accumulator`는 전역 탐색에 나타나지 않고 작은 메모 화면의 우측 하단 항목 수 제어에서만 일반 진입 경로를 제공한다.
+- 다섯 주요 route와 `/accumulator`를 Next.js 운영 서버에서 직접 열고 새로고침해도 화면이 열린다. `/accumulator`는 전역 탐색에 나타나지 않고 작은 메모 화면의 우측 하단 항목 수 제어에서만 일반 진입 경로를 제공한다.
 - HTTPS와 `http://localhost`에서는 공통 화면이 열리고, `file:`과 `localhost`가 아닌 HTTP 판정에서는 자료 Provider를 시작하지 않은 채 지원 주소 안내가 보인다.
 - 로컬 탐색에는 계정과 동기화 항목이 없다.
 - 메모 화면에는 왼쪽 사이드바가 없고 상단 탐색으로 다른 네 화면에 이동할 수 있다. 나머지 화면에서는 왼쪽 탐색으로 현재 위치와 같은 이동 대상을 확인할 수 있다.
@@ -741,7 +757,7 @@ U1의 운영용 Worker 기본 실행 검사, U2의 메시지 규칙 및 content 
 
 ### 검증 방식
 
-정규화, 관계 분류, Jaccard, 결정적 정렬과 오래된 응답 수락 상태에는 TDD를 적용한다. 입력과 결과가 순수하고 유니코드 및 짧은 줄 경계 사례가 많다. Worker 자산, 메시지 왕복, 주 실행 흐름의 응답성과 실제 계산 시간은 TDD를 적용하지 않고 운영용 정적 결과물의 브라우저에서 확인한다.
+정규화, 관계 분류, Jaccard, 결정적 정렬과 오래된 응답 수락 상태에는 TDD를 적용한다. 입력과 결과가 순수하고 유니코드 및 짧은 줄 경계 사례가 많다. Worker 자산, 메시지 왕복, 주 실행 흐름의 응답성과 실제 계산 시간은 TDD를 적용하지 않고 Next.js 운영 서버를 연 브라우저에서 확인한다.
 
 - 조합 문자가 다른 같은 문자열, 대소문자, 공백 묶음, 문장부호, CRLF와 빈 줄의 테스트 입력이 결정된 정규화 결과를 만든다.
 - 유효한 줄이 하나, 둘과 셋일 때 각각 0개, 1개와 3개의 조합을 만들고, 같은 메모 안의 줄과 서로 다른 위치의 같은 원문을 빠뜨리지 않는다.
@@ -827,7 +843,7 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 ### 작업
 
 - 요구사항의 완료 증거를 사용자 과업 단위로 자동화할 항목과 담당자가 직접 확인할 항목으로 나눈다.
-- 운영용 정적 결과물 하나를 HTTPS와 호스트 이름이 `localhost`인 HTTP에서 각각 제공한다. origin이 다르므로 같은 자료 공유를 기대하지 않고 각 환경에서 새 자료로 전체 흐름을 확인한다.
+- 같은 revision의 운영용 빌드를 호스트 이름이 `localhost`인 HTTP에서는 `next start`로, HTTPS에서는 TLS를 종료하는 reverse proxy 또는 배포 플랫폼 뒤에서 제공한다. origin이 다르므로 같은 자료 공유를 기대하지 않고 각 환경에서 새 자료로 전체 흐름을 확인한다.
 - `file:` URL과 `localhost`가 아닌 HTTP URL에서 자료 Provider와 과업 화면이 시작되지 않고, 지원하는 접속 주소로 이동할 다음 행동이 보이는지 확인한다.
 - 키보드, 단일 포인터, 터치, 한글 IME, 텍스트 선택, 320 CSS px, `48rem` 전후, 확대, reduced motion과 고대비 상태를 확인한다.
 - 메모 화면에는 왼쪽 사이드바가 없고, 상단 탐색과 메모 작업 동작이 보드 또는 목록을 가리지 않는지 확인한다.
@@ -839,7 +855,7 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 - 다섯 주요 route, 모바일 누적 관리 route와 메모 화면의 누적 패널에서 보이는 문자열의 역할을 확인하고, 제목이나 컨트롤과 중복되는 안내, 구현 기술 및 빌드 상태 설명과 과업에 필요하지 않은 소개 문구가 없는지 검토한다.
 - 단순 폼 제어가 네이티브 HTML 요소와 React Hook Form의 직접 등록 방식을 유지하는지 확인한다. 외부 접근성 부품을 추가했다면 폼과 무관한 승인된 `shared/ui` 구성요소에만 격리되고 외부 기본 테마가 화면에 나타나지 않는지 import, lockfile과 실제 화면을 함께 확인한다.
 - U1에서 확정한 FSD ESLint 검사를 최종 `apps/notes/src/` 전체에 다시 실행하고, `apps/notes/app/`의 route 파일이 `_pages` 및 `_app` public API만 연결하는지 확인한다.
-- 운영용 JavaScript 묶음과 라우트 목록에 계정, 동기화, 서버 실행, PostgreSQL, 라이브러리 제공 코드와 환경변수 예시 값이 없는지 검사한다.
+- 브라우저 JavaScript 묶음과 라우트 목록에 계정, 동기화, PostgreSQL, 라이브러리 제공 코드와 환경변수 예시 값이 없는지 검사한다. Next.js 운영 서버에 현재 사용자 과업과 무관한 자료 처리 route가 없는지도 확인한다.
 - 대표 자료 규모에서 Worker 분석 중 main thread 반응, 메모 수 증가에 따른 보드 조작과 IndexedDB 읽기 및 쓰기 시간을 측정해 기준선을 남긴다. 측정 전 임의 성능 합격값을 만들지 않는다.
 
 ### 검증 방식
@@ -870,7 +886,7 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 
 TDD 여부는 파일 종류나 모듈 크기가 아니라 구현 전에 사용자 결과 또는 저장 불변 조건을 안정적으로 쓸 수 있는지로 정한다.
 
-- U1은 TDD를 적용하지 않고 운영용 빌드 및 Worker 기본 실행 검사를 사용한다.
+- U1은 TDD를 적용하지 않고 운영용 빌드, Next.js 서버와 Worker 기본 실행 검사를 사용한다.
 - U2는 content revision과 외부 schema 규칙에만 TDD를 적용하고 조립 wiring에는 적용하지 않는다.
 - U3은 TDD를 적용하지 않고 실제 브라우저 IndexedDB 통합 검사를 사용한다.
 - U4는 TDD를 적용하지 않고 운영용 CSS, 네이티브 폼 동작, 라우트, 반응형 렌더링, 접근성 검사와 담당자 검토를 사용한다.
