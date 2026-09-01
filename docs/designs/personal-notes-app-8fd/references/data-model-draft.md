@@ -2,15 +2,15 @@
 
 ## 결론
 
-현재 로컬 애플리케이션은 메모 원문과 공간 좌표를 기준 정보로 두고, 분석용 줄과 정규화 문자열은 요청할 때 만드는 파생 정보로 다룬다. [로컬 저장과 실행 중 상태 결정](../decisions/local-storage-and-ephemeral-state.md)에 따라 전체 revision과 텍스트 전용 content revision을 구분한다. [누적 순서와 제거 복구 결정](../decisions/accumulator-ordering-and-recovery.md)에 따라 누적 당시 원문 스냅샷을 저장하고 제거 이력은 애플리케이션 실행 중 메모리에 둔다. 최우선 계정 및 동기화 백로그를 시작하면 이 논리 객체를 유지하면서 저장 방식만 원격 어댑터로 바꿀 수 있는지 다시 검증한다.
+현재 로컬 애플리케이션은 메모 원문과 공간 좌표를 기준 정보로 두고, 분석용 줄과 정규화 문자열은 요청할 때 만드는 파생 정보로 다룬다. [로컬 저장과 실행 중 상태 결정](../decisions/local-storage-and-ephemeral-state.md)에 따라 전체 revision과 텍스트 전용 content revision을 구분한다. [일괄 복사 순서와 제거 복구 결정](../decisions/accumulator-ordering-and-recovery.md)에 따라 항목 추가 당시 원문 스냅샷을 저장하고 제거 이력은 애플리케이션 실행 중 메모리에 둔다. 최우선 계정 및 동기화 백로그를 시작하면 이 논리 객체를 유지하면서 저장 방식만 원격 어댑터로 바꿀 수 있는지 다시 검증한다.
 
 안정적인 ID와 revision은 로컬 분석 결과가 어떤 메모 상태를 대상으로 했는지 식별하는 데에도 필요하다. 계정 동기화에 필요한 삭제 표시, 충돌 해결, 삭제 보존 기간과 계정별 보관 범위는 최우선 백로그에서 다룬다. 이 초안은 데이터베이스 스키마가 아니며, 아래 TypeScript 형태는 논리 객체와 쟁점을 검토하기 위한 예시일 뿐 승인된 API나 구현이 아니다.
 
-이 문서는 [개인 메모 애플리케이션 요구사항](../requirements.md)의 공간형 메모, 누적과 실행 취소, 사용 빈도, 줄 단위 겹침과 템플릿에 필요한 값을 조사하고, 최우선 계정 및 동기화 백로그의 추가 쟁점을 구분한 참고 자료다. 도메인 설계 담당자와 데이터 설계 담당자가 객체 책임을 검토하고 결정 책임자가 보관 및 동기화 규칙을 승인할 때 사용한다. 공식 문서와 표준은 2026년 8월 30일에 검토했다.
+이 문서는 [개인 메모 애플리케이션 요구사항](../requirements.md)의 공간형 메모, 일괄 복사와 실행 취소, 사용 빈도, 줄 단위 텍스트 분석과 템플릿에 필요한 값을 조사하고, 최우선 계정 및 동기화 백로그의 추가 쟁점을 구분한 참고 자료다. 도메인 설계 담당자와 데이터 설계 담당자가 객체 책임을 검토하고 결정 책임자가 보관 및 동기화 규칙을 승인할 때 사용한다. 공식 문서와 표준은 2026년 8월 30일에 검토했다.
 
 ## 조사 근거
 
-[Indexed Database API 3.0 표준](https://www.w3.org/TR/IndexedDB/)은 키로 식별하는 구조화된 값, 인덱스와 트랜잭션을 정의한다. 따라서 로컬 모드에서 메모, 누적 상태, 사용 횟수와 템플릿을 별도 object store에 두면서 하나의 사용자 동작에 필요한 변경을 트랜잭션으로 묶을 수 있다.
+[Indexed Database API 3.0 표준](https://www.w3.org/TR/IndexedDB/)은 키로 식별하는 구조화된 값, 인덱스와 트랜잭션을 정의한다. 따라서 로컬 모드에서 메모, 일괄 복사 상태, 사용 횟수와 템플릿을 별도 object store에 두면서 하나의 사용자 동작에 필요한 변경을 트랜잭션으로 묶을 수 있다.
 
 [TypeScript의 interface 문서](https://www.typescriptlang.org/docs/handbook/interfaces.html)는 객체 형태를 이름 붙여 검사하는 방법을 설명하고, [타입 호환성 문서](https://www.typescriptlang.org/docs/handbook/type-compatibility.html)는 구조적 타입 체계의 호환 규칙을 설명한다. 아래 예시는 IndexedDB나 서버 API의 DTO를 UI에 퍼뜨리지 않고 도메인 객체와 저장 포트의 형태를 먼저 논의하기 위해 interface와 판별 가능한 union을 사용한다.
 
@@ -96,54 +96,67 @@ interface ViewportState {
 
 `Note.content`가 사용자가 입력한 원문이다. 줄별 객체를 기준 데이터로 저장하면 한 번의 붙여넣기와 편집이 여러 엔티티 변경으로 갈라지고 원문의 줄바꿈을 복원하기 어려워진다. 분석용 줄은 원문에서 파생한다. URL이나 링크처럼 보이는 문자열도 `Note.content`에 일반 텍스트로 보관한다. 별도 링크 기능을 제공하지 않는 초기 범위를 반영해 이 초안에는 링크 객체, 미리보기 정보나 추출한 메타데이터를 추가하지 않는다.
 
-`NoteGeometry`는 화면 픽셀이 아니라 작업 공간 좌표로 해석한다. 그래야 zoom을 바꿔도 메모의 논리 위치와 크기가 바뀌지 않는다. `revision`은 원문과 geometry를 포함한 저장 변경에 증가하고, `contentRevision`은 원문이 달라질 때만 증가한다. 이 구분은 위치와 크기만 바꿨을 때 사용 빈도와 분석 결과를 유지한다. 최소 크기, 최대 크기, 좌표 범위와 z-index 재정렬 규칙은 실제 화면과 성능을 검증하면서 정한다.
+`NoteGeometry`는 화면 픽셀이 아니라 작업 공간 좌표로 해석한다. 그래야 zoom을 바꿔도 메모의 논리 위치와 크기가 바뀌지 않는다. `revision`은 원문과 geometry를 포함한 저장 변경에 증가하고, `contentRevision`은 원문이 달라질 때만 증가한다. 이 구분은 위치, 크기와 겹침 순서만 바꿨을 때 사용 빈도와 분석 결과를 유지한다.
+
+`zIndex`는 한 보드 안의 전체 겹침 순서를 나타낸다. 맨 앞으로 보내기는 대상 메모를 모든 메모 위에, 맨 뒤로 보내기는 모든 메모 아래에 놓고 나머지 메모의 상대 순서는 유지해야 한다. 여러 `zIndex`를 바꾸는 경우 `notes` store의 한 transaction으로 완료한다. 연속 정수로 다시 번호를 매길지, 간격을 둔 순서를 사용하다가 필요할 때 정리할지와 오래된 동률 자료의 보조 정렬 기준은 구현 전에 결정해야 한다. 이 규칙을 정하지 않은 채 현재 최댓값 또는 최솟값만 계속 더하지 않는다.
+
+최소 크기, 최대 크기와 좌표 범위는 실제 화면과 성능을 검증하면서 정한다. 작은 화면 목록의 최대 세로 길이는 화면 표현 token이며 `Note.geometry.height`를 바꾸지 않는다.
 
 메모 작업 영역의 너비가 작은 환경의 목록은 별도 메모 엔티티가 아니라 같은 `Note` 객체를 다른 형태로 표시한다. [공간형 보드와 작은 화면 목록 결정](../decisions/responsive-note-presentation.md)에 따라 작업 영역의 inline size가 `48rem` 미만이면 생성 순서로 표시하고, 목록으로 전환할 때 `Note.geometry`를 수정하지 않는다.
 
 `ViewportState`는 기본적으로 기기 로컬에 둔다. 여러 기기에서 같은 보드를 열 때 마지막 pan과 zoom까지 동기화할지는 사용자 기대를 확인한 뒤 결정해야 한다.
 
-## 누적 텍스트와 실행 취소
+## 일괄 복사 목록과 실행 취소
 
-누적 목록의 배열 순서가 최종 결합 순서다. 각 항목에는 원본 메모를 찾을 참조와 누적 당시의 텍스트를 함께 둔다.
+일괄 복사 목록의 배열 순서가 최종 결합 순서다. 각 항목에는 원본 메모를 찾을 참조와 항목을 추가한 당시의 텍스트를 함께 둔다. 사용자 화면에서는 `일괄 복사`를 사용하고, 기존 IndexedDB 이름을 바꾸는 migration 전까지 저장 구현에서만 `accumulators`를 이전 이름으로 인식한다.
 
 ```ts
-interface AccumulatedTextItem {
+interface BatchCopyItem {
   id: EntityId;
   sourceNote: NoteContentRef;
   textSnapshot: string;
   addedAt: IsoDateTime;
 }
 
-interface AccumulatorContent {
-  items: readonly AccumulatedTextItem[];
+interface BatchCopyContent {
+  items: readonly BatchCopyItem[];
   separator: string;
 }
 
-interface AccumulatorState {
+interface BatchCopyState {
   id: EntityId;
-  content: AccumulatorContent;
+  content: BatchCopyContent;
   updatedAt: IsoDateTime;
   revision: Revision;
 }
 
-interface RemovedAccumulatorItem {
-  item: AccumulatedTextItem;
+interface RemovedBatchCopyItem {
+  item: BatchCopyItem;
   previousIndex: number;
 }
 
-interface AccumulatorRemovalHistory {
-  undo: readonly RemovedAccumulatorItem[];
-  redo: readonly RemovedAccumulatorItem[];
+interface BatchCopyRemovalHistory {
+  undo: readonly RemovedBatchCopyItem[];
+  redo: readonly RemovedBatchCopyItem[];
 }
 ```
 
-`textSnapshot`을 두면 메모를 편집하거나 삭제해도 이미 누적한 결과가 바뀌지 않는다. 같은 텍스트를 다시 누적해도 고유 ID가 다른 항목을 새로 추가한다. `AccumulatorContent.separator`의 기본값은 줄바꿈이다.
+`textSnapshot`을 두면 메모를 편집하거나 삭제해도 이미 선택한 결과가 바뀌지 않는다. 같은 텍스트를 다시 추가해도 고유 ID가 다른 항목을 새로 만들 수 있다. `BatchCopyContent.separator`의 기본값은 줄바꿈이다.
 
-[Redux의 실행 취소 이력 설명](https://redux.js.org/usage/implementing-undo-history)은 과거, 현재와 다시 실행할 상태를 구분하고 실행 취소 뒤 새 변경이 들어오면 다시 실행 목록을 비우는 모델을 설명한다. 현재 요구는 제거만 되돌리므로 전체 누적 내용을 복제하지 않고 제거된 항목과 이전 index를 기록한다. 복원은 현재 내용에 대한 새 변경이며 저장 revision과 수정 시각을 과거 값으로 되돌리지 않는다.
+[Redux의 실행 취소 이력 설명](https://redux.js.org/usage/implementing-undo-history)은 과거, 현재와 다시 실행할 상태를 구분하고 실행 취소 뒤 새 변경이 들어오면 다시 실행 목록을 비우는 모델을 설명한다. 현재 요구는 제거만 되돌리므로 전체 목록을 복제하지 않고 제거된 항목과 이전 index를 기록한다. 복원은 현재 내용에 대한 새 변경이며 저장 revision과 수정 시각을 과거 값으로 되돌리지 않는다.
 
 제거 이력은 애플리케이션 실행 동안 메모리에 두어 라우트 이동 뒤에도 유지하고 새로고침하면 지운다. 실행 취소 뒤 추가, 재정렬 또는 제거가 성공하면 `redo`를 비운다. 추가와 순서 변경 자체는 undo 대상이 아니다.
 
-모바일 목록에서 길게 눌러 추가한 항목은 메모 ID와 누적 항목 ID를 애플리케이션 실행 중 상태에서 연결한다. 선택된 메모를 다시 짧게 눌렀을 때 원문이 같은 다른 항목이 아니라 이 ID의 항목만 제거하기 위한 연결이다. 이 선택 표시는 라우트 이동 동안 유지하지만 새로고침하면 지우며, IndexedDB의 `AccumulatedTextItem` 형식에는 입력 방식이나 화면 상태를 추가하지 않는다. 제거 실행 취소로 같은 항목을 복원하면 현재 실행 중 연결도 복원한다.
+후속 모바일 요구는 길게 누르기 항목 추가를 폐기하고 화면 헤더 아이콘으로 시작하는 일괄 복사 선택 상태를 도입했다. 이 상태는 route 이동, 새로고침과 취소 뒤의 수명이 정해지지 않았으므로 아직 IndexedDB record에 넣지 않는다. 구현 전에는 같은 메모의 반복 선택, 기존 저장 목록과의 결합, 복사 성공 및 취소 뒤 결과를 먼저 승인해야 한다.
+
+선택 상태가 저장 목록과 분리된 임시 작업으로 승인되는 경우 다음과 같은 실행 중 객체를 검토할 수 있다. 이 예시는 자료 수명 결정이 아니며 승인 전 구현하지 않는다.
+
+```ts
+interface MobileBatchCopySelection {
+  noteIdsInSelectionOrder: readonly EntityId[];
+  startedAt: IsoDateTime;
+}
+```
 
 ## 사용 빈도
 
@@ -151,8 +164,8 @@ interface AccumulatorRemovalHistory {
 
 ```ts
 interface UsageCounts {
-  ordinaryCopy: number;
-  accumulation: number;
+  individualCopy: number;
+  batchCopy: number;
 }
 
 interface TextUsageAggregate {
@@ -164,7 +177,7 @@ interface TextUsageAggregate {
 }
 ```
 
-일반 복사는 클립보드 쓰기와 횟수 저장이 완료된 경우에만 집계한다. 클립보드 쓰기는 성공했지만 횟수 저장이 실패하면 복사 성공을 되돌리지 않고 빈도 기록 실패를 별도로 알린다. 누적 항목 추가와 누적 횟수 증가는 `AccumulationWriter`의 한 동작이 같은 IndexedDB transaction으로 완료하며, 제거, 순서 변경, 실행 취소와 다시 실행은 횟수를 바꾸지 않는다. 같은 텍스트를 다시 누적하면 성공한 횟수만큼 증가하고, 서로 다른 메모의 같은 원문은 합치지 않는다.
+개별 복사는 넓은 화면의 `Command+클릭` 또는 모바일 목록의 길게 누르기로 Clipboard 쓰기와 횟수 저장이 완료된 경우에만 집계한다. Clipboard 쓰기는 성공했지만 횟수 저장이 실패하면 복사 성공을 되돌리지 않고 빈도 기록 실패를 별도로 알린다. 일괄 복사 항목 추가와 해당 횟수 증가는 `BatchCopyItemWriter`의 한 동작이 같은 IndexedDB transaction으로 완료하며, 제거, 순서 변경, 실행 취소와 다시 실행은 횟수를 바꾸지 않는다. 같은 텍스트를 다시 추가하면 성공한 횟수만큼 증가하고, 서로 다른 메모의 같은 원문은 합치지 않는다.
 
 시간대별 사용 추이나 감사 기록이 요구되지 않는 초기 범위에서는 모든 클릭 이벤트를 영구 저장하기보다 집계 객체를 갱신하는 편이 데이터 양과 개인정보 노출을 줄인다. 나중에 시계열 분석이 승인되면 별도 이벤트 모델과 보존 기간을 설계해야 한다.
 
@@ -256,16 +269,18 @@ type TemplateInputValues = Readonly<Record<string, string>>;
 
 ## 상호작용 설정
 
-요구사항은 별도 설정 화면과 대체 누적 조작을 요구한다. [메모 누적 실행 동작 결정](../decisions/accumulation-activation.md)에 따라 누적 버튼은 항상 제공하고 설정에는 `Command+클릭` 추가 동작의 사용 여부만 보관한다.
+요구사항은 별도 설정 화면에서 넓은 화면의 `Command+Option+클릭` 일괄 복사 추가를 켜거나 끌 수 있게 한다. [일괄 복사 실행 동작 결정](../decisions/accumulation-activation.md)에 따라 preference 이름은 이전 `Command+클릭` 구현이 아니라 기능의 목적을 나타낸다.
 
 ```ts
 interface InteractionPreferences {
-  metaClickEnabled: boolean;
+  batchCopyShortcutEnabled: boolean;
   updatedAt: IsoDateTime;
 }
 ```
 
-운영체제 감지값을 저장하지 않고 사용자가 고른 동작을 저장한다. 다른 보조 키 조합과 누적 모드는 초기 범위에 포함하지 않는다. 보조 키와 브라우저 충돌은 기기마다 다를 수 있으므로 이 설정은 기본적으로 기기에 보관한다. 계정 동기화 여부는 최우선 백로그에서 별도로 결정한다.
+운영체제 감지값을 저장하지 않고 사용자가 고른 동작을 저장한다. 다른 보조 키 조합을 자동 대체값으로 저장하지 않는다. 보조 키와 브라우저 충돌은 기기마다 다를 수 있으므로 이 설정은 기본적으로 기기에 보관한다. 계정 동기화 여부는 최우선 백로그에서 별도로 결정한다.
+
+현재 저장 구현의 `metaClickEnabled`는 `Command+클릭`을 일괄 복사에 사용하던 의미를 담고 있어 새 조합의 설정으로 그대로 읽으면 안 된다. `batchCopyShortcutEnabled`, `UsageCounts`와 `BatchCopy...` 이름을 적용할 때에는 기존 `preferences`, `usage`와 `accumulators` record를 유지하는 IndexedDB schema migration을 함께 설계한다. 이름 변경만으로 object store를 비우거나 기존 횟수를 잃지 않는다.
 
 ## 로컬 저장 구조와 최우선 계정 데이터베이스 백로그
 
@@ -309,11 +324,11 @@ interface AppDependencies {
 ## 현재 범위의 결정 기록
 
 - [로컬 저장과 실행 중 상태 결정](../decisions/local-storage-and-ephemeral-state.md)
-- [누적 순서와 제거 복구 결정](../decisions/accumulator-ordering-and-recovery.md)
+- [일괄 복사 순서와 제거 복구 결정](../decisions/accumulator-ordering-and-recovery.md)
 - [텍스트 사용 빈도 집계 결정](../decisions/usage-counting.md)
 - [줄 단위 텍스트 분석 결정](../decisions/text-analysis.md)
 - [템플릿 제안 생성 결정](../decisions/template-suggestion.md)
-- [메모 누적 실행 동작 결정](../decisions/accumulation-activation.md)
+- [일괄 복사 실행 동작 결정](../decisions/accumulation-activation.md)
 
 ### 최우선 계정 및 동기화 백로그에서 결정할 사항
 

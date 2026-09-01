@@ -169,21 +169,21 @@ account backlog
 공통 application 동작이 의존할 interface 후보는 다음과 같다. `Port`나 `Adapter`를 이름에 반복하지 않고 수행하는 책임을 나타낸다.
 
 - `NoteRepository`: 메모와 공간 배치를 저장하고 읽는다.
-- `AccumulatorRepository`: 현재 누적 텍스트와 순서를 읽고 재정렬한다.
+- `AccumulatorRepository`: 현재 일괄 복사 항목과 순서를 읽고 재정렬한다. 이 이름을 바꾸려면 기존 저장 자료와 호출자의 migration을 함께 설계한다.
 - `AccumulationWriter`: 누적 스냅샷 추가와 사용 횟수 증가를 하나의 저장 동작으로 처리한다.
 - `TemplateRepository`: 템플릿과 플레이스홀더를 저장하고 읽는다.
-- `UsageRepository`: 일반 복사와 누적 조작 횟수를 구분해 기록한다.
+- `UsageRepository`: 개별 복사와 일괄 복사 항목 추가 횟수를 구분해 기록한다.
 - `TextAnalyzer`: 줄 단위의 정확한 반복, 포함 관계와 문자열 근접 점수를 분석한다.
 - `ClipboardWriter`: 클립보드 쓰기 결과를 성공 또는 실패로 돌려준다.
 - `SyncService`: 최우선 계정 및 동기화 백로그에서만 제공하며 로컬 변경을 서버와 맞춘다.
 
-현재 로컬 composition root는 IndexedDB 저장 구현과 브라우저 분석기를 주입하고 `SyncService`를 제공하지 않는다. [로컬 저장과 실행 중 상태 결정](../decisions/local-storage-and-ephemeral-state.md)에 따라 공통 Client Provider에서 한 번 조립하되 생성 중에는 브라우저 전역을 읽지 않고, `AccumulationWriter`의 IndexedDB 구현이 누적 항목 및 횟수 변경을 같은 transaction으로 처리한다. 로컬 UI에는 계정 전용 탐색 항목과 화면을 만들지 않는다. 최우선 계정 및 동기화 백로그를 시작하면 원격 저장 구현과 동기화 서비스를 별도 composition root에서 조립하고, 공통 화면이 같은 application 동작을 호출할 수 있는지 다시 검증한다. 라이브러리 백로그를 시작하면 독립 실행과 포트폴리오 호스트가 서로 다른 라우트 연결과 바깥쪽 화면 구성을 사용하면서 같은 application 동작과 UI 진입점을 조립할 수 있는지 다시 검증한다.
+현재 로컬 composition root는 IndexedDB 저장 구현과 브라우저 분석기를 주입하고 `SyncService`를 제공하지 않는다. [로컬 저장과 실행 중 상태 결정](../decisions/local-storage-and-ephemeral-state.md)에 따라 공통 Client Provider에서 한 번 조립하되 생성 중에는 브라우저 전역을 읽지 않고, `AccumulationWriter`의 IndexedDB 구현이 일괄 복사 항목 및 횟수 변경을 같은 transaction으로 처리한다. 로컬 UI에는 계정 전용 탐색 항목과 화면을 만들지 않는다. 최우선 계정 및 동기화 백로그를 시작하면 원격 저장 구현과 동기화 서비스를 별도 composition root에서 조립하고, 공통 화면이 같은 application 동작을 호출할 수 있는지 다시 검증한다. 라이브러리 백로그를 시작하면 독립 실행과 포트폴리오 호스트가 서로 다른 라우트 연결과 바깥쪽 화면 구성을 사용하면서 같은 application 동작과 UI 진입점을 조립할 수 있는지 다시 검증한다.
 
 Service Locator처럼 application 동작이 전역 레지스트리에서 의존성을 찾으면 어떤 실행 모드에서 무엇이 필요한지 호출 지점만 보고 알기 어렵다. 시작 지점에서 의존성을 만들고 필요한 동작에 명시적으로 전달하면 로컬 코드가 실수로 서버 구현을 부르는 문제도 타입과 구성 검사에서 발견하기 쉬워진다.
 
 ## 로컬 저장과 분석은 브라우저 API만으로 수행할 수 있다
 
-[Indexed Database API 3.0 표준](https://www.w3.org/TR/IndexedDB/)은 브라우저 안에서 구조화된 레코드와 인덱스를 저장하고 트랜잭션으로 변경을 묶는 API를 정의한다. 메모, 좌표, 누적 상태, 사용 횟수와 템플릿처럼 서로 다른 객체를 로컬에 저장할 수 있다. 다만 [Storage API의 영구 저장소 설명](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist)은 영구 저장 요청이 승인된다는 보장이 없음을 명시하므로, IndexedDB만으로 장기 보관과 백업을 보장할 수는 없다.
+[Indexed Database API 3.0 표준](https://www.w3.org/TR/IndexedDB/)은 브라우저 안에서 구조화된 레코드와 인덱스를 저장하고 트랜잭션으로 변경을 묶는 API를 정의한다. 메모, 좌표, 일괄 복사 상태, 사용 횟수와 템플릿처럼 서로 다른 객체를 로컬에 저장할 수 있다. 다만 [Storage API의 영구 저장소 설명](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist)은 영구 저장 요청이 승인된다는 보장이 없음을 명시하므로, IndexedDB만으로 장기 보관과 백업을 보장할 수는 없다.
 
 [HTML 표준의 Web Workers 절](https://html.spec.whatwg.org/multipage/workers.html)는 문서의 UI 흐름과 분리된 작업자를 정의한다. 분석을 Worker에 두면 많은 줄을 비교하는 동안 메모 이동과 화면 조작이 멈추는 위험을 줄일 수 있다. Worker는 성능 문제를 없애는 것이 아니라 UI 스레드와 계산을 분리하는 수단이므로, 입력 규모에 따른 시간과 메모리 측정은 별도로 필요하다.
 
