@@ -66,7 +66,7 @@ Git이 무시하는 `temps/`에는 조사 시점의 패키지 tarball, 압축을
 - control, note와 panel의 radius는 각각 `0.4rem`, `0.25rem`, `0.75rem`이다. 모든 요소를 같은 큰 pill이나 둥근 card로 만들지 않는다.
 - note shadow는 흐린 부유 shadow가 아니라 `0.38rem 0.42rem`만큼 어긋난 고정 shadow이고, popover 성격의 요소에는 별도 floating shadow를 둔다.
 
-[메모 목록](../../../../apps/notes/src/_pages/notes/ui/NotesCollection.tsx)은 `48rem` 미만 영역에서 한 열 list, `48rem` 이상에서 자유 배치 board를 사용한다. [메모 화면](../../../../apps/notes/src/_pages/notes/ui/AccumulatorWorkspace.tsx)은 누적 panel과 작업 영역에 너비를 우선 배정한다. 이는 화면 크기에 따라 board를 단순 축소하지 않는 기존 결정을 실제 구성으로 옮긴 결과다.
+[메모 목록](../../../../apps/notes/src/_pages/notes/ui/notes-collection.tsx)은 `48rem` 미만 영역에서 한 열 list, `48rem` 이상에서 자유 배치 board를 사용한다. [메모 화면](../../../../apps/notes/src/_pages/notes/ui/accumulator-workspace.tsx)은 일괄 복사 panel과 작업 영역에 너비를 우선 배정한다. 이는 화면 크기에 따라 board를 단순 축소하지 않는 기존 결정을 실제 구성으로 옮긴 결과다.
 
 ### 기존 구현에서 유지할 강점
 
