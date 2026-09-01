@@ -4,8 +4,8 @@ import {
   type Page,
 } from "@playwright/test"
 
-import { createNoteThroughUi } from "./support/createNoteThroughUi"
-import { selectTextRange } from "./support/selectTextRange"
+import { createNoteThroughUi } from "./support/create-note-through-ui"
+import { selectTextRange } from "./support/select-text-range"
 
 const applicationOrigin = "http://localhost:4173"
 

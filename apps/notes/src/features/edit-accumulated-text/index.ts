@@ -2,11 +2,11 @@ export {
   EditAccumulatedTextProvider,
   useAccumulatedTextEditor,
   type EditAccumulatedTextContextValue,
-} from "./model/EditAccumulatedTextProvider"
+} from "./model/edit-accumulated-text-provider"
 export {
   copyAccumulatedText,
   type CopyAccumulatedTextResult,
-} from "./model/copyAccumulatedText"
+} from "./model/copy-accumulated-text"
 export {
   moveAccumulatedText,
   redoAccumulatedTextRemoval,
@@ -14,7 +14,7 @@ export {
   undoAccumulatedTextRemoval,
   type EditAccumulatorExecution,
   type EditAccumulatorResult,
-} from "./model/editAccumulatedText"
-export { AccumulatorEditingView } from "./ui/AccumulatorEditingView"
-export { AccumulatorHistoryShortcuts } from "./ui/AccumulatorHistoryShortcuts"
-export { CopyAccumulatorAction } from "./ui/CopyAccumulatorAction"
+} from "./model/edit-accumulated-text"
+export { AccumulatorEditingView } from "./ui/accumulator-editing-view"
+export { AccumulatorHistoryShortcuts } from "./ui/accumulator-history-shortcuts"
+export { CopyAccumulatorAction } from "./ui/copy-accumulator-action"

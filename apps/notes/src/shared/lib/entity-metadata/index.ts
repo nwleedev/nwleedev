@@ -5,4 +5,4 @@ export {
   type EntityId,
   type IsoDateTime,
   type Revision,
-} from "./entityMetadata"
+} from "./entity-metadata"

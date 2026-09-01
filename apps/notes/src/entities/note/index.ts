@@ -2,7 +2,7 @@ export {
   IndexedDbNoteRepository,
   NOTE_STORE_NAME,
   StaleNoteRevisionError,
-} from "./api/IndexedDbNoteRepository"
+} from "./api/indexed-db-note-repository"
 export {
   NoteContentReferenceSchema,
   NoteGeometrySchema,

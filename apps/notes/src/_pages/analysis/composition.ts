@@ -1,4 +1,4 @@
-export { WorkerTextAnalyzer } from "./api/WorkerTextAnalyzer"
+export { WorkerTextAnalyzer } from "./api/worker-text-analyzer"
 export {
   AnalysisRequestMessageSchema,
   AnalysisResponseMessageSchema,
@@ -6,8 +6,8 @@ export {
   type AnalysisInput,
   type AnalysisResponseMessage,
   type TextAnalyzer,
-} from "./model/analysisMessage"
+} from "./model/analysis-message"
 export {
   TextAnalysisProvider,
   useTextAnalysis,
-} from "./model/TextAnalysisProvider"
+} from "./model/text-analysis-provider"

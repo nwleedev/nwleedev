@@ -1,1 +1,1 @@
-export { NotesStartPage } from "./ui/NotesStartPage"
+export { NotesStartPage } from "./ui/notes-start-page"

@@ -1,4 +1,4 @@
 export {
   AlgorithmReferenceSchema,
   type AlgorithmReference,
-} from "./algorithmReference"
+} from "./algorithm-reference"

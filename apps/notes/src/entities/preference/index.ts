@@ -1,10 +1,10 @@
 export {
   IndexedDbInteractionPreferencesRepository,
   PREFERENCE_STORE_NAME,
-} from "./api/IndexedDbInteractionPreferencesRepository"
+} from "./api/indexed-db-interaction-preferences-repository"
 export {
   InteractionPreferencesRecordSchema,
   parseInteractionPreferencesRecord,
   type InteractionPreferences,
   type InteractionPreferencesRepository,
-} from "./model/interactionPreferencesRecord"
+} from "./model/interaction-preferences-record"

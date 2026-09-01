@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 
-import { createNoteThroughUi } from "./support/createNoteThroughUi"
+import { createNoteThroughUi } from "./support/create-note-through-ui"
 
 test("명시적인 분석 요청 뒤 Worker 자산을 실행해 분석 후보를 보여준다", async ({
   page,

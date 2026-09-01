@@ -1,3 +1,3 @@
-export { PersonalNotesProvider } from "./providers/PersonalNotesProvider"
-export { ApplicationFrame } from "./ui/ApplicationFrame"
-export { RuntimeAccessGuard } from "./ui/RuntimeAccessGuard"
+export { PersonalNotesProvider } from "./providers/personal-notes-provider"
+export { ApplicationFrame } from "./ui/application-frame"
+export { RuntimeAccessGuard } from "./ui/runtime-access-guard"

@@ -1,11 +1,11 @@
-export { IndexedDbAccumulationWriter } from "./api/IndexedDbAccumulationWriter"
-export type { AccumulationWriter } from "./model/AccumulationWriter"
+export { IndexedDbAccumulationWriter } from "./api/indexed-db-accumulation-writer"
+export type { AccumulationWriter } from "./model/accumulation-writer"
 export {
   AccumulateNoteProvider,
   type AccumulationRequest,
   useAccumulateNote,
-} from "./model/AccumulateNoteProvider"
+} from "./model/accumulate-note-provider"
 export {
   accumulateNote,
   type AccumulateNoteResult,
-} from "./model/accumulateNote"
+} from "./model/accumulate-note"

@@ -1,1 +1,1 @@
-export { StatusNotice } from "./StatusNotice"
+export { StatusNotice } from "./status-notice"

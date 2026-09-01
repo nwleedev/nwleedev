@@ -1,1 +1,1 @@
-export { SettingsStartPage } from "./ui/SettingsStartPage"
+export { SettingsStartPage } from "./ui/settings-start-page"

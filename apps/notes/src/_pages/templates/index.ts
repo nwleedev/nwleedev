@@ -1,1 +1,1 @@
-export { TemplatesStartPage } from "./ui/TemplatesStartPage"
+export { TemplatesStartPage } from "./ui/templates-start-page"

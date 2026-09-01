@@ -4,4 +4,4 @@ export {
   readRequest,
   waitForTransaction,
   type IndexedDbConnection,
-} from "./indexedDb"
+} from "./indexed-db"

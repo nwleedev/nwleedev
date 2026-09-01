@@ -1,4 +1,4 @@
 export {
   CryptoEntityIdGenerator,
   type EntityIdGenerator,
-} from "./entityIdGenerator"
+} from "./entity-id-generator"

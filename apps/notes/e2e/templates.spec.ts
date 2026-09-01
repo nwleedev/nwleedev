@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 
-import { selectTextRange } from "./support/selectTextRange"
+import { selectTextRange } from "./support/select-text-range"
 
 test("플레이스홀더마다 실제로 되돌릴 텍스트를 보여준다", async ({
   page,

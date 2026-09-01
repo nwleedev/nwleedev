@@ -1,1 +1,1 @@
-export { AccumulatorStartPage } from "./ui/AccumulatorStartPage"
+export { AccumulatorStartPage } from "./ui/accumulator-start-page"

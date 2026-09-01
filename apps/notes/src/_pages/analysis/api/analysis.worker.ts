@@ -1,8 +1,8 @@
 import {
   AnalysisRequestMessageSchema,
   type AnalysisResponseMessage,
-} from "../model/analysisMessage"
-import { analyzeText } from "../model/analyzeText"
+} from "../model/analysis-message"
+import { analyzeText } from "../model/analyze-text"
 
 type WorkerScope = {
   addEventListener(

@@ -1,1 +1,1 @@
-export { UsageReaderProvider } from "./model/UsageReaderProvider"
+export { UsageReaderProvider } from "./model/usage-reader-provider"

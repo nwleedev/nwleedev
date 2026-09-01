@@ -2,4 +2,4 @@ export {
   TemplateDataProvider,
   type CopyTemplateResult,
   type CreateTemplateResult,
-} from "./model/TemplateDataProvider"
+} from "./model/template-data-provider"

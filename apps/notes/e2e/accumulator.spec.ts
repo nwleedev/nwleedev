@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 
-import { createNoteThroughUi } from "./support/createNoteThroughUi"
+import { createNoteThroughUi } from "./support/create-note-through-ui"
 
 async function createAccumulatedNotes(page: Page) {
   const firstContent = "첫 번째 누적 메모"

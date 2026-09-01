@@ -1,7 +1,7 @@
 export {
   IndexedDbTemplateRepository,
   TEMPLATE_STORE_NAME,
-} from "./api/IndexedDbTemplateRepository"
+} from "./api/indexed-db-template-repository"
 export {
   TemplateRecordSchema,
   TemplateSegmentSchema,
@@ -12,7 +12,7 @@ export {
   type TemplateRepository,
   type TemplateSegment,
   type TextTemplate,
-} from "./model/templateRecord"
+} from "./model/template-record"
 export {
   createTemplateDraft,
   createTemplateDraftFromSegments,
@@ -23,5 +23,5 @@ export {
   type MarkPlaceholderResult,
   type TemplateDraft,
   type TemplatePlaceholderRange,
-} from "./model/editSegments"
-export { renderTemplate } from "./model/renderTemplate"
+} from "./model/edit-segments"
+export { renderTemplate } from "./model/render-template"

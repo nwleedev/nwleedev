@@ -1,8 +1,8 @@
 export type {
   NoteStorageEvent,
   NoteStorageMonitor,
-} from "./model/NoteStorageMonitor"
+} from "./model/note-storage-monitor"
 export {
   NotesDataProvider,
   useNotesData,
-} from "./model/NotesDataProvider"
+} from "./model/notes-data-provider"

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 
-import { createNoteThroughUi } from "./support/createNoteThroughUi"
+import { createNoteThroughUi } from "./support/create-note-through-ui"
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/")

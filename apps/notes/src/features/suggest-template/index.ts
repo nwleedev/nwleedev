@@ -3,8 +3,8 @@ export {
   useSelectedSourceLines,
   type SelectedSourceLine,
   type SelectedSourceLines,
-} from "./model/SelectedSourceLinesProvider"
+} from "./model/selected-source-lines-provider"
 export {
   suggestTemplate,
   type TemplateSuggestion,
-} from "./model/suggestTemplate"
+} from "./model/suggest-template"

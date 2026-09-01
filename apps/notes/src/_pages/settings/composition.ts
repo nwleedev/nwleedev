@@ -1,4 +1,4 @@
 export {
   InteractionPreferencesProvider,
   useInteractionPreferences,
-} from "./model/InteractionPreferencesProvider"
+} from "./model/interaction-preferences-provider"

@@ -2,7 +2,7 @@ export {
   ACCUMULATOR_STORE_NAME,
   IndexedDbAccumulatorRepository,
   PRIMARY_ACCUMULATOR_ID,
-} from "./api/IndexedDbAccumulatorRepository"
+} from "./api/indexed-db-accumulator-repository"
 export {
   AccumulatedTextItemSchema,
   AccumulatorRecordSchema,
@@ -10,14 +10,14 @@ export {
   type AccumulatedTextItem,
   type Accumulator,
   type AccumulatorRepository,
-} from "./model/accumulatorRecord"
+} from "./model/accumulator-record"
 export {
   combineAccumulatorText,
   moveAccumulatorItem,
   removeAccumulatorItem,
   restoreAccumulatorItem,
   type RemovedAccumulatorItem,
-} from "./model/accumulatorCommands"
+} from "./model/accumulator-commands"
 export {
   applyAccumulation,
   canRedoAccumulatorRemoval,
@@ -28,4 +28,4 @@ export {
   reorderAccumulatorSession,
   undoAccumulatorRemoval,
   type AccumulatorSession,
-} from "./model/accumulatorHistory"
+} from "./model/accumulator-history"

@@ -1,1 +1,1 @@
-export { AnalysisStartPage } from "./ui/AnalysisStartPage"
+export { AnalysisStartPage } from "./ui/analysis-start-page"
