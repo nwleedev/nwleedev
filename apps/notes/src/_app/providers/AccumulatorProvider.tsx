@@ -1,8 +1,6 @@
 "use client"
 
 import {
-  createContext,
-  useContext,
   useEffect,
   useRef,
   useState,
@@ -15,73 +13,42 @@ import {
   canRedoAccumulatorRemoval,
   canUndoAccumulatorRemoval,
   createAccumulatorSession,
-  redoAccumulatorRemoval,
-  removeFromAccumulatorSession,
-  reorderAccumulatorSession,
-  undoAccumulatorRemoval,
-  type AccumulatedTextItem,
   type Accumulator,
   type AccumulatorRepository,
   type AccumulatorSession,
 } from "@/entities/accumulator"
 import type { Note } from "@/entities/note"
-import type { ClipboardWriter } from "@/shared/lib/clipboard"
-
-import type { AccumulationWriter } from "./AccumulationWriter"
 import {
+  AccumulateNoteProvider,
   accumulateNote,
   type AccumulateNoteResult,
-} from "./accumulateNote"
+  type AccumulationRequest,
+  type AccumulationWriter,
+} from "@/features/accumulate-note"
 import {
+  EditAccumulatedTextProvider,
   copyAccumulatedText,
-  type CopyAccumulatedTextResult,
-} from "./copyAccumulatedText"
+  moveAccumulatedText,
+  redoAccumulatedTextRemoval,
+  removeAccumulatedText,
+  undoAccumulatedTextRemoval,
+  type EditAccumulatorExecution,
+  type EditAccumulatorResult,
+  type EditAccumulatedTextContextValue,
+} from "@/features/edit-accumulated-text"
+import type { ClipboardWriter } from "@/shared/lib/clipboard"
 
 type AccumulatorState =
   | { session: AccumulatorSession; status: "ready" }
-  | { status: "loading" | "failure" }
+  | { status: "failure" | "loading" }
 
-export type AccumulationRequest = {
-  selectForMobile: boolean
-}
-
-export type EditAccumulatorResult =
-  | { status: "saved" }
-  | { status: "unchanged" }
-  | { status: "failure" }
-
-type ReadyAccumulatorContext = {
-  accumulator: Accumulator
-  items: readonly AccumulatedTextItem[]
-  separator: string
-  status: "ready"
-}
-
-type UnavailableAccumulatorContext =
-  | { status: "loading" }
-  | { status: "failure" }
-
-type AccumulatorContextValue = (
-  | ReadyAccumulatorContext
-  | UnavailableAccumulatorContext
-) & {
-  canRedo: boolean
-  canUndo: boolean
-  pending: boolean
-  selectedItemByNote: Readonly<Record<string, string>>
-  accumulate(
-    note: Note,
-    request: AccumulationRequest,
-  ): Promise<AccumulateNoteResult>
-  copyAll(): Promise<CopyAccumulatedTextResult>
-  moveItem(itemId: string, index: number): Promise<EditAccumulatorResult>
-  redo(): Promise<EditAccumulatorResult>
-  removeItem(itemId: string): Promise<EditAccumulatorResult>
-  retry(): void
-  undo(): Promise<EditAccumulatorResult>
-}
-
-const AccumulatorContext = createContext<AccumulatorContextValue | null>(null)
+type AccumulatorProviderProps = PropsWithChildren<{
+  clipboard: ClipboardWriter
+  createId(): string
+  now(): string
+  repository: AccumulatorRepository
+  writer: AccumulationWriter
+}>
 
 function emptyAccumulator(updatedAt: string): Accumulator {
   return {
@@ -103,14 +70,6 @@ async function readAccumulator(
     return { status: "failure" }
   }
 }
-
-type AccumulatorProviderProps = PropsWithChildren<{
-  clipboard: ClipboardWriter
-  createId(): string
-  now(): string
-  repository: AccumulatorRepository
-  writer: AccumulationWriter
-}>
 
 export function AccumulatorProvider({
   children,
@@ -204,57 +163,53 @@ export function AccumulatorProvider({
     })
   }
 
-  function saveTransition(
-    transition: (current: AccumulatorSession) => AccumulatorSession | null,
+  function runEdit(
+    operation: (current: AccumulatorSession) => Promise<EditAccumulatorExecution>,
   ) {
     if (session.current === null) {
       return Promise.resolve<EditAccumulatorResult>({ status: "failure" })
     }
 
-    return enqueue(async (): Promise<EditAccumulatorResult> => {
+    return enqueue(async () => {
       const currentSession = session.current
 
       if (currentSession === null) {
-        return { status: "failure" }
+        return { status: "failure" } as const
       }
 
-      const nextSession = transition(currentSession)
+      const execution = await operation(currentSession)
 
-      if (nextSession === null) {
-        return { status: "unchanged" }
+      if (execution.session !== undefined) {
+        publish(execution.session)
       }
 
-      try {
-        const accumulator = await repository.save(nextSession.accumulator)
-        publish({ ...nextSession, accumulator })
-        return { status: "saved" }
-      } catch {
-        return { status: "failure" }
-      }
+      return execution.result
     })
   }
 
+  const editDependencies = { now, repository }
+
   function moveItem(itemId: string, index: number) {
-    return saveTransition((current) =>
-      reorderAccumulatorSession(current, itemId, index, now()),
+    return runEdit((current) =>
+      moveAccumulatedText(editDependencies, current, itemId, index),
     )
   }
 
   function removeItem(itemId: string) {
-    return saveTransition((current) =>
-      removeFromAccumulatorSession(current, itemId, now()),
+    return runEdit((current) =>
+      removeAccumulatedText(editDependencies, current, itemId),
     )
   }
 
   function undo() {
-    return saveTransition((current) =>
-      undoAccumulatorRemoval(current, now()),
+    return runEdit((current) =>
+      undoAccumulatedTextRemoval(editDependencies, current),
     )
   }
 
   function redo() {
-    return saveTransition((current) =>
-      redoAccumulatorRemoval(current, now()),
+    return runEdit((current) =>
+      redoAccumulatedTextRemoval(editDependencies, current),
     )
   }
 
@@ -262,62 +217,63 @@ export function AccumulatorProvider({
     const currentSession = session.current
 
     if (currentSession === null) {
-      return Promise.resolve<CopyAccumulatedTextResult>({
+      return Promise.resolve({
         reason: "write-failed",
         status: "clipboard-failure",
-      })
+      } as const)
     }
 
     return copyAccumulatedText(clipboard, currentSession.accumulator)
   }
 
-  let contextState: ReadyAccumulatorContext | UnavailableAccumulatorContext
+  let editorState: EditAccumulatedTextContextValue
   let canRedo = false
   let canUndo = false
   let selectedItemByNote: Readonly<Record<string, string>> = {}
 
   if (state.status === "ready") {
-    contextState = {
-      accumulator: state.session.accumulator,
-      items: state.session.accumulator.content.items,
-      separator: state.session.accumulator.content.separator,
-      status: "ready",
-    }
     canRedo = canRedoAccumulatorRemoval(state.session)
     canUndo = canUndoAccumulatorRemoval(state.session)
     selectedItemByNote = state.session.selectedItemByNote
+    editorState = {
+      accumulator: state.session.accumulator,
+      canRedo,
+      canUndo,
+      copyAll,
+      items: state.session.accumulator.content.items,
+      moveItem,
+      pending,
+      redo,
+      removeItem,
+      retry,
+      separator: state.session.accumulator.content.separator,
+      status: "ready",
+      undo,
+    }
   } else {
-    contextState = { status: state.status }
+    editorState = {
+      canRedo,
+      canUndo,
+      copyAll,
+      moveItem,
+      pending,
+      redo,
+      removeItem,
+      retry,
+      status: state.status,
+      undo,
+    }
   }
 
   return (
-    <AccumulatorContext
-      value={{
-        ...contextState,
-        accumulate,
-        canRedo,
-        canUndo,
-        copyAll,
-        moveItem,
-        pending,
-        redo,
-        removeItem,
-        retry,
-        selectedItemByNote,
-        undo,
-      }}
+    <AccumulateNoteProvider
+      accumulate={accumulate}
+      ready={state.status === "ready"}
+      selectedItemByNote={selectedItemByNote}
     >
-      {children}
-    </AccumulatorContext>
+      <EditAccumulatedTextProvider value={editorState}>
+        {children}
+      </EditAccumulatedTextProvider>
+    </AccumulateNoteProvider>
   )
-}
-
-export function useAccumulator() {
-  const context = useContext(AccumulatorContext)
-
-  if (context === null) {
-    throw new Error("useAccumulator must be used within AccumulatorProvider")
-  }
-
-  return context
 }

@@ -6,11 +6,8 @@ import type { AccumulatedTextItem } from "@/entities/accumulator"
 import { Button } from "@/shared/ui/button"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
+import type { EditAccumulatorResult } from "../model/editAccumulatedText"
 import { AccumulatorList } from "./AccumulatorList"
-
-type EditResult = {
-  status: "failure" | "saved" | "unchanged"
-}
 
 type AccumulatorEditingViewProps = {
   canRedo: boolean
@@ -18,10 +15,10 @@ type AccumulatorEditingViewProps = {
   combinedText: string
   items: readonly AccumulatedTextItem[]
   pending: boolean
-  onMove(itemId: string, index: number): Promise<EditResult>
-  onRedo(): Promise<EditResult>
-  onRemove(itemId: string): Promise<EditResult>
-  onUndo(): Promise<EditResult>
+  onMove(itemId: string, index: number): Promise<EditAccumulatorResult>
+  onRedo(): Promise<EditAccumulatorResult>
+  onRemove(itemId: string): Promise<EditAccumulatorResult>
+  onUndo(): Promise<EditAccumulatorResult>
 }
 
 export function AccumulatorEditingView({

@@ -3,13 +3,14 @@ import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { page, userEvent } from "vitest/browser"
 
-import type { AccumulatorRepository } from "@/entities/accumulator"
+import type { Accumulator } from "@/entities/accumulator"
 import type { Note, NoteRepository } from "@/entities/note"
 import type { OrdinaryCopyUsageWriter } from "@/entities/usage"
+import { AccumulateNoteProvider } from "@/features/accumulate-note"
 import {
-  AccumulatorProvider,
-  type AccumulationWriter,
-} from "@/features/accumulate-note"
+  EditAccumulatedTextProvider,
+  type EditAccumulatedTextContextValue,
+} from "@/features/edit-accumulated-text"
 
 import type {
   NoteStorageEvent,
@@ -27,17 +28,27 @@ const clipboard = {
 const usage: OrdinaryCopyUsageWriter = {
   recordOrdinaryCopy: async () => undefined,
 }
-const accumulatorRepository: AccumulatorRepository = {
-  get: async () => null,
-  save: async (accumulator) => accumulator,
+const emptyAccumulator: Accumulator = {
+  content: { items: [], separator: "\n" },
+  id: "primary",
+  revision: 0,
+  updatedAt: timestamp,
 }
-const accumulationWriter: AccumulationWriter = {
-  addAndRecordUsage: async (item) => ({
-    content: { items: [item], separator: "\n" },
-    id: "primary",
-    revision: 0,
-    updatedAt: item.addedAt,
-  }),
+const savedEditResult = Promise.resolve({ status: "saved" } as const)
+const editor: EditAccumulatedTextContextValue = {
+  accumulator: emptyAccumulator,
+  canRedo: false,
+  canUndo: false,
+  copyAll: async () => ({ status: "copied" }),
+  items: [],
+  moveItem: () => savedEditResult,
+  pending: false,
+  redo: () => savedEditResult,
+  removeItem: () => savedEditResult,
+  retry: () => undefined,
+  separator: "\n",
+  status: "ready",
+  undo: () => savedEditResult,
 }
 
 function createDeferred<T>() {
@@ -125,25 +136,25 @@ describe("NotesDataProvider", () => {
   ) {
     await act(async () => {
       root.render(
-        <AccumulatorProvider
-          clipboard={clipboard}
-          createId={() => "created-note"}
-          now={() => timestamp}
-          repository={accumulatorRepository}
-          writer={accumulationWriter}
+        <AccumulateNoteProvider
+          accumulate={async () => ({ status: "failure" })}
+          ready
+          selectedItemByNote={{}}
         >
-          <NotesDataProvider
-            clipboard={clipboard}
-            createId={() => "created-note"}
-            metaClickEnabled
-            now={() => timestamp}
-            repository={repository}
-            storageMonitor={storageMonitor}
-            usage={usage}
-          >
-            <NotesStartPage />
-          </NotesDataProvider>
-        </AccumulatorProvider>,
+          <EditAccumulatedTextProvider value={editor}>
+            <NotesDataProvider
+              clipboard={clipboard}
+              createId={() => "created-note"}
+              metaClickEnabled
+              now={() => timestamp}
+              repository={repository}
+              storageMonitor={storageMonitor}
+              usage={usage}
+            >
+              <NotesStartPage />
+            </NotesDataProvider>
+          </EditAccumulatedTextProvider>
+        </AccumulateNoteProvider>,
       )
     })
   }

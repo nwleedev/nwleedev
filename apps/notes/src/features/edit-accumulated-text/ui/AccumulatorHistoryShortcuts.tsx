@@ -2,16 +2,14 @@
 
 import { useEffect } from "react"
 
-type EditResult = {
-  status: "failure" | "saved" | "unchanged"
-}
+import type { EditAccumulatorResult } from "../model/editAccumulatedText"
 
 type AccumulatorHistoryShortcutsProps = {
   canRedo: boolean
   canUndo: boolean
   pending: boolean
-  onRedo(): Promise<EditResult>
-  onUndo(): Promise<EditResult>
+  onRedo(): Promise<EditAccumulatorResult>
+  onUndo(): Promise<EditAccumulatorResult>
 }
 
 function isTextEditingTarget(target: EventTarget | null) {

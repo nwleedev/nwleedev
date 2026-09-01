@@ -10,11 +10,14 @@ import {
 
 import type { Note, NoteGeometry } from "@/entities/note"
 import {
-  useAccumulator,
+  useAccumulateNote,
   type AccumulateNoteResult,
   type AccumulationRequest,
-  type EditAccumulatorResult,
 } from "@/features/accumulate-note"
+import {
+  useAccumulatedTextEditor,
+  type EditAccumulatorResult,
+} from "@/features/edit-accumulated-text"
 import { Button } from "@/shared/ui/button"
 
 import type { CopyNoteResult } from "../model/copyNote"
@@ -389,7 +392,8 @@ export function NotesCollection({
   notes,
   updateNote,
 }: NotesCollectionProps) {
-  const accumulator = useAccumulator()
+  const accumulation = useAccumulateNote()
+  const accumulatorEditor = useAccumulatedTextEditor()
   const accumulatorWorkspace = useAccumulatorWorkspace()
   const orderedNotes = [...notes].sort(byCreationTime)
   const [creationError, setCreationError] = useState("")
@@ -469,18 +473,18 @@ export function NotesCollection({
   }
 
   const presentationProps: NotePresentationProps = {
-    accumulatedItemByNote: accumulator.selectedItemByNote,
-    accumulationReady: accumulator.status === "ready",
+    accumulatedItemByNote: accumulation.selectedItemByNote,
+    accumulationReady: accumulation.ready,
     editingDraft,
     metaClickEnabled,
     notes: orderedNotes,
-    onAccumulate: accumulator.accumulate,
+    onAccumulate: accumulation.accumulate,
     onAccumulated: accumulatorWorkspace.revealNewAccumulation,
     onBeginEditing: beginEditing,
     onCopy: copyNote,
     onDraftChange: changeDraft,
     onFinishEditing: finishEditing,
-    onRemoveAccumulated: accumulator.removeItem,
+    onRemoveAccumulated: accumulatorEditor.removeItem,
     onSaveGeometry: saveGeometry,
     onSelect: setSelectedNoteId,
     selectedNoteId,

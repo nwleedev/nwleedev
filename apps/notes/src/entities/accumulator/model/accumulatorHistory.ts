@@ -167,10 +167,7 @@ export function undoAccumulatorRemoval(
 
   const selectedItemByNote = { ...session.selectedItemByNote }
 
-  if (
-    entry.selectedNoteId !== null &&
-    selectedItemByNote[entry.selectedNoteId] === undefined
-  ) {
+  if (entry.selectedNoteId !== null) {
     selectedItemByNote[entry.selectedNoteId] = entry.item.id
   }
 

@@ -39,14 +39,28 @@ describe("projectUsageRows", () => {
     })
   })
 
-  it("keeps revisions and notes as separate rows", () => {
+  it("projects each note revision and snapshot without merging equal text", () => {
     const rows = projectUsageRows(records)
 
     expect(rows).toHaveLength(3)
-    expect(rows.map(({ id }) => id)).toEqual([
-      "usage-current",
-      "usage-previous",
-      "usage-other-note",
-    ])
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          counts: { accumulation: 3, ordinaryCopy: 2, total: 5 },
+          note: { contentRevision: 2, id: "note-one" },
+          textSnapshot: "반복해서 쓰는 문장",
+        }),
+        expect.objectContaining({
+          counts: { accumulation: 1, ordinaryCopy: 4, total: 5 },
+          note: { contentRevision: 1, id: "note-one" },
+          textSnapshot: "이전 문장",
+        }),
+        expect.objectContaining({
+          counts: { accumulation: 2, ordinaryCopy: 1, total: 3 },
+          note: { contentRevision: 2, id: "note-two" },
+          textSnapshot: "반복해서 쓰는 문장",
+        }),
+      ]),
+    )
   })
 })

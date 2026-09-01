@@ -10,13 +10,13 @@ import {
 } from "@/_pages/settings/composition"
 import { UsageReaderProvider } from "@/_pages/usage/composition"
 import { TemplateDataProvider } from "@/_pages/templates/composition"
-import { AccumulatorProvider } from "@/features/accumulate-note"
 import { SelectedSourceLinesProvider } from "@/features/suggest-template"
 
 import {
   createLocalApplication,
   type LocalApplication,
 } from "../composition/createLocalApplication"
+import { AccumulatorProvider } from "./AccumulatorProvider"
 
 type ApplicationProvidersProps = PropsWithChildren<{
   application: LocalApplication

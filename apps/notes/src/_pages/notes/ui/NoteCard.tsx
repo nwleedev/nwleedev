@@ -13,8 +13,8 @@ import type { Note, NoteGeometry } from "@/entities/note"
 import type {
   AccumulateNoteResult,
   AccumulationRequest,
-  EditAccumulatorResult,
 } from "@/features/accumulate-note"
+import type { EditAccumulatorResult } from "@/features/edit-accumulated-text"
 import { joinClassNames } from "@/shared/lib/join-class-names"
 
 import type { CopyNoteResult } from "../model/copyNote"

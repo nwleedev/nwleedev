@@ -15,11 +15,13 @@ import {
   combineAccumulatorText,
   type AccumulatedTextItem,
 } from "@/entities/accumulator"
-import { useAccumulator } from "@/features/accumulate-note"
 import {
   AccumulatorEditingView,
   AccumulatorHistoryShortcuts,
   CopyAccumulatorAction,
+  useAccumulatedTextEditor,
+  type CopyAccumulatedTextResult,
+  type EditAccumulatorResult,
 } from "@/features/edit-accumulated-text"
 import { Button } from "@/shared/ui/button"
 import { joinClassNames } from "@/shared/lib/join-class-names"
@@ -91,17 +93,12 @@ type AccumulatorPanelContentProps = {
   presentation: "inline" | "modal"
   status: "failure" | "loading" | "ready"
   onClose(): void
-  onCopy(): Promise<{ status: "clipboard-failure" | "copied" }>
-  onMove(
-    itemId: string,
-    index: number,
-  ): Promise<{ status: "failure" | "saved" | "unchanged" }>
-  onRedo(): Promise<{ status: "failure" | "saved" | "unchanged" }>
-  onRemove(
-    itemId: string,
-  ): Promise<{ status: "failure" | "saved" | "unchanged" }>
+  onCopy(): Promise<CopyAccumulatedTextResult>
+  onMove(itemId: string, index: number): Promise<EditAccumulatorResult>
+  onRedo(): Promise<EditAccumulatorResult>
+  onRemove(itemId: string): Promise<EditAccumulatorResult>
   onRetry(): void
-  onUndo(): Promise<{ status: "failure" | "saved" | "unchanged" }>
+  onUndo(): Promise<EditAccumulatorResult>
 }
 
 type EmptyAccumulatorContentProps = {
@@ -210,7 +207,7 @@ function AccumulatorPanelContent({
 }
 
 export function AccumulatorWorkspace({ children }: PropsWithChildren) {
-  const accumulator = useAccumulator()
+  const accumulator = useAccumulatedTextEditor()
   const accumulatorItems =
     accumulator.status === "ready" ? accumulator.items : []
   const combinedText =

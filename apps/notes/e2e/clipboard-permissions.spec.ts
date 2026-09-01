@@ -23,7 +23,7 @@ test("메모 본문 클릭으로 원문 전체를 클립보드에 쓴다", async
     .toBe(content)
 })
 
-test("클립보드 권한이 거절되면 원인을 알리고 사용 횟수를 늘리지 않는다", async ({
+test("클립보드 권한이 거절되면 원인을 알리고 일반 복사 횟수를 늘리지 않는다", async ({
   context,
   page,
 }) => {
@@ -46,8 +46,25 @@ test("클립보드 권한이 거절되면 원인을 알리고 사용 횟수를 �
     note.getByRole("link", { name: /설정/u }),
   ).toHaveCount(0)
 
-  await page.getByRole("link", { exact: true, name: "사용 빈도" }).click()
-  await expect(page.getByRole("status")).toContainText(
-    "복사 기록이 없습니다.",
+  await note.getByRole("button", { name: "누적" }).click()
+  const panel = page.getByRole("complementary", { name: "누적 텍스트" })
+  await panel.getByRole("button", { exact: true, name: "복사" }).click()
+  await expect(panel.getByRole("alert")).toContainText(
+    "클립보드 쓰기를 허용하지 않았습니다.",
   )
+
+  await panel.getByRole("button", { name: "닫기" }).click()
+  await page.setViewportSize({ height: 720, width: 320 })
+  await page.getByRole("button", { name: "탐색" }).click()
+  await page.getByRole("link", { exact: true, name: "사용 빈도" }).click()
+  const usageRow = page.getByRole("row").filter({ hasText: content })
+  await expect(
+    usageRow.getByRole("cell", { name: "일반 복사 0회" }),
+  ).toBeVisible()
+  await expect(
+    usageRow.getByRole("cell", { name: "누적 1회" }),
+  ).toBeVisible()
+  await expect(
+    usageRow.getByRole("cell", { name: "합계 1회" }),
+  ).toBeVisible()
 })

@@ -5,22 +5,41 @@ import { useState } from "react"
 import { Button } from "@/shared/ui/button"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
-type CopyResult = {
-  status: "clipboard-failure" | "copied"
-}
+import type { CopyAccumulatedTextResult } from "../model/copyAccumulatedText"
 
 type CopyAccumulatorActionProps = {
   disabled: boolean
-  onCopy(): Promise<CopyResult>
+  onCopy(): Promise<CopyAccumulatedTextResult>
+}
+
+function clipboardFailureMessage(
+  reason: Extract<
+    CopyAccumulatedTextResult,
+    { status: "clipboard-failure" }
+  >["reason"],
+) {
+  if (reason === "api-unavailable") {
+    return "이 브라우저에서는 클립보드에 복사할 수 없습니다. 텍스트를 직접 선택해 복사하세요."
+  }
+
+  if (reason === "not-allowed") {
+    return "브라우저가 클립보드 쓰기를 허용하지 않았습니다. 주소 표시줄의 사이트 권한을 확인한 뒤 다시 시도하세요."
+  }
+
+  return "클립보드에 쓰는 중 오류가 발생했습니다. 텍스트를 직접 선택해 복사하거나 다시 시도하세요."
 }
 
 export function CopyAccumulatorAction({
   disabled,
   onCopy,
 }: CopyAccumulatorActionProps) {
-  const [notice, setNotice] = useState<CopyResult["status"] | null>(null)
+  const [notice, setNotice] = useState<CopyAccumulatedTextResult | null>(null)
   const [pending, setPending] = useState(false)
   const unavailable = disabled || pending
+  const errorMessage =
+    notice?.status === "clipboard-failure"
+      ? clipboardFailureMessage(notice.reason)
+      : ""
 
   async function copy() {
     if (unavailable) {
@@ -29,7 +48,7 @@ export function CopyAccumulatorAction({
 
     setPending(true)
     const result = await onCopy()
-    setNotice(result.status)
+    setNotice(result)
     setPending(false)
   }
 
@@ -38,14 +57,14 @@ export function CopyAccumulatorAction({
       <Button aria-disabled={unavailable} onClick={copy}>
         복사
       </Button>
-      {notice === "copied" ? (
+      {notice?.status === "copied" ? (
         <StatusNotice>
           <p>합친 텍스트를 복사했습니다.</p>
         </StatusNotice>
       ) : null}
-      {notice === "clipboard-failure" ? (
+      {notice?.status === "clipboard-failure" ? (
         <StatusNotice kind="error">
-          <p>복사하지 못했습니다. 복사 버튼으로 다시 시도하세요.</p>
+          <p>{errorMessage}</p>
         </StatusNotice>
       ) : null}
     </div>

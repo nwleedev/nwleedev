@@ -137,4 +137,46 @@ describe("recovering removed accumulated text", () => {
     expect(restored.selectedItemByNote).toEqual({ "note-b": "b" })
     expect(redone.selectedItemByNote).toEqual({})
   })
+
+  it("restores the removed selection after the same note is selected again", () => {
+    const originalItem = items[1]
+    const replacementItem: AccumulatedTextItem = {
+      ...createItem("replacement"),
+      sourceNote: originalItem.sourceNote,
+    }
+    const initialAccumulator: Accumulator = {
+      ...accumulator,
+      content: { ...accumulator.content, items: [items[0], originalItem] },
+    }
+    const initial = applyAccumulation(
+      createAccumulatorSession(initialAccumulator),
+      initialAccumulator,
+      originalItem,
+      "note-b",
+    )
+    const removed = requireSession(
+      removeFromAccumulatorSession(initial, originalItem.id, timestamp),
+    )
+    const replacementAccumulator: Accumulator = {
+      ...removed.accumulator,
+      content: {
+        ...removed.accumulator.content,
+        items: [...removed.accumulator.content.items, replacementItem],
+      },
+      revision: removed.accumulator.revision + 1,
+    }
+    const selectedAgain = applyAccumulation(
+      removed,
+      replacementAccumulator,
+      replacementItem,
+      "note-b",
+    )
+
+    const restored = requireSession(
+      undoAccumulatorRemoval(selectedAgain, timestamp),
+    )
+
+    expect(itemOrder(restored)).toEqual(["a", "b", "replacement"])
+    expect(restored.selectedItemByNote).toEqual({ "note-b": "b" })
+  })
 })

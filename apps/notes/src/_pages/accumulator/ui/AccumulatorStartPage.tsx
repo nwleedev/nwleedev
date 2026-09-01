@@ -3,11 +3,11 @@
 import Link from "next/link"
 
 import { combineAccumulatorText } from "@/entities/accumulator"
-import { useAccumulator } from "@/features/accumulate-note"
 import {
   AccumulatorEditingView,
   AccumulatorHistoryShortcuts,
   CopyAccumulatorAction,
+  useAccumulatedTextEditor,
 } from "@/features/edit-accumulated-text"
 import { Button } from "@/shared/ui/button"
 
@@ -15,29 +15,29 @@ const navigationClassName =
   "inline-flex min-h-[var(--notes-control-size)] items-center justify-center rounded-control border border-line bg-surface-raised px-3 py-1.5 text-sm font-semibold text-ink transition-colors duration-[var(--notes-motion-fast)] hover:border-line-strong hover:bg-canvas"
 
 function AccumulatorPageContent() {
-  const accumulator = useAccumulator()
+  const accumulator = useAccumulatedTextEditor()
 
-  if (accumulator.status === "loading") {
+  if (accumulator.status !== "ready") {
+    if (accumulator.status === "failure") {
+      return (
+        <section className="grid min-h-0 place-items-center overflow-auto px-4 py-8">
+          <div className="grid justify-items-center gap-3 text-center">
+            <p className="text-sm text-danger" role="alert">
+              누적 텍스트를 불러오지 못했습니다.
+            </p>
+            <Button onClick={accumulator.retry} tone="quiet">
+              다시 시도
+            </Button>
+          </div>
+        </section>
+      )
+    }
+
     return (
       <section className="grid min-h-0 place-items-center overflow-auto px-4 py-8">
         <p className="text-sm text-soft-ink" role="status">
           누적 텍스트 불러오는 중
         </p>
-      </section>
-    )
-  }
-
-  if (accumulator.status === "failure") {
-    return (
-      <section className="grid min-h-0 place-items-center overflow-auto px-4 py-8">
-        <div className="grid justify-items-center gap-3 text-center">
-          <p className="text-sm text-danger" role="alert">
-            누적 텍스트를 불러오지 못했습니다.
-          </p>
-          <Button onClick={accumulator.retry} tone="quiet">
-            다시 시도
-          </Button>
-        </div>
       </section>
     )
   }
@@ -80,7 +80,7 @@ function AccumulatorPageContent() {
 }
 
 export function AccumulatorStartPage() {
-  const accumulator = useAccumulator()
+  const accumulator = useAccumulatedTextEditor()
   const copyDisabled =
     accumulator.status !== "ready" || accumulator.items.length === 0
 

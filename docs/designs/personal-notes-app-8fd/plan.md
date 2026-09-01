@@ -65,7 +65,7 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 2. 메모 편집 중 component가 revision 변화로 다시 mount되지 않게 key를 메모 식별자와 표현 종류에만 연결한다. 제스처 중 geometry는 일시 상태로만 두고 저장 완료 뒤에는 provider가 준 geometry를 사용해 외부 변경도 반영한다. 편집 포커스, 커서와 저장된 배치를 실제 브라우저에서 확인한다.
 3. Clipboard adapter는 API 부재, 권한 거절과 그 밖의 쓰기 실패를 구분한 결과를 돌려준다. 알림은 원인에 맞는 다음 행동과 같은 텍스트의 재시도를 제공하고, `Command+클릭`만 설정하는 화면을 Clipboard 권한 해결 경로처럼 연결하지 않는다.
 4. 누적 항목 제거 뒤 같은 메모를 다시 선택한 상태에서 실행 취소하면 복원된 항목이 선택 연결을 되찾도록 상태 전이를 고친다. 나란한 패널과 모바일 관리 페이지가 함께 쓰는 편집 명령, 이력, 전체 복사와 목록 UI는 `features/edit-accumulated-text`가 맡고 `features/accumulate-note`는 누적 시작과 선택 연결만 맡는다.
-5. `shared/lib/clipboard`와 `shared/lib/join-class-names`에는 허용 책임과 제외 책임을 설명하는 짧은 README를 둔다. public API 밖의 내부 파일을 가져오거나 개인 메모 업무 규칙을 공통 라이브러리로 옮기지 않는다.
+5. `shared/lib/clipboard`, `shared/lib/join-class-names`와 `shared/lib/grapheme`에는 허용 책임과 제외 책임을 설명하는 짧은 README를 둔다. public API 밖의 내부 파일을 가져오거나 개인 메모 업무 규칙을 공통 라이브러리로 옮기지 않는다.
 6. 테스트 이름과 검증문은 실제로 확인하는 결과만 설명하도록 맞춘다. 전체 텍스트 복사 검사는 정확한 Clipboard 문자열만 주장하고, 사용 빈도 projection은 메모 ID, content revision, 원문 스냅샷과 세 횟수를 행 순서와 무관하게 확인한다.
 7. Worker response는 원래 request의 request ID, algorithm, 입력 메모 집합과 결과의 두 줄 참조에 묶어 검증한다. 누락 및 중복 입력, 자기 비교, 입력 밖 참조, 같은 쌍의 역순 중복과 비결정적 순서를 거절한다. Worker 오류, 잘못된 message, 종료 시 pending request 거절과 최신 실행만 수락하는 경합을 각각 확인한다.
 8. Worker가 표시용 원문과 위치를 response에 포함해 main thread가 줄 정규화와 조합 생성을 다시 수행하지 않게 한다. grapheme 분리와 n-gram 집합을 쌍마다 다시 계산하는 비용은 대표 입력에서 먼저 측정하고, 영향이 확인된 경우에만 한 실행 안에서 줄별로 계산한 값을 재사용한다.
