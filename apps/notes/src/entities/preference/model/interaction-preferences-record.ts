@@ -4,7 +4,7 @@ import { IsoDateTimeSchema } from "@/shared/lib/entity-metadata"
 
 export const InteractionPreferencesRecordSchema = z
   .object({
-    metaClickEnabled: z.boolean(),
+    batchCopyShortcutEnabled: z.boolean(),
     updatedAt: IsoDateTimeSchema,
   })
   .strict()

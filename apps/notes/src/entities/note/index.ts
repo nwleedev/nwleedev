@@ -4,6 +4,10 @@ export {
   StaleNoteRevisionError,
 } from "./api/indexed-db-note-repository"
 export {
+  IndexedDbNoteDraftRepository,
+  NOTE_DRAFT_STORE_NAME,
+} from "./api/indexed-db-note-draft-repository"
+export {
   NOTE_CANVAS_SIZE,
   NOTE_HEIGHT_MAX,
   NOTE_HEIGHT_MIN,

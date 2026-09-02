@@ -6,3 +6,4 @@ export {
   NotesDataProvider,
   useNotesData,
 } from "./model/notes-data-provider"
+export { NoteSessionProvider } from "./model/note-session-provider"

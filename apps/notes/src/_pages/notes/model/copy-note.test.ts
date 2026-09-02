@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import type { Note } from "@/entities/note"
-import type { OrdinaryCopyUsageWriter } from "@/entities/usage"
+import type { IndividualCopyUsageWriter } from "@/entities/usage"
 import type {
   ClipboardWriteResult,
   ClipboardWriter,
@@ -37,14 +37,14 @@ class RecordingClipboardWriter implements ClipboardWriter {
   }
 }
 
-class RecordingUsageWriter implements OrdinaryCopyUsageWriter {
-  input: Parameters<OrdinaryCopyUsageWriter["recordOrdinaryCopy"]>[0] | null =
+class RecordingUsageWriter implements IndividualCopyUsageWriter {
+  input: Parameters<IndividualCopyUsageWriter["recordIndividualCopy"]>[0] | null =
     null
 
   constructor(private readonly failure: Error | null = null) {}
 
-  async recordOrdinaryCopy(
-    input: Parameters<OrdinaryCopyUsageWriter["recordOrdinaryCopy"]>[0],
+  async recordIndividualCopy(
+    input: Parameters<IndividualCopyUsageWriter["recordIndividualCopy"]>[0],
   ) {
     if (this.failure !== null) {
       throw this.failure
@@ -54,8 +54,8 @@ class RecordingUsageWriter implements OrdinaryCopyUsageWriter {
   }
 }
 
-describe("copying a note", () => {
-  it("writes the complete current text before recording its ordinary use", async () => {
+describe("메모 개별 복사", () => {
+  it("현재 원문 전체를 쓴 뒤 개별 복사 횟수를 기록한다", async () => {
     const clipboard = new RecordingClipboardWriter()
     const usage = new RecordingUsageWriter()
 
@@ -74,7 +74,7 @@ describe("copying a note", () => {
     "not-allowed",
     "write-failed",
   ] as const)(
-    "reports %s without recording an ordinary use",
+    "%s 오류가 나면 개별 복사 횟수를 기록하지 않는다",
     async (reason) => {
       const clipboard = new RecordingClipboardWriter({
         reason,

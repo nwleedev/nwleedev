@@ -47,10 +47,10 @@ function UsageTableRow({ row }: UsageTableRowProps) {
         </p>
       </th>
       <UsageCountCell
-        count={row.counts.ordinaryCopy}
-        label="일반 복사"
+        count={row.counts.individualCopy}
+        label="개별 복사"
       />
-      <UsageCountCell count={row.counts.accumulation} label="누적" />
+      <UsageCountCell count={row.counts.batchCopy} label="일괄 복사" />
       <UsageCountCell count={row.counts.total} emphasis label="합계" />
     </tr>
   )
@@ -65,7 +65,7 @@ export function UsageTable({ rows }: UsageTableProps) {
     <div className="overflow-hidden rounded-panel border border-line bg-surface-raised shadow-note">
       <table className="block w-full table-fixed sm:table">
         <caption className="sr-only">
-          메모 원문별 일반 복사, 누적과 합계
+          메모 원문별 개별 복사, 일괄 복사와 합계
         </caption>
         <thead className="hidden border-b border-line bg-canvas sm:table-header-group">
           <tr>
@@ -73,10 +73,10 @@ export function UsageTable({ rows }: UsageTableProps) {
               메모 원문
             </th>
             <th className="w-[15%] px-5 py-3 text-right text-xs font-semibold text-soft-ink" scope="col">
-              일반 복사
+              개별 복사
             </th>
             <th className="w-[15%] px-5 py-3 text-right text-xs font-semibold text-soft-ink" scope="col">
-              누적
+              일괄 복사
             </th>
             <th className="w-[15%] px-5 py-3 text-right text-xs font-semibold text-soft-ink" scope="col">
               합계

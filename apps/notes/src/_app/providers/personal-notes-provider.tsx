@@ -3,7 +3,10 @@
 import { useEffect, useState, type PropsWithChildren } from "react"
 
 import { TextAnalysisProvider } from "@/_pages/analysis/composition"
-import { NotesDataProvider } from "@/_pages/notes/composition"
+import {
+  NotesDataProvider,
+  NoteSessionProvider,
+} from "@/_pages/notes/composition"
 import {
   InteractionPreferencesProvider,
   useInteractionPreferences,
@@ -16,7 +19,7 @@ import {
   createLocalApplication,
   type LocalApplication,
 } from "../composition/create-local-application"
-import { AccumulatorProvider } from "./accumulator-provider"
+import { BatchCopyProvider } from "./batch-copy-provider"
 
 type ApplicationProvidersProps = PropsWithChildren<{
   application: LocalApplication
@@ -27,19 +30,19 @@ function ApplicationProviders({
   children,
 }: ApplicationProvidersProps) {
   const preferences = useInteractionPreferences()
-  const metaClickEnabled =
+  const batchCopyShortcutEnabled =
     "preferences" in preferences
-      ? preferences.preferences.metaClickEnabled
+      ? preferences.preferences.batchCopyShortcutEnabled
       : false
 
   return (
     <UsageReaderProvider reader={application.usage.reader}>
-      <AccumulatorProvider
+      <BatchCopyProvider
         clipboard={application.notes.clipboard}
-        createId={application.accumulator.createId}
-        now={application.accumulator.now}
-        repository={application.accumulator.repository}
-        writer={application.accumulator.writer}
+        createId={application.batchCopy.createId}
+        now={application.batchCopy.now}
+        repository={application.batchCopy.repository}
+        writer={application.batchCopy.writer}
       >
         <TextAnalysisProvider
           analyzer={application.analysis.analyzer}
@@ -49,7 +52,7 @@ function ApplicationProviders({
           <NotesDataProvider
             clipboard={application.notes.clipboard}
             createId={application.notes.createId}
-            metaClickEnabled={metaClickEnabled}
+            batchCopyShortcutEnabled={batchCopyShortcutEnabled}
             now={application.notes.now}
             repository={application.notes.repository}
             storageMonitor={application.notes.storageMonitor}
@@ -58,7 +61,7 @@ function ApplicationProviders({
             {children}
           </NotesDataProvider>
         </TextAnalysisProvider>
-      </AccumulatorProvider>
+      </BatchCopyProvider>
     </UsageReaderProvider>
   )
 }
@@ -82,9 +85,11 @@ export function PersonalNotesProvider({ children }: PropsWithChildren) {
           now={application.templates.now}
           repository={application.templates.repository}
         >
-          <ApplicationProviders application={application}>
-            {children}
-          </ApplicationProviders>
+          <NoteSessionProvider>
+            <ApplicationProviders application={application}>
+              {children}
+            </ApplicationProviders>
+          </NoteSessionProvider>
         </TemplateDataProvider>
       </SelectedSourceLinesProvider>
     </InteractionPreferencesProvider>

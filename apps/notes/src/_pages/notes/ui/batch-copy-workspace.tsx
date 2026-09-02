@@ -1,0 +1,397 @@
+"use client"
+
+import Link from "next/link"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type PropsWithChildren,
+  type RefObject,
+} from "react"
+
+import type { BatchCopyItem } from "@/entities/batch-copy"
+import {
+  BatchCopyEditingView,
+  BatchCopyHistoryShortcuts,
+  CopyBatchTextAction,
+  CopyBatchTextNotice,
+  useBatchCopyEditor,
+  type CopyBatchTextResult,
+  type EditBatchCopyResult,
+} from "@/features/edit-batch-copy"
+import { Button } from "@/shared/ui/button"
+import { IconButton } from "@/shared/ui/icon-button"
+import { CloseIcon } from "@/shared/ui/icons"
+import { joinClassNames } from "@/shared/lib/join-class-names"
+
+const INLINE_PANEL_THRESHOLD_REM = 72
+const INLINE_PANEL_ID = "batch-copy-panel"
+const MODAL_PANEL_ID = "batch-copy-dialog"
+
+type BatchCopyWorkspaceContextValue = {
+  revealNewBatchCopyItem(): void
+}
+
+const BatchCopyWorkspaceContext =
+  createContext<BatchCopyWorkspaceContextValue | null>(null)
+
+export function useBatchCopyWorkspace() {
+  const context = useContext(BatchCopyWorkspaceContext)
+
+  if (context === null) {
+    throw new Error(
+      "useBatchCopyWorkspace must be used within BatchCopyWorkspace",
+    )
+  }
+
+  return context
+}
+
+function canUseInlinePanel(element: HTMLElement | null) {
+  if (element === null) {
+    return false
+  }
+
+  const rootFontSize = Number.parseFloat(
+    getComputedStyle(document.documentElement).fontSize,
+  )
+
+  return element.clientWidth >= INLINE_PANEL_THRESHOLD_REM * rootFontSize
+}
+
+function useInlinePanel(container: RefObject<HTMLElement | null>) {
+  const [inline, setInline] = useState(false)
+
+  useEffect(() => {
+    const element = container.current
+
+    if (element === null || typeof ResizeObserver === "undefined") {
+      return
+    }
+
+    const observer = new ResizeObserver(() => {
+      setInline(canUseInlinePanel(element))
+    })
+    observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [container])
+
+  return inline
+}
+
+type BatchCopyPanelContentProps = {
+  copyResult: CopyBatchTextResult | null
+  headingId: string
+  headingRef?: RefObject<HTMLHeadingElement | null>
+  items: readonly BatchCopyItem[]
+  pending: boolean
+  presentation: "inline" | "modal"
+  status: "failure" | "loading" | "ready"
+  onClose(): void
+  onCopy(): Promise<CopyBatchTextResult>
+  onCopyResult(result: CopyBatchTextResult): void
+  onMove(itemId: string, index: number): Promise<EditBatchCopyResult>
+  onRemove(itemId: string): Promise<EditBatchCopyResult>
+  onRetry(): void
+}
+
+type EmptyBatchCopyContentProps = {
+  className: string
+  status: "failure" | "loading" | "ready"
+  onRetry(): void
+}
+
+function EmptyBatchCopyContent({
+  className,
+  onRetry,
+  status,
+}: EmptyBatchCopyContentProps) {
+  if (status === "failure") {
+    return (
+      <div className={className}>
+        <div className="grid justify-items-center gap-3">
+          <p className="text-sm leading-6 text-danger">
+            일괄 복사 항목을 불러오지 못했습니다.
+          </p>
+          <Button onClick={onRetry} tone="quiet">
+            다시 시도
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  const message =
+    status === "loading"
+      ? "일괄 복사 항목 불러오는 중"
+      : "일괄 복사 항목이 없습니다."
+
+  return (
+    <div className={className}>
+      <p className="text-sm leading-6 text-soft-ink">{message}</p>
+    </div>
+  )
+}
+
+function BatchCopyPanelContent({
+  copyResult,
+  headingId,
+  headingRef,
+  items,
+  onClose,
+  onCopy,
+  onCopyResult,
+  onMove,
+  onRemove,
+  onRetry,
+  pending,
+  presentation,
+  status,
+}: BatchCopyPanelContentProps) {
+  const emptyContentClassName = joinClassNames(
+    "grid min-h-0 flex-1 place-items-center p-6 text-center",
+    presentation === "inline" ? "pt-16" : undefined,
+  )
+  const hasItems = items.length > 0
+  const showModalCopyNotice =
+    presentation === "modal" && copyResult !== null
+
+  return (
+    <div className="flex h-full min-h-0 flex-col bg-surface-raised">
+      {showModalCopyNotice ? (
+        <div className="fixed right-3 top-3 z-50 w-[min(24rem,calc(100%-1.5rem))] shadow-floating">
+          <CopyBatchTextNotice result={copyResult} />
+        </div>
+      ) : null}
+      <header className="flex h-[2.375rem] shrink-0 items-center justify-between gap-3 border-b border-line px-3">
+        <h2
+          className="font-display text-sm font-semibold tracking-[-0.01em]"
+          id={headingId}
+          ref={headingRef}
+          tabIndex={-1}
+        >
+          일괄 복사
+        </h2>
+        <IconButton
+          aria-label="일괄 복사 패널 닫기"
+          onClick={onClose}
+          size="compact"
+        >
+          <CloseIcon />
+        </IconButton>
+      </header>
+      {hasItems ? (
+        <>
+          <div className="min-h-0 flex-1 overflow-auto p-4">
+            <BatchCopyEditingView
+              items={items}
+              onMove={onMove}
+              onRemove={onRemove}
+              pending={pending}
+              presentation="panel"
+            />
+          </div>
+          <div className="flex shrink-0 justify-end border-t border-line p-3">
+            <CopyBatchTextAction
+              disabled={pending}
+              onCopy={onCopy}
+              onResult={onCopyResult}
+            />
+          </div>
+        </>
+      ) : (
+        <EmptyBatchCopyContent
+          className={emptyContentClassName}
+          onRetry={onRetry}
+          status={status}
+        />
+      )}
+    </div>
+  )
+}
+
+export function BatchCopyWorkspace({ children }: PropsWithChildren) {
+  const batchCopy = useBatchCopyEditor()
+  const batchCopyItems = batchCopy.status === "ready" ? batchCopy.items : []
+  const batchCopyCount = batchCopyItems.length
+  const batchCopyCountText = `${batchCopyCount.toLocaleString("ko-KR")}개`
+  const [open, setOpen] = useState(false)
+  const [copyResult, setCopyResult] =
+    useState<CopyBatchTextResult | null>(null)
+  const container = useRef<HTMLElement>(null)
+  const dialog = useRef<HTMLDialogElement>(null)
+  const dialogHeading = useRef<HTMLHeadingElement>(null)
+  const trigger = useRef<HTMLButtonElement>(null)
+  const switchingToInline = useRef(false)
+  const inline = useInlinePanel(container)
+  const showInlinePanel = open && inline
+  const workspaceLayoutClassName = joinClassNames(
+    "h-full min-h-0",
+    showInlinePanel ? "grid grid-cols-[minmax(0,1fr)_22rem]" : "block",
+  )
+  const batchCopyTriggerClassName = joinClassNames(
+    "absolute right-3 top-3 z-20 hidden shadow-floating @3xl/notes-workspace:inline-flex sm:right-4",
+    showInlinePanel ? "invisible" : undefined,
+  )
+  const copyNoticeClassName = joinClassNames(
+    "absolute top-3 z-40 w-[min(24rem,calc(100%-1.5rem))] shadow-floating",
+    showInlinePanel ? "right-[22.75rem]" : "right-3",
+  )
+  const showMainCopyNotice =
+    copyResult !== null && (!open || inline)
+  let controlledPanelId: string | undefined = MODAL_PANEL_ID
+
+  if (inline) {
+    controlledPanelId = showInlinePanel ? INLINE_PANEL_ID : undefined
+  }
+
+  useEffect(() => {
+    const element = dialog.current
+
+    if (element === null) {
+      return
+    }
+
+    if (open && !inline && !element.open) {
+      element.showModal()
+      dialogHeading.current?.focus()
+      return
+    }
+
+    if (element.open && (!open || inline)) {
+      switchingToInline.current = open && inline
+      element.close()
+    }
+  }, [inline, open])
+
+  function closePanel() {
+    setOpen(false)
+  }
+
+  function revealNewBatchCopyItem() {
+    if (inline && batchCopyCount === 0) {
+      setOpen(true)
+    }
+  }
+
+  function handleDialogClose() {
+    if (switchingToInline.current) {
+      switchingToInline.current = false
+      return
+    }
+
+    setOpen(false)
+    trigger.current?.focus()
+  }
+
+  return (
+    <BatchCopyWorkspaceContext value={{ revealNewBatchCopyItem }}>
+      <main
+        className="@container/notes-workspace relative h-full min-h-0 overflow-hidden"
+        id="main-content"
+        ref={container}
+      >
+        <BatchCopyHistoryShortcuts
+          canRedo={batchCopy.canRedo}
+          canUndo={batchCopy.canUndo}
+          onRedo={batchCopy.redo}
+          onUndo={batchCopy.undo}
+          pending={batchCopy.pending}
+        />
+        <Button
+          aria-label={`일괄 복사 ${batchCopyCountText}`}
+          aria-controls={controlledPanelId}
+          aria-expanded={open}
+          className={batchCopyTriggerClassName}
+          onClick={() => setOpen((current) => !current)}
+          ref={trigger}
+          tone="quiet"
+        >
+          <span>일괄 복사</span>
+          <span
+            aria-hidden="true"
+            className="inline-flex min-w-8 items-center justify-center rounded-full bg-rail px-2 py-0.5 text-xs font-semibold tabular-nums text-rail-ink"
+          >
+            {batchCopyCountText}
+          </span>
+        </Button>
+        {batchCopyCount > 0 ? (
+          <Link
+            aria-label={`일괄 복사 ${batchCopyCountText} 관리`}
+            className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 z-30 inline-flex min-h-12 items-center gap-2 rounded-full border border-action bg-action px-4 py-2 text-sm font-semibold text-action-ink shadow-floating @3xl/notes-workspace:hidden"
+            href="/batch-copy/"
+          >
+            <span>일괄 복사</span>
+            <span
+              aria-hidden="true"
+              className="min-w-6 text-center tabular-nums"
+            >
+              {batchCopyCountText}
+            </span>
+          </Link>
+        ) : null}
+        {showMainCopyNotice ? (
+          <div className={copyNoticeClassName}>
+            <CopyBatchTextNotice result={copyResult} />
+          </div>
+        ) : null}
+        <div className={workspaceLayoutClassName}>
+          <section
+            className="h-full min-h-0 min-w-0 overflow-hidden"
+            aria-label="메모 작업 영역"
+          >
+            {children}
+          </section>
+          {showInlinePanel ? (
+            <aside
+              aria-label="일괄 복사"
+              className="h-full min-h-0 overflow-hidden border-l border-line bg-surface-raised shadow-floating"
+              id={INLINE_PANEL_ID}
+            >
+              <BatchCopyPanelContent
+                copyResult={copyResult}
+                headingId="batch-copy-inline-title"
+                items={batchCopyItems}
+                onClose={closePanel}
+                onCopy={batchCopy.copyAll}
+                onCopyResult={setCopyResult}
+                onMove={batchCopy.moveItem}
+                onRemove={batchCopy.removeItem}
+                onRetry={batchCopy.retry}
+                pending={batchCopy.pending}
+                presentation="inline"
+                status={batchCopy.status}
+              />
+            </aside>
+          ) : null}
+        </div>
+        <dialog
+          aria-labelledby="batch-copy-dialog-title"
+          className="m-auto h-[min(42rem,calc(100dvh-2rem))] w-[min(32rem,calc(100vw-2rem))] max-w-none overflow-visible rounded-panel border border-line bg-surface-raised p-0 text-ink shadow-floating"
+          id={MODAL_PANEL_ID}
+          onClose={handleDialogClose}
+          ref={dialog}
+        >
+          <BatchCopyPanelContent
+            copyResult={copyResult}
+            headingId="batch-copy-dialog-title"
+            headingRef={dialogHeading}
+            items={batchCopyItems}
+            onClose={closePanel}
+            onCopy={batchCopy.copyAll}
+            onCopyResult={setCopyResult}
+            onMove={batchCopy.moveItem}
+            onRemove={batchCopy.removeItem}
+            onRetry={batchCopy.retry}
+            pending={batchCopy.pending}
+            presentation="modal"
+            status={batchCopy.status}
+          />
+        </dialog>
+      </main>
+    </BatchCopyWorkspaceContext>
+  )
+}

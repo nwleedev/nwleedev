@@ -10,11 +10,7 @@ import {
 } from "react"
 
 import type { Note, NoteGeometry } from "@/entities/note"
-import type {
-  AccumulateNoteResult,
-  AccumulationRequest,
-} from "@/features/accumulate-note"
-import type { EditAccumulatorResult } from "@/features/edit-accumulated-text"
+import type { AddNoteToBatchCopyResult } from "@/features/add-note-to-batch-copy"
 import { joinClassNames } from "@/shared/lib/join-class-names"
 
 import type { CopyNoteResult } from "../model/copy-note"
@@ -47,26 +43,21 @@ type MobilePressGesture = {
 }
 
 type NoteCardProps = {
-  accumulatedItemId: string | null
-  accumulationReady: boolean
+  batchCopyReady: boolean
+  batchCopyShortcutEnabled: boolean
   draftContent: string
   editing: boolean
-  metaClickEnabled: boolean
   note: Note
   placement: "board" | "list"
   scale?: number
   selected: boolean
-  onAccumulate(
-    note: Note,
-    request: AccumulationRequest,
-  ): Promise<AccumulateNoteResult>
-  onAccumulated(): void
+  onAddToBatchCopy(note: Note): Promise<AddNoteToBatchCopyResult>
+  onBatchCopyItemAdded(): void
   onBeginEditing(note: Note): void
   onCopy(note: Note): Promise<CopyNoteResult>
   onDraftChange(content: string): void
   onFinishEditing(note: Note, content: string): Promise<void>
   onSaveGeometry(note: Note, geometry: NoteGeometry): Promise<void>
-  onRemoveAccumulated(itemId: string): Promise<EditAccumulatorResult>
   onSelect(noteId: string): void
 }
 
@@ -112,19 +103,15 @@ function isInside(element: HTMLElement, clientX: number, clientY: number) {
   return withinHorizontal && withinVertical
 }
 
-function isMetaAccumulationClick(
+function isBatchCopyShortcutClick(
   event: ReactMouseEvent<HTMLDivElement>,
   enabled: boolean,
 ) {
-  if (!enabled || !event.metaKey) {
+  if (!enabled || !event.metaKey || !event.altKey) {
     return false
   }
 
-  if (event.altKey || event.ctrlKey) {
-    return false
-  }
-
-  if (event.shiftKey) {
+  if (event.ctrlKey || event.shiftKey) {
     return false
   }
 
@@ -147,20 +134,18 @@ function clipboardFailureMessage(result: Extract<
 }
 
 export function NoteCard({
-  accumulatedItemId,
-  accumulationReady,
+  batchCopyReady,
+  batchCopyShortcutEnabled,
   draftContent,
   editing,
-  metaClickEnabled,
   note,
-  onAccumulate,
-  onAccumulated,
+  onAddToBatchCopy,
+  onBatchCopyItemAdded,
   onBeginEditing,
   onCopy,
   onDraftChange,
   onFinishEditing,
   onSaveGeometry,
-  onRemoveAccumulated,
   onSelect,
   placement,
   scale = 1,
@@ -178,7 +163,6 @@ export function NoteCard({
   const boardPlacement = placement === "board"
   const showBoardControls = boardPlacement && !editing
   const showGeometryControls = showBoardControls && selected
-  const accumulatedSelected = accumulatedItemId !== null
   const geometry = geometryPreview ?? note.geometry
   const contentText = note.content || "빈 메모"
   const targetId = `note-${encodeURIComponent(note.id)}-${placement}`
@@ -186,14 +170,12 @@ export function NoteCard({
     "flex min-h-40 flex-col gap-3 overflow-auto rounded-note border bg-surface-raised p-3 shadow-note transition-[border-color,box-shadow] duration-[var(--notes-motion-fast)]",
     boardPlacement ? "absolute" : "relative",
     selected ? "border-action shadow-floating" : "border-line",
-    accumulatedSelected ? "ring-2 ring-action ring-offset-2" : undefined,
   )
   const contentClassName = joinClassNames(
     "min-h-0 flex-1 cursor-copy touch-pan-y overflow-auto rounded-control p-1",
     mobilePressActive
       ? "select-none [-webkit-touch-callout:none]"
       : "select-text",
-    accumulatedSelected ? "bg-action/10" : undefined,
   )
   const boardStyle: CSSProperties | undefined = boardPlacement
     ? {
@@ -329,47 +311,22 @@ export function NoteCard({
     setPending(false)
   }
 
-  async function performAccumulation(selectForMobile: boolean) {
+  async function performBatchCopyAddition() {
     if (pending) {
       return
     }
 
     setPending(true)
-    const result = await onAccumulate(note, { selectForMobile })
+    const result = await onAddToBatchCopy(note)
 
-    if (result.status === "accumulated") {
-      setNotice({ kind: "status", message: "누적했습니다.", retry: null })
-      onAccumulated()
+    if (result.status === "added") {
+      setNotice(null)
+      onBatchCopyItemAdded()
     } else {
       setNotice({
         kind: "error",
-        message: "누적하지 못했습니다. 다시 시도하세요.",
-        retry: "accumulate",
-      })
-    }
-
-    setPending(false)
-  }
-
-  async function performAccumulatedRemoval(itemId: string) {
-    if (pending) {
-      return
-    }
-
-    setPending(true)
-    const result = await onRemoveAccumulated(itemId)
-
-    if (result.status === "saved") {
-      setNotice({
-        kind: "status",
-        message: "누적 선택을 해제했습니다.",
-        retry: null,
-      })
-    } else if (result.status === "failure") {
-      setNotice({
-        kind: "error",
-        message: "누적 선택을 해제하지 못했습니다. 다시 시도하세요.",
-        retry: "remove",
+        message: "일괄 복사에 추가하지 못했습니다. 다시 시도하세요.",
+        retry: "batch-copy",
       })
     }
 
@@ -380,8 +337,8 @@ export function NoteCard({
     void performCopy()
   }
 
-  function accumulateFromButton() {
-    void performAccumulation(false)
+  function addToBatchCopyFromButton() {
+    void performBatchCopyAddition()
   }
 
   function retryInteraction() {
@@ -390,13 +347,8 @@ export function NoteCard({
       return
     }
 
-    if (notice?.retry === "accumulate") {
-      void performAccumulation(false)
-      return
-    }
-
-    if (notice?.retry === "remove" && accumulatedItemId !== null) {
-      void performAccumulatedRemoval(accumulatedItemId)
+    if (notice?.retry === "batch-copy") {
+      void performBatchCopyAddition()
     }
   }
 
@@ -489,19 +441,6 @@ export function NoteCard({
       return
     }
 
-    if (current.qualified) {
-      if (!accumulatedSelected) {
-        void performAccumulation(true)
-      }
-
-      return
-    }
-
-    if (accumulatedItemId !== null) {
-      void performAccumulatedRemoval(accumulatedItemId)
-      return
-    }
-
     void performCopy()
   }
 
@@ -515,8 +454,8 @@ export function NoteCard({
       return
     }
 
-    if (isMetaAccumulationClick(event, metaClickEnabled)) {
-      void performAccumulation(false)
+    if (isBatchCopyShortcutClick(event, batchCopyShortcutEnabled)) {
+      void performBatchCopyAddition()
       return
     }
 
@@ -549,15 +488,10 @@ export function NoteCard({
               </button>
             ) : null}
             <div className="min-w-0 flex-1">
-              {accumulatedSelected ? (
-                <p className="mb-2 text-right text-xs font-semibold text-action">
-                  누적 선택됨
-                </p>
-              ) : null}
               <NoteActions
-                accumulationReady={accumulationReady}
+                batchCopyReady={batchCopyReady}
                 notice={notice}
-                onAccumulate={accumulateFromButton}
+                onAddToBatchCopy={addToBatchCopyFromButton}
                 onCopy={copyFromButton}
                 onEdit={beginEditing}
                 onRetry={retryInteraction}

@@ -3,14 +3,14 @@ import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { page, userEvent } from "vitest/browser"
 
-import type { Accumulator } from "@/entities/accumulator"
+import type { BatchCopyList } from "@/entities/batch-copy"
 import type { Note, NoteRepository } from "@/entities/note"
-import type { OrdinaryCopyUsageWriter } from "@/entities/usage"
-import { AccumulateNoteProvider } from "@/features/accumulate-note"
+import type { IndividualCopyUsageWriter } from "@/entities/usage"
+import { AddNoteToBatchCopyProvider } from "@/features/add-note-to-batch-copy"
 import {
-  EditAccumulatedTextProvider,
-  type EditAccumulatedTextContextValue,
-} from "@/features/edit-accumulated-text"
+  EditBatchCopyProvider,
+  type EditBatchCopyContextValue,
+} from "@/features/edit-batch-copy"
 
 import type {
   NoteStorageEvent,
@@ -25,22 +25,22 @@ const timestamp = "2026-08-31T01:00:00.000Z"
 const clipboard = {
   writeText: async () => ({ status: "written" }) as const,
 }
-const usage: OrdinaryCopyUsageWriter = {
-  recordOrdinaryCopy: async () => undefined,
+const usage: IndividualCopyUsageWriter = {
+  recordIndividualCopy: async () => undefined,
 }
-const emptyAccumulator: Accumulator = {
+const emptyBatchCopyList: BatchCopyList = {
   content: { items: [], separator: "\n" },
   id: "primary",
   revision: 0,
   updatedAt: timestamp,
 }
 const savedEditResult = Promise.resolve({ status: "saved" } as const)
-const editor: EditAccumulatedTextContextValue = {
-  accumulator: emptyAccumulator,
+const editor: EditBatchCopyContextValue = {
   canRedo: false,
   canUndo: false,
   copyAll: async () => ({ status: "copied" }),
   items: [],
+  list: emptyBatchCopyList,
   moveItem: () => savedEditResult,
   pending: false,
   redo: () => savedEditResult,
@@ -137,16 +137,15 @@ describe("NotesDataProvider", () => {
   ) {
     await act(async () => {
       root.render(
-        <AccumulateNoteProvider
-          accumulate={async () => ({ status: "failure" })}
+        <AddNoteToBatchCopyProvider
+          add={async () => ({ status: "failure" })}
           ready
-          selectedItemByNote={{}}
         >
-          <EditAccumulatedTextProvider value={editor}>
+          <EditBatchCopyProvider value={editor}>
             <NotesDataProvider
+              batchCopyShortcutEnabled
               clipboard={clipboard}
               createId={() => "created-note"}
-              metaClickEnabled
               now={() => timestamp}
               repository={repository}
               storageMonitor={storageMonitor}
@@ -154,8 +153,8 @@ describe("NotesDataProvider", () => {
             >
               <NotesStartPage />
             </NotesDataProvider>
-          </EditAccumulatedTextProvider>
-        </AccumulateNoteProvider>,
+          </EditBatchCopyProvider>
+        </AddNoteToBatchCopyProvider>,
       )
     })
   }

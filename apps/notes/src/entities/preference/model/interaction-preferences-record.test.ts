@@ -6,7 +6,7 @@ describe("InteractionPreferencesRecordSchema", () => {
   it("accepts the saved interaction preference", () => {
     expect(
       InteractionPreferencesRecordSchema.safeParse({
-        metaClickEnabled: true,
+        batchCopyShortcutEnabled: true,
         updatedAt: "2026-08-31T01:00:00.000Z",
       }).success,
     ).toBe(true)
@@ -15,7 +15,7 @@ describe("InteractionPreferencesRecordSchema", () => {
   it("rejects a missing update time", () => {
     expect(
       InteractionPreferencesRecordSchema.safeParse({
-        metaClickEnabled: true,
+        batchCopyShortcutEnabled: true,
       }).success,
     ).toBe(false)
   })

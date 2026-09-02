@@ -7,7 +7,7 @@ export {
   TextUsageRecordSchema,
   UsageCountsSchema,
   parseTextUsageRecord,
-  type OrdinaryCopyUsageWriter,
+  type IndividualCopyUsageWriter,
   type TextUsage,
   type TextUsageReader,
 } from "./model/text-usage-record"

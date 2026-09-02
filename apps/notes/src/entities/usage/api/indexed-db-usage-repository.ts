@@ -10,7 +10,7 @@ import {
 import {
   TextUsageRecordSchema,
   parseTextUsageRecord,
-  type OrdinaryCopyUsageWriter,
+  type IndividualCopyUsageWriter,
   type TextUsageReader,
 } from "../model/text-usage-record"
 
@@ -23,7 +23,7 @@ type UsageInput = {
 }
 
 export class IndexedDbUsageRepository
-  implements TextUsageReader, OrdinaryCopyUsageWriter
+  implements TextUsageReader, IndividualCopyUsageWriter
 {
   readonly #connection: IndexedDbConnection
   readonly #identifiers: EntityIdGenerator
@@ -51,7 +51,7 @@ export class IndexedDbUsageRepository
     return records.map(parseTextUsageRecord)
   }
 
-  async recordOrdinaryCopy(input: UsageInput) {
+  async recordIndividualCopy(input: UsageInput) {
     const newIdentifier = this.#identifiers.create()
     const updatedAt = this.#now()
     const database = await this.#connection.get()
@@ -74,7 +74,7 @@ export class IndexedDbUsageRepository
       const record = TextUsageRecordSchema.parse(
         currentUsage === null
           ? {
-              counts: { accumulation: 0, ordinaryCopy: 1 },
+              counts: { batchCopy: 0, individualCopy: 1 },
               id: newIdentifier,
               note: input.note,
               textSnapshot: input.textSnapshot,
@@ -84,7 +84,7 @@ export class IndexedDbUsageRepository
               ...currentUsage,
               counts: {
                 ...currentUsage.counts,
-                ordinaryCopy: currentUsage.counts.ordinaryCopy + 1,
+                individualCopy: currentUsage.counts.individualCopy + 1,
               },
               updatedAt,
             },

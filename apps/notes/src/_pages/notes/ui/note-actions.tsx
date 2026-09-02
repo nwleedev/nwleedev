@@ -4,30 +4,30 @@ import { StatusNotice } from "@/shared/ui/status-notice"
 export type NoteInteractionNotice = {
   kind: "error" | "status"
   message: string
-  retry: "accumulate" | "copy" | "remove" | null
+  retry: "batch-copy" | "copy" | null
 }
 
 type NoteActionsProps = {
-  accumulationReady: boolean
+  batchCopyReady: boolean
   notice: NoteInteractionNotice | null
   pending: boolean
-  onAccumulate(): void
+  onAddToBatchCopy(): void
   onCopy(): void
   onEdit(): void
   onRetry(): void
 }
 
 export function NoteActions({
-  accumulationReady,
+  batchCopyReady,
   notice,
-  onAccumulate,
+  onAddToBatchCopy,
   onCopy,
   onEdit,
   onRetry,
   pending,
 }: NoteActionsProps) {
-  const accumulationUnavailable = !accumulationReady
-  const accumulationAriaDisabled = pending || accumulationUnavailable
+  const batchCopyUnavailable = !batchCopyReady
+  const batchCopyAriaDisabled = pending || batchCopyUnavailable
 
   return (
     <>
@@ -36,12 +36,12 @@ export function NoteActions({
           복사
         </Button>
         <Button
-          aria-disabled={accumulationAriaDisabled}
-          disabled={accumulationUnavailable}
-          onClick={onAccumulate}
+          aria-disabled={batchCopyAriaDisabled}
+          disabled={batchCopyUnavailable}
+          onClick={onAddToBatchCopy}
           tone="quiet"
         >
-          누적
+          일괄 복사
         </Button>
         <Button aria-disabled={pending} onClick={onEdit} tone="quiet">
           편집

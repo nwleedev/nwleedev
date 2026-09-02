@@ -10,7 +10,7 @@ export function ApplicationFrame({ children }: PropsWithChildren) {
   const normalizedPathname =
     pathname === "/" ? pathname : pathname.replace(/\/$/u, "")
   const usesTopNavigation =
-    normalizedPathname === "/" || normalizedPathname === "/accumulator"
+    normalizedPathname === "/" || normalizedPathname === "/batch-copy"
   const navigationPlacement = usesTopNavigation ? "top" : "side"
   const frameClassName =
     navigationPlacement === "side"

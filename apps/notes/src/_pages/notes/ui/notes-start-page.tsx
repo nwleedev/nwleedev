@@ -4,7 +4,7 @@ import { Button } from "@/shared/ui/button"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
 import { useNotesData } from "../model/notes-data-provider"
-import { AccumulatorWorkspace } from "./accumulator-workspace"
+import { BatchCopyWorkspace } from "./batch-copy-workspace"
 import { NotesCollection } from "./notes-collection"
 
 export function NotesStartPage() {
@@ -27,23 +27,23 @@ export function NotesStartPage() {
     const noteCountText = notes.length.toLocaleString("ko-KR")
 
     return (
-      <AccumulatorWorkspace>
+      <BatchCopyWorkspace>
         <p aria-live="polite" className="sr-only" role="status">
           메모 {noteCountText}개
         </p>
         <NotesCollection
           copyNote={notesData.copyNote}
           createNote={notesData.createNote}
-          metaClickEnabled={notesData.metaClickEnabled}
+          batchCopyShortcutEnabled={notesData.batchCopyShortcutEnabled}
           notes={notes}
           updateNote={notesData.updateNote}
         />
-      </AccumulatorWorkspace>
+      </BatchCopyWorkspace>
     )
   }
 
   return (
-    <AccumulatorWorkspace>
+    <BatchCopyWorkspace>
       <div className="notes-workspace-canvas grid h-full min-h-0 place-items-center p-6">
         <StatusNotice
           kind={notesData.status === "failure" ? "error" : "status"}
@@ -56,6 +56,6 @@ export function NotesStartPage() {
           ) : null}
         </StatusNotice>
       </div>
-    </AccumulatorWorkspace>
+    </BatchCopyWorkspace>
   )
 }

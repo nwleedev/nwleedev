@@ -2,8 +2,8 @@ import type { TextUsage } from "@/entities/usage"
 
 export type UsageRow = {
   counts: {
-    accumulation: number
-    ordinaryCopy: number
+    batchCopy: number
+    individualCopy: number
     total: number
   }
   id: string
@@ -17,7 +17,7 @@ export function projectUsageRows(
   return records.map((record) => ({
     counts: {
       ...record.counts,
-      total: record.counts.ordinaryCopy + record.counts.accumulation,
+      total: record.counts.individualCopy + record.counts.batchCopy,
     },
     id: record.id,
     note: record.note,

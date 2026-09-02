@@ -16,8 +16,8 @@ const UsedNoteSchema: z.ZodType<NoteContentReference> = z
 
 export const UsageCountsSchema = z
   .object({
-    accumulation: z.number().int().nonnegative().safe(),
-    ordinaryCopy: z.number().int().nonnegative().safe(),
+    batchCopy: z.number().int().nonnegative().safe(),
+    individualCopy: z.number().int().nonnegative().safe(),
   })
   .strict()
 
@@ -37,8 +37,8 @@ export interface TextUsageReader {
   getAll(): Promise<readonly TextUsage[]>
 }
 
-export interface OrdinaryCopyUsageWriter {
-  recordOrdinaryCopy(input: {
+export interface IndividualCopyUsageWriter {
+  recordIndividualCopy(input: {
     note: NoteContentReference
     textSnapshot: string
   }): Promise<void>

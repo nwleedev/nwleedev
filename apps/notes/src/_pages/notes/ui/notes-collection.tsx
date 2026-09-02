@@ -10,18 +10,13 @@ import {
 
 import type { Note, NoteGeometry } from "@/entities/note"
 import {
-  useAccumulateNote,
-  type AccumulateNoteResult,
-  type AccumulationRequest,
-} from "@/features/accumulate-note"
-import {
-  useAccumulatedTextEditor,
-  type EditAccumulatorResult,
-} from "@/features/edit-accumulated-text"
+  useAddNoteToBatchCopy,
+  type AddNoteToBatchCopyResult,
+} from "@/features/add-note-to-batch-copy"
 import { Button } from "@/shared/ui/button"
 
 import type { CopyNoteResult } from "../model/copy-note"
-import { useAccumulatorWorkspace } from "./accumulator-workspace"
+import { useBatchCopyWorkspace } from "./batch-copy-workspace"
 import { NoteCard } from "./note-card"
 
 type NoteChange = {
@@ -30,7 +25,7 @@ type NoteChange = {
 }
 
 type NotesCollectionProps = {
-  metaClickEnabled: boolean
+  batchCopyShortcutEnabled: boolean
   notes: readonly Note[]
   copyNote(note: Note): Promise<CopyNoteResult>
   createNote(): Promise<Note>
@@ -43,39 +38,32 @@ type EditingDraft = {
 }
 
 type NotePresentationProps = {
-  accumulatedItemByNote: Readonly<Record<string, string>>
-  accumulationReady: boolean
+  batchCopyReady: boolean
+  batchCopyShortcutEnabled: boolean
   editingDraft: EditingDraft | null
-  metaClickEnabled: boolean
   notes: readonly Note[]
   selectedNoteId: string | null
-  onAccumulate(
-    note: Note,
-    request: AccumulationRequest,
-  ): Promise<AccumulateNoteResult>
-  onAccumulated(): void
+  onAddToBatchCopy(note: Note): Promise<AddNoteToBatchCopyResult>
+  onBatchCopyItemAdded(): void
   onBeginEditing(note: Note): void
   onCopy(note: Note): Promise<CopyNoteResult>
   onDraftChange(content: string): void
   onFinishEditing(note: Note, content: string): Promise<void>
-  onRemoveAccumulated(itemId: string): Promise<EditAccumulatorResult>
   onSaveGeometry(note: Note, geometry: NoteGeometry): Promise<void>
   onSelect(noteId: string): void
 }
 
 function NotesList({
-  accumulatedItemByNote,
-  accumulationReady,
+  batchCopyReady,
+  batchCopyShortcutEnabled,
   editingDraft,
-  metaClickEnabled,
   notes,
-  onAccumulate,
-  onAccumulated,
+  onAddToBatchCopy,
+  onBatchCopyItemAdded,
   onBeginEditing,
   onCopy,
   onDraftChange,
   onFinishEditing,
-  onRemoveAccumulated,
   onSaveGeometry,
   onSelect,
   selectedNoteId,
@@ -92,21 +80,19 @@ function NotesList({
 
         return (
           <NoteCard
-            accumulatedItemId={accumulatedItemByNote[note.id] ?? null}
-            accumulationReady={accumulationReady}
+            batchCopyReady={batchCopyReady}
+            batchCopyShortcutEnabled={batchCopyShortcutEnabled}
             draftContent={draftContent}
             editing={editing}
             key={itemKey}
-            metaClickEnabled={metaClickEnabled}
             note={note}
-            onAccumulate={onAccumulate}
-            onAccumulated={onAccumulated}
+            onAddToBatchCopy={onAddToBatchCopy}
+            onBatchCopyItemAdded={onBatchCopyItemAdded}
             onBeginEditing={onBeginEditing}
             onCopy={onCopy}
             onDraftChange={onDraftChange}
             onFinishEditing={onFinishEditing}
             onSaveGeometry={onSaveGeometry}
-            onRemoveAccumulated={onRemoveAccumulated}
             onSelect={onSelect}
             placement="list"
             selected={selectedNoteId === note.id}
@@ -174,20 +160,18 @@ type NotesBoardProps = NotePresentationProps & {
 
 function NotesBoard(props: NotesBoardProps) {
   const {
-    accumulatedItemByNote,
-    accumulationReady,
+    batchCopyReady,
+    batchCopyShortcutEnabled,
     editingDraft,
     focusedNoteId,
-    metaClickEnabled,
     notes,
-    onAccumulate,
-    onAccumulated,
+    onAddToBatchCopy,
+    onBatchCopyItemAdded,
     onBeginEditing,
     onCopy,
     onDraftChange,
     onFinishEditing,
     onSaveGeometry,
-    onRemoveAccumulated,
     onSelect,
     selectedNoteId,
   } = props
@@ -310,21 +294,19 @@ function NotesBoard(props: NotesBoardProps) {
 
           return (
             <NoteCard
-              accumulatedItemId={accumulatedItemByNote[note.id] ?? null}
-              accumulationReady={accumulationReady}
+              batchCopyReady={batchCopyReady}
+              batchCopyShortcutEnabled={batchCopyShortcutEnabled}
               draftContent={draftContent}
               editing={editing}
               key={itemKey}
-              metaClickEnabled={metaClickEnabled}
               note={note}
-              onAccumulate={onAccumulate}
-              onAccumulated={onAccumulated}
+              onAddToBatchCopy={onAddToBatchCopy}
+              onBatchCopyItemAdded={onBatchCopyItemAdded}
               onBeginEditing={onBeginEditing}
               onCopy={onCopy}
               onDraftChange={onDraftChange}
               onFinishEditing={onFinishEditing}
               onSaveGeometry={onSaveGeometry}
-              onRemoveAccumulated={onRemoveAccumulated}
               onSelect={onSelect}
               placement="board"
               scale={view.scale}
@@ -386,15 +368,14 @@ function noteIdFromHash() {
 }
 
 export function NotesCollection({
+  batchCopyShortcutEnabled,
   copyNote,
   createNote,
-  metaClickEnabled,
   notes,
   updateNote,
 }: NotesCollectionProps) {
-  const accumulation = useAccumulateNote()
-  const accumulatorEditor = useAccumulatedTextEditor()
-  const accumulatorWorkspace = useAccumulatorWorkspace()
+  const batchCopy = useAddNoteToBatchCopy()
+  const batchCopyWorkspace = useBatchCopyWorkspace()
   const orderedNotes = [...notes].sort(byCreationTime)
   const [creationError, setCreationError] = useState("")
   const [creationPending, setCreationPending] = useState(false)
@@ -473,18 +454,16 @@ export function NotesCollection({
   }
 
   const presentationProps: NotePresentationProps = {
-    accumulatedItemByNote: accumulation.selectedItemByNote,
-    accumulationReady: accumulation.ready,
+    batchCopyReady: batchCopy.ready,
+    batchCopyShortcutEnabled,
     editingDraft,
-    metaClickEnabled,
     notes: orderedNotes,
-    onAccumulate: accumulation.accumulate,
-    onAccumulated: accumulatorWorkspace.revealNewAccumulation,
+    onAddToBatchCopy: batchCopy.add,
+    onBatchCopyItemAdded: batchCopyWorkspace.revealNewBatchCopyItem,
     onBeginEditing: beginEditing,
     onCopy: copyNote,
     onDraftChange: changeDraft,
     onFinishEditing: finishEditing,
-    onRemoveAccumulated: accumulatorEditor.removeItem,
     onSaveGeometry: saveGeometry,
     onSelect: setSelectedNoteId,
     selectedNoteId,

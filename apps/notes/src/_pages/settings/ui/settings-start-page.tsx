@@ -25,13 +25,15 @@ export function SettingsStartPage() {
         {"preferences" in preferences ? (
           <div>
             <Checkbox
-              checked={preferences.preferences.metaClickEnabled}
+              checked={preferences.preferences.batchCopyShortcutEnabled}
               description="메모 본문에서만 적용됩니다."
               disabled={preferences.status === "saving"}
-              label="Command+클릭으로 누적"
-              name="metaClickEnabled"
+              label="Command+Option+클릭으로 일괄 복사에 추가"
+              name="batchCopyShortcutEnabled"
               onChange={(event) => {
-                void preferences.setMetaClickEnabled(event.currentTarget.checked)
+                void preferences.setBatchCopyShortcutEnabled(
+                  event.currentTarget.checked,
+                )
               }}
             />
             {preferences.status === "saving" ? (

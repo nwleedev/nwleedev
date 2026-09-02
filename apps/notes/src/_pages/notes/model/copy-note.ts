@@ -1,5 +1,5 @@
 import type { Note } from "@/entities/note"
-import type { OrdinaryCopyUsageWriter } from "@/entities/usage"
+import type { IndividualCopyUsageWriter } from "@/entities/usage"
 import type {
   ClipboardWriteFailureReason,
   ClipboardWriter,
@@ -7,7 +7,7 @@ import type {
 
 type CopyNoteDependencies = {
   clipboard: ClipboardWriter
-  usage: OrdinaryCopyUsageWriter
+  usage: IndividualCopyUsageWriter
 }
 
 export type CopyNoteResult =
@@ -32,7 +32,7 @@ export async function copyNote(
   }
 
   try {
-    await dependencies.usage.recordOrdinaryCopy({
+    await dependencies.usage.recordIndividualCopy({
       note: { contentRevision: note.contentRevision, id: note.id },
       textSnapshot: note.content,
     })

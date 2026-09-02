@@ -16,7 +16,7 @@ import {
   type NoteGeometry,
   type NoteRepository,
 } from "@/entities/note"
-import type { OrdinaryCopyUsageWriter } from "@/entities/usage"
+import type { IndividualCopyUsageWriter } from "@/entities/usage"
 import type { ClipboardWriter } from "@/shared/lib/clipboard"
 
 import type { NoteStorageMonitor } from "./note-storage-monitor"
@@ -36,7 +36,7 @@ type NotesDataState =
 type NotesDataContextValue = NotesDataState & {
   copyNote(note: Note): Promise<CopyNoteResult>
   createNote(): Promise<Note>
-  metaClickEnabled: boolean
+  batchCopyShortcutEnabled: boolean
   retry(): void
   updateNote(
     note: Note,
@@ -64,11 +64,11 @@ async function readNotes(repository: NoteRepository): Promise<NotesDataState> {
 type NotesDataProviderProps = PropsWithChildren<{
   clipboard: ClipboardWriter
   createId(): string
-  metaClickEnabled: boolean
+  batchCopyShortcutEnabled: boolean
   now(): string
   repository: NoteRepository
   storageMonitor: NoteStorageMonitor
-  usage: OrdinaryCopyUsageWriter
+  usage: IndividualCopyUsageWriter
 }>
 
 function notesFromState(state: NotesDataState) {
@@ -142,7 +142,7 @@ export function NotesDataProvider({
   children,
   clipboard,
   createId,
-  metaClickEnabled,
+  batchCopyShortcutEnabled,
   now,
   repository,
   storageMonitor,
@@ -241,7 +241,7 @@ export function NotesDataProvider({
         ...state,
         copyNote,
         createNote,
-        metaClickEnabled,
+        batchCopyShortcutEnabled,
         retry,
         updateNote,
       }}

@@ -6,15 +6,21 @@ import {
   type NoteStorageMonitor,
 } from "@/_pages/notes/composition"
 import {
-  IndexedDbAccumulationWriter,
-  type AccumulationWriter,
-} from "@/features/accumulate-note"
+  IndexedDbBatchCopyItemWriter,
+  IndexedDbMobileBatchCopyEntryWriter,
+  type BatchCopyItemWriter,
+  type MobileBatchCopyEntryWriter,
+} from "@/features/add-note-to-batch-copy"
 import {
-  IndexedDbAccumulatorRepository,
-  type AccumulatorRepository,
-} from "@/entities/accumulator"
+  IndexedDbMobileBatchCopyDraftRepository,
+  IndexedDbBatchCopyRepository,
+  type BatchCopyRepository,
+  type MobileBatchCopyDraftRepository,
+} from "@/entities/batch-copy"
 import {
+  IndexedDbNoteDraftRepository,
   IndexedDbNoteRepository,
+  type NoteDraftRepository,
   type NoteRepository,
 } from "@/entities/note"
 import {
@@ -27,7 +33,7 @@ import {
 } from "@/entities/template"
 import {
   IndexedDbUsageRepository,
-  type OrdinaryCopyUsageWriter,
+  type IndividualCopyUsageWriter,
   type TextUsageReader,
 } from "@/entities/usage"
 import {
@@ -43,19 +49,22 @@ export type LocalApplication = {
     analyzer: TextAnalyzer
     now(): string
   }
-  accumulator: {
+  batchCopy: {
     createId(): string
+    draftRepository: MobileBatchCopyDraftRepository
+    mobileWriter: MobileBatchCopyEntryWriter
     now(): string
-    repository: AccumulatorRepository
-    writer: AccumulationWriter
+    repository: BatchCopyRepository
+    writer: BatchCopyItemWriter
   }
   notes: {
     clipboard: ClipboardWriter
     createId(): string
+    draftRepository: NoteDraftRepository
     now(): string
     repository: NoteRepository
     storageMonitor: NoteStorageMonitor
-    usageWriter: OrdinaryCopyUsageWriter
+    usageWriter: IndividualCopyUsageWriter
   }
   preferences: {
     now(): string
@@ -69,7 +78,7 @@ export type LocalApplication = {
   }
   usage: {
     reader: TextUsageReader
-    writer: OrdinaryCopyUsageWriter
+    writer: IndividualCopyUsageWriter
   }
   dispose(): void
 }
@@ -87,11 +96,16 @@ export function createLocalApplication(): LocalApplication {
 
   return {
     analysis: { analyzer, now },
-    accumulator: {
+    batchCopy: {
       createId: () => identifiers.create(),
+      draftRepository: new IndexedDbMobileBatchCopyDraftRepository(database),
+      mobileWriter: new IndexedDbMobileBatchCopyEntryWriter(
+        database,
+        identifiers,
+      ),
       now,
-      repository: new IndexedDbAccumulatorRepository(database),
-      writer: new IndexedDbAccumulationWriter(database, identifiers),
+      repository: new IndexedDbBatchCopyRepository(database),
+      writer: new IndexedDbBatchCopyItemWriter(database, identifiers),
     },
     dispose: () => {
       analyzer.dispose()
@@ -100,6 +114,7 @@ export function createLocalApplication(): LocalApplication {
     notes: {
       clipboard: new BrowserClipboardWriter(),
       createId: () => identifiers.create(),
+      draftRepository: new IndexedDbNoteDraftRepository(database),
       now,
       repository: new IndexedDbNoteRepository(database),
       storageMonitor: database,

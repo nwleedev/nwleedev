@@ -21,14 +21,14 @@ type PreferencesState =
 
 type InteractionPreferencesContextValue = PreferencesState & {
   retry(): void
-  setMetaClickEnabled(enabled: boolean): Promise<void>
+  setBatchCopyShortcutEnabled(enabled: boolean): Promise<void>
 }
 
 const InteractionPreferencesContext =
   createContext<InteractionPreferencesContextValue | null>(null)
 
 const initialPreferences: InteractionPreferences = {
-  metaClickEnabled: true,
+  batchCopyShortcutEnabled: true,
   updatedAt: "1970-01-01T00:00:00.000Z",
 }
 
@@ -75,7 +75,7 @@ export function InteractionPreferencesProvider({
     void readPreferences(repository).then(setState)
   }
 
-  async function setMetaClickEnabled(enabled: boolean) {
+  async function setBatchCopyShortcutEnabled(enabled: boolean) {
     if (!("preferences" in state) || state.status === "saving") {
       return
     }
@@ -85,7 +85,7 @@ export function InteractionPreferencesProvider({
 
     try {
       const preferences = await repository.save({
-        metaClickEnabled: enabled,
+        batchCopyShortcutEnabled: enabled,
         updatedAt: now(),
       })
       setState({ preferences, status: "ready" })
@@ -96,7 +96,7 @@ export function InteractionPreferencesProvider({
 
   return (
     <InteractionPreferencesContext
-      value={{ ...state, retry, setMetaClickEnabled }}
+      value={{ ...state, retry, setBatchCopyShortcutEnabled }}
     >
       {children}
     </InteractionPreferencesContext>
