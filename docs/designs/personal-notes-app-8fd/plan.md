@@ -10,7 +10,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 다음 미완료 작업을 시작하기 전에 현재 사용자 동작, 외부에서 사용하는 API, IndexedDB 자료 형식과 오류 처리를 보존 기준으로 확인하고, 적용할 개발 지침을 검토하는 선행 작업을 먼저 완료한다. 기존 코드의 작성 방식을 그대로 복사하지 않고, 요구사항과 승인된 결정이 바꾸도록 정한 부분을 제외한 현재 사용자 동작과 자료 처리를 유지하면서 알려진 안티패턴을 제거한다.
 
-이번 재검토에서는 현재 구현에 필수이지만 값이 없던 선택을 최신 공식 자료, 현재 저장 자료와 실제 화면 근거로 교차검증해 채택했다. 검토한 선택지, 이유, 영향과 다시 검토할 조건은 이 계획에 연결된 결정 기록에 남기고 작업 입력과 검증 항목을 같은 값으로 갱신했다. 사용자 화면과 새 TypeScript 이름에는 `일괄 복사` 및 `BatchCopy`를 사용하되, 기존 자료를 보존하기 위해 물리 IndexedDB object store `accumulators`는 repository 연결부 뒤에 유지한다. 이후 필수 선택이 새로 발견되면 영향을 받는 구현을 멈추고 같은 절차를 적용하며, 현재 범위에서 제외한 백로그의 선택은 그 작업을 시작하기 전에 검토한다.
+이번 재검토에서는 현재 구현에 필수이지만 값이 없던 선택을 최신 공식 자료, 현재 저장 자료와 실제 화면 근거로 교차검증해 채택했다. 검토한 선택지, 이유, 영향과 다시 검토할 조건은 이 계획에 연결된 결정 기록에 남기고 작업 입력과 검증 항목을 같은 값으로 갱신했다. 사용자 화면과 새 TypeScript 이름에는 `일괄 복사` 및 `BatchCopy`를 사용하고, IndexedDB object store 이름도 `batchCopyLists`로 맞춘다. 이전 schema의 저장소는 `versionchange`에서 한 번 이름을 바꿔 자료를 보존하며, 변경이 끝난 뒤 이전 저장소나 우회 읽기 경로를 유지하지 않는다. 이후 필수 선택이 새로 발견되면 영향을 받는 구현을 멈추고 같은 절차를 적용하며, 현재 범위에서 제외한 백로그의 선택은 그 작업을 시작하기 전에 검토한다.
 
 실행 순서는 현재 독립 실행 배포 선택인 Next.js Node.js 서버와 Dedicated Worker가 운영용 빌드에서 동작하는지 먼저 확인한 뒤, 자료 형태와 브라우저 저장, 디자인 시스템과 공통 화면 구조, 메모, 개별 복사 및 일괄 복사, 사용 빈도, 텍스트 분석과 템플릿 순으로 진행한다. 정적 사이트 산출물은 만들지 않으며, 이후 작업에 Next.js Server Actions나 Route Handlers가 필요하다고 확인되면 현재 자료 책임과 배포에 미치는 영향을 먼저 검토한다. 각 단위는 선행 결과와 중단 조건을 만족해야 다음 단위의 완료 근거가 될 수 있다.
 
@@ -70,7 +70,9 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 - 설정 판정만을 위한 fixture와 일회용 검사 스크립트는 저장소에 추가하지 않는다. 임시 입력이 필요한 한 번의 ESLint 설정 검증은 Git이 무시하는 `temps/`에서 수행하고, 이후에는 실제 소스의 lint와 운영용 빌드를 반복 검증 근거로 사용한다.
 - 정적 사이트 배포가 범위에서 제외됐으므로 `static-smoke.mjs`와 자체 정적 서버를 제거한다. 이 스크립트가 맡았던 사용자 결과는 과업별 Playwright Test로 옮기고, IndexedDB 내부 schema, DOM 순서, 운영 코드의 조작 시간과 임의 대기에 결합된 검사는 삭제한다. 같은 목적의 다른 전용 스크립트는 추가하지 않는다.
 - U3 브라우저 검사에서 `_pages` slice의 하나뿐인 `index.ts`가 route UI와 조립용 IndexedDB 구현을 함께 다시 내보내면 저장 검사만 가져와도 `next/link`가 평가되는 문제가 확인됐다. route는 `index.ts`, `_app` 조립 지점은 같은 slice의 명시적 `composition.ts`를 가져오도록 public API 책임을 나눈다. 이는 server 및 client 환경 분리가 아니므로 대칭적인 `index.server.ts`와 `index.client.ts`를 만들지 않는다.
-- 일괄 복사 기능의 첫 위치 변경은 독립 route와 `_pages/accumulator` slice를 제거하고 메모 route의 보조 패널을 추가했다. 이후 모바일 요구사항은 `48rem` 미만의 목록 표현에만 `/accumulator`와 `_pages/accumulator`를 다시 추가하고, `48rem` 이상에서는 승인된 보조 패널을 유지한다. 최신 모바일 요구는 목록 화면 헤더에서 일괄 복사 상태를 시작하고 메모 상세 route를 추가한다. 같은 메모를 반복해서 누른 경우도 별도 항목과 클릭 횟수로 기록한다. 후속 요구에서 `다음`은 `/accumulator` 확인 페이지로 이동하고, 길게 누른 뒤 재정렬과 항목별 복제 및 삭제는 실행 중 작업 사본만 바꾸도록 확정했다. U2부터 U8과 U11이 영향을 받으며 작업 단계, 고유 항목 ID, 스냅샷, 사용 빈도와 제거 이력 규칙은 새 입력 방식에 맞게 다시 검증한다.
+- 일괄 복사를 처음 재배치할 때 독립 route와 `_pages/accumulator` slice를 제거하고 메모 route의 보조 패널을 추가했다. 이후 모바일 요구사항은 `48rem` 미만의 목록 표현에 일괄 복사 확인과 저장 목록 관리 route를 다시 추가하고, `48rem` 이상에서는 승인된 보조 패널을 유지했다.
+- 당시 모바일 route는 `/accumulator`, 화면 slice는 `_pages/accumulator`였다. 표시 용어를 `일괄 복사`로 바꾼 결정에 맞춰 기준 주소를 `/batch-copy`, 화면 slice를 `_pages/batch-copy`로 변경했다. 후속 결정에서는 이전 route를 호환 주소로 두는 안도 폐기했으므로 `/accumulator` 화면과 redirect를 만들지 않는다.
+- 최신 모바일 요구는 목록 화면 헤더에서 일괄 복사 상태를 시작하고 메모 상세 route를 추가한다. 같은 메모를 반복해서 누른 경우도 별도 항목과 클릭 횟수로 기록한다. `다음`은 `/batch-copy` 확인 페이지로 이동하고, 길게 누른 뒤 재정렬과 항목별 복제 및 삭제는 실행 중 작업 사본만 바꾼다. U2부터 U8과 U11이 영향을 받으며 작업 단계, 고유 항목 ID, 스냅샷, 사용 빈도와 제거 이력 규칙은 새 입력 방식에 맞게 다시 검증한다.
 - 화면 문구 제한은 U1의 최소 화면, U4의 공통 화면 구조와 U5부터 U10까지 추가할 모든 사용자 문구에 적용한다. U11은 보이는 문자열의 역할과 중복을 최종 확인하며, 자료 규칙과 라우트 수는 바뀌지 않는다.
 - 구현 전 검토에서 지원 접속 주소의 실행 중 판정, 일괄 복사 패널 전체 복사, 줄 조합 생성 규칙과 IndexedDB 연결 수명의 검증 공백을 확인했다. IndexedDB 저장, 공통 화면 구조, 일괄 복사 순서 편집, 줄 단위 텍스트 분석과 통합 완료 검증에 각각 책임을 배정한 뒤 영향을 받는 구현을 진행한다.
 - 메모 화면의 왼쪽 사이드바 제거는 공통 화면 구조, 메모 영역의 반응형 전환과 통합 화면 검증에 영향을 준다. 저장 자료, 개별 복사, 일괄 복사, 사용 빈도와 분석 규칙은 바뀌지 않는다.
@@ -87,7 +89,8 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 - 넓은 패널과 모바일 확인 페이지의 drag 재정렬에는 항목 동작 선택창의 `위치 변경`과 삽입 위치 버튼을 같은 결과의 단일 pointer 및 키보드 대안으로 제공한다. hover와 `focus-within`에서 동작 버튼을 표시하고 hover가 없거나 coarse pointer인 환경에서는 항상 표시한다. 메모 크기 변경은 오른쪽 속성 패널의 숫자 입력이 drag 없는 대안이다.
 - 모바일 상세 화면은 IndexedDB 복구 초안을 사용하고 저장 전 내부 이동에 계속 편집 및 변경사항 버리기를 제공한다. 모바일 일괄 복사는 기존 저장 목록과 분리한 하나의 IndexedDB 작업 초안이며, 예기치 않은 이탈과 새로고침에서 복원하고 명시적 뒤로가기 및 `취소`에서 지운다. 확인 항목 복제는 대상 바로 뒤에 넣고 수집 상태의 길게 누르기는 아무 동작도 실행하지 않는다.
 - 구현 필수 결정 재검토로 U2, U3, U5부터 U7과 U11의 이전 중단 조건을 해소했다. 800ms 자동 저장, `4096 × 4096` 캔버스, geometry 범위, `72rem` 패널 전환, `12rem` 목록 미리보기 상한, mouse 및 pen `5 CSS px`와 touch `10 CSS px`의 직접 이동 기준, 500ms 길게 누르기는 표준값이 아닌 초기 제품값이므로 실제 브라우저 검증에서 재검토 조건을 확인한다.
-- 사용자에게 보이는 기능명은 `일괄 복사`, 단일 메모 Clipboard 쓰기는 `개별 복사`로 통일한다. 새 TypeScript 이름은 `BatchCopy`를 사용하고 기존 `ordinaryCopy`, `accumulation` 및 `metaClickEnabled` record는 자료를 보존하는 변환을 U2와 U3에서 먼저 설계한다. 물리 IndexedDB object store `accumulators`는 유지한다.
+- 사용자에게 보이는 기능명은 `일괄 복사`, 단일 메모 Clipboard 쓰기는 `개별 복사`로 통일한다. 새 TypeScript 이름은 `BatchCopy`를 사용하고 기존 `ordinaryCopy`, `accumulation` 및 `metaClickEnabled` record는 자료를 보존하는 변환을 U2와 U3에서 먼저 설계한다. 일괄 복사 자료를 저장하는 IndexedDB object store 이름은 `batchCopyLists`를 사용한다.
+- 일괄 복사 확인과 저장 목록 관리의 기준 주소는 `/batch-copy`다. 모든 애플리케이션 링크와 이동은 이 주소만 사용하며, `/accumulator` 화면이나 redirect를 제공하지 않는다. 이전 schema에 저장된 일괄 복사 자료는 U3의 `versionchange`에서 저장소 이름을 `batchCopyLists`로 한 번 바꿔 보존한다.
 
 ### 현재 코드 검토 결과에 따른 선행 정리
 
@@ -98,7 +101,7 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 3. 메모 편집 중 component가 revision 변화로 다시 mount되지 않게 key를 메모 식별자와 표현 종류에만 연결한다. 넓은 화면의 읽기 요소와 별도 편집 상태를 상시 `textarea`로 바꾸고, 기존 완료 UI를 제거한다. 제스처 중 geometry는 일시 상태로만 두고 저장 완료 뒤에는 provider가 준 geometry를 사용해 외부 변경도 반영한다. IME, 커서, 자동 저장과 저장된 배치를 실제 브라우저에서 확인한다.
 4. 기존 이동 및 geometry 버튼을 제거하고 짧은 메모 헤더, 맨 앞으로, 맨 뒤로와 삭제 아이콘, 네 가장자리 및 네 꼭짓점 resize를 추가한다. 이동이 아닌 헤더 한 번 click과 `tabindex` 기반 `Tab`은 선택 테두리만 표시하고, 헤더 더블클릭 또는 선택 지점에 포커스가 있는 선택된 메모의 `Enter`는 속성 패널을 연다. 빈 캔버스 click과 `Escape`는 선택만 해제한다. drag 뒤 click을 억제하고 이동 중 패널 표시 여부와 캔버스 계산 크기를 유지한다. `zIndex`는 `1..N`으로 전체 재정렬해 한 transaction에서 저장하고 원문 content revision 및 `tabIndex`를 바꾸지 않는다. 삭제는 LIFO 복구 스냅샷과 자동 만료 없는 토스트 `취소`가 함께 동작할 때만 완료한다.
 5. Clipboard adapter는 API 부재, 권한 거절과 그 밖의 쓰기 실패를 구분한 결과를 돌려준다. 넓은 화면의 `Command+클릭`은 개별 복사, `Command+Option+클릭`은 일괄 복사 항목 추가로 분리하고 두 명령이 함께 실행되지 않게 한다. `Command` keydown은 선택만 해제하고 메모 크기를 유지한 채 헤더를 숨기며, 기본 동작을 막지 않는다. 두 본문 동작이 메모 선택으로 전파되지 않게 한다. 알림은 원인에 맞는 다음 행동과 같은 텍스트의 재시도를 제공한다.
-6. 기존 `ordinaryCopy`, `accumulation`과 `metaClickEnabled` record를 새 조작 의미에 맞는 논리 이름으로 읽는 자료 변환을 설계한다. 물리 IndexedDB object store `accumulators`는 유지한다. 저장된 메모, 항목, 횟수와 설정을 잃지 않는 검증 자료를 기존 테스트 안에서 구성하고 변환 전후 값을 확인한다.
+6. 기존 `ordinaryCopy`, `accumulation`과 `metaClickEnabled` record를 새 조작 의미에 맞는 이름으로 읽는 자료 변환을 설계한다. 이전 일괄 복사 object store는 한 번의 `versionchange`에서 `batchCopyLists`로 이름을 바꾸고, 변경 뒤에는 이전 저장소나 우회 읽기 경로를 남기지 않는다. 저장된 메모, 항목, 순서, 횟수와 설정을 잃지 않는 검증 자료를 기존 테스트 안에서 구성하고 변환 전후 값을 확인한다.
 7. 작은 화면의 상시 편집과 long-press 항목 선택을 제거하고, 제한된 높이 목록, 짧은 누르기 상세 이동, 길게 누르기 개별 복사와 목록 헤더의 일괄 복사 상태를 추가한다. 같은 메모의 반복 입력도 순서와 클릭 횟수에 반영하고, 헤더 뒤로가기와 하단 `초기화` 및 `다음`을 구분한다. `다음`은 저장 목록과 분리한 IndexedDB 작업 초안의 확인 단계와 현재 순서를 저장한 뒤 확인 페이지로 이동한다.
 8. 나란한 패널과 저장 목록 관리 페이지가 함께 쓰는 편집 명령, 이력, 전체 복사와 목록 UI는 역할에 맞게 이름을 바꾼 공통 feature가 맡고, 모바일 확인 작업의 재정렬, 복제와 삭제는 원본 메모 repository를 알지 못하는 별도 작업 사본 명령으로 둔다. 항목 추가 feature는 시작 입력과 transaction만 맡으며 이전 long-press 선택 연결을 새 흐름에 재사용하지 않는다.
 9. `shared/lib/clipboard`, `shared/lib/join-class-names`와 `shared/lib/grapheme`에는 허용 책임과 제외 책임을 설명하는 짧은 README를 둔다. public API 밖의 내부 파일을 가져오거나 개인 메모 업무 규칙을 공통 라이브러리로 옮기지 않는다.
@@ -181,7 +184,7 @@ apps/notes/
     analysis/page.tsx
     templates/page.tsx
     settings/page.tsx
-    accumulator/page.tsx
+    batch-copy/page.tsx
   src/
     _app/                      provider, 조립, 전역 스타일
     _pages/                    화면별 slice
@@ -191,13 +194,13 @@ apps/notes/
       analysis/
       templates/
       settings/
-      accumulator/
+      batch-copy/
     features/                  여러 화면에서 재사용하는 사용자 동작만 배치
     entities/                  메모, 일괄 복사, 사용 기록, 템플릿과 사용자 설정 자료 및 규칙
     shared/                    공통 UI와 브라우저 기술 연결
 ```
 
-`apps/notes/app/`의 route 파일은 `apps/notes/src/_pages/`의 `index.ts`를 연결한다. `apps/notes/app/layout.tsx`는 `apps/notes/src/_app/`의 provider와 전역 스타일을 연결한다. route 파일에 화면 동작, IndexedDB 접근이나 메모, 일괄 복사 및 템플릿 규칙을 구현하지 않는다. `_app/composition`이 화면 slice의 provider, 책임별 interface와 브라우저 구현을 가져올 때에는 그 slice의 `composition.ts`를 사용해 route UI를 조립 모듈 그래프에 함께 넣지 않는다. `_pages/notes`, `_pages/note-detail`과 `_pages/accumulator`는 서로 가져오지 않으며, 화면들이 함께 사용하는 메모 저장 및 일괄 복사 목록 동작은 실제 재사용이 확인된 feature 또는 entity command로 둔다.
+`apps/notes/app/`의 route 파일은 `apps/notes/src/_pages/`의 `index.ts`를 연결한다. `apps/notes/app/layout.tsx`는 `apps/notes/src/_app/`의 provider와 전역 스타일을 연결한다. route 파일에 화면 동작, IndexedDB 접근이나 메모, 일괄 복사 및 템플릿 규칙을 구현하지 않는다. `_app/composition`이 화면 slice의 provider, 책임별 interface와 브라우저 구현을 가져올 때에는 그 slice의 `composition.ts`를 사용해 route UI를 조립 모듈 그래프에 함께 넣지 않는다. `_pages/notes`, `_pages/note-detail`과 `_pages/batch-copy`는 서로 가져오지 않으며, 화면들이 함께 사용하는 메모 저장 및 일괄 복사 목록 동작은 실제 재사용이 확인된 feature 또는 entity command로 둔다.
 
 FSD 계층 의존 방향은 `_app`, `_pages`, `features`, `entities`, `shared` 순서다. 한 slice는 같은 계층의 다른 slice를 직접 가져오지 않고 더 아래 계층만 가져온다. Entities 사이의 자료 관계를 type으로 직접 표현해야 할 때에만 `@x` public API를 예외로 사용한다. 다른 slice에서는 명시적 export를 둔 public API만 사용하고, 같은 slice 안에서는 자신의 public API를 거치지 않는 상대 경로를 사용한다. 화면 한 곳에서만 쓰는 UI와 동작은 그 화면의 `_pages` slice에 남기고, 여러 화면에서 실제로 다시 사용하는 사용자 동작만 `features`로 분리한다. `widgets`와 폐기된 `processes` 계층은 현재 만들지 않으며, 실제 파일이 없는 계층이나 segment도 만들지 않는다.
 
@@ -246,7 +249,7 @@ IndexedDB
 
 IndexedDB transaction의 `complete`가 확인된 뒤에만 저장 성공으로 처리한다. 라우트 이동은 실행 중 상태를 유지하고 메모 및 모바일 일괄 복사 초안은 새로고침에서도 복원한다. 제거 undo 및 redo, 메모 삭제 복구 이력과 나머지 실행 중 상태는 새로고침에서 초기화한다. HTTP와 HTTPS, 서로 다른 port는 origin이 달라 같은 IndexedDB 자료를 공유하지 않으므로 두 접속 방식의 검증은 각각 독립된 자료로 수행한다.
 
-기존 record 속성은 보존 변환이 완료될 때까지 이전 schema로도 읽을 수 있게 한다. 물리 IndexedDB object store `accumulators`는 변환 후에도 유지하고 repository 연결부에서 `BatchCopy`로 바꾼다. 위 이름은 논리 책임이며 현재 저장 자료를 지우거나 store 이름만 바꾸라는 지시가 아니다.
+기존 record 속성은 보존 변환이 완료될 때까지 이전 schema로도 읽을 수 있게 한다. 일괄 복사 object store는 같은 `versionchange` transaction에서 `batchCopyLists`로 이름을 바꾸며 기존 key와 record를 보존한다. 변경이 완료된 뒤에는 TypeScript 자료형, repository와 물리 저장소 모두 `BatchCopy` 계열 이름만 사용하고 이전 저장소 또는 우회 읽기 경로를 두지 않는다.
 
 ### 개별 복사와 일괄 복사 흐름
 
@@ -273,7 +276,7 @@ IndexedDB transaction의 `complete`가 확인된 뒤에만 저장 성공으로 �
   -> 짧게 누를 때마다 원문 스냅샷 추가와 일괄 복사 횟수 증가를 한 transaction으로 저장
   -> 길게 누르기는 아무 동작도 실행하지 않음
   -> 초기화는 작업 초안과 클릭 횟수를 비우고 상태 유지
-  -> 다음은 confirming 단계와 현재 순서를 저장한 뒤 /accumulator 확인 페이지로 이동
+  -> 다음은 confirming 단계와 현재 순서를 저장한 뒤 /batch-copy 확인 페이지로 이동
   -> 확인 페이지에서 500ms 길게 누른 뒤 재정렬하거나 위치 변경, 복제 및 삭제
   -> 확인 편집은 작업 초안만 바꾸고 원본 메모, 저장 목록과 사용 횟수 유지
   -> 예기치 않은 route 이동과 새로고침에서는 초안 복원
@@ -489,7 +492,7 @@ U1의 `apps/notes` package, TypeScript 및 Zod 버전, module alias와 FSD ESLin
 ### 변경 후보
 
 - `apps/notes/src/entities/note/model/*`
-- `apps/notes/src/entities/accumulator/model/*`
+- `apps/notes/src/entities/batch-copy/model/*`
 - `apps/notes/src/entities/usage/model/*`
 - `apps/notes/src/entities/template/model/*`
 - `apps/notes/src/entities/preference/model/*`
@@ -502,6 +505,7 @@ U1의 `apps/notes` package, TypeScript 및 Zod 버전, module alias와 FSD ESLin
 ### 작업
 
 - 반복 접두어 대신 `note.id`, `note.revision`, `note.contentRevision`, `algorithm.type`과 `algorithm.version`으로 함께 이동하는 값을 묶는다.
+- 일괄 복사 자료형과 책임 이름은 `BatchCopyList`, `BatchCopyRepository`와 `BatchCopyItemWriter`로 통일한다. 새 model 공개 API에 이전 이름을 별칭으로 남기지 않는다.
 - 메모 원문이 바뀔 때만 content revision이 바뀌고 geometry만 바뀔 때는 전체 revision만 바뀌는 규칙을 만든다.
 - 메모의 `1000..32767` 양의 `tabIndex`를 시각적 겹침을 나타내는 `geometry.zIndex`와 분리한다. 첫 메모는 `1000`, 새 메모는 최댓값 다음 값을 받고 누락, 중복, 정수가 아닌 값과 범위 밖 값은 기존 유효 값, 생성 시각과 ID 순으로 안정 정렬해 빈틈없이 다시 배정한다. 맨 앞으로 또는 맨 뒤로 보내기는 `zIndex`만 바꾸고 `tabIndex`는 유지한다.
 - 선택한 메모 ID, 속성 패널 대상 ID, 최근 활성 오른쪽 패널과 `X`, `Y`, 너비 및 높이의 문자열 초안을 영구 메모 자료와 분리한다. 한 번의 헤더 click과 `Tab`은 선택 ID만 바꾸고, 이동이 아닌 헤더 더블클릭 또는 선택된 메모 선택 지점의 `Enter`가 속성 패널 대상과 최근 활성 패널을 바꾸게 한다. 빈 캔버스 click, `Escape`와 `Command`는 선택 ID만 비운다. 네 적용 입력이 같은 검증 결과와 geometry 변경 명령으로 이어지게 하고, 최근 패널 전환이나 선택 해제로 패널 대상, 초안 또는 일괄 복사 자료를 지우지 않는다.
@@ -552,8 +556,8 @@ U2의 객체, 레코드 스키마와 책임별 저장 interface가 필요하다.
 - `apps/notes/src/shared/lib/indexed-db/*`
 - `apps/notes/src/_app/composition/indexed-db/open-personal-notes-database.ts`
 - `apps/notes/src/entities/note/api/indexed-db-note-repository.ts`
-- `apps/notes/src/entities/accumulator/api/indexed-db-accumulator-repository.ts`
-- `apps/notes/src/features/accumulate-note/api/indexed-db-accumulation-writer.ts`
+- `apps/notes/src/entities/batch-copy/api/indexed-db-batch-copy-repository.ts`
+- `apps/notes/src/features/add-note-to-batch-copy/api/indexed-db-batch-copy-item-writer.ts`
 - `apps/notes/src/entities/usage/api/indexed-db-usage-repository.ts`
 - `apps/notes/src/entities/template/api/indexed-db-template-repository.ts`
 - `apps/notes/src/entities/preference/api/indexed-db-interaction-preferences-repository.ts`
@@ -562,7 +566,7 @@ U2의 객체, 레코드 스키마와 책임별 저장 interface가 필요하다.
 
 ### 작업
 
-- 기존 `notes`, `accumulators`, `usage`, `templates`와 `preferences` object store를 보존하면서 `noteDrafts`와 `mobileBatchCopyDrafts`를 추가한다. 이전 record 속성은 보존 변환하고 물리 store `accumulators`는 유지하며, 새 TypeScript 자료형과 repository interface에서 `BatchCopy`를 사용한다.
+- 기존 `notes`, `usage`, `templates`와 `preferences` object store를 보존하면서 `noteDrafts`와 `mobileBatchCopyDrafts`를 추가한다. 새 데이터베이스에는 일괄 복사 저장소를 `batchCopyLists`로만 만든다. 이전 schema가 있으면 같은 `versionchange` transaction에서 기존 일괄 복사 저장소의 이름을 `batchCopyLists`로 바꿔 key, record와 항목 순서를 보존한다. 변경 뒤에는 이전 저장소나 우회 읽기 경로를 남기지 않고 `BatchCopyList`, `BatchCopyRepository`와 `BatchCopyItemWriter`를 사용한다.
 - 기존 메모의 `tabIndex` 누락, 중복, 정수가 아닌 값과 범위 밖 값을 `1000`부터 빈틈없이 옮긴다. X 또는 Y가 `0`이거나 geometry가 범위를 벗어나면 원래 배치를 가능한 많이 유지해 캔버스 안으로 보정하고 전체 revision만 증가시킨다.
 - 기존 `zIndex` 동률은 값, 생성 시각과 ID 순으로 안정 정렬한 뒤 `1..N`으로 옮긴다. migration은 하나의 version change transaction에서 완료하고 실패하면 이전 버전과 자료를 유지한다.
 - `upgrade`, `blocked`, `versionchange`, transaction abort와 읽을 수 없는 record를 명시적인 결과로 처리한다.
@@ -582,6 +586,8 @@ U2의 객체, 레코드 스키마와 책임별 저장 interface가 필요하다.
 TDD를 적용하지 않는다. IndexedDB의 transaction 수명, upgrade와 origin별 보관은 가짜 저장소로 정확히 재현하기 어렵다. 저장 interface에 정한 동작을 기준으로 구현한 뒤 실제 브라우저 저장소를 사용하는 통합 검사로 판정한다. U2에서 이미 검증한 순수 레코드 스키마를 다시 내부 호출 횟수로 검사하지 않는다.
 
 - 메모, 일괄 복사 목록, 횟수, 템플릿, 설정, 저장 전 메모 원문과 모바일 일괄 복사 작업 초안은 새로고침 뒤 복원된다.
+- 새 데이터베이스의 `objectStoreNames`에는 `batchCopyLists`가 있고 이전 일괄 복사 저장소 이름은 없다. 이전 schema에 항목과 순서를 넣고 upgrade하면 같은 key, record와 순서를 `batchCopyLists`에서 읽을 수 있으며 이전 저장소는 남지 않는다.
+- 일괄 복사 repository와 항목 및 사용 횟수의 원자적 저장은 모두 `batchCopyLists`를 사용한다. 변경 뒤에 이전 저장소를 찾거나 대신 읽는 분기는 없다.
 - migration을 거친 메모는 `1000`부터 빈틈없는 양의 `tabIndex`, `1..N`의 고유한 `zIndex`와 허용 범위의 geometry를 유지한다. 이후 `zIndex` 변경은 `tabIndex`를 바꾸지 않는다.
 - 첫 자료 읽기 전에는 빈 상태를 표시하거나 새 메모를 만들 수 없고, 읽기 완료 뒤에만 실제 빈 상태 또는 저장된 자료를 보여준다.
 - 분석 결과, 저장 전 제안, 일괄 복사 제거 이력과 메모 삭제 LIFO 이력은 route 이동 뒤 유지되지만 새로고침 뒤에는 없다. 메모 선택, 속성 패널 대상과 속성 초안은 결정된 화면 수명에 따라 정리한다. `Command` 상태와 drag 측정값은 key release, 창 및 문서 상태 변화, pointer 종료 또는 화면 이탈에서 정리된다. 모바일 일괄 복사 작업 초안은 명시적 취소 전까지 새로고침 뒤에도 남고 저장된 일괄 복사 목록과 섞이지 않는다.
@@ -615,8 +621,9 @@ U1의 라우트, Tailwind CSS 및 운영용 CSS 확인과 U2의 provider가 필�
 - `apps/notes/app/analysis/page.tsx`
 - `apps/notes/app/templates/page.tsx`
 - `apps/notes/app/settings/page.tsx`
-- `apps/notes/app/accumulator/page.tsx`
-- `apps/notes/src/_pages/{notes,note-detail,usage,analysis,templates,settings,accumulator}/index.ts`
+- `apps/notes/app/batch-copy/page.tsx`
+- `apps/notes/app/accumulator/page.tsx` 제거
+- `apps/notes/src/_pages/{notes,note-detail,usage,analysis,templates,settings,batch-copy}/index.ts`
 - `apps/notes/src/_app/ui/application-frame.tsx`
 - `apps/notes/src/_app/ui/navigation/*`
 - `apps/notes/src/_app/styles/{globals,tokens}.css`
@@ -628,7 +635,8 @@ U1의 라우트, Tailwind CSS 및 운영용 CSS 확인과 U2의 provider가 필�
 
 ### 작업
 
-- `/`에는 메모 보드 또는 목록과 `48rem` 이상에서 열고 닫는 일괄 복사 패널을 배치한다. `/notes/[noteId]`에는 작은 화면 목록에서 진입하는 메모 상세 편집 화면을 두고, `/accumulator`에는 모바일 일괄 복사 확인 및 저장 목록 관리 화면을 배치한다. 나머지 주요 route에는 사용 빈도, 텍스트 분석, 템플릿과 설정을 배치한다. 계정, 동기화와 서버 상태 전용 route는 만들지 않는다.
+- `/`에는 메모 보드 또는 목록과 `48rem` 이상에서 열고 닫는 일괄 복사 패널을 배치한다. `/notes/[noteId]`에는 작은 화면 목록에서 진입하는 메모 상세 편집 화면을 두고, `/batch-copy`에는 모바일 일괄 복사 확인 및 저장 목록 관리 화면을 배치한다. 나머지 주요 route에는 사용 빈도, 텍스트 분석, 템플릿과 설정을 배치한다. 계정, 동기화와 서버 상태 전용 route는 만들지 않는다.
+- `/accumulator` route를 제거하고 redirect를 추가하지 않는다. 애플리케이션 내부의 `Link`, 명시적 이동과 canonical metadata는 `/batch-copy`만 사용한다.
 - 각 `app/**/page.tsx`는 같은 라우트를 담당하는 `_pages` slice의 공개 화면만 연결하고, 화면 구성과 상태 처리는 `_pages`에 둔다.
 - 사용 빈도, 텍스트 분석, 템플릿과 설정 화면은 페이지 제목, 주요 동작, 주 콘텐츠 및 상태 알림을 공유하고 왼쪽 탐색을 사용한다. 메모 화면은 별도 페이지 제목과 상단 작업 행 없이 상단 탐색 바로 아래에서 캔버스를 시작한다. 메모 화면, 모바일 상세와 일괄 복사 관리 화면은 왼쪽 사이드바를 사용하지 않는다. 두 모바일 보조 화면은 메모 목록으로 돌아가는 동작과 저장 또는 하단 작업을 우선하며, 작은 화면에서는 전역 탐색을 접을 수 있어야 한다.
 - 공통 화면과 자료 Provider를 시작하기 전에 현재 URL의 protocol, hostname과 secure context 여부를 판정한다. HTTPS 또는 호스트 이름이 정확히 `localhost`인 HTTP만 계속 진행하고, 지원하지 않는 주소에서는 HTTPS 또는 `http://localhost`로 다시 접속하라는 안내 화면만 제공한다.
@@ -645,7 +653,7 @@ U1의 라우트, Tailwind CSS 및 운영용 CSS 확인과 U2의 provider가 필�
 - Dialog, Menu와 Tooltip처럼 폼 입력값을 만들지 않는 복합 상호작용이 실제 화면에 필요하면 네이티브 HTML 및 Web API로 충족할 수 있는지 먼저 확인한다. 외부 접근성 부품이 필요하면 정확한 package와 전체 의존성을 검토하고, import 및 API 변환을 외부 부품을 감싸는 `shared/ui` 구성요소 안에 둔다.
 - 각 `shared/ui` 구성요소는 자체 public API를 두고 전체 UI를 한 번에 다시 내보내는 barrel을 만들지 않는다. 화면과 업무 동작을 구현하는 모듈은 외부 UI 패키지를 직접 가져오지 않는다.
 - 메모 영역의 inline size를 기준으로 `48rem` 미만에서 내용에 따라 짧아지고 `12rem`을 넘지 않는 목록과 모바일 상호작용을 선택하며 User-Agent 분기를 두지 않는다. 넘치는 원문은 카드 안에서 스크롤하지 않고 원문이 더 있음을 표시한다.
-- `48rem` 미만의 메모 목록 화면 헤더 오른쪽에는 일괄 복사 상태를 시작하는 아이콘 버튼을 둔다. 상태에 들어가면 헤더 왼쪽에 접근 가능한 이름을 가진 뒤로가기 아이콘 버튼을 표시하고, 화면 아래에 `초기화`와 `다음`을 고정한다. `다음` 문구 옆에는 같은 메모의 반복 입력을 포함한 클릭 횟수를 표시하고, 실행하면 `/accumulator` 확인 페이지로 이동한다.
+- `48rem` 미만의 메모 목록 화면 헤더 오른쪽에는 일괄 복사 상태를 시작하는 아이콘 버튼을 둔다. 상태에 들어가면 헤더 왼쪽에 접근 가능한 이름을 가진 뒤로가기 아이콘 버튼을 표시하고, 화면 아래에 `초기화`와 `다음`을 고정한다. `다음` 문구 옆에는 같은 메모의 반복 입력을 포함한 클릭 횟수를 표시하고, 실행하면 `/batch-copy` 확인 페이지로 이동한다.
 - 모바일 확인 목록의 각 항목 우측 상단에는 접근 가능한 이름을 가진 동작 아이콘 버튼을 둔다. HTML `popover="auto"`와 이름 있는 `role="group"` 안의 네이티브 버튼으로 `위치 변경`, `복제` 및 `삭제`를 제공하고 일반 `Tab` 순서를 유지한다. 열면 첫 동작으로 포커스를 옮기고 실행, `Escape` 또는 light dismiss로 닫으면 해당 항목의 실행 버튼으로 돌려준다. 선택창은 버튼 가까이에 붙는 자체 디자인 시스템의 표면과 조밀한 세로 행, 보이는 동작 이름, `focus-visible`, pressed 및 다른 동작과 구분된 삭제 상태를 제공하고 브라우저 기본 외형에 완성도를 맡기지 않는다. `menu` 및 `menuitem` 역할과 외부 접근성 package는 현재 범위에 추가하지 않는다.
 - 메모 작업 영역이 `72rem` 이상이면 너비 `22rem`의 나란한 패널을 사용하고, `48rem` 이상 `72rem` 미만이면 같은 route의 모달 패널을 사용한다. 나란한 표현은 두 영역을 동시에 조작할 수 있어야 하고, 모달 표현은 바깥 메모 영역을 inert 상태로 만들며 열기 및 닫기 포커스를 관리해야 한다.
 - 상단 탐색과 주 작업 제어에는 `1..999`, 메모 선택 지점에는 저장된 `1000..32767`의 양의 `tabindex`를 적용한다. 나머지 조작은 네이티브 DOM 순서를 유지한다.
@@ -653,7 +661,7 @@ U1의 라우트, Tailwind CSS 및 운영용 CSS 확인과 U2의 provider가 필�
 - `Command`가 눌린 상태에서는 선택의 붉은 테두리를 제거하고 헤더의 시각 요소와 아이콘 조작을 숨기되 헤더 행의 계산 높이, 본문 시작 위치와 메모 외곽 크기를 유지한다. 숨겨질 헤더 아이콘에 포커스가 있으면 같은 메모 선택 지점으로 옮기고 그 밖의 포커스는 유지한다.
 - 헤더 더블클릭 또는 선택된 메모의 선택 지점에서 실행한 `Enter`로 연 오른쪽 속성 패널에는 `X`, `Y`, 너비와 높이를 네이티브 숫자 입력으로 배치한다. 입력 label, 패널 대상, 현재 값, 너비 `240..1280`, 높이 `180..960`과 고정 캔버스 안의 양의 좌표 조건, 오류와 적용 상태를 제공하되 메모 표면에는 같은 숫자 UI를 반복하지 않는다.
 - 오른쪽에는 속성 패널과 일괄 복사 패널 가운데 마지막으로 활성화한 패널 하나만 표시한다. 이동이 아닌 헤더 더블클릭 또는 선택된 메모의 선택 지점에서 실행한 `Enter`는 속성 패널을, 일괄 복사 동작은 일괄 복사 패널을 활성화한다. 한 번의 헤더 click, `Tab` 선택과 선택 해제는 최근 활성 패널을 바꾸지 않는다. 패널 전환이나 선택 해제는 속성 패널 대상, 입력 초안, 일괄 복사 항목과 제거 이력을 조용히 버리지 않는다. 패널을 닫으면 이전 패널을 복원하지 않고 아무 패널도 표시하지 않는다.
-- `48rem` 이상의 일괄 복사 패널 버튼은 화면 우측 상단에 유지하고 캔버스를 밀어내는 별도 행을 만들지 않는다. `48rem` 미만에서는 저장된 항목이 하나 이상일 때 우측 하단에 현재 항목 수를 표시하는 고정 버튼을 제공하고 `/accumulator`로 이동한다. 두 제어는 항목 수와 단위를 접근 가능한 이름 또는 연결된 상태로 전달하며 개수는 시각적으로 동작 이름과 구분한다.
+- `48rem` 이상의 일괄 복사 패널 버튼은 화면 우측 상단에 유지하고 캔버스를 밀어내는 별도 행을 만들지 않는다. `48rem` 미만에서는 저장된 항목이 하나 이상일 때 우측 하단에 현재 항목 수를 표시하는 고정 버튼을 제공하고 `/batch-copy`로 이동한다. 두 제어는 항목 수와 단위를 접근 가능한 이름 또는 연결된 상태로 전달하며 개수는 시각적으로 동작 이름과 구분한다.
 - 넓은 패널의 머리는 `38px` 높이로 `일괄 복사` 제목과 닫기 동작만 제공한다. 본문은 항목 목록만 제공하고 결합 미리보기 및 화면에 보이는 이력 제어를 배치하지 않는다.
 - 전체 복사 결과 알림은 상단 탐색 아래 주 작업 영역의 우측 상단에 고정한다. 변환되는 캔버스와 일괄 복사 패널의 자식으로 만들지 않아 시점 이동이나 패널 스크롤에 따라 움직이지 않게 한다.
 - 전체 복사 결과 알림은 자동으로 사라지거나 포커스를 가져가지 않는다. 사용자가 닫거나 다음 복사 시도가 같은 알림을 갱신할 때까지 유지한다. 성공은 정중한 status로 알리고, 실패는 Clipboard 오류 원인과 다시 시도 또는 설정 확인 동작을 제공한다.
@@ -670,7 +678,7 @@ U1의 라우트, Tailwind CSS 및 운영용 CSS 확인과 U2의 provider가 필�
 
 TDD를 적용하지 않는다. 디자인 토큰, 구성요소 외형, 라우트 구성, container query, 읽기 흐름과 시각적 위계는 class 이름이나 DOM 내부 구조를 고정하는 단위 검사보다 실제 렌더링, 접근성 검사와 담당자 검토가 직접적인 근거다.
 
-- 다섯 주요 route, `/notes/[noteId]`와 `/accumulator`를 Next.js 운영 서버에서 직접 열고 새로고침해도 화면이 열린다. 두 보조 route는 전역 탐색에 나타나지 않고 작은 메모 목록 또는 우측 하단 항목 수 제어에서만 일반 진입 경로를 제공한다.
+- 다섯 주요 route, `/notes/[noteId]`와 `/batch-copy`를 Next.js 운영 서버에서 직접 열고 새로고침해도 화면이 열린다. 두 보조 route는 전역 탐색에 나타나지 않고 작은 메모 목록 또는 우측 하단 항목 수 제어에서만 일반 진입 방법을 제공한다. `/accumulator`를 직접 요청해도 `/batch-copy`로 이동하거나 일괄 복사 화면을 표시하지 않는다.
 - HTTPS와 `http://localhost`에서는 공통 화면이 열리고, `file:`과 `localhost`가 아닌 HTTP 판정에서는 자료 Provider를 시작하지 않은 채 지원 주소 안내가 보인다.
 - 확장 기능이 개입하지 않는 브라우저에서 초기 화면을 열었을 때 애플리케이션이 만든 hydration 오류가 console에 없고, server HTML과 hydration 뒤 루트 속성이 일치한다.
 - 로컬 탐색에는 계정과 동기화 항목이 없다.
@@ -683,7 +691,7 @@ TDD를 적용하지 않는다. 디자인 토큰, 구성요소 외형, 라우트 
 - 320 CSS px의 사용 빈도 화면에서 빈 상태와 개별 복사, 일괄 복사 및 합계의 의미를 가로 이동 없이 확인할 수 있다.
 - 일괄 복사 패널 버튼과 모바일 항목 수 버튼의 접근 가능한 이름 또는 연결된 상태가 현재 개수를 전달한다. 두 자리와 세 자리 개수에서도 각각 우측 상단과 우측 하단 위치를 유지하고 메모 배치를 바꾸지 않는다.
 - `72rem` 이상에서는 비어 있는 일괄 복사 패널을 너비 `22rem`의 나란한 표현으로, `48rem` 이상 `72rem` 미만에서는 모달 표현으로 열어 높이 `38px`의 머리, 제목, 닫기 동작과 사용 가능한 빈 상태를 확인한다. 결합 미리보기, 실행 취소 및 다시 실행 버튼이 없고, 모달 표현을 `Escape`와 닫기 버튼으로 닫은 뒤 포커스가 실행 버튼으로 돌아온다. 실제 항목과 이력의 공유는 U7에서 확인한다.
-- 320 CSS px에서 메모 목록은 내용에 따라 짧아지고 `12rem`을 넘지 않으며, 화면 헤더의 일괄 복사 아이콘, 상태 안의 헤더 뒤로가기와 하단 `초기화` 및 `다음`이 메모와 시스템 안전 영역을 가리지 않는다. `다음`의 시각 문구와 접근 가능한 이름에서 클릭 횟수의 의미를 확인할 수 있다. 저장된 항목이 없으면 우측 하단 항목 수 버튼이 보이지 않고, 항목이 생기면 메모 조작을 가리지 않는 위치에 나타난다. `/accumulator` 확인 화면에서는 순서 목록, 항목별 동작 아이콘 및 자체 디자인 시스템 선택창과 하단 두 동작을 가로 이동 없이 확인할 수 있다. 선택창의 `위치 변경`, `복제`, `삭제`, 포커스 및 pressed 상태와 삭제 구분을 확인한다.
+- 320 CSS px에서 메모 목록은 내용에 따라 짧아지고 `12rem`을 넘지 않으며, 화면 헤더의 일괄 복사 아이콘, 상태 안의 헤더 뒤로가기와 하단 `초기화` 및 `다음`이 메모와 시스템 안전 영역을 가리지 않는다. `다음`의 시각 문구와 접근 가능한 이름에서 클릭 횟수의 의미를 확인할 수 있다. 저장된 항목이 없으면 우측 하단 항목 수 버튼이 보이지 않고, 항목이 생기면 메모 조작을 가리지 않는 위치에 나타난다. `/batch-copy` 확인 화면에서는 순서 목록, 항목별 동작 아이콘 및 자체 디자인 시스템 선택창과 하단 두 동작을 가로 이동 없이 확인할 수 있다. 선택창의 `위치 변경`, `복제`, `삭제`, 포커스 및 pressed 상태와 삭제 구분을 확인한다.
 - 이동이 아닌 헤더 한 번 click과 저장된 `1000..32767`의 양의 `tabindex`가 낮은 순서를 따르는 `Tab`으로 같은 메모를 선택했을 때 동일한 얇은 붉은 실선 테두리만 새로 보이고, 패널 대상의 바깥쪽 점선 및 키보드 포커스 표시는 선택 테두리와 구분된다. 같은 헤더의 이동 없는 더블클릭 또는 선택 지점의 `Enter` 뒤에만 속성 패널이 나타난다. 맨 앞으로 또는 맨 뒤로 보내기 뒤에도 `tabindex` 순서는 유지된다. 헤더 더블클릭, 선택 지점의 `Enter`와 일괄 복사 동작을 번갈아 실행하면 최근 활성 패널만 나타나고 속성 패널과 일괄 복사 패널은 동시에 보이지 않는다. 패널을 닫으면 이전 패널이 자동으로 다시 나타나지 않는다.
 - `Command`를 누르면 선택 테두리가 사라지고 모든 메모 헤더와 아이콘이 보이지 않아 조작할 수 없지만 메모의 계산 너비와 높이 및 본문 시작 위치는 움직이지 않는다. 헤더 아이콘의 포커스는 같은 메모 선택 지점으로 옮겨지고 그 밖의 포커스는 유지된다. `keyup`, 창의 포커스 상실과 문서 숨김 뒤에는 헤더가 다시 나타나되 선택 테두리는 자동 복원되지 않는다.
 - 삭제 결과 토스트는 메인 패널 중앙 하단에 자동 만료 없이 보이고 캔버스 이동이나 오른쪽 패널 스크롤에 따라 움직이지 않는다. 상태 문구는 포커스를 옮기지 않고 전달되며 `취소`와 닫기 동작은 일반 `Tab` 순서에서 실행할 수 있다.
@@ -793,8 +801,8 @@ U3의 transaction 저장과 U5의 메모 상호작용이 필요하다.
 
 - `apps/notes/src/_pages/notes/model/copy-note.ts`
 - `apps/notes/src/_pages/notes/model/copy-note.test.ts`
-- `apps/notes/src/features/accumulate-note/model/accumulate-note.ts`
-- `apps/notes/src/features/accumulate-note/model/accumulate-note.test.ts`
+- `apps/notes/src/features/add-note-to-batch-copy/model/add-note-to-batch-copy.ts`
+- `apps/notes/src/features/add-note-to-batch-copy/model/add-note-to-batch-copy.test.ts`
 - `apps/notes/src/shared/lib/clipboard/browser-clipboard-writer.ts`
 - `apps/notes/src/_pages/settings/ui/settings-start-page.tsx`
 - `apps/notes/src/_pages/notes/ui/note-actions.tsx` 제거 후보
@@ -802,8 +810,8 @@ U3의 transaction 저장과 U5의 메모 상호작용이 필요하다.
 - `apps/notes/src/_pages/notes/ui/mobile-batch-copy-bar.tsx`
 - `apps/notes/src/_pages/notes/model/mobile-batch-copy-session.ts`
 - `apps/notes/src/_pages/notes/model/mobile-batch-copy-session.test.ts`
-- `apps/notes/src/_pages/accumulator/model/mobile-batch-copy-confirmation.ts`
-- `apps/notes/src/_pages/accumulator/model/mobile-batch-copy-confirmation.test.ts`
+- `apps/notes/src/_pages/batch-copy/model/mobile-batch-copy-confirmation.ts`
+- `apps/notes/src/_pages/batch-copy/model/mobile-batch-copy-confirmation.test.ts`
 - `apps/notes/e2e/notes.spec.ts`
 
 ### 작업
@@ -822,7 +830,7 @@ U3의 transaction 저장과 U5의 메모 상호작용이 필요하다.
 - `48rem` 미만 목록에는 Pointer Events 기반 길게 누르기 개별 복사를 제공한다. 500ms 동안 시작점에서 `10 CSS px` 안에 머물고 같은 메모 안에서 `pointerup`이 발생한 경우에만 완료한다. 성공하면 뒤따르는 `click` 상세 이동을 막는다. 스크롤, 메모 밖 이동, `pointercancel`과 `lostpointercapture`는 복사와 상세 이동을 모두 취소한다.
 - 작은 화면 목록 헤더의 아이콘 버튼으로 저장 목록과 분리된 빈 일괄 복사 작업을 시작한다. 상태에서 메모를 짧게 누를 때마다 현재 원문 스냅샷 추가와 일괄 복사 사용 횟수 증가를 한 transaction으로 저장하고 완료 뒤 클릭 횟수를 갱신한다. 같은 메모의 반복 입력도 별도 항목으로 기록한다. 길게 누르기는 항목 추가, 개별 복사와 상세 이동을 모두 실행하지 않는다.
 - 상태의 헤더 왼쪽 뒤로가기 아이콘은 Clipboard를 바꾸거나 다음 단계로 이동하지 않고 작업 초안을 지운 뒤 평상시 목록으로 돌아간다. 하단 `초기화`는 작업 초안과 클릭 횟수를 비우고 상태를 유지하며, `다음` 문구 옆에는 현재 클릭 횟수를 표시한다.
-- `다음`은 작업 초안의 단계를 `confirming`으로 저장한 뒤 `/accumulator` 확인 페이지로 이동한다. 이 동작은 Clipboard, 원본 메모와 저장된 일괄 복사 목록을 바꾸지 않는다.
+- `다음`은 작업 초안의 단계를 `confirming`으로 저장한 뒤 `/batch-copy` 확인 페이지로 이동한다. 이 동작은 Clipboard, 원본 메모와 저장된 일괄 복사 목록을 바꾸지 않는다.
 - 예기치 않은 route 이동과 새로고침에서는 작업 초안을 복원한다. 작업 초안의 항목 및 클릭 횟수 변화로 결과를 전달하고 `누적했습니다`와 같은 별도 성공 알림은 만들지 않는다.
 - Clipboard 거절과 쓰기 실패는 실패 원인, 다시 시도와 설정 확인 동작을 가진 지속 알림으로 보여준다. 성공 알림은 focus를 옮기지 않는다.
 
@@ -844,7 +852,7 @@ application 명령에는 TDD를 적용한다. 성공, Clipboard 실패, 개별 �
 - 320 CSS px에서 메모를 500ms 동안 `10 CSS px` 안에 누른 뒤 카드 안에서 손을 떼면 원문을 한 번 복사하고 상세 화면으로 이동하지 않는다.
 - 길게 누르기 전에 pointer가 이동하거나 스크롤, `pointercancel`, `lostpointercapture` 또는 메모 밖 `pointerup`이 발생하면 Clipboard, 상세 route와 사용 횟수가 바뀌지 않는다.
 - 모바일 목록 헤더 아이콘으로 일괄 복사 상태를 시작하면 헤더 뒤로가기와 하단 `초기화` 및 `다음`이 나타난다. 상태에서 같은 메모를 포함해 여러 번 짧게 누르면 상세 화면으로 이동하지 않고 누른 순서의 작업 초안과 같은 클릭 횟수를 만든다. `초기화` 뒤 두 값은 0이고 상태는 유지된다.
-- 모바일 일괄 복사 상태의 짧은 누르기는 작업 초안 항목과 해당 일괄 복사 사용 횟수를 함께 저장하고, 길게 누르기는 두 자료를 바꾸지 않는다. `다음`을 실행하면 `/accumulator` 확인 페이지가 같은 순서와 중복의 작업 초안을 보여주며 Clipboard, 원본 메모와 저장 목록은 바뀌지 않는다.
+- 모바일 일괄 복사 상태의 짧은 누르기는 작업 초안 항목과 그 메모의 일괄 복사 사용 횟수를 함께 저장하고, 길게 누르기는 두 자료를 바꾸지 않는다. `다음`을 실행하면 `/batch-copy` 확인 페이지가 같은 순서와 중복의 작업 초안을 보여주며 Clipboard, 원본 메모와 저장 목록은 바뀌지 않는다.
 - 속성 패널이 보일 때 일괄 복사 동작을 실행하면 일괄 복사 패널이 나타난다. `Command`로 메모 선택은 해제되지만 속성 패널 대상, 속성 초안, 항목과 제거 이력은 유지된다. 다시 메모를 한 번 click하거나 `Tab`으로 선택해도 일괄 복사 패널이 유지되고, 이동이 아닌 헤더 더블클릭 또는 선택된 메모의 선택 지점에서 실행한 `Enter`에서만 속성 패널이 나타난다.
 
 ### 중단 조건
@@ -865,18 +873,18 @@ U3의 일괄 복사 저장 및 session state와 U6의 항목 추가 command가 �
 
 ### 변경 후보
 
-- `apps/notes/app/accumulator/page.tsx`
-- `apps/notes/src/entities/accumulator/model/accumulator-commands.ts`
-- `apps/notes/src/entities/accumulator/model/accumulator-history.ts`
-- `apps/notes/src/entities/accumulator/model/{accumulator-commands,accumulator-history}.test.ts`
-- `apps/notes/src/features/edit-accumulated-text/model/{edit-accumulated-text,copy-accumulated-text}.ts`
-- `apps/notes/src/features/edit-accumulated-text/ui/{accumulator-editing-view,accumulator-history-shortcuts,accumulator-list,copy-accumulator-action}.tsx`
-- `apps/notes/src/_pages/notes/ui/accumulator-workspace.tsx`
-- `apps/notes/src/_pages/accumulator/ui/accumulator-start-page.tsx`
-- `apps/notes/src/_pages/accumulator/ui/mobile-batch-copy-confirmation.tsx`
-- `apps/notes/src/_pages/accumulator/ui/batch-copy-item-actions.tsx`
-- `apps/notes/src/_pages/accumulator/index.ts`
-- `apps/notes/e2e/accumulator.spec.ts`
+- `apps/notes/app/batch-copy/page.tsx`
+- `apps/notes/src/entities/batch-copy/model/batch-copy-commands.ts`
+- `apps/notes/src/entities/batch-copy/model/batch-copy-history.ts`
+- `apps/notes/src/entities/batch-copy/model/{batch-copy-commands,batch-copy-history}.test.ts`
+- `apps/notes/src/features/edit-batch-copy/model/{edit-batch-copy,copy-batch-copy-text}.ts`
+- `apps/notes/src/features/edit-batch-copy/ui/{batch-copy-editing-view,batch-copy-history-shortcuts,batch-copy-list,copy-batch-copy-action}.tsx`
+- `apps/notes/src/_pages/notes/ui/batch-copy-workspace.tsx`
+- `apps/notes/src/_pages/batch-copy/ui/batch-copy-start-page.tsx`
+- `apps/notes/src/_pages/batch-copy/ui/mobile-batch-copy-confirmation.tsx`
+- `apps/notes/src/_pages/batch-copy/ui/batch-copy-item-actions.tsx`
+- `apps/notes/src/_pages/batch-copy/index.ts`
+- `apps/notes/e2e/batch-copy.spec.ts`
 
 ### 작업
 
@@ -895,8 +903,8 @@ U3의 일괄 복사 저장 및 session state와 U6의 항목 추가 command가 �
 - 메모 편집기에 focus가 있으면 애플리케이션 이력 단축키가 편집기 undo를 가로채지 않는다.
 - 패널에는 실행 취소와 다시 실행 버튼을 표시하지 않는다. 제거 이력과 키보드 단축키는 유지한다.
 - `48rem` 이상에서는 메모 화면 우측 상단의 버튼에서 패널을 연다. `72rem` 이상의 첫 항목 추가 성공은 나란한 오른쪽 패널을 열고, `48rem` 이상 `72rem` 미만에서는 항목 수만 갱신한다.
-- `48rem` 미만에서는 일괄 복사 상태의 `다음` 또는 메모 화면 우측 하단의 저장 항목 수 버튼으로 `/accumulator`에 이동한다. 화면은 진입 자료에 따라 실행 중 확인 작업과 저장 목록 관리를 구분한다.
-- 나란한 표현, 모달 표현과 저장 목록 관리로 연 모바일 페이지는 `features/edit-accumulated-text`의 같은 목록 UI 및 명령, 일괄 복사 자료와 제거 이력을 사용한다. `다음`으로 연 확인 페이지는 실행 중 작업 사본 명령을 사용하고 저장 목록 이력과 섞지 않는다. `_pages/notes`와 `_pages/accumulator`가 서로 import하지 않게 한다.
+- `48rem` 미만에서는 일괄 복사 상태의 `다음` 또는 메모 화면 우측 하단의 저장 항목 수 버튼으로 `/batch-copy`에 이동한다. 화면은 진입 자료에 따라 실행 중 확인 작업과 저장 목록 관리를 구분한다.
+- 나란한 표현, 모달 표현과 저장 목록 관리로 연 모바일 페이지는 `features/edit-batch-copy`의 같은 목록 UI 및 명령, 일괄 복사 자료와 제거 이력을 사용한다. `다음`으로 연 확인 페이지는 실행 중 작업 사본 명령을 사용하고 저장 목록 이력과 섞지 않는다. `_pages/notes`와 `_pages/batch-copy`가 서로 import하지 않게 한다.
 - 모바일 확인 페이지 하단의 `취소`는 Clipboard와 저장된 일괄 복사 자료를 바꾸지 않고 작업 초안을 지운 뒤 메모 화면으로 돌아간다. 저장 목록 관리 페이지의 `취소`는 기존 자료와 이력을 유지한 채 메모 화면으로 돌아간다. `일괄 복사하기`는 현재 화면의 작업 순서와 줄바꿈 구분자로 만든 문자열을 Clipboard에 쓰고 성공 또는 다시 시도할 수 있는 실패 알림을 제공하되 현재 페이지와 작업 초안을 유지한다.
 - 넓은 패널에는 결합된 전체 텍스트 미리보기를 표시하지 않는다. `복사`는 현재 순서와 줄바꿈 구분자로 문자열을 만들고 Clipboard에 쓴다. 결과 알림은 캔버스와 패널 밖 주 작업 영역 우측 상단에 고정하며 개별 복사와 일괄 복사 횟수를 모두 바꾸지 않는다.
 - 전체 복사 결과 알림은 자동 만료 없이 한 영역에서 갱신하고 포커스를 옮기지 않는다. 사용자는 알림을 직접 닫을 수 있으며 실패 상태에서는 같은 텍스트를 다시 시도하거나 설정을 확인할 수 있다.
@@ -1123,7 +1131,7 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 - 메모 화면의 일괄 복사 패널과 저장 목록 관리 화면에서 순서 변경, 목록 밖 제거, 단축키를 통한 실행 취소와 다시 실행을 완료하고, 패널 열기 및 닫기, 다른 route 이동과 새로고침에 따른 수명이 결정대로 동작한다.
 - 사용 빈도, 줄 단위 텍스트 분석, 템플릿 제안, 수동 플레이스홀더와 일회성 결과가 요구사항의 예시 값을 만든다.
 - 작은 화면의 제한된 높이 목록에서 짧게 누르면 상세 화면으로 이동하고, 전체 원문을 편집해 명시적으로 저장한 뒤 목록으로 돌아온다. 목록에서 길게 누르면 개별 복사가 한 번만 실행되고 상세 화면으로 이동하지 않으며, 넓은 화면으로 돌아오면 저장 geometry가 복원된다.
-- 작은 화면의 목록 헤더 아이콘으로 일괄 복사 상태를 시작하고, 같은 메모의 반복 입력을 포함한 순서와 클릭 횟수가 기록되며 상세 이동이 억제되는지 확인한다. 헤더 뒤로가기는 다음 단계로 이동하지 않고, 하단 `초기화`는 작업 초안과 횟수를 0으로 만들면서 상태를 유지한다. `다음`은 `/accumulator` 확인 페이지로 이동하며 Clipboard, 원본 메모, 저장 목록과 사용 횟수를 바꾸지 않는다.
+- 작은 화면의 목록 헤더 아이콘으로 일괄 복사 상태를 시작하고, 같은 메모의 반복 입력을 포함한 순서와 클릭 횟수가 기록되며 상세 이동이 억제되는지 확인한다. 헤더 뒤로가기는 다음 단계로 이동하지 않고, 하단 `초기화`는 작업 초안과 횟수를 0으로 만들면서 상태를 유지한다. `다음`은 `/batch-copy` 확인 페이지로 이동하며 Clipboard, 원본 메모, 저장 목록과 사용 횟수를 바꾸지 않는다.
 - 모바일 확인 페이지에서 일반 터치 및 세로 스크롤과 `500ms` 동안 `10 CSS px` 안에 머문 길게 누르기 뒤 touch drag를 구분한다. drag 활성화, 삽입 위치와 취소 복원 상태를 색 이외의 변화로 확인한다. 우측 상단 동작 선택창은 실행 버튼 가까이에 자체 디자인 시스템 표면으로 나타나고 `위치 변경`, `복제`, `삭제`, 키보드 포커스, pressed와 구분된 삭제 상태를 제공해야 한다. 복제 항목은 대상 바로 뒤에 생기고 재정렬, 복제와 삭제 뒤에도 원본 메모, 메모 revision, 수집 단계 클릭 횟수와 사용 횟수가 유지되는지 확인한다. `pointercancel`, `lostpointercapture`, light dismiss, `Escape`와 포커스 복귀도 확인한다.
 - 작은 화면의 우측 하단 저장 항목 수 제어로 일괄 복사 관리 화면에 이동하고, 항목 동작 선택창의 `위치 변경`과 삽입 위치 버튼으로 순서를 바꾼 뒤 하단 `취소`와 `일괄 복사하기`의 서로 다른 결과를 확인한다.
 - HTTPS와 localhost HTTP에서 각각 Clipboard와 IndexedDB를 포함한 전체 과업을 완료한다.
@@ -1137,7 +1145,7 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 - 메모 화면은 별도 페이지 제목과 상단 작업 행 없이 캔버스가 상단 탐색 아래의 나머지 화면을 채운다. `48rem` 이상에서는 일괄 복사 패널 버튼이 캔버스의 이동 및 스크롤과 관계없이 우측 상단에 남고, `48rem` 미만에서는 저장된 일괄 복사 항목이 있을 때 항목 수 버튼이 우측 하단에 남는다.
 - 선택된 메모의 얇은 붉은 테두리와 키보드 `focus-visible` 표시를 고대비 상태에서도 구분할 수 있다. Tab 순서는 저장된 양의 `tabindex`가 낮은 순서를 따르고 시각적 겹침이 바뀌어도 유지된다. 한 번의 헤더 click과 Tab 선택은 패널을 열지 않고, 헤더 더블클릭, 선택 지점의 `Enter`와 일괄 복사 동작만 최근 활성 패널을 바꾼다. 빈 캔버스 click, `Escape`와 `Command`는 선택 테두리만 없애며 패널은 하나만 표시된다. 패널 전환과 선택 해제 때 속성 패널 대상, 입력 초안과 숨겨진 패널 자료를 조용히 잃지 않고, `Command` 상태에서 헤더와 선택 테두리가 보이지 않아도 키보드 포커스를 확인할 수 있다.
 - 메모 삭제 토스트는 메인 패널 중앙 하단에 남고 오른쪽 `취소`를 키보드로 실행할 수 있다. 삭제된 메모에서 이동할 포커스와 토스트의 수명은 승인된 결정과 일치한다.
-- `72rem` 이상에서 첫 항목 추가 성공 때 나타나는 너비 `22rem`의 나란한 오른쪽 패널, `48rem` 이상 `72rem` 미만에서 사용하는 모달 패널과 저장 목록 관리 화면이 같은 항목 및 제거 이력을 사용한다. 모바일 확인 화면은 별도 작업 사본을 사용한다. 넓은 패널의 머리는 `38px`이고 결합 미리보기, 숫자 순서, 위아래 이동, 상시 제거, 실행 취소 및 다시 실행 버튼이 없다. `/accumulator`는 전역 탐색 항목에 나타나지 않는다.
+- `72rem` 이상에서 첫 항목 추가 성공 때 나타나는 너비 `22rem`의 나란한 오른쪽 패널, `48rem` 이상 `72rem` 미만에서 사용하는 모달 패널과 저장 목록 관리 화면이 같은 항목 및 제거 이력을 사용한다. 모바일 확인 화면은 별도 작업 사본을 사용한다. 넓은 패널의 머리는 `38px`이고 결합 미리보기, 숫자 순서, 위아래 이동, 상시 제거, 실행 취소 및 다시 실행 버튼이 없다. `/batch-copy`는 전역 탐색 항목에 나타나지 않는다.
 - 확장 기능이 개입하지 않는 브라우저에서 초기 화면에 애플리케이션이 만든 hydration 오류가 없고, 루트 경고 억제로 외부 변경과 애플리케이션 결함을 함께 숨기지 않는다.
 
 ### 중단 조건

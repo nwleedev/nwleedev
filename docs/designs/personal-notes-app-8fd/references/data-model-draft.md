@@ -10,7 +10,7 @@
 
 ## 조사 근거
 
-[Indexed Database API 3.0 표준](https://www.w3.org/TR/IndexedDB/)은 키로 식별하는 구조화된 값, 인덱스와 트랜잭션을 정의한다. 따라서 로컬 모드에서 메모, 일괄 복사 상태, 사용 횟수와 템플릿을 별도 object store에 두면서 하나의 사용자 동작에 필요한 변경을 트랜잭션으로 묶을 수 있다.
+[Indexed Database API 3.0 표준](https://www.w3.org/TR/IndexedDB/)은 키로 식별하는 구조화된 값, 인덱스와 트랜잭션을 정의한다. 따라서 로컬 모드에서 메모, 일괄 복사 상태, 사용 횟수와 템플릿을 별도 object store에 두면서 하나의 사용자 동작에 필요한 변경을 트랜잭션으로 묶을 수 있다. 같은 표준은 object store 집합과 이름을 upgrade transaction에서만 바꿀 수 있다고 정한다. [MDN의 `IDBObjectStore.name`](https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/name)은 `versionchange` transaction에서 기존 object store의 이름을 바꿀 수 있고, 이미 같은 이름이 있으면 `ConstraintError`가 발생한다고 설명한다.
 
 [TypeScript의 interface 문서](https://www.typescriptlang.org/docs/handbook/interfaces.html)는 객체 형태를 이름 붙여 검사하는 방법을 설명하고, [타입 호환성 문서](https://www.typescriptlang.org/docs/handbook/type-compatibility.html)는 구조적 타입 체계의 호환 규칙을 설명한다. 아래 예시는 IndexedDB나 서버 API의 DTO를 UI에 퍼뜨리지 않고 도메인 객체와 저장 포트의 형태를 먼저 논의하기 위해 interface와 판별 가능한 union을 사용한다.
 
@@ -167,7 +167,7 @@ interface RemovedNoteHistory {
 
 ## 일괄 복사 목록과 실행 취소
 
-일괄 복사 목록의 배열 순서가 최종 결합 순서다. 각 항목에는 원본 메모를 찾을 참조와 항목을 추가한 당시의 텍스트를 함께 둔다. 사용자 화면과 새 TypeScript 자료형에는 `일괄 복사` 및 `BatchCopy`를 사용한다. 물리 IndexedDB object store `accumulators`는 기존 자료를 보존하는 schema 이름으로 유지하고 repository 연결부에서 논리 이름으로 변환한다.
+일괄 복사 목록의 배열 순서가 최종 결합 순서다. 각 항목에는 원본 메모를 찾을 참조와 항목을 추가한 당시의 텍스트를 함께 둔다. 사용자 화면, TypeScript 자료형과 IndexedDB schema에는 `일괄 복사`, `BatchCopy`와 `batchCopyLists`를 사용한다. 기존 schema를 여는 경우에는 한 번의 `versionchange` transaction에서 저장소 이름을 `batchCopyLists`로 바꾸며, 변경이 끝난 뒤 이전 이름의 저장소나 이중 읽기 분기를 남기지 않는다.
 
 ```ts
 interface BatchCopyItem {
@@ -182,7 +182,7 @@ interface BatchCopyContent {
   separator: string;
 }
 
-interface BatchCopyState {
+interface BatchCopyList {
   id: EntityId;
   content: BatchCopyContent;
   updatedAt: IsoDateTime;
@@ -231,7 +231,7 @@ interface MobileBatchCopyDraft {
 
 `confirming` 단계에서 재정렬은 `entries` 순서만 바꾼다. 복제는 같은 `sourceNote`와 `textSnapshot`을 가지되 새 ID를 가진 entry를 대상 바로 뒤에 만들고, 삭제는 대상 ID의 entry 하나만 제거한다. 이 세 동작은 `clickCount`를 바꾸지 않는다. 따라서 확인 단계부터 `clickCount`와 `entries.length`는 달라질 수 있다.
 
-`MobileBatchCopyDraft`는 `BatchCopyState`를 추가하거나 교체하지 않는다. `다음`은 `confirming` 단계와 현재 순서를 먼저 저장한 뒤 route를 바꾼다. 수집 화면의 헤더 뒤로가기와 확인 페이지의 `취소`는 초안을 지우며, 전체 복사 성공은 초안을 유지한다.
+`MobileBatchCopyDraft`는 `BatchCopyList`를 추가하거나 교체하지 않는다. `다음`은 `confirming` 단계와 현재 순서를 먼저 저장한 뒤 route를 바꾼다. 수집 화면의 헤더 뒤로가기와 확인 페이지의 `취소`는 초안을 지우며, 전체 복사 성공은 초안을 유지한다.
 
 ## 사용 빈도
 
@@ -355,13 +355,13 @@ interface InteractionPreferences {
 
 운영체제 감지값을 저장하지 않고 사용자가 고른 동작을 저장한다. 다른 보조 키 조합을 자동 대체값으로 저장하지 않는다. 보조 키와 브라우저 충돌은 기기마다 다를 수 있으므로 이 설정은 기본적으로 기기에 보관한다. 계정 동기화 여부는 최우선 백로그에서 별도로 결정한다.
 
-현재 저장 구현의 `metaClickEnabled`는 `Command+클릭`을 일괄 복사에 사용하던 의미를 담고 있어 새 조합의 설정으로 그대로 읽으면 안 된다. `batchCopyShortcutEnabled`, `UsageCounts`와 `BatchCopy...` 이름을 적용할 때 기존 `preferences`, `usage`와 `accumulators` record를 그대로 읽는 변환을 함께 제공한다. 물리 object store `accumulators`는 현재 schema 이름으로 유지하며 이름 변경만을 위한 migration이나 기존 record 삭제를 하지 않는다.
+현재 저장 구현의 `metaClickEnabled`는 `Command+클릭`을 일괄 복사에 사용하던 의미를 담고 있어 새 조합의 설정으로 그대로 읽으면 안 된다. `batchCopyShortcutEnabled`, `UsageCounts`와 `BatchCopy...` 이름을 적용할 때 기존 `preferences`, `usage` 및 일괄 복사 record를 읽는 변환을 함께 제공한다. 기존 일괄 복사 object store는 같은 `versionchange` transaction에서 `batchCopyLists`로 이름을 바꿔 record와 key를 보존한다. 새 schema는 이전 이름의 store나 repository fallback을 제공하지 않는다.
 
 ## 로컬 저장 구조와 최우선 계정 데이터베이스 백로그
 
 ### 로컬 저장 구성
 
-IndexedDB object store를 `boards`, `notes`, `noteDrafts`, `accumulators`, `mobileBatchCopyDrafts`, `usage`, `templates`, `preferences`로 나누고, 사용자 동작 하나가 여러 store를 바꾸면 하나의 transaction에 묶는다. `notes`는 전체 revision과 content revision을 함께 저장한다. 분석용 줄은 원문에서 파생하므로 기본 저장 대상에서 제외한다. 분석 실행과 결과, 일괄 복사 항목 제거 이력, 메모 삭제 LIFO 이력, 메모 선택, 속성 입력 초안, 저장 전 템플릿 제안과 일회성 출력은 실행 중 메모리에 둔다.
+IndexedDB object store를 `boards`, `notes`, `noteDrafts`, `batchCopyLists`, `mobileBatchCopyDrafts`, `usage`, `templates`, `preferences`로 나누고, 사용자 동작 하나가 여러 store를 바꾸면 하나의 transaction에 묶는다. `notes`는 전체 revision과 content revision을 함께 저장한다. 분석용 줄은 원문에서 파생하므로 기본 저장 대상에서 제외한다. 분석 실행과 결과, 일괄 복사 항목 제거 이력, 메모 삭제 LIFO 이력, 메모 선택, 속성 입력 초안, 저장 전 템플릿 제안과 일회성 출력은 실행 중 메모리에 둔다.
 
 브라우저 저장 공간은 사용자가 지우거나 저장소 압박으로 정리될 수 있다. [StorageManager.persist 문서](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist)는 영구 저장 요청이 boolean으로 승인 여부를 돌려주며 브라우저가 결정을 내린다고 설명한다. 현재 범위에는 내보내기, 가져오기와 브라우저가 지운 자료의 복구가 없으므로 IndexedDB를 백업이나 영구 보관으로 표현하지 않는다. HTTP와 HTTPS를 포함해 origin이 다르면 저장 자료를 공유하지 않는다는 점도 실행 안내에 반영해야 한다.
 

@@ -28,6 +28,7 @@
 - 현재 결정은 사용자 자료와 실행 중 상태의 수명을 나누고, 공통 Provider에서 브라우저 구현을 한 번 조립하며, 목적별 저장 동작이 여러 object store의 transaction을 책임지게 하는 것이다. 내보내기와 가져오기는 현재 범위에 포함하지 않는다.
 - 구현 필수 결정 재검토에서 메모 자동 저장 또는 모바일 명시적 저장 직전의 입력과 모바일 일괄 복사 확인 작업이 새로고침으로 사라지는 위험을 확인했다. `noteDrafts`와 `mobileBatchCopyDrafts`를 복구용 IndexedDB 자료로 추가하되 기준 메모와 저장된 일괄 복사 목록에서는 분리하기로 했다.
 - 같은 재검토에서 메모 삭제 취소는 자동 만료 없이 현재 실행의 LIFO 이력으로 관리하고, 새로고침 뒤 복원은 휴지통 기능이 없는 현재 범위에서 제공하지 않기로 했다.
+- 후속 요구에서 일괄 복사 저장소와 저장 동작의 내부 이름도 화면 용어에 맞추기로 했다. 이전 schema의 저장소는 `versionchange`에서 `batchCopyLists`로 이름을 바꿔 record와 key를 보존하고, 변경 뒤에는 이전 저장소나 우회 읽기 경로를 유지하지 않는다.
 
 ## 승인된 결정과 이유
 
@@ -40,14 +41,15 @@
 - 넓은 화면 자동 저장과 모바일 상세 편집의 최신 원문은 `noteDrafts`에 기준 메모 ID, 기준 content revision과 수정 시각을 함께 둔다. 메모 저장 transaction이 완료되면 대응 초안을 지우며, 시작할 때 메모보다 새로운 초안만 복구 후보로 사용한다.
 - 메모 제거 transaction이 완료된 뒤 복원 스냅샷을 현재 실행의 LIFO 메모리 이력에 넣는다. route 이동에서는 유지하고 새로고침에서는 지운다.
 - `PersonalNotesProvider`는 명시적인 Client Component 진입점으로 두고 공통 루트 layout의 자식에서 한 번 유지한다. `createLocalApplication`과 브라우저 구현의 생성 과정에서는 브라우저 전역을 읽지 않으며, IndexedDB, Clipboard와 Worker는 브라우저에서 실제 동작을 시작할 때 접근한다.
-- 일괄 복사 항목 추가와 해당 횟수 증가는 하나의 목적별 저장 동작으로 제공한다. 현재 `IndexedDbAccumulationWriter` 이름을 바꾸려면 기존 schema 및 호출자 migration을 함께 설계하며, 구현은 두 object store의 request를 같은 readwrite transaction에 등록하고 `complete` 또는 중단을 최종 결과로 돌려준다.
+- 저장된 일괄 복사 목록은 `batchCopyLists` object store에 둔다. 새 schema는 이 이름만 만들고, 기존 schema는 같은 `versionchange` transaction에서 이전 저장소의 이름을 바꾼다. 변경 뒤에는 이전 저장소나 우회 읽기 경로를 두지 않는다.
+- 일괄 복사 항목 추가와 해당 횟수 증가는 `IndexedDbBatchCopyItemWriter`라는 하나의 목적별 저장 동작으로 제공한다. 구현은 `batchCopyLists`와 사용 횟수 object store의 request를 같은 readwrite transaction에 등록하고 `complete` 또는 중단을 최종 결과로 돌려준다.
 - IndexedDB transaction의 완료를 확인한 뒤에만 저장 성공으로 표시한다.
 - HTTP와 HTTPS를 포함해 origin이 다르면 자료가 공유되지 않는다는 사실을 검증과 사용 안내에서 고려한다.
 - 현재 범위에는 내보내기, 가져오기와 브라우저가 지운 자료의 복구를 포함하지 않는다. 저장소 영구 보관 요청이 승인되어도 백업이라고 표시하지 않는다.
 - 첫 자료 읽기는 `불러오는 중`, `사용 가능한 빈 상태`, `자료 표시`, `읽기 실패`와 `다른 탭으로 인한 대기`를 구분한다. 첫 읽기가 끝나기 전과 읽기 실패 중에는 자료 변경 동작을 제공하지 않으며 실패 안내에는 다시 시도, 다른 탭 확인과 기존 자료를 덮어쓰지 않았다는 설명을 포함한다.
 - `noteDrafts`와 `mobileBatchCopyDrafts`의 쓰기도 transaction `complete` 뒤에만 복구 가능한 것으로 처리한다. 최신 초안조차 기록되지 않은 변경이 있을 때만 제한적으로 `beforeunload` 경고를 사용한다.
 
-[IndexedDB 3.0](https://w3c.github.io/IndexedDB/#transaction-lifetime)은 transaction의 완료와 중단 수명을 정의한다. [Storage Standard](https://storage.spec.whatwg.org/#storage-keys)는 자료가 storage key에 묶인다는 점을, [persistence 절](https://storage.spec.whatwg.org/#persistence)은 영구 보관 요청이 자료 복구를 보장하지 않는다는 점을 뒷받침한다.
+[IndexedDB 3.0](https://w3c.github.io/IndexedDB/#transaction-lifetime)은 transaction의 완료와 중단 수명을 정의하고, [object store 이름 설정 절](https://w3c.github.io/IndexedDB/#dom-idbobjectstore-name)은 기존 저장소의 이름 변경을 version change transaction으로 제한한다. [Storage Standard](https://storage.spec.whatwg.org/#storage-keys)는 자료가 storage key에 묶인다는 점을, [persistence 절](https://storage.spec.whatwg.org/#persistence)은 영구 보관 요청이 자료 복구를 보장하지 않는다는 점을 뒷받침한다.
 
 ## 예상 결과와 계획 영향
 

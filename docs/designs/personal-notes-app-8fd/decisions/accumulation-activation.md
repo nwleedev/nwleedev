@@ -31,8 +31,11 @@
 - 보조 키 클릭 설정을 끈 경우와 pointer를 사용하기 어려운 경우의 추가 입력도 재검토했다. 메모 선택 지점에서 `Command+Option+Enter`를 실행하는 키보드 동작을 항상 제공하고, 설정은 pointer 클릭 조합만 제어하기로 했다.
 - `Command` keydown이 선택 ID를 먼저 비우므로 키보드 추가 명령은 선택 ID에 의존할 수 없다는 충돌도 확인했다. 명령 대상은 현재 포커스가 있는 메모 선택 지점의 ID로 정하고, 붉은 선택 테두리가 사라진 뒤에도 같은 key sequence를 완료하게 했다.
 - 표시 용어와 내부 이름의 범위도 재검토했다. 새 TypeScript 자료형과 기능에는 `BatchCopy`를 사용하되, 기존 자료를 보존하기 위해 물리 IndexedDB object store `accumulators`는 현재 schema 이름으로 유지하고 repository 연결부에서 변환하기로 했다. 이름만 바꾸기 위한 저장소 migration은 하지 않는다.
+- 후속 요구에서 이전 저장소 이름을 유지하는 결정을 폐기했다. 현재 IndexedDB object store는 `batchCopyLists`이며, schema 변경에서는 기존 일괄 복사 record를 보존한 채 저장소 이름을 바꾸고 이전 저장소와 이중 읽기를 남기지 않는다.
 
 ## 승인된 결정과 이유
+
+- 저장된 일괄 복사 목록은 `batchCopyLists` object store와 `BatchCopyList` 자료형으로 다룬다. repository와 항목 추가 저장 동작도 `BatchCopy` 이름을 사용하며 이전 저장소 이름은 schema 변경이 끝난 뒤 존재하지 않아야 한다.
 
 ### 넓은 공간형 화면
 
@@ -64,7 +67,7 @@
 
 ## 예상 결과와 계획 영향
 
-기존 `metaClickEnabled`처럼 `Command+클릭` 의미가 드러나는 preference는 새 조합의 의미를 표현하지 못한다. 자료 migration을 정한 뒤 `Command+Option+클릭` 일괄 복사 사용 여부를 나타내는 이름으로 바꾼다. 넓은 화면의 modifier 판정, Clipboard 및 IndexedDB transaction은 application command와 브라우저 통합 검증으로 나누고, 두 명령이 한 클릭에서 함께 실행되지 않는지 확인한다.
+기존 `metaClickEnabled`처럼 `Command+클릭` 의미가 드러나는 preference는 새 조합의 의미를 표현하지 못한다. 자료 migration에서 `batchCopyShortcutEnabled`와 `batchCopyLists`로 바꾼다. 넓은 화면의 modifier 판정, Clipboard 및 IndexedDB transaction은 application command와 브라우저 통합 검증으로 나누고, 두 명령이 한 클릭에서 함께 실행되지 않는지 확인한다. schema 변경 뒤 `objectStoreNames`와 저장된 항목 및 순서를 확인해 이전 저장소가 남지 않고 자료가 보존됐는지 판정한다.
 
 작은 화면은 이전 long-press 항목 추가 흐름을 제거하고 목록 헤더 아이콘, 상태별 짧은 누르기, 헤더 뒤로가기, 하단 동작과 별도 확인 페이지를 추가한다. 추가 순서, 반복 추가, 초기화, 클릭 횟수, 초안 수명과 확인 단계 전환의 순수 상태 전이에는 TDD를 적용한다. 짧은 누르기, route 이동, 길게 누른 뒤 drag와 고정 UI는 실제 터치 브라우저에서 확인한다.
 
