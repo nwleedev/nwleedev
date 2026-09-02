@@ -2,7 +2,7 @@
 
 ## 결론
 
-현재 로컬 애플리케이션은 메모 원문과 공간 좌표를 기준 정보로 두고, 분석용 줄과 정규화 문자열은 요청할 때 만드는 파생 정보로 다룬다. [로컬 저장과 실행 중 상태 결정](../decisions/local-storage-and-ephemeral-state.md)에 따라 전체 revision과 텍스트 전용 content revision을 구분한다. [일괄 복사 순서와 제거 복구 결정](../decisions/accumulator-ordering-and-recovery.md)에 따라 항목 추가 당시 원문 스냅샷을 저장하고 제거 이력은 애플리케이션 실행 중 메모리에 둔다. 선택한 메모, 활성 오른쪽 패널, 속성 입력 초안과 모바일 일괄 복사 확인 작업도 저장 엔티티와 분리한 실행 중 상태로 검토한다. 최우선 계정 및 동기화 백로그를 시작하면 이 논리 객체를 유지하면서 저장 방식만 원격 어댑터로 바꿀 수 있는지 다시 검증한다.
+현재 로컬 애플리케이션은 메모 원문과 공간 좌표를 기준 정보로 두고, 분석용 줄과 정규화 문자열은 요청할 때 만드는 파생 정보로 다룬다. [로컬 저장과 실행 중 상태 결정](../decisions/local-storage-and-ephemeral-state.md)에 따라 전체 revision과 텍스트 전용 content revision을 구분한다. [일괄 복사 순서와 제거 복구 결정](../decisions/accumulator-ordering-and-recovery.md)에 따라 항목 추가 당시 원문 스냅샷을 저장하고 제거 이력은 애플리케이션 실행 중 메모리에 둔다. 선택, 활성 오른쪽 패널과 속성 입력 초안은 실행 중 상태이고, 저장 전 메모 원문과 모바일 일괄 복사 작업은 기준 자료와 분리한 IndexedDB 복구 초안이다. 최우선 계정 및 동기화 백로그를 시작하면 이 논리 객체와 초안 수명을 다시 검증한다.
 
 안정적인 ID와 revision은 로컬 분석 결과가 어떤 메모 상태를 대상으로 했는지 식별하는 데에도 필요하다. 계정 동기화에 필요한 삭제 표시, 충돌 해결, 삭제 보존 기간과 계정별 보관 범위는 최우선 백로그에서 다룬다. 이 초안은 데이터베이스 스키마가 아니며, 아래 TypeScript 형태는 논리 객체와 쟁점을 검토하기 위한 예시일 뿐 승인된 API나 구현이 아니다.
 
@@ -59,10 +59,16 @@ U2의 로컬 구현에서는 `Revision`을 0부터 단조 증가하는 JavaScrip
 interface Board {
   id: EntityId;
   title: string;
+  size: BoardSize;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
   revision: Revision;
   deletedAt?: IsoDateTime;
+}
+
+interface BoardSize {
+  width: 4096;
+  height: 4096;
 }
 
 interface NoteGeometry {
@@ -119,17 +125,29 @@ interface RemovedNoteSnapshot {
   note: Note;
   removedAt: IsoDateTime;
 }
+
+interface NoteDraft {
+  note: NoteContentRef;
+  content: string;
+  updatedAt: IsoDateTime;
+}
+
+interface RemovedNoteHistory {
+  undo: readonly RemovedNoteSnapshot[];
+}
 ```
 
 `Note.content`가 사용자가 입력한 원문이다. 줄별 객체를 기준 데이터로 저장하면 한 번의 붙여넣기와 편집이 여러 엔티티 변경으로 갈라지고 원문의 줄바꿈을 복원하기 어려워진다. 분석용 줄은 원문에서 파생한다. URL이나 링크처럼 보이는 문자열도 `Note.content`에 일반 텍스트로 보관한다. 별도 링크 기능을 제공하지 않는 초기 범위를 반영해 이 초안에는 링크 객체, 미리보기 정보나 추출한 메타데이터를 추가하지 않는다.
 
 `NoteGeometry`는 화면 픽셀이 아니라 작업 공간 좌표로 해석한다. 그래야 zoom을 바꿔도 메모의 논리 위치와 크기가 바뀌지 않는다. `revision`은 원문과 geometry를 포함한 저장 변경에 증가하고, `contentRevision`은 원문이 달라질 때만 증가한다. 이 구분은 위치, 크기와 겹침 순서만 바꿨을 때 사용 빈도와 분석 결과를 유지한다.
 
-`Note.geometry.zIndex`는 한 보드 안의 시각적 겹침 순서만 나타낸다. 맨 앞으로 보내기는 대상 메모를 모든 메모 위에, 맨 뒤로 보내기는 모든 메모 아래에 놓고 나머지 메모의 상대 순서를 유지해야 한다. 여러 `zIndex`를 바꾸는 경우 `notes` store의 한 transaction으로 완료한다.
+`Board.size`는 초기 논리 캔버스를 `4096 × 4096` CSS px로 고정한 현재 결정이다. 보이는 viewport, pan과 zoom은 이 크기와 별도이며 메모 개수나 오른쪽 패널 표시 때문에 `Board.size`를 바꾸지 않는다.
 
-`Note.tabIndex`는 메모 선택 지점 사이의 키보드 탐색 순서만 나타내는 양의 정수다. 낮은 값부터 높은 값 순으로 `Tab`에 도달하며 맨 앞으로 또는 맨 뒤로 보내기는 이 값을 바꾸지 않는다. 새 메모의 초기값, 이후 값의 증가 및 정리, 누락되거나 중복되거나 유효 범위를 벗어난 이전 record의 migration과 페이지의 다른 focusable 요소를 포함한 전체 탐색 순서는 아직 정하지 않았다. `zIndex` 정리와 `tabIndex` 정리를 같은 규칙으로 합치지 않는다.
+`Note.geometry.zIndex`는 한 보드 안의 시각적 겹침 순서만 나타낸다. 활성 메모는 `1..N`의 고유하고 빈틈없는 값을 사용한다. 맨 앞으로 보내기는 대상 메모를 모든 메모 위에, 맨 뒤로 보내기는 모든 메모 아래에 놓고 나머지 메모의 상대 순서를 유지해야 한다. 여러 `zIndex`를 바꾸는 경우 `notes` store의 한 transaction으로 완료한다.
 
-오른쪽 속성 패널에서 새로 적용하는 X, Y, 너비와 높이는 유한한 수이고 `0`보다 크며 애플리케이션이 한 곳에서 관리하는 해당 상한 이하여야 한다. 정확한 상한은 실제 화면과 보드 조작 성능을 검증한 뒤 승인한다. HTML 입력 제약과 폼 schema는 같은 규칙을 사용하되 application command가 저장 전에 다시 검사한다. 기존 `0` 좌표 record는 새 입력 검증 때문에 읽지 못하게 만들지 않고 migration 여부를 별도로 결정한다. 작은 화면 목록의 최대 세로 길이는 화면 표현 token이며 `Note.geometry.height`를 바꾸지 않는다.
+`Note.tabIndex`는 메모 선택 지점 사이의 키보드 탐색 순서만 나타내는 `1000..32767`의 양의 정수다. 첫 메모는 `1000`, 새 메모는 현재 최댓값 다음 값을 받는다. 누락, 중복, 정수가 아닌 값과 범위 밖 값은 기존 유효 값, 생성 시각과 ID 순으로 안정 정렬한 뒤 `1000`부터 빈틈없이 다시 배정한다. 상단 탐색과 주 작업 제어는 `1..999`, 본문과 하위 제어는 양수 구간 뒤의 네이티브 DOM 순서를 사용한다. `zIndex` 정리와 `tabIndex` 정리를 같은 규칙으로 합치지 않는다.
+
+오른쪽 속성 패널에서 새로 적용하는 값은 너비 `240..1280`, 높이 `180..960`, X `1..(4096 - width)`, Y `1..(4096 - height)` 범위의 유한한 수다. HTML 입력 제약과 폼 schema는 같은 규칙을 사용하되 application command가 저장 전에 다시 검사한다. 기존 `0` 좌표와 범위 밖 geometry는 원래 배치를 가능한 많이 유지하도록 캔버스 안으로 옮기고 전체 revision만 증가시킨다. 작은 화면 목록의 `12rem` 최대 높이는 화면 표현 token이며 `Note.geometry.height`를 바꾸지 않는다.
 
 메모 작업 영역의 너비가 작은 환경의 목록은 별도 메모 엔티티가 아니라 같은 `Note` 객체를 다른 형태로 표시한다. [공간형 보드와 작은 화면 목록 결정](../decisions/responsive-note-presentation.md)에 따라 작업 영역의 inline size가 `48rem` 미만이면 생성 순서로 표시하고, 목록으로 전환할 때 `Note.geometry`를 수정하지 않는다.
 
@@ -143,11 +161,13 @@ interface RemovedNoteSnapshot {
 
 속성 입력은 사용자가 `-`나 빈 문자열처럼 아직 완성되지 않은 값을 입력할 수 있으므로 저장용 `NoteGeometry`와 별도 문자열 초안으로 둔다. `blur`, 패널 밖 클릭과 `Enter`는 같은 검증 및 적용 동작을 사용하며 유효하고 실제로 달라진 값만 `Note.geometry`에 반영한다. geometry 변경은 전체 revision만 증가시키고 content revision은 유지한다.
 
-`RemovedNoteSnapshot`은 취소 알림이 유효한 동안 메모를 원래 위치, 크기와 겹침 순서로 복원하는 데 필요한 최소 예시다. 여러 제거를 배열로 보관할지 마지막 제거 하나만 유지할지, 새로고침 뒤에도 복원할지는 정해지지 않았으므로 이 예시를 승인된 저장 record로 사용하지 않는다.
+`NoteDraft`는 자동 저장 또는 모바일 명시적 저장 전에 최신 원문을 복원하기 위한 IndexedDB 자료다. 기준 메모보다 새 초안만 복구 후보로 사용하고 기준 메모 저장이 완료되면 지운다.
+
+`RemovedNoteHistory`는 취소 알림이 유효한 동안 메모를 원래 위치, 크기와 겹침 순서로 복원하는 현재 실행의 LIFO 이력이다. 가장 최근 snapshot만 알림에 표시하고 새로고침에서는 지운다. IndexedDB의 휴지통 record가 아니다.
 
 ## 일괄 복사 목록과 실행 취소
 
-일괄 복사 목록의 배열 순서가 최종 결합 순서다. 각 항목에는 원본 메모를 찾을 참조와 항목을 추가한 당시의 텍스트를 함께 둔다. 사용자 화면에서는 `일괄 복사`를 사용하고, 기존 IndexedDB 이름을 바꾸는 migration 전까지 저장 구현에서만 `accumulators`를 이전 이름으로 인식한다.
+일괄 복사 목록의 배열 순서가 최종 결합 순서다. 각 항목에는 원본 메모를 찾을 참조와 항목을 추가한 당시의 텍스트를 함께 둔다. 사용자 화면과 새 TypeScript 자료형에는 `일괄 복사` 및 `BatchCopy`를 사용한다. 물리 IndexedDB object store `accumulators`는 기존 자료를 보존하는 schema 이름으로 유지하고 repository 연결부에서 논리 이름으로 변환한다.
 
 ```ts
 interface BatchCopyItem {
@@ -186,9 +206,7 @@ interface BatchCopyRemovalHistory {
 
 제거 이력은 애플리케이션 실행 동안 메모리에 두어 라우트 이동 뒤에도 유지하고 새로고침하면 지운다. 실행 취소 뒤 추가, 재정렬 또는 제거가 성공하면 `redo`를 비운다. 추가와 순서 변경 자체는 undo 대상이 아니다.
 
-후속 모바일 요구는 길게 누르기 항목 추가를 폐기하고 화면 헤더 아이콘으로 시작하는 일괄 복사 상태를 도입했다. 같은 메모를 반복해서 누르면 별도 항목과 클릭 횟수를 늘리고 `초기화`로 현재 작업을 비우는 결과는 확정됐다. `다음`은 별도 일괄 복사 확인 페이지로 이동한다. 확인 페이지의 재정렬, 복제와 삭제는 이 작업 사본만 바꾸며 원본 메모나 사용 횟수를 바꾸지 않는다. 다만 기존 저장 목록과의 결합, 헤더 뒤로가기, 확인 페이지 이탈과 새로고침 뒤 수명은 정해지지 않았으므로 아직 IndexedDB record에 넣지 않는다.
-
-일괄 복사 상태의 현재 작업이 저장 목록과 분리된 임시 작업으로 승인되는 경우 다음과 같은 실행 중 객체를 검토할 수 있다. 이 예시는 자료 수명 결정이 아니며 `다음`의 저장 결과를 승인하기 전 구현하지 않는다.
+후속 모바일 요구는 길게 누르기 항목 추가를 폐기하고 화면 헤더 아이콘으로 시작하는 일괄 복사 상태를 도입했다. 같은 메모를 반복해서 누르면 별도 항목과 클릭 횟수를 늘리고 `초기화`로 현재 작업을 비운다. `다음`은 별도 일괄 복사 확인 페이지로 이동한다. 확인 페이지의 재정렬, 복제와 삭제는 이 작업 초안만 바꾸며 원본 메모나 사용 횟수를 바꾸지 않는다. 이 작업은 기존 저장 목록과 합치지 않고 예기치 않은 route 이동과 새로고침에서 복원하는 하나의 IndexedDB 초안이다.
 
 ```ts
 interface MobileBatchCopyEntry {
@@ -199,17 +217,21 @@ interface MobileBatchCopyEntry {
 
 type MobileBatchCopyStep = "collecting" | "confirming";
 
-interface MobileBatchCopySession {
+interface MobileBatchCopyDraft {
+  id: EntityId;
   step: MobileBatchCopyStep;
   entries: readonly MobileBatchCopyEntry[];
   clickCount: number;
   startedAt: IsoDateTime;
+  updatedAt: IsoDateTime;
 }
 ```
 
 `collecting` 단계에서는 `clickCount`가 `entries.length`와 같아야 한다. 같은 메모를 반복해서 눌러도 각 클릭 당시의 content revision과 원문 스냅샷을 고유 ID의 entry로 남긴다. `초기화`는 두 값을 함께 비우고 `collecting` 단계를 유지한다. `다음`은 Clipboard 쓰기 없이 `confirming` 단계로 바꾸고 별도 확인 페이지로 이동한다.
 
-`confirming` 단계에서 재정렬은 `entries` 순서만 바꾼다. 복제는 같은 `sourceNote`와 `textSnapshot`을 가지되 새 ID를 가진 entry를 만들고, 삭제는 대상 ID의 entry 하나만 제거한다. 이 세 동작은 `clickCount`를 바꾸지 않는다. 따라서 확인 단계부터 `clickCount`와 `entries.length`는 달라질 수 있다. 복제한 entry의 삽입 위치, 확인 작업과 저장된 `BatchCopyState`의 결합 방식 및 확인 페이지 이탈 뒤 수명은 별도 결정이 필요하다.
+`confirming` 단계에서 재정렬은 `entries` 순서만 바꾼다. 복제는 같은 `sourceNote`와 `textSnapshot`을 가지되 새 ID를 가진 entry를 대상 바로 뒤에 만들고, 삭제는 대상 ID의 entry 하나만 제거한다. 이 세 동작은 `clickCount`를 바꾸지 않는다. 따라서 확인 단계부터 `clickCount`와 `entries.length`는 달라질 수 있다.
+
+`MobileBatchCopyDraft`는 `BatchCopyState`를 추가하거나 교체하지 않는다. `다음`은 `confirming` 단계와 현재 순서를 먼저 저장한 뒤 route를 바꾼다. 수집 화면의 헤더 뒤로가기와 확인 페이지의 `취소`는 초안을 지우며, 전체 복사 성공은 초안을 유지한다.
 
 ## 사용 빈도
 
@@ -230,7 +252,7 @@ interface TextUsageAggregate {
 }
 ```
 
-개별 복사는 넓은 화면의 `Command+클릭` 또는 모바일 목록의 길게 누르기로 Clipboard 쓰기와 횟수 저장이 완료된 경우에만 집계한다. Clipboard 쓰기는 성공했지만 횟수 저장이 실패하면 복사 성공을 되돌리지 않고 빈도 기록 실패를 별도로 알린다. 저장된 일괄 복사 항목 추가와 해당 횟수 증가는 `BatchCopyItemWriter`의 한 동작이 같은 IndexedDB transaction으로 완료하며, 제거, 순서 변경, 실행 취소와 다시 실행은 횟수를 바꾸지 않는다. 같은 텍스트를 다시 추가하면 성공한 횟수만큼 증가하고, 서로 다른 메모의 같은 원문은 합치지 않는다. 모바일 작업 초안의 `clickCount`와 확인 단계의 재정렬, 복제 및 삭제는 사용 빈도가 아니다. 확인 작업의 저장 목록 반영 방식이 정해지면 실제로 저장한 항목과 해당 횟수를 같은 transaction에 반영한다.
+개별 복사는 넓은 화면의 `Command+클릭` 또는 모바일 목록의 길게 누르기로 Clipboard 쓰기와 횟수 저장이 완료된 경우에만 집계한다. Clipboard 쓰기는 성공했지만 횟수 저장이 실패하면 복사 성공을 되돌리지 않고 빈도 기록 실패를 별도로 알린다. 저장된 일괄 복사 항목 추가와 해당 횟수 증가는 `BatchCopyItemWriter`의 한 동작이 같은 IndexedDB transaction으로 완료하며, 모바일 수집 상태는 작업 초안 항목 추가와 해당 횟수 증가를 같은 transaction에서 완료한다. 제거, 순서 변경, 실행 취소, 다시 실행, 확인 단계의 복제와 삭제는 횟수를 바꾸지 않는다. 같은 텍스트를 다시 추가하면 성공한 횟수만큼 증가하고, 서로 다른 메모의 같은 원문은 합치지 않는다. 모바일 작업 초안의 `clickCount`는 사용 빈도 자료가 아니다.
 
 시간대별 사용 추이나 감사 기록이 요구되지 않는 초기 범위에서는 모든 클릭 이벤트를 영구 저장하기보다 집계 객체를 갱신하는 편이 데이터 양과 개인정보 노출을 줄인다. 나중에 시계열 분석이 승인되면 별도 이벤트 모델과 보존 기간을 설계해야 한다.
 
@@ -333,19 +355,19 @@ interface InteractionPreferences {
 
 운영체제 감지값을 저장하지 않고 사용자가 고른 동작을 저장한다. 다른 보조 키 조합을 자동 대체값으로 저장하지 않는다. 보조 키와 브라우저 충돌은 기기마다 다를 수 있으므로 이 설정은 기본적으로 기기에 보관한다. 계정 동기화 여부는 최우선 백로그에서 별도로 결정한다.
 
-현재 저장 구현의 `metaClickEnabled`는 `Command+클릭`을 일괄 복사에 사용하던 의미를 담고 있어 새 조합의 설정으로 그대로 읽으면 안 된다. `batchCopyShortcutEnabled`, `UsageCounts`와 `BatchCopy...` 이름을 적용할 때에는 기존 `preferences`, `usage`와 `accumulators` record를 유지하는 IndexedDB schema migration을 함께 설계한다. 이름 변경만으로 object store를 비우거나 기존 횟수를 잃지 않는다.
+현재 저장 구현의 `metaClickEnabled`는 `Command+클릭`을 일괄 복사에 사용하던 의미를 담고 있어 새 조합의 설정으로 그대로 읽으면 안 된다. `batchCopyShortcutEnabled`, `UsageCounts`와 `BatchCopy...` 이름을 적용할 때 기존 `preferences`, `usage`와 `accumulators` record를 그대로 읽는 변환을 함께 제공한다. 물리 object store `accumulators`는 현재 schema 이름으로 유지하며 이름 변경만을 위한 migration이나 기존 record 삭제를 하지 않는다.
 
 ## 로컬 저장 구조와 최우선 계정 데이터베이스 백로그
 
 ### 로컬 저장 구성
 
-IndexedDB object store를 `boards`, `notes`, `accumulators`, `usage`, `templates`, `preferences`로 나누고, 사용자 동작 하나가 여러 store를 바꾸면 하나의 transaction에 묶는다. `notes`는 전체 revision과 content revision을 함께 저장한다. 분석용 줄은 원문에서 파생하므로 기본 저장 대상에서 제외하고, 분석 실행과 결과, 일괄 복사 항목 제거 이력, 메모 선택, 속성 입력 초안, 모바일 일괄 복사 작업, 저장 전 템플릿 제안과 일회성 출력은 실행 중 메모리에 둔다. 메모 제거 취소 자료의 정확한 보관 위치는 알림과 새로고침 수명을 승인한 뒤 정한다.
+IndexedDB object store를 `boards`, `notes`, `noteDrafts`, `accumulators`, `mobileBatchCopyDrafts`, `usage`, `templates`, `preferences`로 나누고, 사용자 동작 하나가 여러 store를 바꾸면 하나의 transaction에 묶는다. `notes`는 전체 revision과 content revision을 함께 저장한다. 분석용 줄은 원문에서 파생하므로 기본 저장 대상에서 제외한다. 분석 실행과 결과, 일괄 복사 항목 제거 이력, 메모 삭제 LIFO 이력, 메모 선택, 속성 입력 초안, 저장 전 템플릿 제안과 일회성 출력은 실행 중 메모리에 둔다.
 
 브라우저 저장 공간은 사용자가 지우거나 저장소 압박으로 정리될 수 있다. [StorageManager.persist 문서](https://developer.mozilla.org/en-US/docs/Web/API/StorageManager/persist)는 영구 저장 요청이 boolean으로 승인 여부를 돌려주며 브라우저가 결정을 내린다고 설명한다. 현재 범위에는 내보내기, 가져오기와 브라우저가 지운 자료의 복구가 없으므로 IndexedDB를 백업이나 영구 보관으로 표현하지 않는다. HTTP와 HTTPS를 포함해 origin이 다르면 저장 자료를 공유하지 않는다는 점도 실행 안내에 반영해야 한다.
 
 ### 최우선 백로그: 계정 데이터베이스 제안
 
-계정 데이터베이스에서는 board, note, accumulator item, usage aggregate와 template을 서로 참조하는 엔티티로 두고 account ID는 서버 저장 계층에서 결합한다. 엔티티 ID, account ID, revision과 foreign key는 명시적 열로 검증하고, 템플릿 segment나 알고리즘별 분석 세부처럼 형태가 실제로 달라지는 값만 JSON 계열 저장을 검토한다.
+계정 데이터베이스에서는 board, note, batch copy item, usage aggregate와 template을 서로 참조하는 엔티티로 두고 account ID는 서버 저장 계층에서 결합한다. 엔티티 ID, account ID, revision과 foreign key는 명시적 열로 검증하고, 템플릿 segment나 알고리즘별 분석 세부처럼 형태가 실제로 달라지는 값만 JSON 계열 저장을 검토한다.
 
 삭제는 즉시 행을 없애기보다 `deletedAt`과 revision이 있는 tombstone을 먼저 동기화하는 방안을 검토한다. [Apache CouchDB의 문서 삭제 API](https://docs.couchdb.org/en/stable/api/document/common.html#delete--db-docid)는 삭제도 새 revision으로 표현해 복제 대상이 되는 사례를 보여준다. tombstone 보존 기간과 계정 완전 삭제 요청의 처리 방식은 별도 승인이 필요하다.
 

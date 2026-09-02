@@ -20,14 +20,19 @@ TDD는 구현 전에 안정된 입력, 결과와 불변 조건을 표현할 수 
 - 실행 도구 재검토에서는 Vitest Browser Mode가 Vite 개발 서버에서 운영 모듈을 직접 검사하지만 Next.js의 운영 빌드와 라우트를 제공하지 않는다는 차이를 확인했다. IndexedDB repository는 Vitest Browser Mode로, Next.js 운영 서버의 라우트, Worker URL 및 MIME type, CSS와 사용자 흐름은 Playwright Test로 확인한다.
 - 정적 사이트 배포가 범위에서 제외되면서 자체 정적 서버와 `static-smoke.mjs`의 독립 책임이 사라졌다. 전용 스크립트에 모인 검증 가운데 사용자 결과는 과업별 Playwright Test로 옮기고, IndexedDB 내부 store 이름, 레코드 형태, DOM 순서와 임의 대기 시간에 의존한 검사는 제거하기로 했다.
 - 현재 결정은 아래 분류에만 TDD를 적용하고, 나머지 모듈은 더 직접적인 검증으로 완료를 판정하는 것이다.
+- 구현 필수 결정 재검토에서 자동 저장 및 초안 복구, `tabIndex` migration, geometry 보정, 겹침 순서 정규화, 삭제 LIFO 복원과 drag 없는 삽입 위치 선택을 안정된 순수 규칙으로 확정했다. 이 규칙은 실패 경계가 많고 브라우저 API 자체와 분리할 수 있으므로 TDD 범위에 추가했다.
 
 ## 승인된 결정
 
 ### TDD를 적용하는 모듈
 
 - 메모 원문 변경과 content revision 불변 조건
+- 자동 저장의 dirty 및 flush 전이, 최신 revision 병합과 메모 및 복구 초안 비교
+- `tabIndex` 할당 및 migration, `zIndex` 전체 순서 정규화와 geometry 범위 보정
+- 메모 삭제 LIFO 복구와 삭제 뒤 포커스 대상 선택
 - 복사 및 누적 application 명령의 성공과 실패 결과
 - 일괄 복사 항목 명령, 순서와 제거 실행 취소 및 다시 실행
+- 모바일 일괄 복사 작업 초안의 수명, 복제 위치와 삽입 위치 선택 재정렬
 - 개별 복사 및 일괄 복사 횟수 집계와 합계 계산
 - 외부 입력 스키마의 승인된 성공 및 실패 규칙
 - 줄 정규화, 정확한 반복, 포함 관계와 3-gram Jaccard 분석
@@ -46,6 +51,7 @@ TDD는 구현 전에 안정된 입력, 결과와 불변 조건을 표현할 수 
 - 사용자 과업의 end-to-end 검증은 Playwright Test 설정의 `webServer`가 `next start`를 실행하게 한다. 각 spec은 사용자 과업 하나를 맡고, 구현 내부를 읽거나 여러 화면의 모든 책임을 한 테스트에 합치지 않는다.
 - HTTPS는 배포 환경에서 reverse proxy 또는 플랫폼이 TLS를 종료한 같은 애플리케이션 revision으로 확인한다. 인증서 발급과 TLS 서버 구현을 자동 검사만을 위해 저장소에 추가하지 않는다.
 - 메모 본문 클릭, 텍스트 선택, 보조 키, 편집 전환, 공간형 보드, 크기 조절, 드래그, 포커스, 반응형 전환과 시각 상태는 브라우저 테스트와 수동 사용성 검토로 확인한다.
+- `visibilitychange`, `pagehide`, `beforeunload`, 실제 `tabindex` 이동, 동작 선택창 포커스, live region과 500ms 길게 누르기 및 10 CSS px 이동 판정은 실제 브라우저에서 확인한다.
 - React Hook Form 연결과 구성요소 내부 구조는 직접 테스트 대상이 아니다. 승인된 스키마와 사용자가 보는 오류 결과를 검사한다.
 
 ## 무의미한 테스트를 막는 기준

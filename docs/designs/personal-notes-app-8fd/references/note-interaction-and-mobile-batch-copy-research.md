@@ -27,7 +27,7 @@
 
 - 본문은 읽기용 요소와 편집용 요소를 교체하지 않고 같은 `textarea`를 계속 사용한다.
 - 브라우저가 제공하는 `textarea` 자체 resize 손잡이는 끈다. 메모 크기는 카드 가장자리와 꼭짓점이 관리한다.
-- 자동 저장의 대기 시간, 포커스 이동 및 route 이탈 시점의 저장 완료와 실패 안내는 별도 결정이 필요하다.
+- 넓은 화면에서는 마지막 입력 `800ms` 뒤 저장을 시작하고 `blur`, 애플리케이션 내부 route 이동, document hidden과 `pagehide`에서 대기 중인 최신 원문을 같은 흐름으로 즉시 저장한다. 복구 초안을 먼저 기록하고 기준 메모 저장이 완료된 뒤 지우며 실패하면 입력과 초안을 유지한다.
 - URL처럼 보이는 문자열도 일반 텍스트로 남기므로 `Command+클릭`의 브라우저 링크 열기와 충돌하지 않는다.
 
 ### 헤더는 이동과 메모 단위 동작을 맡는다
@@ -44,7 +44,7 @@
 
 [Figma의 FigJam 객체 순서 안내](https://help.figma.com/hc/en-us/articles/1500004292221-Select-move-and-order-objects-in-FigJam)는 `Bring to front`를 모든 객체 위, `Send to back`을 모든 객체 아래로 보내는 동작으로 정의한다. [CSS Positioned Layout Module Level 3](https://www.w3.org/TR/css-position-3/#painting-order)와 [`z-index` 설명](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/z-index)은 같은 stacking context 안의 그리기 순서를 설명한다.
 
-현재 자료 초안의 `geometry.zIndex`로 이 결과를 표현할 수 있다. 다만 새 최댓값 또는 최솟값만 계속 더하는 방식은 값이 끝없이 벌어지고 동률 복구 규칙이 불분명해진다. 구현 전에 다음 불변 조건을 자료 결정에 추가해야 한다.
+현재 자료 초안의 `geometry.zIndex`로 이 결과를 표현할 수 있다. 새 최댓값 또는 최솟값만 계속 더하는 방식은 값이 끝없이 벌어지고 동률 복구 규칙이 불분명해지므로, 후속 교차검증에서 활성 메모를 `1..N`의 고유하고 빈틈없는 순서로 저장하기로 정했다. 이 결정에는 다음 불변 조건을 적용한다.
 
 - 한 보드의 메모 순서는 전체 순서로 비교할 수 있어야 한다.
 - 맨 앞으로 또는 맨 뒤로 보낼 때 나머지 메모의 상대 순서는 유지돼야 한다.
@@ -58,7 +58,7 @@
 
 [WCAG 2.2 Target Size (Minimum)](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)은 실행 영역이 원칙적으로 24×24 CSS px 이상이어야 한다고 설명한다. 짧은 헤더에서도 아이콘 그림 자체를 키울 필요는 없지만 버튼의 실행 영역과 인접 버튼 사이 간격은 이 조건을 만족해야 한다. 터치 화면에서는 [Target Size (Enhanced)](https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html)의 44×44 CSS px 권고도 함께 검토한다.
 
-삭제는 확인 대화상자 없이 즉시 반영하고 메인 패널 중앙 하단의 토스트로 되돌릴 기회를 제공한다. [Carbon의 remove pattern](https://carbondesignsystem.com/community/patterns/remove-pattern/)은 저위험이며 되돌릴 수 있는 제거에 즉시 실행을 허용하고, [Fluent 2 Toast 지침](https://fluent2.microsoft.design/components/web/react/core/toast/usage)은 실행 동작이 있는 알림을 단순 시간 제한 확인 메시지와 구분한다. 토스트의 `취소`는 같은 원문, 위치, 크기와 겹침 순서를 복원해야 한다. 표시 시간, 연속 삭제 처리와 새로고침 뒤 복구 범위는 별도 결정이 필요하다.
+삭제는 확인 대화상자 없이 즉시 반영하고 메인 패널 중앙 하단의 토스트로 되돌릴 기회를 제공한다. [Carbon의 remove pattern](https://carbondesignsystem.com/community/patterns/remove-pattern/)은 저위험이며 되돌릴 수 있는 제거에 즉시 실행을 허용하고, [Fluent 2 Toast 지침](https://fluent2.microsoft.design/components/web/react/core/toast/usage)은 실행 동작이 있는 알림을 단순 시간 제한 확인 메시지와 구분한다. 토스트의 `취소`는 같은 원문, 위치, 크기와 겹침 순서를 복원한다. 자동 만료는 사용하지 않고 현재 실행의 LIFO 이력에서 최근 삭제부터 처리하며 새로고침에서는 이력을 지운다.
 
 ## 보조 키 클릭
 
@@ -79,10 +79,10 @@
 [Pointer Events Level 3](https://www.w3.org/TR/pointerevents3/)은 `pointerdown`, 이동, `pointerup`, `pointercancel`과 pointer capture를 정의한다. [WCAG Pointer Cancellation](https://www.w3.org/WAI/WCAG22/Understanding/pointer-cancellation.html)은 짧은 누르기와 길게 누르기 모두 손을 뗄 때 완료하고, 대상 밖 이동이나 취소로 실행을 중단할 수 있어야 한다고 설명한다.
 
 - `pointerdown`은 시작 시각과 위치만 기록하고 복사 또는 route 이동을 완료하지 않는다.
-- 정한 시간 전에 같은 카드 안에서 손을 떼면 상세 화면으로 이동한다.
-- 시간 기준을 넘긴 뒤 허용 이동 범위 안에서 손을 떼면 메모 전체를 복사하고, 뒤이어 발생하는 `click`의 상세 이동을 막는다.
+- 500ms 전에 `10 CSS px` 안에서 같은 카드의 손을 떼면 상세 화면으로 이동한다.
+- 500ms를 넘긴 뒤 `10 CSS px` 안에서 같은 카드의 손을 떼면 메모 전체를 복사하고, 뒤이어 발생하는 `click`의 상세 이동을 막는다.
 - 세로 스크롤 의도가 확인되거나 대상 밖 이동, `pointercancel`, `lostpointercapture`가 발생하면 복사와 상세 이동을 모두 취소한다.
-- 일괄 복사 상태에서는 짧은 누르기를 상세 이동이 아니라 항목 추가로 해석한다. 길게 누르기 복사를 이 상태에서도 유지할지는 실제 동작 검증 항목으로 둔다.
+- 일괄 복사 상태에서는 짧은 누르기를 상세 이동이 아니라 항목 추가로 해석한다. 길게 누르기는 개별 복사, 항목 추가와 상세 이동을 실행하지 않는다.
 
 모바일 브라우저는 길게 누르기를 텍스트 선택이나 context menu에 사용할 수 있다. [`contextmenu` event 안내](https://developer.mozilla.org/en-US/docs/Web/API/Element/contextmenu_event)는 브라우저 지원 차이가 있음을 명시한다. 목록 카드에서 필요한 기본 동작만 제한하고 상세 편집 화면의 텍스트 선택과 편집 메뉴까지 전역으로 막으면 안 된다. iOS Safari, Android Chrome과 지원할 다른 터치 브라우저에서 길게 누르기, 스크롤, 확대 및 보조 기술을 직접 확인해야 한다.
 
@@ -90,16 +90,16 @@
 
 [CSS Overflow Module](https://www.w3.org/TR/css-overflow-3/)은 크기가 제한된 상자의 넘침 처리를 정의한다. [MDN의 overflow 안내](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Styling_basics/Overflow)는 `clip`이 보이지 않는 내용을 접근할 수 없게 만들 수 있으므로 주의해야 한다고 설명한다. 모바일 목록은 일반 터치로 전체 원문을 보여주는 상세 화면에 이동하므로 카드 내부를 별도 스크롤 영역으로 만들기보다 높이를 제한한 미리보기로 사용하는 편이 낫다.
 
-- 모든 목록 메모는 같은 의미 기반 최대 block-size token을 사용한다.
+- 목록 메모는 내용에 따라 짧아지되 `12rem`을 넘지 않는다.
 - 넘치는 원문은 카드 안에서 잘리지만, 내용이 더 있다는 시각 표시를 제공한다.
 - 상세 화면에서는 전체 원문을 확인하고 수정할 수 있다.
-- 정확한 높이와 보이는 줄 수는 실제 한국어 장문, 글자 확대와 320 CSS px 화면 검토로 정한다. 조사만으로 고정 수치를 승인하지 않는다.
+- `12rem`은 현재 목록 카드의 `10rem` 최소값을 고정 높이로 유지하지 않으면서 여러 줄과 다음 메모를 함께 확인하기 위한 초기 제품값이다. 실제 한국어 장문, 글자 확대와 320 CSS px 화면에서 원문 식별이 어렵거나 다음 메모를 찾기 어려우면 다시 검토한다.
 
 ### 상세 화면은 메모 하나의 편집과 저장을 맡는다
 
 [Next.js App Router의 layouts and pages 안내](https://nextjs.org/docs/app/getting-started/layouts-and-pages)는 동적 segment로 자료 ID에 대응하는 별도 화면을 만들 수 있음을 설명한다. 경로 이름은 구현 구조 결정에서 정하되 목록에서 선택한 메모 ID를 직접 식별하고, 존재하지 않거나 삭제된 ID의 오류도 처리해야 한다.
 
-상세 화면은 전체 원문을 편집하는 `textarea`와 명시적인 저장 동작을 제공한다. 목록에서 상시 편집하던 이전 결정을 작은 화면까지 유지하지 않는다. 뒤로 이동이나 route 이탈 때 저장하지 않은 입력을 버릴지 묻는 방식, 저장 중 중복 실행과 실패 뒤 입력 보존은 구현 전 결정해야 한다.
+상세 화면은 전체 원문을 편집하는 `textarea`와 명시적인 저장 동작을 제공한다. 목록에서 상시 편집하던 이전 결정을 작은 화면까지 유지하지 않는다. 저장 전 내부 이동에서는 `계속 편집`과 `변경사항 버리기`를 선택하게 하고, 저장 중 중복 실행을 막으며 실패하면 입력과 IndexedDB 복구 초안을 유지한다.
 
 ## 모바일 일괄 복사 상태
 
@@ -112,14 +112,12 @@
 5. `다음` 문구 옆에는 중복을 포함한 클릭 횟수를 표시한다. 키보드와 보조 기술에서도 버튼 이름과 횟수의 관계를 알 수 있어야 한다.
 6. `다음`은 Clipboard에 쓰지 않고 별도 일괄 복사 확인 페이지로 이동한다. 확인 페이지에는 이번 작업 항목을 누른 순서대로 표시한다.
 
-다음 결과는 아직 정하지 않았다.
+후속 교차검증에서는 자료 수명과 입력 충돌을 다음과 같이 확정했다.
 
-- 상태를 시작할 때 기존 저장 목록을 이어 쓸지 빈 작업 초안으로 시작할지
-- 확인 페이지의 이번 작업 초안과 저장 목록을 언제 어떤 방식으로 합칠지
-- 헤더 뒤로가기 뒤 이번 작업 초안을 버릴지 다음 진입까지 유지할지
-- 일괄 복사 상태에서 길게 누르기 개별 복사를 계속 허용할지
-
-이 선택은 자료 수명, 사용 빈도와 모바일 관리 페이지의 역할을 바꾸므로 구현 담당자가 추정해서 정하면 안 된다.
+- 상태는 기존 저장 목록과 분리된 빈 IndexedDB 작업 초안으로 시작한다.
+- 확인 페이지의 편집과 전체 복사는 작업 초안만 바꾸며 기존 저장 목록에 추가하거나 교체하지 않는다.
+- 예기치 않은 route 이탈과 새로고침에서는 작업 초안을 복원하고, 수집 화면 헤더 뒤로가기와 확인 페이지의 `취소`에서는 지운다.
+- 일괄 복사 상태의 길게 누르기는 개별 복사, 항목 추가와 상세 이동을 모두 실행하지 않는다.
 
 ## 용어 결정
 
@@ -131,7 +129,7 @@
 - 선택한 항목을 보여주는 영역: `일괄 복사 목록`
 - 단일 메모 Clipboard 쓰기: `개별 복사`
 
-자료 구조와 알고리즘 설명에서는 항목을 선택 순서대로 “누적한다”거나 배열에 “추가한다”고 쓸 수 있다. 그러나 화면 제목, 버튼, 설정 이름과 사용자 상태 문구에는 `누적 복사`를 사용하지 않는다. 내부 TypeScript 이름과 IndexedDB store 이름을 변경할지는 자료 migration 범위를 확인한 뒤 별도로 결정한다.
+자료 구조와 알고리즘 설명에서는 항목을 선택 순서대로 “누적한다”거나 배열에 “추가한다”고 쓸 수 있다. 그러나 화면 제목, 버튼, 설정 이름과 사용자 상태 문구에는 `누적 복사`를 사용하지 않는다. 새 TypeScript 자료형과 기능 이름에는 `BatchCopy`를 사용한다. 기존 자료를 잃을 위험이 있는 물리 IndexedDB object store `accumulators`는 현재 schema 이름으로 유지하고 repository 연결부에서 변환한다. 다음 schema 변경에 다른 자료 변환 사유가 함께 생기기 전에는 이름만 바꾸기 위한 object store migration을 수행하지 않는다.
 
 ## 계획에 반영할 검증
 
