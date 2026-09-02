@@ -595,61 +595,11 @@ type UpdateNoteCommand = z.output<typeof updateNoteSchema>
 
 TypeScript 설정 후보는 `strict`, `noUncheckedIndexedAccess`와 `exactOptionalPropertyTypes`다. 설정을 추가하기 전에 설치된 TypeScript 버전과 Next.js 생성 설정의 호환성을 확인하고, 저장소의 무시된 임시 입력에서 실제 오류를 한 번 검증한다. type check는 runtime 입력을 확인하지 못하므로 schema의 성공, 누락, 범위 초과, 알 수 없는 필드, transform과 비동기 refinement를 검사한다. database migration 리뷰는 같은 불변 조건이 database에도 있는지 확인한다.
 
-## React Hook Form을 애플리케이션 상태 저장소로 만들지 않는다
+## React Hook Form의 책임을 중복시키지 않는다
 
-### 막으려는 실패
+사용자가 직접 편집하는 폼 값과 입력 상태는 React Hook Form이 맡되 같은 값을 React state, Context 또는 domain draft에 매 입력마다 함께 저장하지 않는다. 반대로 IndexedDB 자료, 자동 저장 실행, Clipboard 결과, pointer gesture, 일괄 복사 작업과 Worker 상태를 폼 field로 만들지 않는다.
 
-폼 전체를 `watch()`하고 모든 keystroke마다 메모 보드나 dialog root를 다시 렌더링하면 메모 수와 입력 길이가 늘수록 편집 반응이 느려진다. 서버 값이 도착할 때마다 `defaultValues` 객체를 바꾸면서 자동으로 폼이 갱신될 것으로 기대하면 값이 바뀌지 않거나 사용자가 입력 중인 dirty value를 덮을 수 있다. React Hook Form 7.87.0 문서는 `defaultValues`가 cache된다고 설명하고, `watch()`가 폼 root를 다시 렌더링하며, 큰 폼에서는 `useWatch`로 구독 범위를 줄이도록 안내한다.
-
-### 적용 규칙
-
-- React Hook Form은 메모 생성, 설정과 template 입력 dialog처럼 제출 단위가 있는 폼에 사용한다. 자유 배치 보드, clipboard 누적 목록, undo history와 worker 분석 상태를 폼 상태에 넣지 않는다.
-- 폼 root에서 인자 없는 `watch()`를 호출하지 않는다. 한 field나 계산값이 필요한 가장 가까운 component에서 `useWatch({ name, control })`를 사용한다.
-- 모든 keystroke에 검증이 필요하지 않으면 `mode: 'onChange'`를 기본값으로 선택하지 않는다. 오류 표시 시점과 성능을 함께 결정한다.
-- `defaultValues`는 form 수명 동안의 기준값이다. 다른 메모로 전환하거나 server data를 다시 받으면 `reset` 또는 `values`를 사용하고 dirty value 보존 정책을 명시한다.
-- `undefined`를 input 기본값으로 넘기지 않는다. 입력 전 값이 없음을 빈 문자열, null 허용 schema 또는 별도 state 중 하나로 모델링한다.
-- form error 객체와 provider value를 render마다 새로 만들지 않는다.
-
-안티패턴:
-
-```tsx
-function TemplateForm() {
-  const { register, watch } = useForm<TemplateFormValues>()
-  const values = watch()
-
-  return <TemplatePreview values={values} register={register} />
-}
-```
-
-권장 패턴:
-
-```tsx
-import type { Control } from 'react-hook-form'
-
-function TemplateForm() {
-  const form = useForm<TemplateFormValues>({
-    defaultValues: { title: '', variables: [] },
-  })
-
-  return (
-    <FormProvider {...form}>
-      <TemplateFields />
-      <TemplatePreviewField control={form.control} />
-    </FormProvider>
-  )
-}
-
-function TemplatePreviewField({ control }: { control: Control<TemplateFormValues> }) {
-  const variables = useWatch({ control, name: 'variables' })
-  return <TemplatePreview variables={variables} />
-}
-```
-
-`FormProvider`는 form method 전달을 줄이는 도구이지 domain service나 애플리케이션 전역 상태를 넣는 저장소가 아니다. field가 적고 계산 비용이 낮은 dialog에서는 `watch()`의 단순성이 더 중요할 수 있으므로 profiler 근거 없이 모든 구독을 잘게 나누지 않는다.
-
-### 검증
-
-RHF API 사용 형태를 금지하는 lint를 새로 추가하지 않는다. 현재 저장소에 lint 체계가 없고, `watch()`가 문제인지 여부는 form 크기와 render 비용에 달려 있다. React Profiler로 입력 한 번에 다시 render되는 component와 commit 시간을 확인하고, 초기 data 재수신 중 dirty value 보존, field 전환과 submit 결과를 browser에서 검사한다.
+과업별 폼 수명, `register`, `getValues`, `useWatch`, `reset`, 수동 오류와 `FormProvider`의 적용 조건은 [개인 메모 입력의 React Hook Form 사용 지침](react-hook-form.md)이 관리한다. 이 문서에서는 같은 규칙을 다시 정의하지 않는다.
 
 ## 최우선 계정 및 동기화 백로그: useMutation 하나의 상태를 모든 변경 작업의 상태로 쓰지 않는다
 
@@ -1262,7 +1212,6 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 - `clsx@2.1.1` 고정 revision `925494c`: [package 정보와 구현](https://github.com/lukeed/clsx/tree/925494cf31bcd97d3337aacd34e659e80cae7fe2)
 - Node.js 26.8.1 [package entry point와 `exports`](https://nodejs.org/api/packages.html#package-entry-points), npm [peer dependency](https://docs.npmjs.com/files/package.json/#peerdependencies)와 TypeScript 7.0.2 [package `exports` resolution](https://www.typescriptlang.org/docs/handbook/modules/reference#packagejson-exports). Node.js와 npm 문서는 package 형식 조사 기준이며 runtime 채택 버전이 아니다.
 - [TypeScript의 erased types](https://www.typescriptlang.org/docs/handbook/typescript-from-scratch.html#erased-types), [strict](https://www.typescriptlang.org/tsconfig/strict.html), [noUncheckedIndexedAccess](https://www.typescriptlang.org/tsconfig/noUncheckedIndexedAccess.html), [exactOptionalPropertyTypes](https://www.typescriptlang.org/tsconfig/exactOptionalPropertyTypes.html), [moduleSuffixes](https://www.typescriptlang.org/tsconfig/moduleSuffixes.html)
-- React Hook Form 문서 고정 revision `e739aea`: [useForm](https://github.com/react-hook-form/documentation/blob/e739aea29ff1f13a272b3aae99e9af257e218e6a/src/content/docs/useform.mdx), [watch](https://github.com/react-hook-form/documentation/blob/e739aea29ff1f13a272b3aae99e9af257e218e6a/src/content/docs/useform/watch.mdx), [useWatch](https://github.com/react-hook-form/documentation/blob/e739aea29ff1f13a272b3aae99e9af257e218e6a/src/content/docs/usewatch.mdx), [formState](https://github.com/react-hook-form/documentation/blob/e739aea29ff1f13a272b3aae99e9af257e218e6a/src/content/docs/useform/formstate.mdx)
 - [Zod 4 Basic usage](https://zod.dev/basics)와 [Zod 4 schema API](https://zod.dev/api)
 - TanStack Query 5.102.8 [release](https://github.com/TanStack/query/releases/tag/release-2026-08-27-1607)와 고정 revision `2969edf`: [Advanced Server Rendering](https://github.com/TanStack/query/blob/2969edf32f7e0c48e2a108d84712d6e01edfde21/docs/framework/react/guides/advanced-ssr.md), [Mutations](https://github.com/TanStack/query/blob/2969edf32f7e0c48e2a108d84712d6e01edfde21/docs/framework/react/guides/mutations.md), [Optimistic Updates](https://github.com/TanStack/query/blob/2969edf32f7e0c48e2a108d84712d6e01edfde21/docs/framework/react/guides/optimistic-updates.md), [useMutation](https://github.com/TanStack/query/blob/2969edf32f7e0c48e2a108d84712d6e01edfde21/docs/framework/react/reference/useMutation.md), [useMutationState](https://github.com/TanStack/query/blob/2969edf32f7e0c48e2a108d84712d6e01edfde21/docs/framework/react/reference/useMutationState.md)
 - FSD 문서 고정 revision `a6b69ae`: [Layers](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/layers.mdx), [Public API](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/public-api.mdx), [Next.js와 함께 사용하기](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/guides/tech/with-nextjs.mdx)
