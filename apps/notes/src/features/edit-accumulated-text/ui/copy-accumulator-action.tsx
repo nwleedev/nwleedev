@@ -10,6 +10,11 @@ import type { CopyAccumulatedTextResult } from "../model/copy-accumulated-text"
 type CopyAccumulatorActionProps = {
   disabled: boolean
   onCopy(): Promise<CopyAccumulatedTextResult>
+  onResult(result: CopyAccumulatedTextResult): void
+}
+
+type CopyAccumulatorNoticeProps = {
+  result: CopyAccumulatedTextResult
 }
 
 function clipboardFailureMessage(
@@ -32,14 +37,10 @@ function clipboardFailureMessage(
 export function CopyAccumulatorAction({
   disabled,
   onCopy,
+  onResult,
 }: CopyAccumulatorActionProps) {
-  const [notice, setNotice] = useState<CopyAccumulatedTextResult | null>(null)
   const [pending, setPending] = useState(false)
   const unavailable = disabled || pending
-  const errorMessage =
-    notice?.status === "clipboard-failure"
-      ? clipboardFailureMessage(notice.reason)
-      : ""
 
   async function copy() {
     if (unavailable) {
@@ -47,26 +48,38 @@ export function CopyAccumulatorAction({
     }
 
     setPending(true)
-    const result = await onCopy()
-    setNotice(result)
-    setPending(false)
+
+    try {
+      const result = await onCopy()
+      onResult(result)
+    } catch {
+      onResult({ reason: "write-failed", status: "clipboard-failure" })
+    } finally {
+      setPending(false)
+    }
   }
 
   return (
-    <div className="grid justify-items-end gap-2">
-      <Button aria-disabled={unavailable} onClick={copy}>
-        복사
-      </Button>
-      {notice?.status === "copied" ? (
-        <StatusNotice>
-          <p>합친 텍스트를 복사했습니다.</p>
-        </StatusNotice>
-      ) : null}
-      {notice?.status === "clipboard-failure" ? (
-        <StatusNotice kind="error">
-          <p>{errorMessage}</p>
-        </StatusNotice>
-      ) : null}
-    </div>
+    <Button disabled={unavailable} onClick={copy}>
+      복사
+    </Button>
+  )
+}
+
+export function CopyAccumulatorNotice({
+  result,
+}: CopyAccumulatorNoticeProps) {
+  if (result.status === "copied") {
+    return (
+      <StatusNotice>
+        <p>복사했습니다.</p>
+      </StatusNotice>
+    )
+  }
+
+  return (
+    <StatusNotice kind="error">
+      <p>{clipboardFailureMessage(result.reason)}</p>
+    </StatusNotice>
   )
 }

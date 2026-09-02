@@ -11,19 +11,19 @@ import {
   type RefObject,
 } from "react"
 
-import {
-  combineAccumulatorText,
-  type AccumulatedTextItem,
-} from "@/entities/accumulator"
+import type { AccumulatedTextItem } from "@/entities/accumulator"
 import {
   AccumulatorEditingView,
   AccumulatorHistoryShortcuts,
   CopyAccumulatorAction,
+  CopyAccumulatorNotice,
   useAccumulatedTextEditor,
   type CopyAccumulatedTextResult,
   type EditAccumulatorResult,
 } from "@/features/edit-accumulated-text"
 import { Button } from "@/shared/ui/button"
+import { IconButton } from "@/shared/ui/icon-button"
+import { CloseIcon } from "@/shared/ui/icons"
 import { joinClassNames } from "@/shared/lib/join-class-names"
 
 const INLINE_PANEL_THRESHOLD_REM = 72
@@ -83,9 +83,7 @@ function useInlinePanel(container: RefObject<HTMLElement | null>) {
 }
 
 type AccumulatorPanelContentProps = {
-  canRedo: boolean
-  canUndo: boolean
-  combinedText: string
+  copyResult: CopyAccumulatedTextResult | null
   headingId: string
   headingRef?: RefObject<HTMLHeadingElement | null>
   items: readonly AccumulatedTextItem[]
@@ -94,11 +92,10 @@ type AccumulatorPanelContentProps = {
   status: "failure" | "loading" | "ready"
   onClose(): void
   onCopy(): Promise<CopyAccumulatedTextResult>
+  onCopyResult(result: CopyAccumulatedTextResult): void
   onMove(itemId: string, index: number): Promise<EditAccumulatorResult>
-  onRedo(): Promise<EditAccumulatorResult>
   onRemove(itemId: string): Promise<EditAccumulatorResult>
   onRetry(): void
-  onUndo(): Promise<EditAccumulatorResult>
 }
 
 type EmptyAccumulatorContentProps = {
@@ -117,7 +114,7 @@ function EmptyAccumulatorContent({
       <div className={className}>
         <div className="grid justify-items-center gap-3">
           <p className="text-sm leading-6 text-danger">
-            누적 텍스트를 불러오지 못했습니다.
+            일괄 복사 항목을 불러오지 못했습니다.
           </p>
           <Button onClick={onRetry} tone="quiet">
             다시 시도
@@ -129,8 +126,8 @@ function EmptyAccumulatorContent({
 
   const message =
     status === "loading"
-      ? "누적 텍스트 불러오는 중"
-      : "누적한 텍스트가 없습니다."
+      ? "일괄 복사 항목 불러오는 중"
+      : "일괄 복사 항목이 없습니다."
 
   return (
     <div className={className}>
@@ -140,19 +137,16 @@ function EmptyAccumulatorContent({
 }
 
 function AccumulatorPanelContent({
-  canRedo,
-  canUndo,
-  combinedText,
+  copyResult,
   headingId,
   headingRef,
   items,
   onClose,
   onCopy,
+  onCopyResult,
   onMove,
-  onRedo,
   onRemove,
   onRetry,
-  onUndo,
   pending,
   presentation,
   status,
@@ -162,39 +156,52 @@ function AccumulatorPanelContent({
     presentation === "inline" ? "pt-16" : undefined,
   )
   const hasItems = items.length > 0
+  const showModalCopyNotice =
+    presentation === "modal" && copyResult !== null
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-surface-raised">
-      <header className="flex items-center justify-between gap-4 border-b border-line px-5 py-3">
+      {showModalCopyNotice ? (
+        <div className="fixed right-3 top-3 z-50 w-[min(24rem,calc(100%-1.5rem))] shadow-floating">
+          <CopyAccumulatorNotice result={copyResult} />
+        </div>
+      ) : null}
+      <header className="flex h-[2.375rem] shrink-0 items-center justify-between gap-3 border-b border-line px-3">
         <h2
-          className="font-display text-lg font-semibold tracking-[-0.02em]"
+          className="font-display text-sm font-semibold tracking-[-0.01em]"
           id={headingId}
           ref={headingRef}
           tabIndex={-1}
         >
-          누적 텍스트
+          일괄 복사
         </h2>
-        <Button onClick={onClose} tone="quiet">
-          닫기
-        </Button>
+        <IconButton
+          aria-label="일괄 복사 패널 닫기"
+          onClick={onClose}
+          size="compact"
+        >
+          <CloseIcon />
+        </IconButton>
       </header>
       {hasItems ? (
-        <div className="min-h-0 flex-1 overflow-auto p-4">
-          <AccumulatorEditingView
-            canRedo={canRedo}
-            canUndo={canUndo}
-            combinedText={combinedText}
-            items={items}
-            onMove={onMove}
-            onRedo={onRedo}
-            onRemove={onRemove}
-            onUndo={onUndo}
-            pending={pending}
-          />
-          <div className="mt-4 flex justify-end border-t border-line pt-4">
-            <CopyAccumulatorAction disabled={pending} onCopy={onCopy} />
+        <>
+          <div className="min-h-0 flex-1 overflow-auto p-4">
+            <AccumulatorEditingView
+              items={items}
+              onMove={onMove}
+              onRemove={onRemove}
+              pending={pending}
+              presentation="panel"
+            />
           </div>
-        </div>
+          <div className="flex shrink-0 justify-end border-t border-line p-3">
+            <CopyAccumulatorAction
+              disabled={pending}
+              onCopy={onCopy}
+              onResult={onCopyResult}
+            />
+          </div>
+        </>
       ) : (
         <EmptyAccumulatorContent
           className={emptyContentClassName}
@@ -210,13 +217,11 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
   const accumulator = useAccumulatedTextEditor()
   const accumulatorItems =
     accumulator.status === "ready" ? accumulator.items : []
-  const combinedText =
-    accumulator.status === "ready"
-      ? combineAccumulatorText(accumulator.accumulator)
-      : ""
   const accumulatorCount = accumulatorItems.length
   const accumulatorCountText = `${accumulatorCount.toLocaleString("ko-KR")}개`
   const [open, setOpen] = useState(false)
+  const [copyResult, setCopyResult] =
+    useState<CopyAccumulatedTextResult | null>(null)
   const container = useRef<HTMLElement>(null)
   const dialog = useRef<HTMLDialogElement>(null)
   const dialogHeading = useRef<HTMLHeadingElement>(null)
@@ -232,6 +237,12 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
     "absolute right-3 top-3 z-20 hidden shadow-floating @3xl/notes-workspace:inline-flex sm:right-4",
     showInlinePanel ? "invisible" : undefined,
   )
+  const copyNoticeClassName = joinClassNames(
+    "absolute top-3 z-40 w-[min(24rem,calc(100%-1.5rem))] shadow-floating",
+    showInlinePanel ? "right-[22.75rem]" : "right-3",
+  )
+  const showMainCopyNotice =
+    copyResult !== null && (!open || inline)
   let controlledPanelId: string | undefined = MODAL_PANEL_ID
 
   if (inline) {
@@ -292,7 +303,7 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
           pending={accumulator.pending}
         />
         <Button
-          aria-label={`누적 텍스트 ${accumulatorCountText}`}
+          aria-label={`일괄 복사 ${accumulatorCountText}`}
           aria-controls={controlledPanelId}
           aria-expanded={open}
           className={accumulatorTriggerClassName}
@@ -300,7 +311,7 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
           ref={trigger}
           tone="quiet"
         >
-          <span>누적 텍스트</span>
+          <span>일괄 복사</span>
           <span
             aria-hidden="true"
             className="inline-flex min-w-8 items-center justify-center rounded-full bg-rail px-2 py-0.5 text-xs font-semibold tabular-nums text-rail-ink"
@@ -310,11 +321,11 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
         </Button>
         {accumulatorCount > 0 ? (
           <Link
-            aria-label={`누적 텍스트 ${accumulatorCountText} 관리`}
+            aria-label={`일괄 복사 ${accumulatorCountText} 관리`}
             className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 z-30 inline-flex min-h-12 items-center gap-2 rounded-full border border-action bg-action px-4 py-2 text-sm font-semibold text-action-ink shadow-floating @3xl/notes-workspace:hidden"
             href="/accumulator/"
           >
-            <span>누적 텍스트</span>
+            <span>일괄 복사</span>
             <span
               aria-hidden="true"
               className="min-w-6 text-center tabular-nums"
@@ -322,6 +333,11 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
               {accumulatorCountText}
             </span>
           </Link>
+        ) : null}
+        {showMainCopyNotice ? (
+          <div className={copyNoticeClassName}>
+            <CopyAccumulatorNotice result={copyResult} />
+          </div>
         ) : null}
         <div className={workspaceLayoutClassName}>
           <section
@@ -332,23 +348,20 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
           </section>
           {showInlinePanel ? (
             <aside
-              aria-label="누적 텍스트"
+              aria-label="일괄 복사"
               className="h-full min-h-0 overflow-hidden border-l border-line bg-surface-raised shadow-floating"
               id={INLINE_PANEL_ID}
             >
               <AccumulatorPanelContent
-                canRedo={accumulator.canRedo}
-                canUndo={accumulator.canUndo}
-                combinedText={combinedText}
+                copyResult={copyResult}
                 headingId="accumulator-inline-title"
                 items={accumulatorItems}
                 onClose={closePanel}
                 onCopy={accumulator.copyAll}
+                onCopyResult={setCopyResult}
                 onMove={accumulator.moveItem}
-                onRedo={accumulator.redo}
                 onRemove={accumulator.removeItem}
                 onRetry={accumulator.retry}
-                onUndo={accumulator.undo}
                 pending={accumulator.pending}
                 presentation="inline"
                 status={accumulator.status}
@@ -358,25 +371,22 @@ export function AccumulatorWorkspace({ children }: PropsWithChildren) {
         </div>
         <dialog
           aria-labelledby="accumulator-dialog-title"
-          className="m-auto h-[min(42rem,calc(100dvh-2rem))] w-[min(32rem,calc(100vw-2rem))] max-w-none overflow-hidden rounded-panel border border-line bg-surface-raised p-0 text-ink shadow-floating"
+          className="m-auto h-[min(42rem,calc(100dvh-2rem))] w-[min(32rem,calc(100vw-2rem))] max-w-none overflow-visible rounded-panel border border-line bg-surface-raised p-0 text-ink shadow-floating"
           id={MODAL_PANEL_ID}
           onClose={handleDialogClose}
           ref={dialog}
         >
           <AccumulatorPanelContent
-            canRedo={accumulator.canRedo}
-            canUndo={accumulator.canUndo}
-            combinedText={combinedText}
+            copyResult={copyResult}
             headingId="accumulator-dialog-title"
             headingRef={dialogHeading}
             items={accumulatorItems}
             onClose={closePanel}
             onCopy={accumulator.copyAll}
+            onCopyResult={setCopyResult}
             onMove={accumulator.moveItem}
-            onRedo={accumulator.redo}
             onRemove={accumulator.removeItem}
             onRetry={accumulator.retry}
-            onUndo={accumulator.undo}
             pending={accumulator.pending}
             presentation="modal"
             status={accumulator.status}

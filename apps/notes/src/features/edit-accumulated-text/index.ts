@@ -17,4 +17,7 @@ export {
 } from "./model/edit-accumulated-text"
 export { AccumulatorEditingView } from "./ui/accumulator-editing-view"
 export { AccumulatorHistoryShortcuts } from "./ui/accumulator-history-shortcuts"
-export { CopyAccumulatorAction } from "./ui/copy-accumulator-action"
+export {
+  CopyAccumulatorAction,
+  CopyAccumulatorNotice,
+} from "./ui/copy-accumulator-action"

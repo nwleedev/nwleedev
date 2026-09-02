@@ -10,6 +10,8 @@ import {
 import type { AccumulatedTextItem } from "@/entities/accumulator"
 import { joinClassNames } from "@/shared/lib/join-class-names"
 import { Button } from "@/shared/ui/button"
+import { IconButton } from "@/shared/ui/icon-button"
+import { GripIcon, RemoveIcon } from "@/shared/ui/icons"
 
 type DragSession = {
   itemId: string
@@ -22,17 +24,20 @@ type DragSession = {
 type AccumulatorListProps = {
   items: readonly AccumulatedTextItem[]
   pending: boolean
+  presentation: "management" | "panel"
   onMove(itemId: string, index: number): void
   onRemove(itemId: string): void
 }
 
 type AccumulatorItemProps = {
   dragging: boolean
+  dropTarget: boolean
   item: AccumulatedTextItem
   outside: boolean
   pending: boolean
   position: number
   positionText: string
+  presentation: "management" | "panel"
   total: number
   onHandleClick(itemId: string, position: number): void
   onHandleKeyDown(
@@ -52,11 +57,72 @@ type AccumulatorItemProps = {
   onRemove(itemId: string): void
 }
 
+type AccumulatorItemActionsProps = {
+  itemId: string
+  pending: boolean
+  position: number
+  presentation: "management" | "panel"
+  total: number
+  onMove(itemId: string, index: number): void
+  onRemove(itemId: string): void
+}
+
+function AccumulatorItemActions({
+  itemId,
+  onMove,
+  onRemove,
+  pending,
+  position,
+  presentation,
+  total,
+}: AccumulatorItemActionsProps) {
+  if (presentation === "panel") {
+    return (
+      <IconButton
+        aria-label="일괄 복사 항목 제거"
+        className="pointer-events-none absolute right-2 top-2 opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
+        disabled={pending}
+        onClick={() => onRemove(itemId)}
+        size="compact"
+        tone="danger"
+      >
+        <RemoveIcon />
+      </IconButton>
+    )
+  }
+
+  return (
+    <div className="col-start-2 mt-1 flex flex-wrap gap-2">
+      <Button
+        disabled={pending || position === 0}
+        onClick={() => onMove(itemId, position - 1)}
+        tone="quiet"
+      >
+        위로
+      </Button>
+      <Button
+        disabled={pending || position === total - 1}
+        onClick={() => onMove(itemId, position + 1)}
+        tone="quiet"
+      >
+        아래로
+      </Button>
+      <Button
+        disabled={pending}
+        onClick={() => onRemove(itemId)}
+        tone="quiet"
+      >
+        제거
+      </Button>
+    </div>
+  )
+}
+
 function previewItems(
   items: readonly AccumulatedTextItem[],
   drag: DragSession | null,
 ) {
-  if (drag === null || drag.outside) {
+  if (drag === null || drag.outside || drag.mode === "pointer") {
     return items
   }
 
@@ -97,6 +163,7 @@ function indexAtPoint(element: HTMLElement, clientY: number, total: number) {
 
 function AccumulatorItem({
   dragging,
+  dropTarget,
   item,
   onHandleClick,
   onHandleKeyDown,
@@ -110,16 +177,16 @@ function AccumulatorItem({
   pending,
   position,
   positionText,
+  presentation,
   total,
 }: AccumulatorItemProps) {
   const itemClassName = joinClassNames(
-    "grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-control border bg-surface p-3 transition-[border-color,opacity,transform]",
+    "group relative grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-control border bg-surface p-3 transition-[border-color,opacity,transform]",
     dragging ? "border-action opacity-80" : "border-line",
     dragging && outside ? "border-danger bg-danger/5" : undefined,
+    dropTarget ? "border-action ring-2 ring-action/20" : undefined,
   )
   const text = item.textSnapshot || "빈 메모"
-  const moveUpDisabled = pending || position === 0
-  const moveDownDisabled = pending || position === total - 1
 
   return (
     <li
@@ -127,9 +194,10 @@ function AccumulatorItem({
       data-accumulator-position={position}
     >
       <button
-        aria-label={`${positionText} 누적 텍스트 순서 변경`}
+        aria-label={`${positionText}번째 일괄 복사 항목 순서 변경`}
         aria-pressed={dragging}
-        className="min-h-10 min-w-10 touch-none cursor-grab rounded-control border border-line bg-surface-raised px-2 text-sm font-bold text-soft-ink active:cursor-grabbing"
+        className="min-h-10 min-w-10 touch-none cursor-grab rounded-control border border-line bg-surface-raised text-soft-ink active:cursor-grabbing"
+        disabled={pending}
         onClick={() => onHandleClick(item.id, position)}
         onKeyDown={(event) => onHandleKeyDown(event, item.id, position)}
         onLostPointerCapture={onPointerCancel}
@@ -139,9 +207,9 @@ function AccumulatorItem({
         onPointerUp={onPointerUp}
         type="button"
       >
-        {positionText}
+        <GripIcon />
       </button>
-      <div className="min-w-0">
+      <div className="min-w-0 pr-9">
         <p className="whitespace-pre-wrap break-words text-sm leading-6">
           {text}
         </p>
@@ -150,30 +218,16 @@ function AccumulatorItem({
             목록 밖에 놓으면 제거됩니다.
           </p>
         ) : null}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button
-            disabled={moveUpDisabled}
-            onClick={() => onMove(item.id, position - 1)}
-            tone="quiet"
-          >
-            위로
-          </Button>
-          <Button
-            disabled={moveDownDisabled}
-            onClick={() => onMove(item.id, position + 1)}
-            tone="quiet"
-          >
-            아래로
-          </Button>
-          <Button
-            disabled={pending}
-            onClick={() => onRemove(item.id)}
-            tone="quiet"
-          >
-            제거
-          </Button>
-        </div>
       </div>
+      <AccumulatorItemActions
+        itemId={item.id}
+        onMove={onMove}
+        onRemove={onRemove}
+        pending={pending}
+        position={position}
+        presentation={presentation}
+        total={total}
+      />
     </li>
   )
 }
@@ -183,6 +237,7 @@ export function AccumulatorList({
   onMove,
   onRemove,
   pending,
+  presentation,
 }: AccumulatorListProps) {
   const list = useRef<HTMLOListElement>(null)
   const dragSession = useRef<DragSession | null>(null)
@@ -360,10 +415,16 @@ export function AccumulatorList({
         const positionText = (position + 1).toLocaleString("ko-KR")
         const dragging = drag?.itemId === item.id
         const outside = dragging && drag.outside
+        const pointerDropTarget =
+          drag?.mode === "pointer" &&
+          !drag.outside &&
+          drag.targetIndex === position &&
+          drag.itemId !== item.id
 
         return (
           <AccumulatorItem
             dragging={dragging}
+            dropTarget={pointerDropTarget}
             item={item}
             key={item.id}
             onHandleClick={handleDragClick}
@@ -378,6 +439,7 @@ export function AccumulatorList({
             pending={pending}
             position={position}
             positionText={positionText}
+            presentation={presentation}
             total={displayedItems.length}
           />
         )

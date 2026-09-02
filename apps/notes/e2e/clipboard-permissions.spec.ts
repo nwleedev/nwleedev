@@ -67,6 +67,7 @@ test("클립보드 권한이 거절되면 원인을 알리고 일반 복사 횟�
     permission: { name: "clipboard-write" },
     setting: "denied",
   })
+  await page.setViewportSize({ height: 768, width: 1_024 })
   await page.goto("/")
   const content = "클립보드 거절을 확인할 메모"
   const note = await createNoteThroughUi(page, content)
@@ -80,13 +81,15 @@ test("클립보드 권한이 거절되면 원인을 알리고 일반 복사 횟�
   ).toHaveCount(0)
 
   await note.getByRole("button", { name: "누적" }).click()
-  const panel = page.getByRole("complementary", { name: "누적 텍스트" })
+  const panel = page.getByRole("dialog", { name: "일괄 복사" })
   await panel.getByRole("button", { exact: true, name: "복사" }).click()
-  await expect(panel.getByRole("alert")).toContainText(
-    "클립보드 쓰기를 허용하지 않았습니다.",
-  )
+  const batchCopyAlert = page.getByRole("alert").filter({
+    hasText: "브라우저가 클립보드 쓰기를 허용하지 않았습니다.",
+  })
 
-  await panel.getByRole("button", { name: "닫기" }).click()
+  await expect(batchCopyAlert).toBeVisible()
+
+  await panel.getByRole("button", { name: "일괄 복사 패널 닫기" }).click()
   await page.setViewportSize({ height: 720, width: 320 })
   await page.getByRole("button", { name: "탐색" }).click()
   await page.getByRole("link", { exact: true, name: "사용 빈도" }).click()

@@ -3,34 +3,25 @@
 import { useState } from "react"
 
 import type { AccumulatedTextItem } from "@/entities/accumulator"
-import { Button } from "@/shared/ui/button"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
 import type { EditAccumulatorResult } from "../model/edit-accumulated-text"
 import { AccumulatorList } from "./accumulator-list"
 
 type AccumulatorEditingViewProps = {
-  canRedo: boolean
-  canUndo: boolean
-  combinedText: string
   items: readonly AccumulatedTextItem[]
   pending: boolean
+  presentation: "management" | "panel"
   onMove(itemId: string, index: number): Promise<EditAccumulatorResult>
-  onRedo(): Promise<EditAccumulatorResult>
   onRemove(itemId: string): Promise<EditAccumulatorResult>
-  onUndo(): Promise<EditAccumulatorResult>
 }
 
 export function AccumulatorEditingView({
-  canRedo,
-  canUndo,
-  combinedText,
   items,
   onMove,
-  onRedo,
   onRemove,
-  onUndo,
   pending,
+  presentation,
 }: AccumulatorEditingViewProps) {
   const [errorMessage, setErrorMessage] = useState("")
 
@@ -47,25 +38,7 @@ export function AccumulatorEditingView({
     const result = await onRemove(itemId)
     setErrorMessage(
       result.status === "failure"
-        ? "누적 텍스트를 제거하지 못했습니다. 다시 시도하세요."
-        : "",
-    )
-  }
-
-  async function undo() {
-    const result = await onUndo()
-    setErrorMessage(
-      result.status === "failure"
-        ? "제거를 실행 취소하지 못했습니다. 다시 시도하세요."
-        : "",
-    )
-  }
-
-  async function redo() {
-    const result = await onRedo()
-    setErrorMessage(
-      result.status === "failure"
-        ? "제거를 다시 실행하지 못했습니다. 다시 시도하세요."
+        ? "일괄 복사 항목을 제거하지 못했습니다. 다시 시도하세요."
         : "",
     )
   }
@@ -80,18 +53,6 @@ export function AccumulatorEditingView({
 
   return (
     <div className="grid gap-4">
-      <div
-        aria-label="누적 텍스트 편집"
-        className="flex flex-wrap gap-2"
-        role="group"
-      >
-        <Button disabled={pending || !canUndo} onClick={undo} tone="quiet">
-          실행 취소
-        </Button>
-        <Button disabled={pending || !canRedo} onClick={redo} tone="quiet">
-          다시 실행
-        </Button>
-      </div>
       {errorMessage ? (
         <StatusNotice kind="error">
           <p>{errorMessage}</p>
@@ -102,15 +63,8 @@ export function AccumulatorEditingView({
         onMove={moveFromList}
         onRemove={removeFromList}
         pending={pending}
+        presentation={presentation}
       />
-      <section aria-label="합친 텍스트" className="grid gap-2">
-        <h3 className="text-sm font-semibold">
-          합친 텍스트
-        </h3>
-        <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-control border border-line bg-canvas p-3 font-sans text-sm leading-6 text-ink">
-          {combinedText}
-        </pre>
-      </section>
     </div>
   )
 }
