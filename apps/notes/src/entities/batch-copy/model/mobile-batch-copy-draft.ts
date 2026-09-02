@@ -42,17 +42,6 @@ export const MobileBatchCopyDraftSchema = z
         path: ["entries"],
       })
     }
-
-    if (
-      draft.step === "collecting" &&
-      draft.clickCount !== draft.entries.length
-    ) {
-      context.addIssue({
-        code: "custom",
-        message: "Collecting entries must match the click count",
-        path: ["clickCount"],
-      })
-    }
   })
 
 export type MobileBatchCopyEntry = z.infer<
@@ -117,6 +106,13 @@ export function confirmMobileBatchCopy(
   updatedAt: string,
 ): ConfirmingMobileBatchCopyDraft {
   return { ...draft, step: "confirming", updatedAt }
+}
+
+export function resumeMobileBatchCopyCollection(
+  draft: ConfirmingMobileBatchCopyDraft,
+  updatedAt: string,
+): CollectingMobileBatchCopyDraft {
+  return { ...draft, step: "collecting", updatedAt }
 }
 
 export function moveMobileBatchCopyEntry(

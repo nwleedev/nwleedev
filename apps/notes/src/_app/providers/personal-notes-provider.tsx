@@ -39,6 +39,7 @@ function ApplicationProviders({
   return (
     <UsageReaderProvider reader={application.usage.reader}>
       <MobileBatchCopyProvider
+        clipboard={application.notes.clipboard}
         createId={application.batchCopy.createId}
         now={application.batchCopy.now}
         repository={application.batchCopy.draftRepository}

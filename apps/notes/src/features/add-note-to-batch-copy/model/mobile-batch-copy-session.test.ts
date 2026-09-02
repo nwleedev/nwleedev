@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import type {
   CollectingMobileBatchCopyDraft,
+  ConfirmingMobileBatchCopyDraft,
   MobileBatchCopyDraft,
   MobileBatchCopyDraftRepository,
 } from "@/entities/batch-copy"
@@ -12,8 +13,12 @@ import {
   addNoteToMobileBatchCopy,
   cancelMobileBatchCopy,
   confirmMobileBatchCopySession,
+  duplicateMobileBatchCopySessionEntry,
   loadMobileBatchCopy,
+  moveMobileBatchCopySessionEntry,
+  removeMobileBatchCopySessionEntry,
   resetMobileBatchCopySession,
+  resumeMobileBatchCopySession,
   startMobileBatchCopy,
   type MobileBatchCopySaveResult,
 } from "./mobile-batch-copy-session"
@@ -29,7 +34,10 @@ const firstNote: Note = {
   updatedAt: "2026-09-02T02:00:00.000Z",
 }
 
-function createDependencies(options?: { failWrite?: boolean }) {
+function createDependencies(options?: {
+  failSave?: boolean
+  failWrite?: boolean
+}) {
   let draft: MobileBatchCopyDraft | null = null
   let usageCount = 0
   let identifier = 0
@@ -43,6 +51,10 @@ function createDependencies(options?: { failWrite?: boolean }) {
       draft = null
     },
     async save(nextDraft) {
+      if (options?.failSave === true) {
+        throw new Error("draft save failed")
+      }
+
       draft = nextDraft
       return nextDraft
     },
@@ -80,6 +92,16 @@ function savedCollectingDraft(
 ) {
   if (result.status !== "saved") {
     throw new Error("Expected a collecting draft")
+  }
+
+  return result.draft
+}
+
+function savedConfirmingDraft(
+  result: MobileBatchCopySaveResult<ConfirmingMobileBatchCopyDraft>,
+) {
+  if (result.status !== "saved") {
+    throw new Error("Expected a confirming draft")
   }
 
   return result.draft
@@ -214,5 +236,156 @@ describe("모바일 일괄 복사 작업", () => {
       status: "removed",
     })
     expect(dependencies.getDraft()).toBeNull()
+  })
+
+  it("확인 작업 항목의 순서를 바꿔 저장한다", async () => {
+    const dependencies = createDependencies()
+    const collecting = savedCollectingDraft(
+      await startMobileBatchCopy(dependencies),
+    )
+    const first = savedCollectingDraft(
+      await addNoteToMobileBatchCopy(dependencies, collecting, firstNote),
+    )
+    const second = savedCollectingDraft(
+      await addNoteToMobileBatchCopy(
+        dependencies,
+        first,
+        { ...firstNote, content: "두 번째 원문" },
+      ),
+    )
+    const confirmation = savedConfirmingDraft(
+      await confirmMobileBatchCopySession(dependencies, second),
+    )
+
+    const result = await moveMobileBatchCopySessionEntry(
+      dependencies,
+      confirmation,
+      confirmation.entries[1]?.id ?? "",
+      0,
+    )
+
+    expect(result).toMatchObject({
+      draft: {
+        clickCount: 2,
+        entries: [
+          { textSnapshot: "두 번째 원문" },
+          { textSnapshot: "첫 번째 원문" },
+        ],
+      },
+      status: "saved",
+    })
+  })
+
+  it("확인 작업 항목을 대상 바로 뒤에 새 ID로 복제해 저장한다", async () => {
+    const dependencies = createDependencies()
+    const collecting = savedCollectingDraft(
+      await startMobileBatchCopy(dependencies),
+    )
+    const added = savedCollectingDraft(
+      await addNoteToMobileBatchCopy(dependencies, collecting, firstNote),
+    )
+    const confirmation = savedConfirmingDraft(
+      await confirmMobileBatchCopySession(dependencies, added),
+    )
+
+    const source = confirmation.entries[0]
+    const result = await duplicateMobileBatchCopySessionEntry(
+      dependencies,
+      confirmation,
+      source?.id ?? "",
+    )
+
+    expect(result).toMatchObject({
+      draft: {
+        clickCount: 1,
+        entries: [source, { ...source, id: "mobile-item-3" }],
+      },
+      status: "saved",
+    })
+  })
+
+  it("확인 작업에서 지정한 ID의 항목만 삭제해 저장한다", async () => {
+    const dependencies = createDependencies()
+    const collecting = savedCollectingDraft(
+      await startMobileBatchCopy(dependencies),
+    )
+    const first = savedCollectingDraft(
+      await addNoteToMobileBatchCopy(dependencies, collecting, firstNote),
+    )
+    const second = savedCollectingDraft(
+      await addNoteToMobileBatchCopy(dependencies, first, firstNote),
+    )
+    const confirmation = savedConfirmingDraft(
+      await confirmMobileBatchCopySession(dependencies, second),
+    )
+
+    const removedId = confirmation.entries[0]?.id ?? ""
+    const result = await removeMobileBatchCopySessionEntry(
+      dependencies,
+      confirmation,
+      removedId,
+    )
+
+    expect(result).toMatchObject({
+      draft: { clickCount: 2, entries: [{ id: "mobile-item-3" }] },
+      status: "saved",
+    })
+  })
+
+  it("저장 실패 시 확인 작업의 이전 순서를 유지한다", async () => {
+    const dependencies = createDependencies()
+    const collecting = savedCollectingDraft(
+      await startMobileBatchCopy(dependencies),
+    )
+    const first = savedCollectingDraft(
+      await addNoteToMobileBatchCopy(dependencies, collecting, firstNote),
+    )
+    const second = savedCollectingDraft(
+      await addNoteToMobileBatchCopy(dependencies, first, firstNote),
+    )
+    const confirmation = savedConfirmingDraft(
+      await confirmMobileBatchCopySession(dependencies, second),
+    )
+
+    const failingDependencies = {
+      ...dependencies,
+      repository: createDependencies({ failSave: true }).repository,
+    }
+    const result = await moveMobileBatchCopySessionEntry(
+      failingDependencies,
+      confirmation,
+      confirmation.entries[1]?.id ?? "",
+      0,
+    )
+
+    expect(result).toEqual({ status: "failure" })
+    expect(dependencies.getDraft()).toEqual(confirmation)
+  })
+
+  it("확인 작업 편집을 유지한 채 수집 화면 단계로 저장한다", async () => {
+    const dependencies = createDependencies()
+    const collecting = savedCollectingDraft(
+      await startMobileBatchCopy(dependencies),
+    )
+    const added = savedCollectingDraft(
+      await addNoteToMobileBatchCopy(dependencies, collecting, firstNote),
+    )
+    const confirmation = savedConfirmingDraft(
+      await confirmMobileBatchCopySession(dependencies, added),
+    )
+
+    const result = await resumeMobileBatchCopySession(
+      dependencies,
+      confirmation,
+    )
+
+    expect(result).toMatchObject({
+      draft: {
+        clickCount: 1,
+        entries: [{ textSnapshot: firstNote.content }],
+        step: "collecting",
+      },
+      status: "saved",
+    })
   })
 })

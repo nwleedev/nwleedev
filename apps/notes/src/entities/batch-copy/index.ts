@@ -9,6 +9,7 @@ export {
 } from "./model/batch-copy-list"
 export {
   combineBatchCopyText,
+  itemIndexForInsertionSlot,
   moveBatchCopyItem,
   removeBatchCopyItem,
   restoreBatchCopyItem,
@@ -36,6 +37,7 @@ export {
   moveMobileBatchCopyEntry,
   parseMobileBatchCopyDraft,
   removeMobileBatchCopyEntry,
+  resumeMobileBatchCopyCollection,
   resetMobileBatchCopy,
   type CollectingMobileBatchCopyDraft,
   type ConfirmingMobileBatchCopyDraft,

@@ -9,6 +9,7 @@ import type { CopyBatchTextResult } from "../model/copy-batch-text"
 
 type CopyBatchTextActionProps = {
   disabled: boolean
+  label?: string
   onCopy(): Promise<CopyBatchTextResult>
   onResult(result: CopyBatchTextResult): void
 }
@@ -16,6 +17,7 @@ type CopyBatchTextActionProps = {
 type CopyBatchTextNoticeProps = {
   result: CopyBatchTextResult
   onDismiss(): void
+  onRetry?(): void
 }
 
 function clipboardFailureMessage(
@@ -37,6 +39,7 @@ function clipboardFailureMessage(
 
 export function CopyBatchTextAction({
   disabled,
+  label = "복사",
   onCopy,
   onResult,
 }: CopyBatchTextActionProps) {
@@ -62,13 +65,14 @@ export function CopyBatchTextAction({
 
   return (
     <Button disabled={unavailable} onClick={copy}>
-      복사
+      {label}
     </Button>
   )
 }
 
 export function CopyBatchTextNotice({
   onDismiss,
+  onRetry,
   result,
 }: CopyBatchTextNoticeProps) {
   if (result.status === "copied") {
@@ -79,8 +83,10 @@ export function CopyBatchTextNotice({
 
   return (
     <ActionToast
+      actionLabel={onRetry === undefined ? undefined : "다시 시도"}
       kind="error"
       message={clipboardFailureMessage(result.reason)}
+      onAction={onRetry}
       onDismiss={onDismiss}
     />
   )

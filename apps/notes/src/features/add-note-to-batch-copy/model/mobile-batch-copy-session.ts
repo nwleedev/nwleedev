@@ -2,6 +2,10 @@ import {
   addMobileBatchCopyEntry,
   beginMobileBatchCopy,
   confirmMobileBatchCopy,
+  duplicateMobileBatchCopyEntry,
+  moveMobileBatchCopyEntry,
+  removeMobileBatchCopyEntry,
+  resumeMobileBatchCopyCollection,
   resetMobileBatchCopy,
   type CollectingMobileBatchCopyDraft,
   type ConfirmingMobileBatchCopyDraft,
@@ -31,6 +35,9 @@ type AddNoteToMobileBatchCopyDependencies = MobileBatchCopyClock &
   }
 
 type StartMobileBatchCopyDependencies = MobileBatchCopyIdentifiers &
+  MobileBatchCopyPersistence
+
+type EditMobileBatchCopyDependencies = MobileBatchCopyIdentifiers &
   MobileBatchCopyPersistence
 
 export type MobileBatchCopyLoadResult =
@@ -134,6 +141,77 @@ export async function cancelMobileBatchCopy(
   try {
     await repository.remove()
     return { status: "removed" }
+  } catch {
+    return { status: "failure" }
+  }
+}
+
+async function saveConfirmingDraft(
+  repository: MobileBatchCopyDraftRepository,
+  draft: ConfirmingMobileBatchCopyDraft,
+): Promise<MobileBatchCopySaveResult<ConfirmingMobileBatchCopyDraft>> {
+  try {
+    await repository.save(draft)
+    return { draft, status: "saved" }
+  } catch {
+    return { status: "failure" }
+  }
+}
+
+export function moveMobileBatchCopySessionEntry(
+  dependencies: MobileBatchCopyPersistence,
+  draft: ConfirmingMobileBatchCopyDraft,
+  entryId: string,
+  index: number,
+) {
+  const nextDraft = moveMobileBatchCopyEntry(
+    draft,
+    entryId,
+    index,
+    dependencies.now(),
+  )
+  return saveConfirmingDraft(dependencies.repository, nextDraft)
+}
+
+export function duplicateMobileBatchCopySessionEntry(
+  dependencies: EditMobileBatchCopyDependencies,
+  draft: ConfirmingMobileBatchCopyDraft,
+  entryId: string,
+) {
+  const nextDraft = duplicateMobileBatchCopyEntry(
+    draft,
+    entryId,
+    dependencies.createId(),
+    dependencies.now(),
+  )
+  return saveConfirmingDraft(dependencies.repository, nextDraft)
+}
+
+export function removeMobileBatchCopySessionEntry(
+  dependencies: MobileBatchCopyPersistence,
+  draft: ConfirmingMobileBatchCopyDraft,
+  entryId: string,
+) {
+  const nextDraft = removeMobileBatchCopyEntry(
+    draft,
+    entryId,
+    dependencies.now(),
+  )
+  return saveConfirmingDraft(dependencies.repository, nextDraft)
+}
+
+export async function resumeMobileBatchCopySession(
+  dependencies: MobileBatchCopyPersistence,
+  draft: ConfirmingMobileBatchCopyDraft,
+): Promise<MobileBatchCopySaveResult<CollectingMobileBatchCopyDraft>> {
+  const nextDraft = resumeMobileBatchCopyCollection(
+    draft,
+    dependencies.now(),
+  )
+
+  try {
+    await dependencies.repository.save(nextDraft)
+    return { draft: nextDraft, status: "saved" }
   } catch {
     return { status: "failure" }
   }

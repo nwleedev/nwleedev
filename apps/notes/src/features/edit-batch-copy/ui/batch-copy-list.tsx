@@ -1,17 +1,24 @@
 "use client"
 
 import {
+  Fragment,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 
-import type { BatchCopyItem } from "@/entities/batch-copy"
+import {
+  itemIndexForInsertionSlot,
+  type BatchCopyItem,
+} from "@/entities/batch-copy"
 import { joinClassNames } from "@/shared/lib/join-class-names"
+import {
+  ActionPopover,
+  type ActionPopoverAction,
+} from "@/shared/ui/action-popover"
 import { Button } from "@/shared/ui/button"
-import { IconButton } from "@/shared/ui/icon-button"
-import { GripIcon, RemoveIcon } from "@/shared/ui/icons"
+import { GripIcon } from "@/shared/ui/icons"
 
 type DragSession = {
   itemId: string
@@ -25,7 +32,7 @@ type BatchCopyListProps = {
   items: readonly BatchCopyItem[]
   pending: boolean
   presentation: "management" | "panel"
-  onMove(itemId: string, index: number): void
+  onMove(itemId: string, index: number): Promise<boolean>
   onRemove(itemId: string): void
 }
 
@@ -36,7 +43,6 @@ type BatchCopyItemProps = {
   outside: boolean
   pending: boolean
   position: number
-  positionText: string
   presentation: "management" | "panel"
   total: number
   onHandleClick(itemId: string, position: number): void
@@ -53,7 +59,8 @@ type BatchCopyItemProps = {
   ): void
   onPointerMove(event: ReactPointerEvent<HTMLButtonElement>): void
   onPointerUp(event: ReactPointerEvent<HTMLButtonElement>): void
-  onMove(itemId: string, index: number): void
+  onChoosePosition(itemId: string): void
+  onMove(itemId: string, index: number): Promise<boolean>
   onRemove(itemId: string): void
 }
 
@@ -63,12 +70,66 @@ type BatchCopyItemActionsProps = {
   position: number
   presentation: "management" | "panel"
   total: number
+  onChoosePosition(itemId: string): void
   onMove(itemId: string, index: number): void
   onRemove(itemId: string): void
 }
 
+type BatchCopyInsertionTargetProps = {
+  currentIndex: number
+  disabled: boolean
+  itemCount: number
+  slot: number
+  onSelect(itemIndex: number): void
+}
+
+function BatchCopyInsertionTarget({
+  currentIndex,
+  disabled,
+  itemCount,
+  onSelect,
+  slot,
+}: BatchCopyInsertionTargetProps) {
+  const itemIndex = itemIndexForInsertionSlot(
+    currentIndex,
+    slot,
+    itemCount,
+  )
+  const unavailable = disabled || itemIndex === null
+  const positionText = (slot + 1).toLocaleString("ko-KR")
+
+  function select() {
+    if (itemIndex !== null) {
+      onSelect(itemIndex)
+    }
+  }
+
+  return (
+    <li role="presentation">
+      <button
+        aria-label={`${positionText}번째 삽입 위치`}
+        className="group/target flex min-h-6 w-full items-center gap-2 py-1 text-xs font-semibold text-soft-ink disabled:opacity-35"
+        disabled={unavailable}
+        onClick={select}
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          className="h-px flex-1 bg-line-strong transition-[height,background-color] group-hover/target:h-0.5 group-hover/target:bg-action group-focus-visible/target:h-0.5 group-focus-visible/target:bg-action"
+        />
+        <span>이 위치로 이동</span>
+        <span
+          aria-hidden="true"
+          className="h-px flex-1 bg-line-strong transition-[height,background-color] group-hover/target:h-0.5 group-hover/target:bg-action group-focus-visible/target:h-0.5 group-focus-visible/target:bg-action"
+        />
+      </button>
+    </li>
+  )
+}
+
 function BatchCopyItemActions({
   itemId,
+  onChoosePosition,
   onMove,
   onRemove,
   pending,
@@ -77,17 +138,30 @@ function BatchCopyItemActions({
   total,
 }: BatchCopyItemActionsProps) {
   if (presentation === "panel") {
+    const actions: readonly ActionPopoverAction[] = [
+      {
+        icon: "move",
+        id: "move",
+        label: "위치 변경",
+        onSelect: () => onChoosePosition(itemId),
+      },
+      {
+        icon: "remove",
+        id: "remove",
+        label: "제거",
+        onSelect: () => onRemove(itemId),
+        tone: "danger",
+      },
+    ]
+
     return (
-      <IconButton
-        aria-label="일괄 복사 항목 제거"
-        className="pointer-events-none absolute right-2 top-2 opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100"
-        disabled={pending}
-        onClick={() => onRemove(itemId)}
-        size="compact"
-        tone="danger"
-      >
-        <RemoveIcon />
-      </IconButton>
+      <div className="pointer-events-none absolute right-2 top-2 opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:pointer-events-auto [@media(pointer:coarse)]:opacity-100">
+        <ActionPopover
+          actions={actions}
+          disabled={pending}
+          label="일괄 복사 항목 동작"
+        />
+      </div>
     )
   }
 
@@ -165,6 +239,7 @@ function BatchCopyItemRow({
   dragging,
   dropTarget,
   item,
+  onChoosePosition,
   onHandleClick,
   onHandleKeyDown,
   onMove,
@@ -176,10 +251,10 @@ function BatchCopyItemRow({
   outside,
   pending,
   position,
-  positionText,
   presentation,
   total,
 }: BatchCopyItemProps) {
+  const positionText = (position + 1).toLocaleString("ko-KR")
   const itemClassName = joinClassNames(
     "group relative grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-control border bg-surface p-3 transition-[border-color,opacity,transform]",
     dragging ? "border-action opacity-80" : "border-line",
@@ -221,6 +296,7 @@ function BatchCopyItemRow({
       </div>
       <BatchCopyItemActions
         itemId={item.id}
+        onChoosePosition={onChoosePosition}
         onMove={onMove}
         onRemove={onRemove}
         pending={pending}
@@ -243,7 +319,13 @@ export function BatchCopyList({
   const dragSession = useRef<DragSession | null>(null)
   const suppressHandleClick = useRef(false)
   const [drag, setDrag] = useState<DragSession | null>(null)
+  const [placementItemId, setPlacementItemId] = useState<string | null>(null)
   const displayedItems = previewItems(items, drag)
+  const placementIndex = displayedItems.findIndex(
+    ({ id }) => id === placementItemId,
+  )
+  const placementActive = presentation === "panel" && placementIndex >= 0
+  const itemCount = displayedItems.length
 
   function updateDrag(nextDrag: DragSession | null) {
     dragSession.current = nextDrag
@@ -302,7 +384,7 @@ export function BatchCopyList({
       return
     }
 
-    onMove(current.itemId, current.targetIndex)
+    void onMove(current.itemId, current.targetIndex)
   }
 
   function finishPointer(event: ReactPointerEvent<HTMLButtonElement>) {
@@ -409,41 +491,89 @@ export function BatchCopyList({
     }
   }
 
-  return (
-    <ol className="grid gap-2" ref={list}>
-      {displayedItems.map((item, position) => {
-        const positionText = (position + 1).toLocaleString("ko-KR")
-        const dragging = drag?.itemId === item.id
-        const outside = dragging && drag.outside
-        const pointerDropTarget =
-          drag?.mode === "pointer" &&
-          !drag.outside &&
-          drag.targetIndex === position &&
-          drag.itemId !== item.id
+  function choosePosition(itemId: string) {
+    setPlacementItemId(itemId)
+  }
 
-        return (
-          <BatchCopyItemRow
-            dragging={dragging}
-            dropTarget={pointerDropTarget}
-            item={item}
-            key={item.id}
-            onHandleClick={handleDragClick}
-            onHandleKeyDown={handleDragKeyDown}
-            onMove={onMove}
-            onPointerCancel={cancelPointer}
-            onPointerDown={startPointerDrag}
-            onPointerMove={movePointer}
-            onPointerUp={finishPointer}
-            onRemove={onRemove}
-            outside={outside}
-            pending={pending}
-            position={position}
-            positionText={positionText}
-            presentation={presentation}
-            total={displayedItems.length}
+  async function moveToInsertion(itemIndex: number) {
+    if (placementItemId === null) {
+      return
+    }
+
+    const saved = await onMove(placementItemId, itemIndex)
+
+    if (saved) {
+      setPlacementItemId(null)
+    }
+  }
+
+  function cancelPositionChoice() {
+    setPlacementItemId(null)
+  }
+
+  return (
+    <div className="grid gap-2">
+      {placementActive ? (
+        <div className="flex items-center justify-between gap-3 rounded-control border border-line bg-surface-raised px-3 py-2">
+          <p className="text-sm font-semibold">옮길 위치를 선택하세요.</p>
+          <Button onClick={cancelPositionChoice} tone="quiet">
+            취소
+          </Button>
+        </div>
+      ) : null}
+      <ol className="grid gap-2" ref={list}>
+        {displayedItems.map((item, position) => {
+          const dragging = drag?.itemId === item.id
+          const outside = dragging && drag.outside
+          const pointerDropTarget =
+            drag?.mode === "pointer" &&
+            !drag.outside &&
+            drag.targetIndex === position &&
+            drag.itemId !== item.id
+
+          return (
+            <Fragment key={item.id}>
+              {placementActive ? (
+                <BatchCopyInsertionTarget
+                  currentIndex={placementIndex}
+                  disabled={pending}
+                  itemCount={itemCount}
+                  onSelect={moveToInsertion}
+                  slot={position}
+                />
+              ) : null}
+              <BatchCopyItemRow
+                dragging={dragging}
+                dropTarget={pointerDropTarget}
+                item={item}
+                onChoosePosition={choosePosition}
+                onHandleClick={handleDragClick}
+                onHandleKeyDown={handleDragKeyDown}
+                onMove={onMove}
+                onPointerCancel={cancelPointer}
+                onPointerDown={startPointerDrag}
+                onPointerMove={movePointer}
+                onPointerUp={finishPointer}
+                onRemove={onRemove}
+                outside={outside}
+                pending={pending}
+                position={position}
+                presentation={presentation}
+                total={itemCount}
+              />
+            </Fragment>
+          )
+        })}
+        {placementActive ? (
+          <BatchCopyInsertionTarget
+            currentIndex={placementIndex}
+            disabled={pending}
+            itemCount={itemCount}
+            onSelect={moveToInsertion}
+            slot={itemCount}
           />
-        )
-      })}
-    </ol>
+        ) : null}
+      </ol>
+    </div>
   )
 }

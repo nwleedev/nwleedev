@@ -272,6 +272,21 @@ export function BatchCopyWorkspace({ children }: PropsWithChildren) {
     }
   }
 
+  async function retryCopy() {
+    try {
+      setCopyResult(await batchCopy.copyAll())
+    } catch {
+      setCopyResult({
+        reason: "write-failed",
+        status: "clipboard-failure",
+      })
+    }
+  }
+
+  function retryCopyWithoutWaiting() {
+    void retryCopy()
+  }
+
   function handleDialogClose() {
     if (switchingToInline.current) {
       switchingToInline.current = false
@@ -334,6 +349,7 @@ export function BatchCopyWorkspace({ children }: PropsWithChildren) {
           <div className={copyNoticeClassName}>
             <CopyBatchTextNotice
               onDismiss={() => setCopyResult(null)}
+              onRetry={retryCopyWithoutWaiting}
               result={copyResult}
             />
           </div>

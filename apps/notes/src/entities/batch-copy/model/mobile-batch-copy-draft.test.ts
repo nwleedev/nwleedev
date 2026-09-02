@@ -7,6 +7,7 @@ import {
   confirmMobileBatchCopy,
   duplicateMobileBatchCopyEntry,
   moveMobileBatchCopyEntry,
+  resumeMobileBatchCopyCollection,
   removeMobileBatchCopyEntry,
   resetMobileBatchCopy,
 } from "./mobile-batch-copy-draft"
@@ -53,16 +54,33 @@ describe("모바일 일괄 복사 작업 초안", () => {
     expect(second.clickCount).toBe(2)
   })
 
-  it("수집 단계는 항목 수와 클릭 횟수가 다르면 저장하지 않는다", () => {
+  it("확인 화면 편집 뒤 수집 화면으로 돌아가도 원래 클릭 횟수를 유지한다", () => {
     const draft = addMobileBatchCopyEntry(
       beginDraft(),
       firstEntry,
       "2026-09-02T03:01:00.000Z",
     )
+    const confirming = confirmMobileBatchCopy(
+      draft,
+      "2026-09-02T03:02:00.000Z",
+    )
+    const duplicated = duplicateMobileBatchCopyEntry(
+      confirming,
+      firstEntry.id,
+      "batch-entry-copy",
+      "2026-09-02T03:03:00.000Z",
+    )
+    const collecting = resumeMobileBatchCopyCollection(
+      duplicated,
+      "2026-09-02T03:04:00.000Z",
+    )
 
-    expect(
-      MobileBatchCopyDraftSchema.safeParse({ ...draft, clickCount: 2 }).success,
-    ).toBe(false)
+    expect(MobileBatchCopyDraftSchema.safeParse(collecting).success).toBe(true)
+    expect(collecting).toMatchObject({
+      clickCount: 1,
+      entries: [firstEntry, { ...firstEntry, id: "batch-entry-copy" }],
+      step: "collecting",
+    })
   })
 
   it("초기화는 단계를 유지하면서 항목과 클릭 횟수를 함께 비운다", () => {

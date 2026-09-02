@@ -88,6 +88,21 @@ export function BatchCopyStartPage() {
   const mobileDraft =
     mobileBatchCopy.status === "ready" ? mobileBatchCopy.draft : null
 
+  async function retryCopy() {
+    try {
+      setCopyResult(await batchCopy.copyAll())
+    } catch {
+      setCopyResult({
+        reason: "write-failed",
+        status: "clipboard-failure",
+      })
+    }
+  }
+
+  function retryCopyWithoutWaiting() {
+    void retryCopy()
+  }
+
   if (mobileDraft?.step === "confirming") {
     const confirmingDraft = { ...mobileDraft, step: mobileDraft.step }
     return <MobileBatchCopyConfirmation draft={confirmingDraft} />
@@ -114,6 +129,7 @@ export function BatchCopyStartPage() {
         <div className="absolute right-3 top-16 z-20 w-[min(24rem,calc(100%-1.5rem))] shadow-floating">
           <CopyBatchTextNotice
             onDismiss={() => setCopyResult(null)}
+            onRetry={retryCopyWithoutWaiting}
             result={copyResult}
           />
         </div>

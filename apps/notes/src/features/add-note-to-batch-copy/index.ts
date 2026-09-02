@@ -15,11 +15,19 @@ export {
   type AddNoteToBatchCopyResult,
 } from "./model/add-note-to-batch-copy"
 export {
+  copyMobileBatchText,
+  type CopyMobileBatchTextResult,
+} from "./model/copy-mobile-batch-text"
+export {
   addNoteToMobileBatchCopy,
   cancelMobileBatchCopy,
   confirmMobileBatchCopySession,
+  duplicateMobileBatchCopySessionEntry,
   loadMobileBatchCopy,
+  moveMobileBatchCopySessionEntry,
+  removeMobileBatchCopySessionEntry,
   resetMobileBatchCopySession,
+  resumeMobileBatchCopySession,
   startMobileBatchCopy,
   type MobileBatchCopyLoadResult,
   type MobileBatchCopyRemoveResult,

@@ -32,6 +32,7 @@ export function BatchCopyEditingView({
         ? "순서를 저장하지 못했습니다. 다시 시도하세요."
         : "",
     )
+    return result
   }
 
   async function removeItem(itemId: string) {
@@ -44,7 +45,7 @@ export function BatchCopyEditingView({
   }
 
   function moveFromList(itemId: string, index: number) {
-    void moveItem(itemId, index)
+    return moveItem(itemId, index).then((result) => result.status !== "failure")
   }
 
   function removeFromList(itemId: string) {

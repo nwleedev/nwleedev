@@ -8,6 +8,30 @@ export type RemovedBatchCopyItem = {
   list: BatchCopyList
 }
 
+export function itemIndexForInsertionSlot(
+  currentIndex: number,
+  insertionSlot: number,
+  itemCount: number,
+) {
+  const invalidCurrentIndex = currentIndex < 0 || currentIndex >= itemCount
+  const invalidInsertionSlot = insertionSlot < 0 || insertionSlot > itemCount
+
+  if (invalidCurrentIndex || invalidInsertionSlot) {
+    return null
+  }
+
+  const beforeCurrentItem = insertionSlot === currentIndex
+  const afterCurrentItem = insertionSlot === currentIndex + 1
+
+  if (beforeCurrentItem || afterCurrentItem) {
+    return null
+  }
+
+  return insertionSlot > currentIndex
+    ? insertionSlot - 1
+    : insertionSlot
+}
+
 function nextRevision(revision: Revision) {
   if (revision >= Number.MAX_SAFE_INTEGER) {
     throw new RangeError("Batch copy revision cannot exceed the safe integer range")

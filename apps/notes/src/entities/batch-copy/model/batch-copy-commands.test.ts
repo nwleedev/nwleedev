@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import type { BatchCopyList } from "./batch-copy-list"
 import {
   combineBatchCopyText,
+  itemIndexForInsertionSlot,
   moveBatchCopyItem,
   removeBatchCopyItem,
   restoreBatchCopyItem,
@@ -63,5 +64,23 @@ describe("일괄 복사 목록 편집", () => {
 
     expect(restored?.content.items).toEqual([firstItem, secondItem])
     expect(restored?.revision).toBe(4)
+  })
+
+  it("첫 항목의 마지막 삽입 위치를 마지막 index로 바꾼다", () => {
+    expect(itemIndexForInsertionSlot(0, 3, 3)).toBe(2)
+  })
+
+  it("마지막 항목의 첫 삽입 위치를 첫 index로 바꾼다", () => {
+    expect(itemIndexForInsertionSlot(2, 0, 3)).toBe(0)
+  })
+
+  it("현재 항목 양옆의 같은 위치는 변경하지 않는다", () => {
+    expect(itemIndexForInsertionSlot(1, 1, 3)).toBeNull()
+    expect(itemIndexForInsertionSlot(1, 2, 3)).toBeNull()
+  })
+
+  it("목록 밖의 항목과 삽입 위치는 거부한다", () => {
+    expect(itemIndexForInsertionSlot(-1, 0, 3)).toBeNull()
+    expect(itemIndexForInsertionSlot(0, 4, 3)).toBeNull()
   })
 })
