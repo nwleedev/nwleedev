@@ -7,17 +7,23 @@ import {
   type Note,
   type NoteGeometry,
 } from "@/entities/note"
+import { useAddNoteToBatchCopy } from "@/features/add-note-to-batch-copy"
+import type { ClipboardWriteFailureReason } from "@/shared/lib/clipboard"
 import { ActionToast } from "@/shared/ui/action-toast"
 import { Button } from "@/shared/ui/button"
 
+import type { CopyNoteResult } from "../model/copy-note"
 import type { SaveNoteContentResult } from "../model/save-note-content"
 import { useNoteSession } from "../model/note-session-provider"
-import { MobileNoteList } from "./mobile-note-list"
+import { MobileNotesWorkspace } from "./mobile-notes-workspace"
 import { NotesBoard } from "./notes-board"
+import { useBatchCopyWorkspace } from "./batch-copy-workspace"
 
 type NotesCollectionProps = {
+  batchCopyShortcutEnabled: boolean
   draftContentByNote: Readonly<Record<string, string>>
   notes: readonly Note[]
+  copyNote(note: Note): Promise<CopyNoteResult>
   createNote(): Promise<Note>
   moveNoteToBack(noteId: string): Promise<readonly Note[]>
   moveNoteToFront(noteId: string): Promise<readonly Note[]>
@@ -33,6 +39,49 @@ type NotesCollectionProps = {
 type WorkspaceNotice = {
   kind: "error" | "status"
   message: string
+  retry?(): void
+}
+
+type WorkspaceNoticeToastProps = {
+  notice: WorkspaceNotice
+  onDismiss(): void
+}
+
+function WorkspaceNoticeToast({
+  notice,
+  onDismiss,
+}: WorkspaceNoticeToastProps) {
+  if (notice.retry !== undefined) {
+    return (
+      <ActionToast
+        actionLabel="다시 시도"
+        kind={notice.kind}
+        message={notice.message}
+        onAction={notice.retry}
+        onDismiss={onDismiss}
+      />
+    )
+  }
+
+  return (
+    <ActionToast
+      kind={notice.kind}
+      message={notice.message}
+      onDismiss={onDismiss}
+    />
+  )
+}
+
+function clipboardFailureMessage(reason: ClipboardWriteFailureReason) {
+  if (reason === "api-unavailable") {
+    return "이 브라우저에서는 클립보드에 복사할 수 없습니다. 텍스트를 직접 선택해 복사하세요."
+  }
+
+  if (reason === "not-allowed") {
+    return "브라우저가 클립보드 쓰기를 허용하지 않았습니다. 주소 표시줄의 사이트 권한을 확인한 뒤 다시 시도하세요."
+  }
+
+  return "클립보드에 쓰는 중 오류가 발생했습니다. 다시 시도하거나 텍스트를 직접 선택해 복사하세요."
 }
 
 function byTabIndex(left: Note, right: Note) {
@@ -67,6 +116,8 @@ function focusNote(noteId: string) {
 }
 
 export function NotesCollection({
+  batchCopyShortcutEnabled,
+  copyNote,
   createNote,
   draftContentByNote,
   moveNoteToBack,
@@ -78,6 +129,8 @@ export function NotesCollection({
   updateNote,
 }: NotesCollectionProps) {
   const session = useNoteSession()
+  const batchCopy = useAddNoteToBatchCopy()
+  const batchCopyWorkspace = useBatchCopyWorkspace()
   const {
     activateProperties: activatePropertiesInSession,
     clearSelection,
@@ -195,11 +248,13 @@ export function NotesCollection({
           .getElementById(`note-${encodeURIComponent(note.id)}-content`)
           ?.focus()
       })
+      return note
     } catch {
       setNotice({
         kind: "error",
         message: "메모를 만들지 못했습니다. 다시 시도하세요.",
       })
+      return null
     } finally {
       setCreationPending(false)
     }
@@ -214,6 +269,64 @@ export function NotesCollection({
 
   function showSaveFailure(message: string) {
     setNotice({ kind: "error", message })
+  }
+
+  function showRetryableFailure(message: string, retry?: () => void) {
+    if (retry === undefined) {
+      showSaveFailure(message)
+      return
+    }
+
+    setNotice({ kind: "error", message, retry })
+  }
+
+  async function copy(note: Note) {
+    let result: CopyNoteResult
+
+    try {
+      result = await copyNote(note)
+    } catch {
+      result = { reason: "write-failed", status: "clipboard-failure" }
+    }
+
+    if (result.status === "copied") {
+      setNotice({ kind: "status", message: "복사했습니다." })
+      return
+    }
+
+    if (result.status === "usage-failure") {
+      setNotice({
+        kind: "error",
+        message: "텍스트는 복사했지만 사용 횟수를 기록하지 못했습니다.",
+      })
+      return
+    }
+
+    setNotice({
+      kind: "error",
+      message: clipboardFailureMessage(result.reason),
+      retry: () => {
+        void copy(note)
+      },
+    })
+  }
+
+  async function addToBatchCopy(note: Note) {
+    const result = await batchCopy.add(note)
+
+    if (result.status === "added") {
+      setNotice(null)
+      batchCopyWorkspace.revealNewBatchCopyItem()
+      return
+    }
+
+    setNotice({
+      kind: "error",
+      message: "일괄 복사 항목을 추가하지 못했습니다. 다시 시도하세요.",
+      retry: () => {
+        void addToBatchCopy(note)
+      },
+    })
   }
 
   function saveGeometry(note: Note, geometry: NoteGeometry) {
@@ -263,19 +376,20 @@ export function NotesCollection({
 
   return (
     <div className="notes-workspace-canvas @container/note-area relative h-full min-h-0 overflow-hidden">
-      <Button
-        className="absolute left-3 top-3 z-30 shadow-floating sm:left-4"
-        disabled={creationPending}
-        onClick={createNewNote}
-        ref={createButton}
-      >
-        {createLabel}
-      </Button>
+      <div className="absolute left-3 top-3 z-30 hidden @3xl/note-area:block sm:left-4">
+        <Button
+          className="shadow-floating"
+          disabled={creationPending}
+          onClick={createNewNote}
+          ref={createButton}
+        >
+          {createLabel}
+        </Button>
+      </div>
       {notice ? (
         <div className="absolute right-3 top-16 z-40 w-[min(24rem,calc(100%-1.5rem))]">
-          <ActionToast
-            kind={notice.kind}
-            message={notice.message}
+          <WorkspaceNoticeToast
+            notice={notice}
             onDismiss={() => setNotice(null)}
           />
         </div>
@@ -298,14 +412,23 @@ export function NotesCollection({
           메모가 없습니다.
         </p>
       ) : null}
-      <MobileNoteList notes={orderedNotes} />
+      <MobileNotesWorkspace
+        creationPending={creationPending}
+        notes={orderedNotes}
+        onCopy={copy}
+        onCreate={createNewNote}
+        onFailure={showRetryableFailure}
+      />
       <NotesBoard
+        batchCopyShortcutEnabled={batchCopyShortcutEnabled}
         commandPressed={commandPressed}
         draftContentByNote={draftContentByNote}
         focusedNoteId={linkedNoteId}
         key={linkedNoteId ?? "notes-board"}
         notes={orderedNotes}
         onActivateProperties={activateProperties}
+        onAddToBatchCopy={addToBatchCopy}
+        onCopy={copy}
         onClearSelection={clearSelection}
         onMoveToBack={moveNoteToBack}
         onMoveToFront={moveNoteToFront}

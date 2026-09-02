@@ -32,6 +32,8 @@ export function NotesStartPage() {
           메모 {noteCountText}개
         </p>
         <NotesCollection
+          batchCopyShortcutEnabled={notesData.batchCopyShortcutEnabled}
+          copyNote={notesData.copyNote}
           createNote={notesData.createNote}
           draftContentByNote={notesData.draftContentByNote}
           moveNoteToBack={notesData.moveNoteToBack}

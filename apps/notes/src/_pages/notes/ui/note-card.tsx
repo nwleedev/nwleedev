@@ -52,6 +52,7 @@ type GeometryGesture = {
 }
 
 type NoteCardProps = {
+  batchCopyShortcutEnabled: boolean
   commandPressed: boolean
   initialContent: string
   note: Note
@@ -59,6 +60,8 @@ type NoteCardProps = {
   scale: number
   selected: boolean
   onActivateProperties(note: Note): void
+  onAddToBatchCopy(note: Note): Promise<void>
+  onCopy(note: Note): Promise<void>
   onMoveToBack(noteId: string): Promise<readonly Note[]>
   onMoveToFront(noteId: string): Promise<readonly Note[]>
   onRemove(note: Note): Promise<void>
@@ -206,10 +209,13 @@ function stopHeaderAction(event: ReactPointerEvent<HTMLButtonElement>) {
 }
 
 export function NoteCard({
+  batchCopyShortcutEnabled,
   commandPressed,
   initialContent,
   note,
   onActivateProperties,
+  onAddToBatchCopy,
+  onCopy,
   onMoveToBack,
   onMoveToFront,
   onRemove,
@@ -372,6 +378,24 @@ export function NoteCard({
   function openPropertiesFromKeyboard(
     event: ReactKeyboardEvent<HTMLElement>,
   ) {
+    const batchCopyEnter =
+      event.key === "Enter" &&
+      event.altKey &&
+      event.metaKey &&
+      !event.ctrlKey &&
+      !event.shiftKey
+    const validBatchCopyEnter =
+      batchCopyEnter &&
+      !event.nativeEvent.isComposing &&
+      !event.repeat
+
+    if (event.target === event.currentTarget && validBatchCopyEnter) {
+      event.preventDefault()
+      const noteSnapshot = { ...note, content: content.content }
+      void onAddToBatchCopy(noteSnapshot)
+      return
+    }
+
     const plainEnter =
       event.key === "Enter" &&
       !event.altKey &&
@@ -385,6 +409,43 @@ export function NoteCard({
 
     event.preventDefault()
     onActivateProperties(note)
+  }
+
+  function prepareContentShortcut(event: ReactMouseEvent<HTMLTextAreaElement>) {
+    const individualCopy =
+      event.metaKey && !event.altKey && !event.ctrlKey && !event.shiftKey
+    const batchCopy =
+      event.metaKey && event.altKey && !event.ctrlKey && !event.shiftKey
+
+    if (individualCopy || (batchCopy && batchCopyShortcutEnabled)) {
+      event.preventDefault()
+    }
+  }
+
+  function runContentShortcut(event: ReactMouseEvent<HTMLTextAreaElement>) {
+    const individualCopy =
+      event.metaKey && !event.altKey && !event.ctrlKey && !event.shiftKey
+    const batchCopy =
+      event.metaKey && event.altKey && !event.ctrlKey && !event.shiftKey
+
+    if (!individualCopy && !batchCopy) {
+      return
+    }
+
+    if (batchCopy && !batchCopyShortcutEnabled) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    const noteSnapshot = { ...note, content: content.content }
+
+    if (batchCopy) {
+      void onAddToBatchCopy(noteSnapshot)
+      return
+    }
+
+    void onCopy(noteSnapshot)
   }
 
   async function moveToFront() {
@@ -481,6 +542,8 @@ export function NoteCard({
         id={contentId}
         onBlur={content.save}
         onChange={(event) => content.change(event.target.value)}
+        onClick={runContentShortcut}
+        onMouseDown={prepareContentShortcut}
         placeholder="메모를 입력하세요"
         value={content.content}
       />

@@ -11,7 +11,10 @@ import {
   useBatchCopyEditor,
   type CopyBatchTextResult,
 } from "@/features/edit-batch-copy"
+import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
 import { Button } from "@/shared/ui/button"
+
+import { MobileBatchCopyConfirmation } from "./mobile-batch-copy-confirmation"
 
 const navigationClassName =
   "inline-flex min-h-[var(--notes-control-size)] items-center justify-center rounded-control border border-line bg-surface-raised px-3 py-1.5 text-sm font-semibold text-ink transition-colors duration-[var(--notes-motion-fast)] hover:border-line-strong hover:bg-canvas"
@@ -77,10 +80,18 @@ function BatchCopyPageContent() {
 
 export function BatchCopyStartPage() {
   const batchCopy = useBatchCopyEditor()
+  const mobileBatchCopy = useMobileBatchCopy()
   const [copyResult, setCopyResult] =
     useState<CopyBatchTextResult | null>(null)
   const copyDisabled =
     batchCopy.status !== "ready" || batchCopy.items.length === 0
+  const mobileDraft =
+    mobileBatchCopy.status === "ready" ? mobileBatchCopy.draft : null
+
+  if (mobileDraft?.step === "confirming") {
+    const confirmingDraft = { ...mobileDraft, step: mobileDraft.step }
+    return <MobileBatchCopyConfirmation draft={confirmingDraft} />
+  }
 
   return (
     <main

@@ -13,6 +13,7 @@ import {
 } from "@/_pages/settings/composition"
 import { UsageReaderProvider } from "@/_pages/usage/composition"
 import { TemplateDataProvider } from "@/_pages/templates/composition"
+import { MobileBatchCopyProvider } from "@/features/add-note-to-batch-copy"
 import { SelectedSourceLinesProvider } from "@/features/suggest-template"
 
 import {
@@ -37,32 +38,39 @@ function ApplicationProviders({
 
   return (
     <UsageReaderProvider reader={application.usage.reader}>
-      <BatchCopyProvider
-        clipboard={application.notes.clipboard}
+      <MobileBatchCopyProvider
         createId={application.batchCopy.createId}
         now={application.batchCopy.now}
-        repository={application.batchCopy.repository}
-        writer={application.batchCopy.writer}
+        repository={application.batchCopy.draftRepository}
+        writer={application.batchCopy.mobileWriter}
       >
-        <TextAnalysisProvider
-          analyzer={application.analysis.analyzer}
-          now={application.analysis.now}
-          reader={application.notes.repository}
+        <BatchCopyProvider
+          clipboard={application.notes.clipboard}
+          createId={application.batchCopy.createId}
+          now={application.batchCopy.now}
+          repository={application.batchCopy.repository}
+          writer={application.batchCopy.writer}
         >
-          <NotesDataProvider
-            clipboard={application.notes.clipboard}
-            createId={application.notes.createId}
-            drafts={application.notes.draftRepository}
-            batchCopyShortcutEnabled={batchCopyShortcutEnabled}
-            now={application.notes.now}
-            repository={application.notes.repository}
-            storageMonitor={application.notes.storageMonitor}
-            usage={application.notes.usageWriter}
+          <TextAnalysisProvider
+            analyzer={application.analysis.analyzer}
+            now={application.analysis.now}
+            reader={application.notes.repository}
           >
-            {children}
-          </NotesDataProvider>
-        </TextAnalysisProvider>
-      </BatchCopyProvider>
+            <NotesDataProvider
+              clipboard={application.notes.clipboard}
+              createId={application.notes.createId}
+              drafts={application.notes.draftRepository}
+              batchCopyShortcutEnabled={batchCopyShortcutEnabled}
+              now={application.notes.now}
+              repository={application.notes.repository}
+              storageMonitor={application.notes.storageMonitor}
+              usage={application.notes.usageWriter}
+            >
+              {children}
+            </NotesDataProvider>
+          </TextAnalysisProvider>
+        </BatchCopyProvider>
+      </MobileBatchCopyProvider>
     </UsageReaderProvider>
   )
 }

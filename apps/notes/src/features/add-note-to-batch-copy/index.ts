@@ -7,6 +7,21 @@ export {
   useAddNoteToBatchCopy,
 } from "./model/add-note-to-batch-copy-provider"
 export {
+  MobileBatchCopyProvider,
+  useMobileBatchCopy,
+} from "./model/mobile-batch-copy-provider"
+export {
   addNoteToBatchCopy,
   type AddNoteToBatchCopyResult,
 } from "./model/add-note-to-batch-copy"
+export {
+  addNoteToMobileBatchCopy,
+  cancelMobileBatchCopy,
+  confirmMobileBatchCopySession,
+  loadMobileBatchCopy,
+  resetMobileBatchCopySession,
+  startMobileBatchCopy,
+  type MobileBatchCopyLoadResult,
+  type MobileBatchCopyRemoveResult,
+  type MobileBatchCopySaveResult,
+} from "./model/mobile-batch-copy-session"

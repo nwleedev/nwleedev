@@ -30,6 +30,7 @@ type PanGesture = {
 }
 
 type NotesBoardProps = {
+  batchCopyShortcutEnabled: boolean
   commandPressed: boolean
   draftContentByNote: Readonly<Record<string, string>>
   focusedNoteId: string | null
@@ -37,7 +38,9 @@ type NotesBoardProps = {
   propertiesNoteId: string | null
   selectedNoteId: string | null
   onActivateProperties(note: Note): void
+  onAddToBatchCopy(note: Note): Promise<void>
   onClearSelection(): void
+  onCopy(note: Note): Promise<void>
   onMoveToBack(noteId: string): Promise<readonly Note[]>
   onMoveToFront(noteId: string): Promise<readonly Note[]>
   onRemove(note: Note): Promise<void>
@@ -102,12 +105,15 @@ function noteBounds(notes: readonly Note[]) {
 }
 
 export function NotesBoard({
+  batchCopyShortcutEnabled,
   commandPressed,
   draftContentByNote,
   focusedNoteId,
   notes,
   onActivateProperties,
+  onAddToBatchCopy,
   onClearSelection,
+  onCopy,
   onMoveToBack,
   onMoveToFront,
   onRemove,
@@ -305,11 +311,14 @@ export function NotesBoard({
       <div className="absolute left-0 top-0" ref={board} style={boardStyle}>
         {notes.map((note) => (
           <NoteCard
+            batchCopyShortcutEnabled={batchCopyShortcutEnabled}
             commandPressed={commandPressed}
             initialContent={draftContentByNote[note.id] ?? note.content}
             key={note.id}
             note={note}
             onActivateProperties={onActivateProperties}
+            onAddToBatchCopy={onAddToBatchCopy}
+            onCopy={onCopy}
             onMoveToBack={onMoveToBack}
             onMoveToFront={onMoveToFront}
             onRemove={onRemove}

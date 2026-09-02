@@ -12,6 +12,7 @@ import {
 } from "react"
 
 import type { BatchCopyItem } from "@/entities/batch-copy"
+import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
 import {
   BatchCopyEditingView,
   BatchCopyHistoryShortcuts,
@@ -195,6 +196,7 @@ function BatchCopyPanelContent({
 
 export function BatchCopyWorkspace({ children }: PropsWithChildren) {
   const batchCopy = useBatchCopyEditor()
+  const mobileBatchCopy = useMobileBatchCopy()
   const session = useNoteSession()
   const batchCopyItems = batchCopy.status === "ready" ? batchCopy.items : []
   const batchCopyCount = batchCopyItems.length
@@ -211,13 +213,15 @@ export function BatchCopyWorkspace({ children }: PropsWithChildren) {
   const open = activePanel !== null
   const batchCopyActive = activePanel === "batch-copy"
   const propertiesActive = activePanel === "note-properties"
+  const mobileBatchCopyActive =
+    mobileBatchCopy.status === "ready" && mobileBatchCopy.draft !== null
   const showInlinePanel = open && inline
   const workspaceLayoutClassName = joinClassNames(
     "h-full min-h-0",
     showInlinePanel ? "grid grid-cols-[minmax(0,1fr)_22rem]" : "block",
   )
   const batchCopyTriggerClassName = joinClassNames(
-    "absolute right-3 top-3 z-20 hidden shadow-floating @3xl/notes-workspace:inline-flex sm:right-4",
+    "shadow-floating",
     batchCopyActive && showInlinePanel ? "invisible" : undefined,
   )
   const copyNoticeClassName = joinClassNames(
@@ -263,7 +267,7 @@ export function BatchCopyWorkspace({ children }: PropsWithChildren) {
   }
 
   function revealNewBatchCopyItem() {
-    if (inline && batchCopyCount === 0) {
+    if (inline) {
       session.activateBatchCopy()
     }
   }
@@ -295,24 +299,26 @@ export function BatchCopyWorkspace({ children }: PropsWithChildren) {
           onUndo={batchCopy.undo}
           pending={batchCopy.pending}
         />
-        <Button
-          aria-label={`일괄 복사 ${batchCopyCountText}`}
-          aria-controls={controlledPanelId}
-          aria-expanded={batchCopyActive}
-          className={batchCopyTriggerClassName}
-          onClick={toggleBatchCopyPanel}
-          ref={trigger}
-          tone="quiet"
-        >
-          <span>일괄 복사</span>
-          <span
-            aria-hidden="true"
-            className="inline-flex min-w-8 items-center justify-center rounded-full bg-rail px-2 py-0.5 text-xs font-semibold tabular-nums text-rail-ink"
+        <div className="absolute right-3 top-3 z-20 hidden @3xl/notes-workspace:block sm:right-4">
+          <Button
+            aria-label={`일괄 복사 ${batchCopyCountText}`}
+            aria-controls={controlledPanelId}
+            aria-expanded={batchCopyActive}
+            className={batchCopyTriggerClassName}
+            onClick={toggleBatchCopyPanel}
+            ref={trigger}
+            tone="quiet"
           >
-            {batchCopyCountText}
-          </span>
-        </Button>
-        {batchCopyCount > 0 ? (
+            <span>일괄 복사</span>
+            <span
+              aria-hidden="true"
+              className="inline-flex min-w-8 items-center justify-center rounded-full bg-rail px-2 py-0.5 text-xs font-semibold tabular-nums text-rail-ink"
+            >
+              {batchCopyCountText}
+            </span>
+          </Button>
+        </div>
+        {batchCopyCount > 0 && !mobileBatchCopyActive ? (
           <Link
             aria-label={`일괄 복사 ${batchCopyCountText} 관리`}
             className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 z-30 inline-flex min-h-12 items-center gap-2 rounded-full border border-action bg-action px-4 py-2 text-sm font-semibold text-action-ink shadow-floating @3xl/notes-workspace:hidden"
