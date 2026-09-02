@@ -18,9 +18,11 @@ import {
   createNoteReference,
   readNoteGeometryDraft,
   type Note,
+  type NoteGeometry,
   type NoteGeometryDraft,
   type NoteGeometryDraftField,
 } from "@/entities/note"
+import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
 import { CloseIcon } from "@/shared/ui/icons"
 import { TextField } from "@/shared/ui/text-field"
@@ -71,12 +73,12 @@ function geometryDraft(note: Note): NoteGeometryDraft {
   }
 }
 
-function sameGeometry(note: Note, draft: NoteGeometryDraft) {
+function sameGeometry(note: Note, geometry: NoteGeometry) {
   return (
-    String(note.geometry.height) === draft.height &&
-    String(note.geometry.width) === draft.width &&
-    String(note.geometry.x) === draft.x &&
-    String(note.geometry.y) === draft.y
+    note.geometry.height === geometry.height &&
+    note.geometry.width === geometry.width &&
+    note.geometry.x === geometry.x &&
+    note.geometry.y === geometry.y
   )
 }
 
@@ -93,25 +95,36 @@ export function NotePropertiesPanel() {
   const session = useNoteSession()
   const panel = useRef<HTMLElement>(null)
   const firstField = useRef<HTMLInputElement>(null)
-  const pendingReference = useRef(false)
+  const pendingOperation = useRef<Promise<boolean> | null>(null)
   const [invalidFields, setInvalidFields] = useState<
     readonly NoteGeometryDraftField[]
   >([])
   const [message, setMessage] = useState("")
   const [pending, setPending] = useState(false)
+  const propertiesNoteId = session.workspace.geometryDraft?.note.id ?? null
   const note = availableNotes(notesData).find(
-    ({ id }) => id === session.workspace.propertiesNoteId,
+    ({ id }) => id === propertiesNoteId,
   )
   const draft = session.workspace.geometryDraft?.fields ?? null
   const title = note === undefined ? "메모 속성" : noteTitle(note)
 
   useEffect(() => {
-    firstField.current?.focus()
-  }, [session.workspace.propertiesNoteId])
+    const focusFirstField =
+      session.workspace.activePanel === "note-properties" &&
+      session.workspace.propertiesFocus === "first-field"
+
+    if (focusFirstField) {
+      firstField.current?.focus()
+    }
+  }, [
+    propertiesNoteId,
+    session.workspace.activePanel,
+    session.workspace.propertiesFocus,
+  ])
 
   const applyDraft = useCallback(() => {
-    if (note === undefined || draft === null || pendingReference.current) {
-      return true
+    if (note === undefined || draft === null) {
+      return { completion: Promise.resolve(false), valid: true }
     }
 
     const result = readNoteGeometryDraft(draft, note.geometry.zIndex)
@@ -119,35 +132,59 @@ export function NotePropertiesPanel() {
     if (result.status === "invalid") {
       setInvalidFields(result.fields)
       setMessage("값의 범위와 캔버스 안의 위치를 확인하세요.")
-      return false
+      requestAnimationFrame(() => {
+        const firstInvalidField = result.fields[0]
+
+        if (firstInvalidField === undefined) {
+          firstField.current?.focus()
+          return
+        }
+
+        panel.current
+          ?.querySelector<HTMLInputElement>(
+            `input[name="${firstInvalidField}"]`,
+          )
+          ?.focus()
+      })
+      return { completion: Promise.resolve(false), valid: false }
     }
 
     setInvalidFields([])
     setMessage("")
 
-    if (sameGeometry(note, draft)) {
-      return true
+    if (sameGeometry(note, result.geometry)) {
+      return { completion: Promise.resolve(true), valid: true }
     }
 
-    pendingReference.current = true
+    if (pendingOperation.current !== null) {
+      return { completion: pendingOperation.current, valid: true }
+    }
+
+    const expectedReference = session.workspace.geometryDraft?.note
     setPending(true)
-    void notesData
+    const operation = notesData
       .updateNote(note, { geometry: result.geometry })
       .then((savedNote) => {
-        session.activateProperties(
-          createNoteReference(savedNote),
-          geometryDraft(savedNote),
-        )
+        if (expectedReference !== undefined) {
+          session.confirmGeometryDraft(
+            expectedReference,
+            createNoteReference(savedNote),
+          )
+        }
+
+        return true
       })
       .catch(() => {
         setMessage("메모 위치와 크기를 저장하지 못했습니다. 다시 시도하세요.")
+        return false
       })
       .finally(() => {
-        pendingReference.current = false
+        pendingOperation.current = null
         setPending(false)
       })
+    pendingOperation.current = operation
 
-    return true
+    return { completion: operation, valid: true }
   }, [draft, note, notesData, session])
 
   useEffect(() => {
@@ -158,7 +195,9 @@ export function NotePropertiesPanel() {
         return
       }
 
-      if (!applyDraft()) {
+      const application = applyDraft()
+
+      if (!application.valid) {
         event.preventDefault()
         event.stopPropagation()
       }
@@ -188,6 +227,38 @@ export function NotePropertiesPanel() {
     applyDraft()
   }
 
+  async function closeProperties() {
+    if (note === undefined) {
+      session.closePanel()
+      return
+    }
+
+    const application = applyDraft()
+
+    if (!application.valid) {
+      return
+    }
+
+    const saved = await application.completion
+
+    if (saved) {
+      session.closeProperties(note.id)
+    }
+  }
+
+  function restoreSavedGeometry() {
+    if (note === undefined) {
+      return
+    }
+
+    setInvalidFields([])
+    setMessage("")
+    session.restoreGeometryDraft(
+      createNoteReference(note),
+      geometryDraft(note),
+    )
+  }
+
   if (note === undefined || draft === null) {
     return (
       <aside
@@ -199,7 +270,7 @@ export function NotePropertiesPanel() {
           <h2 className="text-sm font-semibold">메모 속성</h2>
           <IconButton
             aria-label="메모 속성 패널 닫기"
-            onClick={session.closePanel}
+            onClick={closeProperties}
             size="compact"
           >
             <CloseIcon />
@@ -224,7 +295,7 @@ export function NotePropertiesPanel() {
         </h2>
         <IconButton
           aria-label="메모 속성 패널 닫기"
-          onClick={session.closePanel}
+          onClick={closeProperties}
           size="compact"
         >
           <CloseIcon />
@@ -263,6 +334,14 @@ export function NotePropertiesPanel() {
             {message}
           </p>
         ) : null}
+        <Button
+          disabled={pending}
+          onClick={restoreSavedGeometry}
+          tone="quiet"
+          type="button"
+        >
+          저장값으로 되돌리기
+        </Button>
       </form>
     </aside>
   )

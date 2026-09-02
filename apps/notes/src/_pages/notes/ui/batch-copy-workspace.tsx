@@ -9,6 +9,7 @@ import {
   useState,
   type PropsWithChildren,
   type RefObject,
+  type SyntheticEvent,
 } from "react"
 
 import type { BatchCopyItem } from "@/entities/batch-copy"
@@ -300,6 +301,10 @@ export function BatchCopyWorkspace({ children }: PropsWithChildren) {
     }
   }
 
+  function preventDialogCancel(event: SyntheticEvent<HTMLDialogElement>) {
+    event.preventDefault()
+  }
+
   return (
     <BatchCopyWorkspaceContext value={{ revealNewBatchCopyItem }}>
       <main
@@ -322,6 +327,7 @@ export function BatchCopyWorkspace({ children }: PropsWithChildren) {
             className={batchCopyTriggerClassName}
             onClick={toggleBatchCopyPanel}
             ref={trigger}
+            tabIndex={101}
             tone="quiet"
           >
             <span>일괄 복사</span>
@@ -388,6 +394,7 @@ export function BatchCopyWorkspace({ children }: PropsWithChildren) {
           aria-label={propertiesActive ? "메모 속성" : "일괄 복사"}
           className="m-auto h-[min(42rem,calc(100dvh-2rem))] w-[min(32rem,calc(100vw-2rem))] max-w-none overflow-visible rounded-panel border border-line bg-surface-raised p-0 text-ink shadow-floating"
           id={MODAL_PANEL_ID}
+          onCancel={preventDialogCancel}
           onClose={handleDialogClose}
           ref={dialog}
         >

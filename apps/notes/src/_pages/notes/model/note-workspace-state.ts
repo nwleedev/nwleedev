@@ -11,11 +11,12 @@ export type NoteGeometryDraft = {
 export type NoteGeometryDraftField = keyof NoteGeometryFields
 
 export type NoteWorkspacePanel = "batch-copy" | "note-properties"
+export type NotePropertiesFocus = "first-field" | "preserve"
 
 export type NoteWorkspaceState = {
   activePanel: NoteWorkspacePanel | null
   geometryDraft: NoteGeometryDraft | null
-  propertiesNoteId: string | null
+  propertiesFocus: NotePropertiesFocus
   selectedNoteId: string | null
 }
 
@@ -23,7 +24,7 @@ export function createNoteWorkspaceState(): NoteWorkspaceState {
   return {
     activePanel: null,
     geometryDraft: null,
-    propertiesNoteId: null,
+    propertiesFocus: "preserve",
     selectedNoteId: null,
   }
 }
@@ -50,7 +51,7 @@ export function forgetNote(
   noteId: string,
 ): NoteWorkspaceState {
   const selected = state.selectedNoteId === noteId
-  const propertiesTarget = state.propertiesNoteId === noteId
+  const propertiesTarget = state.geometryDraft?.note.id === noteId
 
   if (!selected && !propertiesTarget) {
     return state
@@ -65,7 +66,6 @@ export function forgetNote(
     ...state,
     activePanel,
     geometryDraft: propertiesTarget ? null : state.geometryDraft,
-    propertiesNoteId: propertiesTarget ? null : state.propertiesNoteId,
     selectedNoteId: selected ? null : state.selectedNoteId,
   }
 }
@@ -74,12 +74,13 @@ export function activateNoteProperties(
   state: NoteWorkspaceState,
   note: NoteReference,
   fields: NoteGeometryFields,
+  focus: NotePropertiesFocus = "preserve",
 ): NoteWorkspaceState {
   return {
     ...state,
     activePanel: "note-properties",
     geometryDraft: { fields, note },
-    propertiesNoteId: note.id,
+    propertiesFocus: focus,
     selectedNoteId: note.id,
   }
 }
@@ -102,6 +103,56 @@ export function closeActivePanel(
   }
 
   return { ...state, activePanel: null }
+}
+
+export function confirmNoteGeometryDraft(
+  state: NoteWorkspaceState,
+  expected: NoteReference,
+  saved: NoteReference,
+): NoteWorkspaceState {
+  const current = state.geometryDraft
+  const expectedDraft =
+    current?.note.id === expected.id &&
+    current.note.revision === expected.revision
+
+  if (!expectedDraft) {
+    return state
+  }
+
+  return {
+    ...state,
+    geometryDraft: { ...current, note: saved },
+  }
+}
+
+export function closeNoteProperties(
+  state: NoteWorkspaceState,
+  noteId: string,
+): NoteWorkspaceState {
+  const currentTarget = state.geometryDraft?.note.id
+
+  if (state.activePanel !== "note-properties" || currentTarget !== noteId) {
+    return state
+  }
+
+  return { ...state, activePanel: null }
+}
+
+export function restoreNoteGeometryDraft(
+  state: NoteWorkspaceState,
+  note: NoteReference,
+  fields: NoteGeometryFields,
+): NoteWorkspaceState {
+  if (state.geometryDraft?.note.id !== note.id) {
+    return state
+  }
+
+  return {
+    ...state,
+    activePanel: null,
+    geometryDraft: { fields, note },
+    propertiesFocus: "preserve",
+  }
 }
 
 export function updateNoteGeometryDraft(

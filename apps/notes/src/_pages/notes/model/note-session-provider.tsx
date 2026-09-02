@@ -22,11 +22,15 @@ import {
   activateNoteProperties,
   clearNoteSelection,
   closeActivePanel,
+  closeNoteProperties,
+  confirmNoteGeometryDraft,
   createNoteWorkspaceState,
   forgetNote,
+  restoreNoteGeometryDraft,
   selectNote,
   updateNoteGeometryDraft,
   type NoteGeometryDraftField,
+  type NotePropertiesFocus,
   type NoteWorkspaceState,
 } from "./note-workspace-state"
 
@@ -34,13 +38,20 @@ type NoteSessionContextValue = {
   latestRemovedNote: Note | null
   workspace: NoteWorkspaceState
   activateBatchCopy(): void
-  activateProperties(note: NoteReference, fields: NoteGeometryDraft): void
+  activateProperties(
+    note: NoteReference,
+    fields: NoteGeometryDraft,
+    focus?: NotePropertiesFocus,
+  ): void
   changeGeometryDraft(field: NoteGeometryDraftField, value: string): void
   clearSelection(): void
+  closeProperties(noteId: string): void
   closePanel(): void
+  confirmGeometryDraft(expected: NoteReference, saved: NoteReference): void
   forgetLatestRemoval(): void
   forgetNote(noteId: string): void
   rememberRemoval(note: Note, removedAt: string): void
+  restoreGeometryDraft(note: NoteReference, fields: NoteGeometryDraft): void
   select(noteId: string): void
 }
 
@@ -65,9 +76,10 @@ export function NoteSessionProvider({ children }: PropsWithChildren) {
   const activateProperties = useCallback((
     note: NoteReference,
     fields: NoteGeometryDraft,
+    focus?: NotePropertiesFocus,
   ) => {
     setWorkspace((current) =>
-      activateNoteProperties(current, note, fields),
+      activateNoteProperties(current, note, fields, focus),
     )
   }, [])
 
@@ -77,6 +89,28 @@ export function NoteSessionProvider({ children }: PropsWithChildren) {
 
   const closePanel = useCallback(() => {
     setWorkspace(closeActivePanel)
+  }, [])
+
+  const closeProperties = useCallback((noteId: string) => {
+    setWorkspace((current) => closeNoteProperties(current, noteId))
+  }, [])
+
+  const confirmGeometryDraft = useCallback((
+    expected: NoteReference,
+    saved: NoteReference,
+  ) => {
+    setWorkspace((current) =>
+      confirmNoteGeometryDraft(current, expected, saved),
+    )
+  }, [])
+
+  const restoreGeometryDraft = useCallback((
+    note: NoteReference,
+    fields: NoteGeometryDraft,
+  ) => {
+    setWorkspace((current) =>
+      restoreNoteGeometryDraft(current, note, fields),
+    )
   }, [])
 
   const changeGeometryDraft = useCallback((
@@ -112,11 +146,14 @@ export function NoteSessionProvider({ children }: PropsWithChildren) {
         activateProperties,
         changeGeometryDraft,
         clearSelection,
+        closeProperties,
         closePanel,
+        confirmGeometryDraft,
         forgetLatestRemoval,
         forgetNote: forgetRemovedNoteFromWorkspace,
         latestRemovedNote,
         rememberRemoval,
+        restoreGeometryDraft,
         select,
         workspace,
       }}

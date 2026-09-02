@@ -37,7 +37,7 @@ type NotesBoardProps = {
   notes: readonly Note[]
   propertiesNoteId: string | null
   selectedNoteId: string | null
-  onActivateProperties(note: Note): void
+  onActivateProperties(note: Note, focus: "first-field" | "preserve"): void
   onAddToBatchCopy(note: Note): Promise<void>
   onClearSelection(): void
   onCopy(note: Note): Promise<void>
@@ -283,6 +283,7 @@ export function NotesBoard({
     }
 
     if (!gesture.moved) {
+      event.currentTarget.focus()
       onClearSelection()
     }
   }
@@ -307,6 +308,7 @@ export function NotesBoard({
       onPointerMove={continuePan}
       onPointerUp={finishPan}
       ref={viewport}
+      tabIndex={-1}
     >
       <div className="absolute left-0 top-0" ref={board} style={boardStyle}>
         {notes.map((note) => (

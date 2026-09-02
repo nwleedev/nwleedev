@@ -6,21 +6,41 @@ import { useState } from "react"
 import { joinClassNames } from "@/shared/lib/join-class-names"
 
 const destinations = [
-  { activePath: "/", href: "/", index: "01", label: "메모" },
-  { activePath: "/usage", href: "/usage/", index: "02", label: "사용 빈도" },
+  {
+    activePath: "/",
+    href: "/",
+    index: "01",
+    label: "메모",
+    tabIndex: 11,
+  },
+  {
+    activePath: "/usage",
+    href: "/usage/",
+    index: "02",
+    label: "사용 빈도",
+    tabIndex: 12,
+  },
   {
     activePath: "/analysis",
     href: "/analysis/",
     index: "03",
     label: "텍스트 분석",
+    tabIndex: 13,
   },
   {
     activePath: "/templates",
     href: "/templates/",
     index: "04",
     label: "템플릿",
+    tabIndex: 14,
   },
-  { activePath: "/settings", href: "/settings/", index: "05", label: "설정" },
+  {
+    activePath: "/settings",
+    href: "/settings/",
+    index: "05",
+    label: "설정",
+    tabIndex: 15,
+  },
 ] as const
 
 function normalizePathname(pathname: string) {
@@ -104,6 +124,7 @@ function NavigationLinks({
             href={destination.href}
             key={destination.href}
             onClick={onNavigate}
+            tabIndex={destination.tabIndex}
           >
             <span
               aria-hidden="true"
@@ -142,6 +163,7 @@ export function ApplicationNavigation({
           <Link
             className="py-3 font-display text-sm font-semibold tracking-[-0.015em]"
             href="/"
+            tabIndex={2}
           >
             개인 메모
           </Link>
@@ -150,6 +172,7 @@ export function ApplicationNavigation({
             aria-expanded={expanded}
             className="min-h-[var(--notes-control-size)] rounded-control border border-rail-ink/25 px-3 py-1.5 text-sm font-semibold lg:hidden"
             onClick={() => setExpanded((current) => !current)}
+            tabIndex={3}
             type="button"
           >
             탐색
@@ -171,6 +194,7 @@ export function ApplicationNavigation({
         <Link
           className="font-display text-sm font-semibold tracking-[-0.015em]"
           href="/"
+          tabIndex={2}
         >
           개인 메모
         </Link>
@@ -181,6 +205,7 @@ export function ApplicationNavigation({
           aria-expanded={expanded}
           className="min-h-[var(--notes-control-size)] w-full border-b border-rail-ink/15 px-4 py-2 text-left text-sm font-semibold lg:hidden"
           onClick={() => setExpanded((current) => !current)}
+          tabIndex={3}
           type="button"
         >
           탐색

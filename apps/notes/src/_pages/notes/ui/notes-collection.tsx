@@ -150,7 +150,7 @@ export function NotesCollection({
   const createLabel = creationPending ? "메모 만드는 중" : "새 메모"
   const empty = orderedNotes.length === 0
   const selectedNoteId = workspace.selectedNoteId
-  const propertiesNoteId = workspace.propertiesNoteId
+  const propertiesNoteId = workspace.geometryDraft?.note.id ?? null
 
   useEffect(() => {
     let frame = 0
@@ -260,10 +260,14 @@ export function NotesCollection({
     }
   }
 
-  function activateProperties(note: Note) {
+  function activateProperties(
+    note: Note,
+    focus: "first-field" | "preserve",
+  ) {
     activatePropertiesInSession(
       createNoteReference(note),
       geometryDraft(note),
+      focus,
     )
   }
 
@@ -382,6 +386,7 @@ export function NotesCollection({
           disabled={creationPending}
           onClick={createNewNote}
           ref={createButton}
+          tabIndex={100}
         >
           {createLabel}
         </Button>

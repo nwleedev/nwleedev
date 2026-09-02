@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  useEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -59,7 +60,7 @@ type NoteCardProps = {
   propertiesTarget: boolean
   scale: number
   selected: boolean
-  onActivateProperties(note: Note): void
+  onActivateProperties(note: Note, focus: "first-field" | "preserve"): void
   onAddToBatchCopy(note: Note): Promise<void>
   onCopy(note: Note): Promise<void>
   onMoveToBack(noteId: string): Promise<readonly Note[]>
@@ -204,7 +205,7 @@ function ResizeHandle({
   )
 }
 
-function stopHeaderAction(event: ReactPointerEvent<HTMLButtonElement>) {
+function stopHeaderAction(event: { stopPropagation(): void }) {
   event.stopPropagation()
 }
 
@@ -232,6 +233,7 @@ export function NoteCard({
   const [geometryPending, setGeometryPending] = useState(false)
   const gesture = useRef<GeometryGesture | null>(null)
   const suppressClick = useRef(false)
+  const suppressClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const article = useRef<HTMLElement>(null)
   const content = useNoteContentAutosave({
     initialContent,
@@ -261,6 +263,26 @@ export function NoteCard({
     top: geometry.y,
     width: geometry.width,
     zIndex: geometry.zIndex,
+  }
+
+  useEffect(() => {
+    return () => {
+      if (suppressClickTimer.current !== null) {
+        clearTimeout(suppressClickTimer.current)
+      }
+    }
+  }, [])
+
+  function suppressClickSequence() {
+    if (suppressClickTimer.current !== null) {
+      clearTimeout(suppressClickTimer.current)
+    }
+
+    suppressClick.current = true
+    suppressClickTimer.current = setTimeout(() => {
+      suppressClick.current = false
+      suppressClickTimer.current = null
+    }, 0)
   }
 
   function startGeometryGesture(
@@ -335,7 +357,7 @@ export function NoteCard({
       return
     }
 
-    suppressClick.current = true
+    suppressClickSequence()
     const nextGeometry = geometryFromGesture(event, current, scale)
     setGeometryPreview(nextGeometry)
     void persistGeometry(nextGeometry)
@@ -354,7 +376,6 @@ export function NoteCard({
 
   function selectFromHeader(event: ReactMouseEvent<HTMLElement>) {
     if (suppressClick.current) {
-      suppressClick.current = false
       return
     }
 
@@ -365,7 +386,7 @@ export function NoteCard({
 
   function openPropertiesFromHeader(event: ReactMouseEvent<HTMLElement>) {
     if (!suppressClick.current && !event.metaKey) {
-      onActivateProperties(note)
+      onActivateProperties(note, "preserve")
     }
   }
 
@@ -408,7 +429,7 @@ export function NoteCard({
     }
 
     event.preventDefault()
-    onActivateProperties(note)
+    onActivateProperties(note, "first-field")
   }
 
   function prepareContentShortcut(event: ReactMouseEvent<HTMLTextAreaElement>) {
@@ -448,7 +469,9 @@ export function NoteCard({
     void onCopy(noteSnapshot)
   }
 
-  async function moveToFront() {
+  async function moveToFront(event: ReactMouseEvent<HTMLButtonElement>) {
+    stopHeaderAction(event)
+
     try {
       await onMoveToFront(note.id)
     } catch {
@@ -456,7 +479,9 @@ export function NoteCard({
     }
   }
 
-  async function moveToBack() {
+  async function moveToBack(event: ReactMouseEvent<HTMLButtonElement>) {
+    stopHeaderAction(event)
+
     try {
       await onMoveToBack(note.id)
     } catch {
@@ -464,7 +489,8 @@ export function NoteCard({
     }
   }
 
-  async function remove() {
+  async function remove(event: ReactMouseEvent<HTMLButtonElement>) {
+    stopHeaderAction(event)
     const savedNote = await content.save()
 
     if (savedNote === null) {
@@ -504,6 +530,7 @@ export function NoteCard({
           data-note-header-action=""
           disabled={interactionPending}
           onClick={moveToFront}
+          onDoubleClick={stopHeaderAction}
           onPointerDown={stopHeaderAction}
           size="compact"
           tabIndex={commandPressed ? -1 : 0}
@@ -516,6 +543,7 @@ export function NoteCard({
           data-note-header-action=""
           disabled={interactionPending}
           onClick={moveToBack}
+          onDoubleClick={stopHeaderAction}
           onPointerDown={stopHeaderAction}
           size="compact"
           tabIndex={commandPressed ? -1 : 0}
@@ -528,6 +556,7 @@ export function NoteCard({
           data-note-header-action=""
           disabled={interactionPending}
           onClick={remove}
+          onDoubleClick={stopHeaderAction}
           onPointerDown={stopHeaderAction}
           size="compact"
           tabIndex={commandPressed ? -1 : 0}
