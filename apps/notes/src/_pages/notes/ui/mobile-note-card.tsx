@@ -25,6 +25,7 @@ type LongPressGesture = {
   pointerId: number
   startX: number
   startY: number
+  target: HTMLAnchorElement
   timer: ReturnType<typeof setTimeout>
 }
 
@@ -108,12 +109,21 @@ export function MobileNoteCard({
     }
 
     const pointerId = event.pointerId
+    const target = event.currentTarget
     const timer = setTimeout(() => {
       const current = gesture.current
 
-      if (current !== null && current.pointerId === pointerId) {
-        current.held = true
+      if (current === null || current.pointerId !== pointerId) {
+        return
       }
+
+      if (!current.target.hasPointerCapture(pointerId)) {
+        gesture.current = null
+        suppressClick.current = true
+        return
+      }
+
+      current.held = true
     }, longPressDuration)
 
     gesture.current = {
@@ -121,9 +131,10 @@ export function MobileNoteCard({
       pointerId,
       startX: event.clientX,
       startY: event.clientY,
+      target,
       timer,
     }
-    event.currentTarget.setPointerCapture(pointerId)
+    target.setPointerCapture(pointerId)
   }
 
   function trackLongPress(event: ReactPointerEvent<HTMLAnchorElement>) {
@@ -147,6 +158,13 @@ export function MobileNoteCard({
     const current = gesture.current
 
     if (current === null || current.pointerId !== event.pointerId) {
+      return
+    }
+
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+      clearTimeout(current.timer)
+      gesture.current = null
+      suppressClick.current = true
       return
     }
 
