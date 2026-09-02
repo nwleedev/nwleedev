@@ -1,8 +1,10 @@
 import type { ChangeEvent } from "react"
 import type {
+  Control,
   FieldErrors,
   UseFormRegister,
 } from "react-hook-form"
+import { useWatch } from "react-hook-form"
 
 import type {
   TemplateDraft,
@@ -13,21 +15,24 @@ import { TextField } from "@/shared/ui/text-field"
 
 export type TemplateSaveFields = {
   labels: Record<string, string>
+  sourceText: string
   title: string
 }
 
 type PlaceholderNameFieldProps = {
+  control: Control<TemplateSaveFields>
   errors: FieldErrors<TemplateSaveFields>
   placeholder: TemplatePlaceholderRange
   sourceText: string
   register: UseFormRegister<TemplateSaveFields>
-  onRename(key: string, label: string): void
+  onLabelChange(key: string, label: string): void
   onRestore(key: string): void
 }
 
 function PlaceholderNameField({
+  control,
   errors,
-  onRename,
+  onLabelChange,
   onRestore,
   placeholder,
   register,
@@ -38,13 +43,18 @@ function PlaceholderNameField({
   const errorId = `placeholder-${placeholder.key}-error`
   const selectionTextId = `placeholder-${placeholder.key}-text`
   const selectedText = sourceText.slice(placeholder.start, placeholder.end)
+  const currentLabel = useWatch({
+    control,
+    defaultValue: placeholder.label,
+    name: fieldName,
+  })
   const describedBy = error
     ? `${selectionTextId} ${errorId}`
     : selectionTextId
-  const restoreButtonLabel = `${placeholder.label}: 일반 텍스트로 되돌리기`
+  const restoreButtonLabel = `${currentLabel}: 일반 텍스트로 되돌리기`
   const registration = register(fieldName, {
     onChange(event: ChangeEvent<HTMLInputElement>) {
-      onRename(placeholder.key, event.target.value)
+      onLabelChange(placeholder.key, event.target.value)
     },
   })
 
@@ -57,7 +67,6 @@ function PlaceholderNameField({
         <TextField
           aria-describedby={describedBy}
           aria-invalid={error ? "true" : undefined}
-          defaultValue={placeholder.label}
           id={fieldName}
           {...registration}
         />
@@ -89,17 +98,19 @@ function PlaceholderNameField({
 }
 
 type TemplatePlaceholderFieldsProps = {
+  control: Control<TemplateSaveFields>
   draft: TemplateDraft
   errors: FieldErrors<TemplateSaveFields>
   register: UseFormRegister<TemplateSaveFields>
-  onRename(key: string, label: string): void
+  onLabelChange(key: string, label: string): void
   onRestore(key: string): void
 }
 
 export function TemplatePlaceholderFields({
+  control,
   draft,
   errors,
-  onRename,
+  onLabelChange,
   onRestore,
   register,
 }: TemplatePlaceholderFieldsProps) {
@@ -111,9 +122,10 @@ export function TemplatePlaceholderFields({
     <ol className="grid gap-3">
       {draft.placeholders.map((placeholder) => (
         <PlaceholderNameField
+          control={control}
           errors={errors}
           key={placeholder.key}
-          onRename={onRename}
+          onLabelChange={onLabelChange}
           onRestore={onRestore}
           placeholder={placeholder}
           register={register}

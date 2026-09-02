@@ -3,14 +3,16 @@
 import {
   useRef,
   useState,
-  type ChangeEvent,
 } from "react"
-import { useForm } from "react-hook-form"
+import {
+  useForm,
+  useWatch,
+  type Control,
+} from "react-hook-form"
 
 import {
   findPlaceholderLabelIssues,
   markPlaceholder,
-  renamePlaceholder,
   restorePlaceholder,
   TemplateTitleSchema,
   toTemplateSegments,
@@ -68,6 +70,39 @@ function nextPlaceholderSequence(draft: TemplateDraft) {
   return sequence
 }
 
+function draftWithFields(
+  draft: TemplateDraft,
+  fields: TemplateSaveFields,
+): TemplateDraft {
+  return {
+    placeholders: draft.placeholders.map((placeholder) => ({
+      ...placeholder,
+      label: fields.labels[placeholder.key] ?? placeholder.label,
+    })),
+    sourceText: fields.sourceText,
+  }
+}
+
+type TemplateDraftPreviewProps = {
+  control: Control<TemplateSaveFields>
+  draft: TemplateDraft
+}
+
+function TemplateDraftPreview({
+  control,
+  draft,
+}: TemplateDraftPreviewProps) {
+  const labels = useWatch({ control, name: "labels" })
+  const previewDraft = draftWithFields(draft, {
+    labels,
+    sourceText: draft.sourceText,
+    title: "",
+  })
+  const segments = toTemplateSegments(previewDraft)
+
+  return <TemplateSegmentPreview segments={segments} />
+}
+
 type TemplateEditorProps = {
   draft: TemplateDraft
   heading: string
@@ -86,7 +121,9 @@ export function TemplateEditor({
   const [status, setStatus] = useState<EditorStatus>("idle")
   const {
     clearErrors,
+    control,
     formState: { errors, isSubmitting },
+    getValues,
     handleSubmit,
     register,
     setError,
@@ -94,18 +131,53 @@ export function TemplateEditor({
     setValue,
     unregister,
   } = useForm<TemplateSaveFields>({
-    defaultValues: { labels: createLabelValues(draft), title: "" },
+    defaultValues: {
+      labels: createLabelValues(draft),
+      sourceText: draft.sourceText,
+      title: "",
+    },
     shouldUnregister: true,
+  })
+  const sourceRegistration = register("sourceText", {
+    onChange() {
+      setStatus("idle")
+    },
   })
   const titleRegistration = register("title", {
     validate: validateTemplateTitle,
   })
-  const segments = toTemplateSegments(draft)
   const sourceReadOnly = draft.placeholders.length > 0
 
-  function updateSource(event: ChangeEvent<HTMLTextAreaElement>) {
-    onDraftChange({ placeholders: [], sourceText: event.target.value })
-    setStatus("idle")
+  function connectSourceField(element: HTMLTextAreaElement | null) {
+    sourceRegistration.ref(element)
+    sourceField.current = element
+  }
+
+  function synchronizeLabelErrors(
+    currentDraft: TemplateDraft,
+    fields: TemplateSaveFields,
+    focusFirstIssue: boolean,
+  ) {
+    const labelIssues = findPlaceholderLabelIssues(
+      toTemplateSegments(draftWithFields(currentDraft, fields)),
+    )
+
+    clearErrors("labels")
+
+    for (const issue of labelIssues) {
+      const message = issue.reason === "empty"
+        ? "플레이스홀더 이름을 입력하세요."
+        : "다른 플레이스홀더 이름을 입력하세요."
+      setError(`labels.${issue.key}`, { message })
+    }
+
+    const firstIssue = labelIssues[0]
+
+    if (focusFirstIssue && firstIssue !== undefined) {
+      setFocus(`labels.${firstIssue.key}`)
+    }
+
+    return labelIssues
   }
 
   function markSelectedText() {
@@ -115,10 +187,12 @@ export function TemplateEditor({
       return
     }
 
-    const sequence = nextPlaceholderSequence(draft)
+    const fields = getValues()
+    const currentDraft = draftWithFields(draft, fields)
+    const sequence = nextPlaceholderSequence(currentDraft)
     const key = `input-${sequence}`
     const label = `입력값 ${sequence}`
-    const result = markPlaceholder(draft, {
+    const result = markPlaceholder(currentDraft, {
       end: field.selectionEnd,
       key,
       label,
@@ -142,14 +216,23 @@ export function TemplateEditor({
     requestAnimationFrame(() => setFocus(fieldName))
   }
 
-  function rename(key: string, label: string) {
-    onDraftChange(renamePlaceholder(draft, key, label))
-    clearErrors(`labels.${key}`)
+  function changeLabel(key: string, label: string) {
+    const fields = getValues()
+    const labels = { ...fields.labels, [key]: label }
+
+    synchronizeLabelErrors(draft, { ...fields, labels }, false)
   }
 
   function restore(key: string) {
+    const fields = getValues()
+    const currentDraft = draftWithFields(draft, fields)
+    const nextDraft = restorePlaceholder(currentDraft, key)
+    const labels = { ...fields.labels }
+
+    delete labels[key]
     unregister(`labels.${key}`)
-    onDraftChange(restorePlaceholder(draft, key))
+    onDraftChange(nextDraft)
+    synchronizeLabelErrors(nextDraft, { ...fields, labels }, false)
     setStatus("idle")
   }
 
@@ -167,25 +250,11 @@ export function TemplateEditor({
       return
     }
 
-    const namedDraft: TemplateDraft = {
-      ...draft,
-      placeholders: draft.placeholders.map((placeholder) => ({
-        ...placeholder,
-        label: fields.labels[placeholder.key] ?? placeholder.label,
-      })),
-    }
+    const namedDraft = draftWithFields(draft, fields)
     const namedSegments = toTemplateSegments(namedDraft)
-    const labelIssues = findPlaceholderLabelIssues(namedSegments)
+    const labelIssues = synchronizeLabelErrors(draft, fields, true)
 
     if (labelIssues.length > 0) {
-      for (const issue of labelIssues) {
-        const message = issue.reason === "empty"
-          ? "플레이스홀더 이름을 입력하세요."
-          : "다른 플레이스홀더 이름을 입력하세요."
-        setError(`labels.${issue.key}`, { message })
-      }
-
-      setFocus(`labels.${labelIssues[0].key}`)
       return
     }
 
@@ -230,10 +299,9 @@ export function TemplateEditor({
         <Textarea
           className="min-h-32"
           id="template-source"
-          onChange={updateSource}
           readOnly={sourceReadOnly}
-          ref={sourceField}
-          value={draft.sourceText}
+          {...sourceRegistration}
+          ref={connectSourceField}
         />
         {sourceReadOnly ? (
           <p className="text-xs text-soft-ink">
@@ -241,14 +309,15 @@ export function TemplateEditor({
           </p>
         ) : null}
       </div>
-      {segments.length > 0 ? (
-        <TemplateSegmentPreview segments={segments} />
+      {draft.placeholders.length > 0 ? (
+        <TemplateDraftPreview control={control} draft={draft} />
       ) : null}
       <form className="grid gap-4" noValidate onSubmit={submitTemplate}>
         <TemplatePlaceholderFields
+          control={control}
           draft={draft}
           errors={errors}
-          onRename={rename}
+          onLabelChange={changeLabel}
           onRestore={restore}
           register={register}
         />
