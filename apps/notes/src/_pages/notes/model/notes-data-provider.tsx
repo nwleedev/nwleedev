@@ -12,6 +12,7 @@ import {
 
 import {
   createNoteReference,
+  findNewNoteGeometry,
   isRecoverableNoteDraft,
   nextNoteTabIndex,
   reviseNote,
@@ -67,9 +68,6 @@ type NotesDataContextValue = NotesDataState & {
 }
 
 const NotesDataContext = createContext<NotesDataContextValue | null>(null)
-const defaultNoteHeight = 240
-const defaultNoteWidth = 320
-const notePlacementGap = 32
 
 async function readNotes(
   repository: NoteRepository,
@@ -111,69 +109,6 @@ type NotesDataProviderProps = PropsWithChildren<{
   storageMonitor: NoteStorageMonitor
   usage: IndividualCopyUsageWriter
 }>
-
-function overlapsExistingNote(
-  candidate: NoteGeometry,
-  existing: NoteGeometry,
-) {
-  const separatedHorizontally =
-    candidate.x + candidate.width + notePlacementGap <= existing.x ||
-    existing.x + existing.width + notePlacementGap <= candidate.x
-  const separatedVertically =
-    candidate.y + candidate.height + notePlacementGap <= existing.y ||
-    existing.y + existing.height + notePlacementGap <= candidate.y
-
-  return !separatedHorizontally && !separatedVertically
-}
-
-function nextGeometry(notes: readonly Note[]): NoteGeometry {
-  const highestLayer = notes.reduce(
-    (highest, note) => Math.max(highest, note.geometry.zIndex),
-    0,
-  )
-  const cellWidth = notes.reduce(
-    (width, note) => Math.max(width, note.geometry.width),
-    defaultNoteWidth,
-  )
-  const cellHeight = notes.reduce(
-    (height, note) => Math.max(height, note.geometry.height),
-    defaultNoteHeight,
-  )
-  const maximumAttempts = notes.length * 4 + 4
-
-  for (let offset = 0; offset < maximumAttempts; offset += 1) {
-    const index = notes.length + offset
-    const column = index % 2
-    const row = Math.floor(index / 2)
-    const candidate: NoteGeometry = {
-      height: defaultNoteHeight,
-      width: defaultNoteWidth,
-      x: notePlacementGap + column * (cellWidth + notePlacementGap),
-      y: notePlacementGap + row * (cellHeight + notePlacementGap),
-      zIndex: highestLayer + 1,
-    }
-    const occupied = notes.some((note) =>
-      overlapsExistingNote(candidate, note.geometry),
-    )
-
-    if (!occupied) {
-      return candidate
-    }
-  }
-
-  const lowestEdge = notes.reduce(
-    (edge, note) => Math.max(edge, note.geometry.y + note.geometry.height),
-    0,
-  )
-
-  return {
-    height: defaultNoteHeight,
-    width: defaultNoteWidth,
-    x: notePlacementGap,
-    y: lowestEdge + notePlacementGap,
-    zIndex: highestLayer + 1,
-  }
-}
 
 export function NotesDataProvider({
   children,
@@ -266,7 +201,7 @@ export function NotesDataProvider({
         content: "",
         contentRevision: 0,
         createdAt: timestamp,
-        geometry: nextGeometry(notes),
+        geometry: findNewNoteGeometry(notes.map(({ geometry }) => geometry)),
         id: createId(),
         revision: 0,
         tabIndex: nextNoteTabIndex(notes),

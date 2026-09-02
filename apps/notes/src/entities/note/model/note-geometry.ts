@@ -89,6 +89,83 @@ function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(Math.max(value, minimum), maximum)
 }
 
+const newNoteHeight = 240
+const newNoteWidth = 320
+const newNoteGap = 32
+
+function placementPositions(size: number) {
+  const positions: number[] = []
+
+  for (
+    let position = newNoteGap;
+    position + size <= NOTE_CANVAS_SIZE;
+    position += size + newNoteGap
+  ) {
+    positions.push(position)
+  }
+
+  return positions
+}
+
+function overlapsWithGap(
+  candidate: NoteGeometry,
+  existing: NoteGeometry,
+) {
+  const separatedHorizontally =
+    candidate.x + candidate.width + newNoteGap <= existing.x ||
+    existing.x + existing.width + newNoteGap <= candidate.x
+  const separatedVertically =
+    candidate.y + candidate.height + newNoteGap <= existing.y ||
+    existing.y + existing.height + newNoteGap <= candidate.y
+
+  return !separatedHorizontally && !separatedVertically
+}
+
+export function findNewNoteGeometry(
+  existingGeometry: readonly NoteGeometry[],
+): NoteGeometry {
+  const xPositions = placementPositions(newNoteWidth)
+  const yPositions = placementPositions(newNoteHeight)
+  const placementCount = xPositions.length * yPositions.length
+  const firstPlacement = existingGeometry.length % placementCount
+  const zIndex =
+    existingGeometry.reduce(
+      (highest, geometry) => Math.max(highest, geometry.zIndex),
+      0,
+    ) + 1
+
+  for (let offset = 0; offset < placementCount; offset += 1) {
+    const placement = (firstPlacement + offset) % placementCount
+    const column = placement % xPositions.length
+    const row = Math.floor(placement / xPositions.length)
+    const candidate: NoteGeometry = {
+      height: newNoteHeight,
+      width: newNoteWidth,
+      x: xPositions[column],
+      y: yPositions[row],
+      zIndex,
+    }
+    const occupied = existingGeometry.some((geometry) =>
+      overlapsWithGap(candidate, geometry),
+    )
+
+    if (!occupied) {
+      return candidate
+    }
+  }
+
+  const column = firstPlacement % xPositions.length
+  const row = Math.floor(firstPlacement / xPositions.length)
+
+  return {
+    height: newNoteHeight,
+    width: newNoteWidth,
+    x: xPositions[column],
+    y: yPositions[row],
+    zIndex,
+  }
+}
+
 export function readNoteGeometryDraft(
   draft: NoteGeometryDraft,
   zIndex: number,
