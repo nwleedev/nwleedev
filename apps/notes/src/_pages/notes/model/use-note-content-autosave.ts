@@ -12,14 +12,17 @@ import {
   updateNoteContentDraft,
   type NoteContentSaveState,
 } from "./note-content-save-state"
-import type { SaveNoteContentResult } from "./save-note-content"
+import type {
+  SaveNoteContentFailureReason,
+  SaveNoteContentResult,
+} from "./save-note-content"
 
 const NOTE_AUTOSAVE_DELAY_MS = 800
 
 type UseNoteContentAutosaveOptions = {
   initialContent: string
   note: Note
-  onFailure(): void
+  onFailure(reason: SaveNoteContentFailureReason): void
   onSave(noteId: string, content: string): Promise<SaveNoteContentResult>
 }
 
@@ -89,7 +92,7 @@ export function useNoteContentAutosave({
 
         if (result.status === "failure") {
           publish(failNoteContentSave(stateReference.current))
-          failureReference.current()
+          failureReference.current(result.reason)
           return null
         }
 
@@ -106,7 +109,7 @@ export function useNoteContentAutosave({
         return result.note
       } catch {
         publish(failNoteContentSave(stateReference.current))
-        failureReference.current()
+        failureReference.current("note-storage")
         return null
       }
     })()

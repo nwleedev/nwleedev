@@ -82,4 +82,13 @@ describe("note content save state", () => {
     expect(result.request).toBeNull()
     expect(result.state.status).toBe("clean")
   })
+
+  it("removes a recovered draft after the user returns to the stored text", () => {
+    const recovered = createNoteContentSaveState(note, "복구된 원문")
+    const reverted = updateNoteContentDraft(recovered, note.content)
+    const result = beginNoteContentSave(reverted)
+
+    expect(result.request).toEqual({ content: note.content, note })
+    expect(result.state.status).toBe("saving")
+  })
 })

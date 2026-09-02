@@ -160,7 +160,11 @@ function createRepository(
 }
 
 function createDelayedSaveRepository(note: Note) {
-  const firstSave = createDeferred<void>()
+  const firstSaveStarted = createDeferred<void>()
+  const releaseFirstSave = createDeferred<void>()
+  const secondSaveStarted = createDeferred<void>()
+  const releaseSecondSave = createDeferred<void>()
+  const secondSaveFinished = createDeferred<void>()
   let currentNote = note
   let saveCount = 0
 
@@ -171,20 +175,33 @@ function createDelayedSaveRepository(note: Note) {
       saveCount += 1
 
       if (saveCount === 1) {
-        await firstSave.promise
+        firstSaveStarted.resolve()
+        await releaseFirstSave.promise
+      }
+
+      if (saveCount === 2) {
+        secondSaveStarted.resolve()
+        await releaseSecondSave.promise
       }
 
       currentNote = nextNote
+
+      if (saveCount === 2) {
+        secondSaveFinished.resolve()
+      }
+
       return nextNote
     },
     saveAll: async (notes) => notes,
   }
 
   return {
-    completeFirstSave: () => firstSave.resolve(),
-    readContent: () => currentNote.content,
+    completeFirstSave: () => releaseFirstSave.resolve(),
+    completeSecondSave: () => releaseSecondSave.resolve(),
     repository,
-    saveCount: () => saveCount,
+    secondSaveFinished: secondSaveFinished.promise,
+    secondSaveStarted: secondSaveStarted.promise,
+    firstSaveStarted: firstSaveStarted.promise,
   }
 }
 
@@ -319,13 +336,23 @@ describe("NotesDataProvider", () => {
       await userEvent.fill(editor, "먼저 저장할 메모")
       await userEvent.tab()
     })
-    await expect.poll(delayed.saveCount).toBe(1)
+    await delayed.firstSaveStarted
 
     await act(async () => {
       await userEvent.fill(editor, "저장 중에 완성한 메모")
       await userEvent.tab()
-      delayed.completeFirstSave()
-      await expect.poll(delayed.readContent).toBe("저장 중에 완성한 메모")
     })
+    await act(async () => {
+      delayed.completeFirstSave()
+      await delayed.secondSaveStarted
+    })
+    await act(async () => {
+      delayed.completeSecondSave()
+      await delayed.secondSaveFinished
+    })
+
+    await expect
+      .element(page.getByRole("article").first())
+      .toHaveTextContent("저장 중에 완성한 메모")
   })
 })

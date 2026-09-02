@@ -11,17 +11,35 @@ type SaveNoteContentDependencies = {
   now(): string
 }
 
+export type SaveNoteContentFailureReason =
+  | "draft-storage"
+  | "note-missing"
+  | "note-storage"
+
 export type SaveNoteContentResult =
   | { note: Note; status: "saved" | "unchanged" }
-  | { status: "failure" }
+  | {
+      reason: SaveNoteContentFailureReason
+      status: "failure"
+    }
 
 export async function saveNoteContent(
   dependencies: SaveNoteContentDependencies,
   note: Note,
   content: string,
 ): Promise<SaveNoteContentResult> {
+  const draftReference = {
+    contentRevision: note.contentRevision,
+    id: note.id,
+  }
+
   if (content === note.content) {
-    return { note, status: "unchanged" }
+    try {
+      await dependencies.drafts.remove(draftReference)
+      return { note, status: "unchanged" }
+    } catch {
+      return { reason: "draft-storage", status: "failure" }
+    }
   }
 
   const updatedAt = dependencies.now()
@@ -29,24 +47,28 @@ export async function saveNoteContent(
   try {
     await dependencies.drafts.save({
       content,
-      note: { contentRevision: note.contentRevision, id: note.id },
+      note: draftReference,
       updatedAt,
     })
-    const savedNote = await dependencies.notes.save(
+  } catch {
+    return { reason: "draft-storage", status: "failure" }
+  }
+
+  let savedNote: Note
+
+  try {
+    savedNote = await dependencies.notes.save(
       reviseNote(note, { content, updatedAt }),
     )
-
-    try {
-      await dependencies.drafts.remove({
-        contentRevision: note.contentRevision,
-        id: note.id,
-      })
-    } catch {
-      return { note: savedNote, status: "saved" }
-    }
-
-    return { note: savedNote, status: "saved" }
   } catch {
-    return { status: "failure" }
+    return { reason: "note-storage", status: "failure" }
   }
+
+  try {
+    await dependencies.drafts.remove(draftReference)
+  } catch {
+    return { note: savedNote, status: "saved" }
+  }
+
+  return { note: savedNote, status: "saved" }
 }

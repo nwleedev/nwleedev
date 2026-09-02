@@ -1,7 +1,14 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type SyntheticEvent,
+} from "react"
 
 import type { Note } from "@/entities/note"
 import { ActionToast } from "@/shared/ui/action-toast"
@@ -10,6 +17,7 @@ import { StatusNotice } from "@/shared/ui/status-notice"
 
 import type { SaveNoteContentResult } from "../model/save-note-content"
 import { useNotesData } from "../model/notes-data-provider"
+import { noteContentFailureMessage } from "./note-content-failure-message"
 
 const DRAFT_SAVE_DELAY_MS = 800
 const backLinkClassName =
@@ -25,21 +33,99 @@ type ReadyNoteDetailProps = {
   saveDraft(noteId: string, content: string): Promise<void>
 }
 
+type UnsavedChangesDialogProps = {
+  discarding: boolean
+  onContinue(): void
+  onDiscard(): void
+}
+
+function UnsavedChangesDialog({
+  discarding,
+  onContinue,
+  onDiscard,
+}: UnsavedChangesDialogProps) {
+  const dialog = useRef<HTMLDialogElement>(null)
+  const continueButton = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const element = dialog.current
+
+    if (element === null) {
+      return
+    }
+
+    element.showModal()
+    continueButton.current?.focus()
+
+    return () => {
+      if (element.open) {
+        element.close()
+      }
+    }
+  }, [])
+
+  function continueFromCancel(event: SyntheticEvent<HTMLDialogElement>) {
+    event.preventDefault()
+    onContinue()
+  }
+
+  return (
+    <dialog
+      aria-labelledby="unsaved-note-title"
+      className="m-auto w-[min(26rem,calc(100vw-2rem))] max-w-none rounded-panel border border-line bg-surface-raised p-5 text-ink shadow-floating backdrop:bg-ink/25"
+      onCancel={continueFromCancel}
+      ref={dialog}
+    >
+      <div className="grid gap-5">
+        <div className="grid gap-2">
+          <h2 className="text-base font-semibold" id="unsaved-note-title">
+            저장하지 않은 변경사항
+          </h2>
+          <p className="text-sm leading-6 text-soft-ink">
+            목록으로 돌아가기 전에 변경사항을 버릴지 선택하세요.
+          </p>
+        </div>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button
+            disabled={discarding}
+            onClick={onDiscard}
+            tone="quiet"
+          >
+            {discarding ? "버리는 중" : "변경사항 버리기"}
+          </Button>
+          <Button
+            disabled={discarding}
+            onClick={onContinue}
+            ref={continueButton}
+          >
+            계속 편집
+          </Button>
+        </div>
+      </div>
+    </dialog>
+  )
+}
+
 function ReadyNoteDetail({
   initialContent,
   note,
   saveContent,
   saveDraft,
 }: ReadyNoteDetailProps) {
+  const router = useRouter()
   const [content, setContent] = useState(initialContent)
   const [notice, setNotice] = useState<{
     kind: "error" | "status"
     message: string
   } | null>(null)
+  const [confirmingNavigation, setConfirmingNavigation] = useState(false)
+  const [discarding, setDiscarding] = useState(false)
   const [pending, setPending] = useState(false)
   const contentReference = useRef(content)
+  const discardedDraft = useRef(false)
   const noteReference = useRef(note)
   const saveDraftReference = useRef(saveDraft)
+  const editor = useRef<HTMLTextAreaElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -52,6 +138,10 @@ function ReadyNoteDetail({
 
   useEffect(() => {
     function storeDraft() {
+      if (discardedDraft.current) {
+        return
+      }
+
       void saveDraftReference
         .current(noteReference.current.id, contentReference.current)
         .catch(() => undefined)
@@ -98,6 +188,10 @@ function ReadyNoteDetail({
   }
 
   function storeDraftOnBlur() {
+    if (discardedDraft.current) {
+      return
+    }
+
     if (timer.current !== null) {
       clearTimeout(timer.current)
       timer.current = null
@@ -127,7 +221,7 @@ function ReadyNoteDetail({
     if (result.status === "failure") {
       setNotice({
         kind: "error",
-        message: "메모를 저장하지 못했습니다. 다시 시도하세요.",
+        message: noteContentFailureMessage(result.reason),
       })
     } else {
       noteReference.current = result.note
@@ -137,13 +231,63 @@ function ReadyNoteDetail({
     setPending(false)
   }
 
+  function requestBackNavigation(event: ReactMouseEvent<HTMLAnchorElement>) {
+    const modifiedClick =
+      event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
+    const changed = contentReference.current !== noteReference.current.content
+
+    if (modifiedClick || !changed) {
+      return
+    }
+
+    event.preventDefault()
+    setConfirmingNavigation(true)
+  }
+
+  function continueEditing() {
+    setConfirmingNavigation(false)
+    requestAnimationFrame(() => editor.current?.focus())
+  }
+
+  async function discardChanges() {
+    if (discarding) {
+      return
+    }
+
+    if (timer.current !== null) {
+      clearTimeout(timer.current)
+      timer.current = null
+    }
+
+    discardedDraft.current = true
+    setDiscarding(true)
+
+    try {
+      await saveDraft(note.id, noteReference.current.content)
+      router.push("/")
+    } catch {
+      discardedDraft.current = false
+      setDiscarding(false)
+      setConfirmingNavigation(false)
+      setNotice({
+        kind: "error",
+        message: "변경사항을 버리지 못했습니다. 다시 시도하세요.",
+      })
+      requestAnimationFrame(() => editor.current?.focus())
+    }
+  }
+
   return (
     <main
       className="relative grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] bg-canvas"
       id="main-content"
     >
       <header className="flex items-center justify-between gap-3 border-b border-line bg-surface-raised px-4 py-3">
-        <Link className={backLinkClassName} href="/">
+        <Link
+          className={backLinkClassName}
+          href="/"
+          onClick={requestBackNavigation}
+        >
           메모 목록
         </Link>
         <h1 className="text-base font-semibold">메모 편집</h1>
@@ -163,6 +307,7 @@ function ReadyNoteDetail({
           className="h-full min-h-56 w-full resize-none rounded-note border border-note-line bg-note px-4 py-3 text-base leading-7 shadow-note outline-none"
           onBlur={storeDraftOnBlur}
           onChange={(event) => scheduleDraft(event.target.value)}
+          ref={editor}
           value={content}
         />
       </div>
@@ -171,6 +316,13 @@ function ReadyNoteDetail({
           {pending ? "저장하는 중" : "저장"}
         </Button>
       </footer>
+      {confirmingNavigation ? (
+        <UnsavedChangesDialog
+          discarding={discarding}
+          onContinue={continueEditing}
+          onDiscard={discardChanges}
+        />
+      ) : null}
     </main>
   )
 }

@@ -23,13 +23,19 @@ const note: Note = {
 
 function createStorage(options: {
   draftFailure?: boolean
+  draftRemovalFailure?: boolean
+  initialDraft?: NoteDraft
   noteFailure?: boolean
 } = {}) {
-  let draft: NoteDraft | null = null
+  let draft: NoteDraft | null = options.initialDraft ?? null
   let storedNote = note
   const drafts: NoteDraftRepository = {
     get: async () => draft,
     remove: async () => {
+      if (options.draftRemovalFailure) {
+        throw new Error("Draft removal failed")
+      }
+
       draft = null
     },
     save: async (nextDraft) => {
@@ -88,7 +94,7 @@ describe("saving note content", () => {
       "보존해야 할 원문",
     )
 
-    expect(result.status).toBe("failure")
+    expect(result).toEqual({ reason: "draft-storage", status: "failure" })
     expect(storage.readNote()).toEqual(note)
   })
 
@@ -100,7 +106,7 @@ describe("saving note content", () => {
       "복구할 원문",
     )
 
-    expect(result.status).toBe("failure")
+    expect(result).toEqual({ reason: "note-storage", status: "failure" })
     expect(storage.readDraft()).toMatchObject({
       content: "복구할 원문",
       note: { contentRevision: note.contentRevision, id: note.id },
@@ -108,8 +114,14 @@ describe("saving note content", () => {
     expect(storage.readNote()).toEqual(note)
   })
 
-  it("returns the current note when the content is unchanged", async () => {
-    const storage = createStorage()
+  it("removes a stale recovery draft when content matches the stored note", async () => {
+    const storage = createStorage({
+      initialDraft: {
+        content: "더는 복구하지 않을 원문",
+        note: { contentRevision: note.contentRevision, id: note.id },
+        updatedAt: timestamp,
+      },
+    })
     const result = await saveNoteContent(
       { drafts: storage.drafts, notes: storage.notes, now: () => timestamp },
       note,
@@ -118,5 +130,25 @@ describe("saving note content", () => {
 
     expect(result).toEqual({ note, status: "unchanged" })
     expect(storage.readDraft()).toBeNull()
+  })
+
+  it("keeps a discarded recovery draft retryable when removal fails", async () => {
+    const recoveryDraft: NoteDraft = {
+      content: "다시 제거할 원문",
+      note: { contentRevision: note.contentRevision, id: note.id },
+      updatedAt: timestamp,
+    }
+    const storage = createStorage({
+      draftRemovalFailure: true,
+      initialDraft: recoveryDraft,
+    })
+    const result = await saveNoteContent(
+      { drafts: storage.drafts, notes: storage.notes, now: () => timestamp },
+      note,
+      note.content,
+    )
+
+    expect(result).toEqual({ reason: "draft-storage", status: "failure" })
+    expect(storage.readDraft()).toEqual(recoveryDraft)
   })
 })

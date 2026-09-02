@@ -282,4 +282,35 @@ test.describe("320px 메모 화면", () => {
       revisedContent,
     )
   })
+
+  test("저장하지 않은 상세 입력을 계속 편집하거나 버린다", async ({ page }) => {
+    const initialContent = "이동 결정을 확인할 메모"
+    const discardedContent = "목록으로 돌아갈 때 버릴 변경사항"
+    const note = await createMobileNoteThroughUi(page, initialContent)
+
+    await note.getByRole("link", { name: "메모 열기" }).click()
+    const editor = page.getByRole("textbox", { name: "메모 내용" })
+    const backLink = page.getByRole("link", { exact: true, name: "메모 목록" })
+    await editor.fill(discardedContent)
+    await backLink.click()
+
+    let dialog = page.getByRole("dialog", { name: "저장하지 않은 변경사항" })
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole("button", { name: "계속 편집" }).click()
+    await expect(editor).toBeFocused()
+    await expect(editor).toHaveValue(discardedContent)
+
+    await backLink.click()
+    dialog = page.getByRole("dialog", { name: "저장하지 않은 변경사항" })
+    await dialog.getByRole("button", { name: "변경사항 버리기" }).click()
+    await expect(page).toHaveURL("/")
+
+    const restoredNote = page
+      .getByRole("article")
+      .filter({ hasText: initialContent })
+    await restoredNote.getByRole("link", { name: "메모 열기" }).click()
+    await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
+      initialContent,
+    )
+  })
 })

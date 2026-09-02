@@ -1,6 +1,7 @@
 import type { Note } from "@/entities/note"
 
 export type NoteContentSaveState = {
+  draftCleanupRequired: boolean
   draftContent: string
   note: Note
   pendingContent: string | null
@@ -17,6 +18,7 @@ export function createNoteContentSaveState(
   recoveredContent = note.content,
 ): NoteContentSaveState {
   return {
+    draftCleanupRequired: recoveredContent !== note.content,
     draftContent: recoveredContent,
     note,
     pendingContent: null,
@@ -36,7 +38,7 @@ export function updateNoteContentDraft(
 
   if (state.pendingContent !== null) {
     status = "saving"
-  } else if (content === state.note.content) {
+  } else if (content === state.note.content && !state.draftCleanupRequired) {
     status = "clean"
   }
 
@@ -49,10 +51,17 @@ export function beginNoteContentSave(state: NoteContentSaveState): {
 } {
   const unchanged = state.draftContent === state.note.content
 
-  if (state.pendingContent !== null || unchanged) {
+  if (state.pendingContent !== null) {
     return {
       request: null,
-      state: unchanged ? { ...state, status: "clean" } : state,
+      state,
+    }
+  }
+
+  if (unchanged && !state.draftCleanupRequired) {
+    return {
+      request: null,
+      state: { ...state, status: "clean" },
     }
   }
 
@@ -60,6 +69,7 @@ export function beginNoteContentSave(state: NoteContentSaveState): {
     request: { content: state.draftContent, note: state.note },
     state: {
       ...state,
+      draftCleanupRequired: true,
       pendingContent: state.draftContent,
       status: "saving",
     },
@@ -72,7 +82,13 @@ export function completeNoteContentSave(
 ): NoteContentSaveState {
   const status = state.draftContent === note.content ? "clean" : "dirty"
 
-  return { ...state, note, pendingContent: null, status }
+  return {
+    ...state,
+    draftCleanupRequired: false,
+    note,
+    pendingContent: null,
+    status,
+  }
 }
 
 export function failNoteContentSave(

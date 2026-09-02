@@ -31,6 +31,7 @@ import {
 
 import type { SaveNoteContentResult } from "../model/save-note-content"
 import { useNoteContentAutosave } from "../model/use-note-content-autosave"
+import { noteContentFailureMessage } from "./note-content-failure-message"
 
 type ResizeDirection =
   | "east"
@@ -238,8 +239,7 @@ export function NoteCard({
   const content = useNoteContentAutosave({
     initialContent,
     note,
-    onFailure: () =>
-      onSaveFailure("메모를 저장하지 못했습니다. 다시 시도하세요."),
+    onFailure: (reason) => onSaveFailure(noteContentFailureMessage(reason)),
     onSave: onSaveContent,
   })
   const geometry = geometryPreview ?? note.geometry

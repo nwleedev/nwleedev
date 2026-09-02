@@ -228,7 +228,7 @@ export function NotesDataProvider({
       )
 
       if (note === undefined) {
-        return { status: "failure" } as const
+        return { reason: "note-missing", status: "failure" } as const
       }
 
       const result = await executeSaveNoteContent(
