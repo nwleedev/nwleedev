@@ -1,556 +1,561 @@
 "use client"
 
 import {
-  useEffect,
   useRef,
   useState,
   type CSSProperties,
+  type FocusEvent as ReactFocusEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 
-import type { Note, NoteGeometry } from "@/entities/note"
-import type { AddNoteToBatchCopyResult } from "@/features/add-note-to-batch-copy"
-import { joinClassNames } from "@/shared/lib/join-class-names"
-
-import type { CopyNoteResult } from "../model/copy-note"
 import {
-  NoteActions,
-  type NoteInteractionNotice,
-} from "./note-actions"
-import { NoteEditor } from "./note-editor"
-import { NoteGeometryControls } from "./note-geometry-controls"
+  NOTE_CANVAS_SIZE,
+  NOTE_HEIGHT_MAX,
+  NOTE_HEIGHT_MIN,
+  NOTE_WIDTH_MAX,
+  NOTE_WIDTH_MIN,
+  fitNoteGeometryToCanvas,
+  type Note,
+  type NoteGeometry,
+} from "@/entities/note"
+import { joinClassNames } from "@/shared/lib/join-class-names"
+import { IconButton } from "@/shared/ui/icon-button"
+import {
+  BringToFrontIcon,
+  RemoveIcon,
+  SendToBackIcon,
+} from "@/shared/ui/icons"
 
-const NOTE_LONG_PRESS_DELAY_MS = 500
-const NOTE_LONG_PRESS_MOVEMENT_PX = 10
-const SELECTED_NOTE_LAYER = 2_147_483_647
+import type { SaveNoteContentResult } from "../model/save-note-content"
+import { useNoteContentAutosave } from "../model/use-note-content-autosave"
+
+type ResizeDirection =
+  | "east"
+  | "north"
+  | "north-east"
+  | "north-west"
+  | "south"
+  | "south-east"
+  | "south-west"
+  | "west"
 
 type GeometryGesture = {
+  action: "move" | ResizeDirection
   geometry: NoteGeometry
-  mode: "move" | "resize"
+  moved: boolean
   pointerId: number
+  pointerType: string
   startX: number
   startY: number
-}
-
-type MobilePressGesture = {
-  cancelled: boolean
-  pointerId: number
-  qualified: boolean
-  startX: number
-  startY: number
-  timer: ReturnType<typeof setTimeout>
 }
 
 type NoteCardProps = {
-  batchCopyReady: boolean
-  batchCopyShortcutEnabled: boolean
-  draftContent: string
-  editing: boolean
+  commandPressed: boolean
+  initialContent: string
   note: Note
-  placement: "board" | "list"
-  scale?: number
+  propertiesTarget: boolean
+  scale: number
   selected: boolean
-  onAddToBatchCopy(note: Note): Promise<AddNoteToBatchCopyResult>
-  onBatchCopyItemAdded(): void
-  onBeginEditing(note: Note): void
-  onCopy(note: Note): Promise<CopyNoteResult>
-  onDraftChange(content: string): void
-  onFinishEditing(note: Note, content: string): Promise<void>
-  onSaveGeometry(note: Note, geometry: NoteGeometry): Promise<void>
+  onActivateProperties(note: Note): void
+  onMoveToBack(noteId: string): Promise<readonly Note[]>
+  onMoveToFront(noteId: string): Promise<readonly Note[]>
+  onRemove(note: Note): Promise<void>
+  onSaveContent(
+    noteId: string,
+    content: string,
+  ): Promise<SaveNoteContentResult>
+  onSaveFailure(message: string): void
+  onSaveGeometry(note: Note, geometry: NoteGeometry): Promise<Note>
   onSelect(noteId: string): void
 }
 
+type ResizeHandleProps = {
+  direction: ResizeDirection
+  disabled: boolean
+  positionClassName: string
+  onPointerCancel(event: ReactPointerEvent<HTMLSpanElement>): void
+  onPointerDown(
+    event: ReactPointerEvent<HTMLSpanElement>,
+    direction: ResizeDirection,
+  ): void
+  onPointerMove(event: ReactPointerEvent<HTMLSpanElement>): void
+  onPointerUp(event: ReactPointerEvent<HTMLSpanElement>): void
+}
+
+const resizeCursorClassNames: Record<ResizeDirection, string> = {
+  east: "cursor-e-resize",
+  north: "cursor-n-resize",
+  "north-east": "cursor-ne-resize",
+  "north-west": "cursor-nw-resize",
+  south: "cursor-s-resize",
+  "south-east": "cursor-se-resize",
+  "south-west": "cursor-sw-resize",
+  west: "cursor-w-resize",
+}
+
+function movementThreshold(pointerType: string) {
+  return pointerType === "touch" ? 10 : 5
+}
+
+function clamp(value: number, minimum: number, maximum: number) {
+  return Math.min(Math.max(value, minimum), maximum)
+}
+
+function resizedGeometry(
+  geometry: NoteGeometry,
+  direction: ResizeDirection,
+  deltaX: number,
+  deltaY: number,
+) {
+  let height = geometry.height
+  let width = geometry.width
+  let x = geometry.x
+  let y = geometry.y
+
+  if (direction.includes("east")) {
+    width = clamp(
+      geometry.width + deltaX,
+      NOTE_WIDTH_MIN,
+      Math.min(NOTE_WIDTH_MAX, NOTE_CANVAS_SIZE - geometry.x),
+    )
+  }
+
+  if (direction.includes("south")) {
+    height = clamp(
+      geometry.height + deltaY,
+      NOTE_HEIGHT_MIN,
+      Math.min(NOTE_HEIGHT_MAX, NOTE_CANVAS_SIZE - geometry.y),
+    )
+  }
+
+  if (direction.includes("west")) {
+    const right = geometry.x + geometry.width
+    width = clamp(
+      geometry.width - deltaX,
+      NOTE_WIDTH_MIN,
+      Math.min(NOTE_WIDTH_MAX, right - 1),
+    )
+    x = right - width
+  }
+
+  if (direction.includes("north")) {
+    const bottom = geometry.y + geometry.height
+    height = clamp(
+      geometry.height - deltaY,
+      NOTE_HEIGHT_MIN,
+      Math.min(NOTE_HEIGHT_MAX, bottom - 1),
+    )
+    y = bottom - height
+  }
+
+  return fitNoteGeometryToCanvas({ ...geometry, height, width, x, y })
+}
+
 function geometryFromGesture(
-  event: ReactPointerEvent<HTMLButtonElement>,
+  event: ReactPointerEvent<HTMLElement>,
   gesture: GeometryGesture,
   scale: number,
 ) {
-  const deltaX = (event.clientX - gesture.startX) / scale
-  const deltaY = (event.clientY - gesture.startY) / scale
+  const deltaX = Math.round((event.clientX - gesture.startX) / scale)
+  const deltaY = Math.round((event.clientY - gesture.startY) / scale)
 
-  if (gesture.mode === "move") {
-    return {
+  if (gesture.action === "move") {
+    return fitNoteGeometryToCanvas({
       ...gesture.geometry,
-      x: Math.max(0, Math.round(gesture.geometry.x + deltaX)),
-      y: Math.max(0, Math.round(gesture.geometry.y + deltaY)),
-    }
+      x: gesture.geometry.x + deltaX,
+      y: gesture.geometry.y + deltaY,
+    })
   }
 
-  return {
-    ...gesture.geometry,
-    height: Math.max(180, Math.round(gesture.geometry.height + deltaY)),
-    width: Math.max(240, Math.round(gesture.geometry.width + deltaX)),
-  }
+  return resizedGeometry(gesture.geometry, gesture.action, deltaX, deltaY)
 }
 
-function hasTextSelection(element: HTMLElement) {
-  const selection = window.getSelection()
+function ResizeHandle({
+  direction,
+  disabled,
+  onPointerCancel,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  positionClassName,
+}: ResizeHandleProps) {
+  const handleClassName = joinClassNames(
+    "absolute z-20 touch-none",
+    resizeCursorClassNames[direction],
+    positionClassName,
+    disabled ? "pointer-events-none" : undefined,
+  )
 
-  if (selection === null || selection.isCollapsed) {
-    return false
-  }
-
-  const anchorSelected = element.contains(selection.anchorNode)
-  const focusSelected = element.contains(selection.focusNode)
-  return anchorSelected || focusSelected
+  return (
+    <span
+      aria-hidden="true"
+      className={handleClassName}
+      onPointerCancel={onPointerCancel}
+      onPointerDown={(event) => onPointerDown(event, direction)}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      role="presentation"
+    />
+  )
 }
 
-function isInside(element: HTMLElement, clientX: number, clientY: number) {
-  const bounds = element.getBoundingClientRect()
-  const withinHorizontal = clientX >= bounds.left && clientX <= bounds.right
-  const withinVertical = clientY >= bounds.top && clientY <= bounds.bottom
-  return withinHorizontal && withinVertical
-}
-
-function isBatchCopyShortcutClick(
-  event: ReactMouseEvent<HTMLDivElement>,
-  enabled: boolean,
-) {
-  if (!enabled || !event.metaKey || !event.altKey) {
-    return false
-  }
-
-  if (event.ctrlKey || event.shiftKey) {
-    return false
-  }
-
-  return event.button === 0
-}
-
-function clipboardFailureMessage(result: Extract<
-  CopyNoteResult,
-  { status: "clipboard-failure" }
->) {
-  if (result.reason === "api-unavailable") {
-    return "이 브라우저에서는 클립보드에 복사할 수 없습니다. 텍스트를 직접 선택해 복사하세요."
-  }
-
-  if (result.reason === "not-allowed") {
-    return "클립보드 쓰기가 허용되지 않았습니다. 브라우저의 사이트 권한을 확인한 뒤 다시 시도하세요."
-  }
-
-  return "클립보드에 쓰지 못했습니다. 다시 시도하거나 텍스트를 직접 선택해 복사하세요."
+function stopHeaderAction(event: ReactPointerEvent<HTMLButtonElement>) {
+  event.stopPropagation()
 }
 
 export function NoteCard({
-  batchCopyReady,
-  batchCopyShortcutEnabled,
-  draftContent,
-  editing,
+  commandPressed,
+  initialContent,
   note,
-  onAddToBatchCopy,
-  onBatchCopyItemAdded,
-  onBeginEditing,
-  onCopy,
-  onDraftChange,
-  onFinishEditing,
+  onActivateProperties,
+  onMoveToBack,
+  onMoveToFront,
+  onRemove,
+  onSaveContent,
+  onSaveFailure,
   onSaveGeometry,
   onSelect,
-  placement,
-  scale = 1,
+  propertiesTarget,
+  scale,
   selected,
 }: NoteCardProps) {
-  const [errorMessage, setErrorMessage] = useState("")
   const [geometryPreview, setGeometryPreview] =
     useState<NoteGeometry | null>(null)
-  const [mobilePressActive, setMobilePressActive] = useState(false)
-  const [notice, setNotice] = useState<NoteInteractionNotice | null>(null)
-  const [pending, setPending] = useState(false)
+  const [geometryPending, setGeometryPending] = useState(false)
   const gesture = useRef<GeometryGesture | null>(null)
-  const mobilePress = useRef<MobilePressGesture | null>(null)
-  const suppressNextClick = useRef(false)
-  const boardPlacement = placement === "board"
-  const showBoardControls = boardPlacement && !editing
-  const showGeometryControls = showBoardControls && selected
+  const suppressClick = useRef(false)
+  const article = useRef<HTMLElement>(null)
+  const content = useNoteContentAutosave({
+    initialContent,
+    note,
+    onFailure: () =>
+      onSaveFailure("메모를 저장하지 못했습니다. 다시 시도하세요."),
+    onSave: onSaveContent,
+  })
   const geometry = geometryPreview ?? note.geometry
-  const contentText = note.content || "빈 메모"
-  const targetId = `note-${encodeURIComponent(note.id)}-${placement}`
+  const encodedNoteId = encodeURIComponent(note.id)
+  const articleId = `note-${encodedNoteId}-board`
+  const contentId = `note-${encodedNoteId}-content`
+  const interactionPending = geometryPending || content.status === "saving"
+  const selectedVisible = selected && !commandPressed
+  const headerClassName = joinClassNames(
+    "flex h-7 shrink-0 touch-none items-center justify-end gap-0.5 border-b border-note-line bg-note-header px-1",
+    commandPressed ? "invisible" : undefined,
+  )
   const cardClassName = joinClassNames(
-    "flex min-h-40 flex-col gap-3 overflow-auto rounded-note border bg-surface-raised p-3 shadow-note transition-[border-color,box-shadow] duration-[var(--notes-motion-fast)]",
-    boardPlacement ? "absolute" : "relative",
-    selected ? "border-action shadow-floating" : "border-line",
+    "absolute flex flex-col overflow-visible rounded-note border bg-note shadow-note transition-[border-color,box-shadow] duration-[var(--notes-motion-fast)]",
+    selectedVisible ? "border-selection" : "border-note-line",
+    propertiesTarget ? "outline outline-1 outline-offset-2 outline-dashed outline-line-strong" : undefined,
   )
-  const contentClassName = joinClassNames(
-    "min-h-0 flex-1 cursor-copy touch-pan-y overflow-auto rounded-control p-1",
-    mobilePressActive
-      ? "select-none [-webkit-touch-callout:none]"
-      : "select-text",
-  )
-  const boardStyle: CSSProperties | undefined = boardPlacement
-    ? {
-        height: geometry.height,
-        left: geometry.x,
-        top: geometry.y,
-        width: geometry.width,
-        zIndex: selected ? SELECTED_NOTE_LAYER : geometry.zIndex,
-      }
-    : undefined
+  const cardStyle: CSSProperties = {
+    height: geometry.height,
+    left: geometry.x,
+    top: geometry.y,
+    width: geometry.width,
+    zIndex: geometry.zIndex,
+  }
 
-  useEffect(() => {
-    return () => {
-      if (mobilePress.current !== null) {
-        clearTimeout(mobilePress.current.timer)
-      }
-    }
-  }, [])
-
-  function startGesture(
-    event: ReactPointerEvent<HTMLButtonElement>,
-    mode: GeometryGesture["mode"],
+  function startGeometryGesture(
+    event: ReactPointerEvent<HTMLElement>,
+    action: GeometryGesture["action"],
   ) {
+    if (interactionPending || event.button !== 0) {
+      return
+    }
+
     event.preventDefault()
-    event.stopPropagation()
-    onSelect(note.id)
     gesture.current = {
+      action,
       geometry,
-      mode,
+      moved: false,
       pointerId: event.pointerId,
+      pointerType: event.pointerType,
       startX: event.clientX,
       startY: event.clientY,
     }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
-  function moveGesture(event: ReactPointerEvent<HTMLButtonElement>) {
-    const currentGesture = gesture.current
+  function moveGeometryGesture(event: ReactPointerEvent<HTMLElement>) {
+    const current = gesture.current
 
-    if (currentGesture === null || currentGesture.pointerId !== event.pointerId) {
+    if (current === null || current.pointerId !== event.pointerId) {
       return
     }
 
-    setGeometryPreview(geometryFromGesture(event, currentGesture, scale))
+    const distance = Math.hypot(
+      event.clientX - current.startX,
+      event.clientY - current.startY,
+    )
+
+    if (!current.moved && distance < movementThreshold(current.pointerType)) {
+      return
+    }
+
+    current.moved = true
+    setGeometryPreview(geometryFromGesture(event, current, scale))
   }
 
   async function persistGeometry(nextGeometry: NoteGeometry) {
-    setPending(true)
-    setErrorMessage("")
+    setGeometryPending(true)
 
     try {
       await onSaveGeometry(note, nextGeometry)
       setGeometryPreview(null)
     } catch {
-      setErrorMessage("메모 배치를 저장하지 못했습니다. 다시 시도하세요.")
+      setGeometryPreview(null)
+      onSaveFailure("메모 위치와 크기를 저장하지 못했습니다. 다시 시도하세요.")
     } finally {
-      setPending(false)
+      setGeometryPending(false)
     }
   }
 
-  function finishGesture(event: ReactPointerEvent<HTMLButtonElement>) {
-    const currentGesture = gesture.current
+  function finishGeometryGesture(event: ReactPointerEvent<HTMLElement>) {
+    const current = gesture.current
 
-    if (currentGesture === null || currentGesture.pointerId !== event.pointerId) {
-      return
-    }
-
-    const nextGeometry = geometryFromGesture(event, currentGesture, scale)
-    gesture.current = null
-    event.currentTarget.releasePointerCapture(event.pointerId)
-    setGeometryPreview(nextGeometry)
-    void persistGeometry(nextGeometry)
-  }
-
-  function cancelGesture(event: ReactPointerEvent<HTMLButtonElement>) {
-    const currentGesture = gesture.current
-
-    if (currentGesture === null || currentGesture.pointerId !== event.pointerId) {
+    if (current === null || current.pointerId !== event.pointerId) {
       return
     }
 
     gesture.current = null
-    setGeometryPreview(currentGesture.geometry)
-  }
-
-  async function completeEditing() {
-    setPending(true)
-    setErrorMessage("")
-
-    try {
-      await onFinishEditing(note, draftContent)
-    } catch {
-      setErrorMessage("메모를 저장하지 못했습니다. 다시 시도하세요.")
-    } finally {
-      setPending(false)
-    }
-  }
-
-  function beginEditing() {
-    if (pending) {
-      return
-    }
-
-    setErrorMessage("")
-    setNotice(null)
-    onBeginEditing(note)
-  }
-
-  async function performCopy() {
-    if (pending) {
-      return
-    }
-
-    setPending(true)
-    const result = await onCopy(note)
-
-    if (result.status === "copied") {
-      setNotice({ kind: "status", message: "복사했습니다.", retry: null })
-    } else if (result.status === "usage-failure") {
-      setNotice({
-        kind: "error",
-        message: "텍스트는 복사했지만 사용 횟수를 기록하지 못했습니다.",
-        retry: null,
-      })
-    } else {
-      setNotice({
-        kind: "error",
-        message: clipboardFailureMessage(result),
-        retry: "copy",
-      })
-    }
-
-    setPending(false)
-  }
-
-  async function performBatchCopyAddition() {
-    if (pending) {
-      return
-    }
-
-    setPending(true)
-    const result = await onAddToBatchCopy(note)
-
-    if (result.status === "added") {
-      setNotice(null)
-      onBatchCopyItemAdded()
-    } else {
-      setNotice({
-        kind: "error",
-        message: "일괄 복사에 추가하지 못했습니다. 다시 시도하세요.",
-        retry: "batch-copy",
-      })
-    }
-
-    setPending(false)
-  }
-
-  function copyFromButton() {
-    void performCopy()
-  }
-
-  function addToBatchCopyFromButton() {
-    void performBatchCopyAddition()
-  }
-
-  function retryInteraction() {
-    if (notice?.retry === "copy") {
-      void performCopy()
-      return
-    }
-
-    if (notice?.retry === "batch-copy") {
-      void performBatchCopyAddition()
-    }
-  }
-
-  function startMobilePress(event: ReactPointerEvent<HTMLDivElement>) {
-    const unavailable = placement !== "list" || event.pointerType === "mouse"
-
-    if (unavailable || event.button !== 0) {
-      return
-    }
-
-    const pointerId = event.pointerId
-    const timer = setTimeout(() => {
-      const current = mobilePress.current
-
-      if (current?.pointerId === pointerId && !current.cancelled) {
-        current.qualified = true
-      }
-    }, NOTE_LONG_PRESS_DELAY_MS)
-    mobilePress.current = {
-      cancelled: false,
-      pointerId,
-      qualified: false,
-      startX: event.clientX,
-      startY: event.clientY,
-      timer,
-    }
-    setMobilePressActive(true)
-    event.currentTarget.setPointerCapture(pointerId)
-  }
-
-  function moveMobilePress(event: ReactPointerEvent<HTMLDivElement>) {
-    const current = mobilePress.current
-
-    if (current === null || current.pointerId !== event.pointerId) {
-      return
-    }
-
-    const movement = Math.hypot(
-      event.clientX - current.startX,
-      event.clientY - current.startY,
-    )
-
-    if (movement <= NOTE_LONG_PRESS_MOVEMENT_PX) {
-      return
-    }
-
-    clearTimeout(current.timer)
-    current.cancelled = true
-  }
-
-  function cancelMobilePress(event: ReactPointerEvent<HTMLDivElement>) {
-    const current = mobilePress.current
-
-    if (current === null || current.pointerId !== event.pointerId) {
-      return
-    }
-
-    clearTimeout(current.timer)
-    current.cancelled = true
-    mobilePress.current = null
-    setMobilePressActive(false)
-    suppressNextClick.current = true
-  }
-
-  function finishMobilePress(event: ReactPointerEvent<HTMLDivElement>) {
-    const current = mobilePress.current
-
-    if (current === null || current.pointerId !== event.pointerId) {
-      return
-    }
-
-    clearTimeout(current.timer)
-    mobilePress.current = null
-    setMobilePressActive(false)
-    suppressNextClick.current = true
 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
     }
 
-    if (current.cancelled) {
+    if (!current.moved) {
       return
     }
 
-    if (!isInside(event.currentTarget, event.clientX, event.clientY)) {
-      return
-    }
-
-    if (hasTextSelection(event.currentTarget)) {
-      return
-    }
-
-    void performCopy()
+    suppressClick.current = true
+    const nextGeometry = geometryFromGesture(event, current, scale)
+    setGeometryPreview(nextGeometry)
+    void persistGeometry(nextGeometry)
   }
 
-  function handleContentClick(event: ReactMouseEvent<HTMLDivElement>) {
-    if (suppressNextClick.current) {
-      suppressNextClick.current = false
+  function cancelGeometryGesture(event: ReactPointerEvent<HTMLElement>) {
+    const current = gesture.current
+
+    if (current === null || current.pointerId !== event.pointerId) {
       return
     }
 
-    if (hasTextSelection(event.currentTarget)) {
+    gesture.current = null
+    setGeometryPreview(null)
+  }
+
+  function selectFromHeader(event: ReactMouseEvent<HTMLElement>) {
+    if (suppressClick.current) {
+      suppressClick.current = false
       return
     }
 
-    if (isBatchCopyShortcutClick(event, batchCopyShortcutEnabled)) {
-      void performBatchCopyAddition()
+    if (!event.metaKey) {
+      onSelect(note.id)
+    }
+  }
+
+  function openPropertiesFromHeader(event: ReactMouseEvent<HTMLElement>) {
+    if (!suppressClick.current && !event.metaKey) {
+      onActivateProperties(note)
+    }
+  }
+
+  function selectFromKeyboard(event: ReactFocusEvent<HTMLElement>) {
+    if (event.target === event.currentTarget && !commandPressed) {
+      onSelect(note.id)
+    }
+  }
+
+  function openPropertiesFromKeyboard(
+    event: ReactKeyboardEvent<HTMLElement>,
+  ) {
+    const plainEnter =
+      event.key === "Enter" &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.shiftKey
+
+    if (event.target !== event.currentTarget || !plainEnter || !selected) {
       return
     }
 
-    void performCopy()
+    event.preventDefault()
+    onActivateProperties(note)
+  }
+
+  async function moveToFront() {
+    try {
+      await onMoveToFront(note.id)
+    } catch {
+      onSaveFailure("메모 순서를 저장하지 못했습니다. 다시 시도하세요.")
+    }
+  }
+
+  async function moveToBack() {
+    try {
+      await onMoveToBack(note.id)
+    } catch {
+      onSaveFailure("메모 순서를 저장하지 못했습니다. 다시 시도하세요.")
+    }
+  }
+
+  async function remove() {
+    const savedNote = await content.save()
+
+    if (savedNote === null) {
+      return
+    }
+
+    try {
+      await onRemove(savedNote)
+    } catch {
+      onSaveFailure("메모를 제거하지 못했습니다. 다시 시도하세요.")
+    }
   }
 
   return (
     <article
+      aria-label="메모"
       className={cardClassName}
-      id={targetId}
-      onFocusCapture={() => onSelect(note.id)}
-      onPointerDown={() => onSelect(note.id)}
-      style={boardStyle}
+      id={articleId}
+      onFocus={selectFromKeyboard}
+      onKeyDown={openPropertiesFromKeyboard}
+      ref={article}
+      style={cardStyle}
+      tabIndex={note.tabIndex}
     >
-      {editing ? null : (
-        <header className="grid gap-2 border-b border-line pb-2">
-          <div className="flex items-start gap-2">
-            {showBoardControls ? (
-              <button
-                aria-label="메모 이동"
-                className="min-h-[var(--notes-control-size)] cursor-grab rounded-control border border-line bg-canvas px-3 text-xs font-semibold text-soft-ink active:cursor-grabbing"
-                disabled={pending}
-                onPointerCancel={cancelGesture}
-                onPointerDown={(event) => startGesture(event, "move")}
-                onPointerMove={moveGesture}
-                onPointerUp={finishGesture}
-                type="button"
-              >
-                이동
-              </button>
-            ) : null}
-            <div className="min-w-0 flex-1">
-              <NoteActions
-                batchCopyReady={batchCopyReady}
-                notice={notice}
-                onAddToBatchCopy={addToBatchCopyFromButton}
-                onCopy={copyFromButton}
-                onEdit={beginEditing}
-                onRetry={retryInteraction}
-                pending={pending}
-              />
-            </div>
-          </div>
-        </header>
-      )}
-      {editing ? (
-        <NoteEditor
-          content={draftContent}
-          errorMessage={errorMessage}
-          onChange={onDraftChange}
-          onComplete={completeEditing}
-          pending={pending}
-        />
-      ) : (
-        <div
-          className={contentClassName}
-          onClick={handleContentClick}
-          onLostPointerCapture={cancelMobilePress}
-          onPointerCancel={cancelMobilePress}
-          onPointerDown={startMobilePress}
-          onPointerMove={moveMobilePress}
-          onPointerUp={finishMobilePress}
+      <header
+        className={headerClassName}
+        onClick={selectFromHeader}
+        onDoubleClick={openPropertiesFromHeader}
+        onPointerCancel={cancelGeometryGesture}
+        onPointerDown={(event) => startGeometryGesture(event, "move")}
+        onPointerMove={moveGeometryGesture}
+        onPointerUp={finishGeometryGesture}
+      >
+        <IconButton
+          aria-label="메모를 맨 앞으로"
+          className="h-6 w-6 border-transparent bg-transparent"
+          data-note-header-action=""
+          disabled={interactionPending}
+          onClick={moveToFront}
+          onPointerDown={stopHeaderAction}
+          size="compact"
+          tabIndex={commandPressed ? -1 : 0}
         >
-          <p className="whitespace-pre-wrap break-words text-[0.98rem] leading-7">
-            {contentText}
-          </p>
-        </div>
-      )}
-      {showGeometryControls ? (
-        <NoteGeometryControls
-          geometry={geometry}
-          onChange={setGeometryPreview}
-          onCommit={persistGeometry}
-          pending={pending}
-        />
-      ) : null}
-      {errorMessage && !editing ? (
-        <p className="text-sm font-medium text-danger" role="alert">
-          {errorMessage}
-        </p>
-      ) : null}
-      {showBoardControls ? (
-        <button
-          aria-label="메모 크기 조절"
-          className="absolute bottom-1 right-1 min-h-[var(--notes-control-size)] min-w-[var(--notes-control-size)] cursor-se-resize rounded-control border border-line bg-canvas px-2 text-xs font-bold text-soft-ink"
-          disabled={pending}
-          onPointerCancel={cancelGesture}
-          onPointerDown={(event) => startGesture(event, "resize")}
-          onPointerMove={moveGesture}
-          onPointerUp={finishGesture}
-          type="button"
+          <BringToFrontIcon />
+        </IconButton>
+        <IconButton
+          aria-label="메모를 맨 뒤로"
+          className="h-6 w-6 border-transparent bg-transparent"
+          data-note-header-action=""
+          disabled={interactionPending}
+          onClick={moveToBack}
+          onPointerDown={stopHeaderAction}
+          size="compact"
+          tabIndex={commandPressed ? -1 : 0}
         >
-          크기
-        </button>
-      ) : null}
+          <SendToBackIcon />
+        </IconButton>
+        <IconButton
+          aria-label="메모 삭제"
+          className="h-6 w-6 border-transparent bg-transparent"
+          data-note-header-action=""
+          disabled={interactionPending}
+          onClick={remove}
+          onPointerDown={stopHeaderAction}
+          size="compact"
+          tabIndex={commandPressed ? -1 : 0}
+          tone="danger"
+        >
+          <RemoveIcon />
+        </IconButton>
+      </header>
+      <textarea
+        aria-label="메모 내용"
+        className="min-h-0 flex-1 resize-none overflow-auto border-0 bg-transparent px-4 py-3 text-[0.98rem] leading-7 text-ink outline-none placeholder:text-soft-ink"
+        id={contentId}
+        onBlur={content.save}
+        onChange={(event) => content.change(event.target.value)}
+        placeholder="메모를 입력하세요"
+        value={content.content}
+      />
+      <ResizeHandle
+        direction="north"
+        disabled={interactionPending}
+        onPointerCancel={cancelGeometryGesture}
+        onPointerDown={startGeometryGesture}
+        onPointerMove={moveGeometryGesture}
+        onPointerUp={finishGeometryGesture}
+        positionClassName="-left-1 -right-1 -top-1 h-2"
+      />
+      <ResizeHandle
+        direction="south"
+        disabled={interactionPending}
+        onPointerCancel={cancelGeometryGesture}
+        onPointerDown={startGeometryGesture}
+        onPointerMove={moveGeometryGesture}
+        onPointerUp={finishGeometryGesture}
+        positionClassName="-bottom-1 -left-1 -right-1 h-2"
+      />
+      <ResizeHandle
+        direction="west"
+        disabled={interactionPending}
+        onPointerCancel={cancelGeometryGesture}
+        onPointerDown={startGeometryGesture}
+        onPointerMove={moveGeometryGesture}
+        onPointerUp={finishGeometryGesture}
+        positionClassName="-bottom-1 -left-1 -top-1 w-2"
+      />
+      <ResizeHandle
+        direction="east"
+        disabled={interactionPending}
+        onPointerCancel={cancelGeometryGesture}
+        onPointerDown={startGeometryGesture}
+        onPointerMove={moveGeometryGesture}
+        onPointerUp={finishGeometryGesture}
+        positionClassName="-bottom-1 -right-1 -top-1 w-2"
+      />
+      <ResizeHandle
+        direction="north-west"
+        disabled={interactionPending}
+        onPointerCancel={cancelGeometryGesture}
+        onPointerDown={startGeometryGesture}
+        onPointerMove={moveGeometryGesture}
+        onPointerUp={finishGeometryGesture}
+        positionClassName="-left-1.5 -top-1.5 h-3 w-3"
+      />
+      <ResizeHandle
+        direction="north-east"
+        disabled={interactionPending}
+        onPointerCancel={cancelGeometryGesture}
+        onPointerDown={startGeometryGesture}
+        onPointerMove={moveGeometryGesture}
+        onPointerUp={finishGeometryGesture}
+        positionClassName="-right-1.5 -top-1.5 h-3 w-3"
+      />
+      <ResizeHandle
+        direction="south-west"
+        disabled={interactionPending}
+        onPointerCancel={cancelGeometryGesture}
+        onPointerDown={startGeometryGesture}
+        onPointerMove={moveGeometryGesture}
+        onPointerUp={finishGeometryGesture}
+        positionClassName="-bottom-1.5 -left-1.5 h-3 w-3"
+      />
+      <ResizeHandle
+        direction="south-east"
+        disabled={interactionPending}
+        onPointerCancel={cancelGeometryGesture}
+        onPointerDown={startGeometryGesture}
+        onPointerMove={moveGeometryGesture}
+        onPointerUp={finishGeometryGesture}
+        positionClassName="-bottom-1.5 -right-1.5 h-3 w-3"
+      />
     </article>
   )
 }

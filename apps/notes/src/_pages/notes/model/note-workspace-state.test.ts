@@ -6,6 +6,7 @@ import {
   clearNoteSelection,
   closeActivePanel,
   createNoteWorkspaceState,
+  forgetNote,
   selectNote,
   updateNoteGeometryDraft,
 } from "./note-workspace-state"
@@ -119,5 +120,30 @@ describe("메모 작업 상태", () => {
       propertiesNoteId: "note-6",
       selectedNoteId: "note-6",
     })
+  })
+
+  it("삭제한 메모가 속성 대상이면 관련 상태만 비운다", () => {
+    const properties = activateNoteProperties(
+      createNoteWorkspaceState(),
+      { id: "note-7", revision: 9 },
+      { height: "240", width: "320", x: "40", y: "60" },
+    )
+
+    expect(forgetNote(properties, "note-7")).toEqual({
+      activePanel: null,
+      geometryDraft: null,
+      propertiesNoteId: null,
+      selectedNoteId: null,
+    })
+  })
+
+  it("다른 메모를 삭제해도 현재 선택과 속성 패널을 유지한다", () => {
+    const properties = activateNoteProperties(
+      createNoteWorkspaceState(),
+      { id: "note-8", revision: 10 },
+      { height: "240", width: "320", x: "40", y: "60" },
+    )
+
+    expect(forgetNote(properties, "note-9")).toEqual(properties)
   })
 })

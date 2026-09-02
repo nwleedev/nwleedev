@@ -101,7 +101,10 @@ export function BatchCopyStartPage() {
       </header>
       {copyResult ? (
         <div className="absolute right-3 top-16 z-20 w-[min(24rem,calc(100%-1.5rem))] shadow-floating">
-          <CopyBatchTextNotice result={copyResult} />
+          <CopyBatchTextNotice
+            onDismiss={() => setCopyResult(null)}
+            result={copyResult}
+          />
         </div>
       ) : null}
       <BatchCopyPageContent />

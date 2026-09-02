@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  useCallback,
   createContext,
   useContext,
   useState,
@@ -22,6 +23,7 @@ import {
   clearNoteSelection,
   closeActivePanel,
   createNoteWorkspaceState,
+  forgetNote,
   selectNote,
   updateNoteGeometryDraft,
   type NoteGeometryDraftField,
@@ -37,6 +39,7 @@ type NoteSessionContextValue = {
   clearSelection(): void
   closePanel(): void
   forgetLatestRemoval(): void
+  forgetNote(noteId: string): void
   rememberRemoval(note: Note, removedAt: string): void
   select(noteId: string): void
 }
@@ -51,52 +54,56 @@ export function NoteSessionProvider({ children }: PropsWithChildren) {
   const latestRemovedNote =
     removalHistory.entries.at(-1)?.note ?? null
 
-  function select(noteId: string) {
+  const select = useCallback((noteId: string) => {
     setWorkspace((current) => selectNote(current, noteId))
-  }
+  }, [])
 
-  function clearSelection() {
+  const clearSelection = useCallback(() => {
     setWorkspace(clearNoteSelection)
-  }
+  }, [])
 
-  function activateProperties(
+  const activateProperties = useCallback((
     note: NoteReference,
     fields: NoteGeometryDraft,
-  ) {
+  ) => {
     setWorkspace((current) =>
       activateNoteProperties(current, note, fields),
     )
-  }
+  }, [])
 
-  function activateBatchCopy() {
+  const activateBatchCopy = useCallback(() => {
     setWorkspace(activateBatchCopyPanel)
-  }
+  }, [])
 
-  function closePanel() {
+  const closePanel = useCallback(() => {
     setWorkspace(closeActivePanel)
-  }
+  }, [])
 
-  function changeGeometryDraft(
+  const changeGeometryDraft = useCallback((
     field: NoteGeometryDraftField,
     value: string,
-  ) {
+  ) => {
     setWorkspace((current) =>
       updateNoteGeometryDraft(current, field, value),
     )
-  }
+  }, [])
 
-  function rememberRemoval(note: Note, removedAt: string) {
+  const rememberRemoval = useCallback((note: Note, removedAt: string) => {
     setRemovalHistory((current) =>
       rememberRemovedNote(current, note, removedAt),
     )
-  }
+  }, [])
 
-  function forgetLatestRemoval() {
+  const forgetLatestRemoval = useCallback(() => {
     setRemovalHistory((current) => {
       const restored = restoreMostRecentlyRemovedNote(current)
       return restored?.history ?? current
     })
-  }
+  }, [])
+
+  const forgetRemovedNoteFromWorkspace = useCallback((noteId: string) => {
+    setWorkspace((current) => forgetNote(current, noteId))
+  }, [])
 
   return (
     <NoteSessionContext
@@ -107,6 +114,7 @@ export function NoteSessionProvider({ children }: PropsWithChildren) {
         clearSelection,
         closePanel,
         forgetLatestRemoval,
+        forgetNote: forgetRemovedNoteFromWorkspace,
         latestRemovedNote,
         rememberRemoval,
         select,

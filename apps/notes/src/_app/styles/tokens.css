@@ -8,9 +8,13 @@
   --notes-color-line: oklch(80% 0.01 255deg);
   --notes-color-line-strong: oklch(61% 0.015 255deg);
   --notes-color-notice: oklch(65% 0.15 255deg);
+  --notes-color-note: oklch(95% 0.105 96deg);
+  --notes-color-note-header: oklch(90% 0.14 94deg);
+  --notes-color-note-line: oklch(72% 0.105 91deg);
   --notes-color-rail: oklch(24% 0.008 255deg);
   --notes-color-rail-ink: oklch(95% 0.005 255deg);
   --notes-color-soft-ink: oklch(48% 0.015 255deg);
+  --notes-color-selection: oklch(53% 0.2 27deg);
   --notes-color-surface: oklch(97% 0.006 255deg);
   --notes-color-surface-raised: oklch(99% 0.003 255deg);
   --notes-color-workspace: oklch(91% 0.035 82deg);
@@ -37,9 +41,13 @@
   --color-line: var(--notes-color-line);
   --color-line-strong: var(--notes-color-line-strong);
   --color-notice: var(--notes-color-notice);
+  --color-note: var(--notes-color-note);
+  --color-note-header: var(--notes-color-note-header);
+  --color-note-line: var(--notes-color-note-line);
   --color-rail: var(--notes-color-rail);
   --color-rail-ink: var(--notes-color-rail-ink);
   --color-soft-ink: var(--notes-color-soft-ink);
+  --color-selection: var(--notes-color-selection);
   --color-surface: var(--notes-color-surface);
   --color-surface-raised: var(--notes-color-surface-raised);
   --color-workspace: var(--notes-color-workspace);

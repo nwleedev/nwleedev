@@ -1,356 +1,51 @@
 "use client"
 
-import {
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
-} from "react"
+import { useEffect, useRef, useState } from "react"
 
-import type { Note, NoteGeometry } from "@/entities/note"
 import {
-  useAddNoteToBatchCopy,
-  type AddNoteToBatchCopyResult,
-} from "@/features/add-note-to-batch-copy"
+  createNoteReference,
+  type Note,
+  type NoteGeometry,
+} from "@/entities/note"
+import { ActionToast } from "@/shared/ui/action-toast"
 import { Button } from "@/shared/ui/button"
 
-import type { CopyNoteResult } from "../model/copy-note"
-import { useBatchCopyWorkspace } from "./batch-copy-workspace"
-import { NoteCard } from "./note-card"
-
-type NoteChange = {
-  content?: string
-  geometry?: NoteGeometry
-}
+import type { SaveNoteContentResult } from "../model/save-note-content"
+import { useNoteSession } from "../model/note-session-provider"
+import { MobileNoteList } from "./mobile-note-list"
+import { NotesBoard } from "./notes-board"
 
 type NotesCollectionProps = {
-  batchCopyShortcutEnabled: boolean
+  draftContentByNote: Readonly<Record<string, string>>
   notes: readonly Note[]
-  copyNote(note: Note): Promise<CopyNoteResult>
   createNote(): Promise<Note>
-  updateNote(note: Note, change: NoteChange): Promise<Note>
+  moveNoteToBack(noteId: string): Promise<readonly Note[]>
+  moveNoteToFront(noteId: string): Promise<readonly Note[]>
+  removeNote(note: Note): Promise<Note>
+  restoreNote(note: Note): Promise<Note>
+  saveContent(noteId: string, content: string): Promise<SaveNoteContentResult>
+  updateNote(
+    note: Note,
+    change: { content?: string; geometry?: NoteGeometry },
+  ): Promise<Note>
 }
 
-type EditingDraft = {
-  content: string
-  noteId: string
+type WorkspaceNotice = {
+  kind: "error" | "status"
+  message: string
 }
 
-type NotePresentationProps = {
-  batchCopyReady: boolean
-  batchCopyShortcutEnabled: boolean
-  editingDraft: EditingDraft | null
-  notes: readonly Note[]
-  selectedNoteId: string | null
-  onAddToBatchCopy(note: Note): Promise<AddNoteToBatchCopyResult>
-  onBatchCopyItemAdded(): void
-  onBeginEditing(note: Note): void
-  onCopy(note: Note): Promise<CopyNoteResult>
-  onDraftChange(content: string): void
-  onFinishEditing(note: Note, content: string): Promise<void>
-  onSaveGeometry(note: Note, geometry: NoteGeometry): Promise<void>
-  onSelect(noteId: string): void
+function byTabIndex(left: Note, right: Note) {
+  return left.tabIndex - right.tabIndex
 }
 
-function NotesList({
-  batchCopyReady,
-  batchCopyShortcutEnabled,
-  editingDraft,
-  notes,
-  onAddToBatchCopy,
-  onBatchCopyItemAdded,
-  onBeginEditing,
-  onCopy,
-  onDraftChange,
-  onFinishEditing,
-  onSaveGeometry,
-  onSelect,
-  selectedNoteId,
-}: NotePresentationProps) {
-  return (
-    <div className="grid min-h-full content-start gap-3 p-4 pb-24 pt-16 @3xl/note-area:hidden">
-      {notes.map((note) => {
-        const editing = editingDraft?.noteId === note.id
-        const draftContent =
-          editingDraft?.noteId === note.id
-            ? editingDraft.content
-            : note.content
-        const itemKey = `${note.id}:list`
-
-        return (
-          <NoteCard
-            batchCopyReady={batchCopyReady}
-            batchCopyShortcutEnabled={batchCopyShortcutEnabled}
-            draftContent={draftContent}
-            editing={editing}
-            key={itemKey}
-            note={note}
-            onAddToBatchCopy={onAddToBatchCopy}
-            onBatchCopyItemAdded={onBatchCopyItemAdded}
-            onBeginEditing={onBeginEditing}
-            onCopy={onCopy}
-            onDraftChange={onDraftChange}
-            onFinishEditing={onFinishEditing}
-            onSaveGeometry={onSaveGeometry}
-            onSelect={onSelect}
-            placement="list"
-            selected={selectedNoteId === note.id}
-          />
-        )
-      })}
-    </div>
-  )
-}
-
-type BoardDimensions = {
-  height: number
-  width: number
-}
-
-type BoardView = {
-  scale: number
-  x: number
-  y: number
-}
-
-function initialBoardView(
-  notes: readonly Note[],
-  focusedNoteId: string | null,
-): BoardView {
-  const focusedNote = notes.find(({ id }) => id === focusedNoteId)
-
-  if (focusedNote === undefined) {
-    return { scale: 1, x: 0, y: 0 }
-  }
-
+function geometryDraft(note: Note) {
   return {
-    scale: 1,
-    x: 48 - focusedNote.geometry.x,
-    y: 80 - focusedNote.geometry.y,
+    height: String(note.geometry.height),
+    width: String(note.geometry.width),
+    x: String(note.geometry.x),
+    y: String(note.geometry.y),
   }
-}
-
-type PanGesture = {
-  pointerId: number
-  startView: BoardView
-  startX: number
-  startY: number
-}
-
-function measureBoard(notes: readonly Note[]): BoardDimensions {
-  return notes.reduce(
-    (dimensions, note) => ({
-      height: Math.max(
-        dimensions.height,
-        note.geometry.y + note.geometry.height + 160,
-      ),
-      width: Math.max(
-        dimensions.width,
-        note.geometry.x + note.geometry.width + 160,
-      ),
-    }),
-    { height: 720, width: 1024 },
-  )
-}
-
-type NotesBoardProps = NotePresentationProps & {
-  focusedNoteId: string | null
-}
-
-function NotesBoard(props: NotesBoardProps) {
-  const {
-    batchCopyReady,
-    batchCopyShortcutEnabled,
-    editingDraft,
-    focusedNoteId,
-    notes,
-    onAddToBatchCopy,
-    onBatchCopyItemAdded,
-    onBeginEditing,
-    onCopy,
-    onDraftChange,
-    onFinishEditing,
-    onSaveGeometry,
-    onSelect,
-    selectedNoteId,
-  } = props
-  const viewport = useRef<HTMLDivElement>(null)
-  const panGesture = useRef<PanGesture | null>(null)
-  const [view, setView] = useState<BoardView>(() =>
-    initialBoardView(notes, focusedNoteId),
-  )
-  const dimensions = measureBoard(notes)
-  const scaleText = `${Math.round(view.scale * 100).toLocaleString("ko-KR")}%`
-  const boardStyle: CSSProperties = {
-    height: dimensions.height,
-    transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
-    transformOrigin: "0 0",
-    width: dimensions.width,
-  }
-
-  function adjustScale(change: number) {
-    setView((current) => ({
-      ...current,
-      scale: Math.min(2, Math.max(0.5, current.scale + change)),
-    }))
-  }
-
-  function moveView(x: number, y: number) {
-    setView((current) => ({
-      ...current,
-      x: current.x + x,
-      y: current.y + y,
-    }))
-  }
-
-  function fitAllNotes() {
-    const element = viewport.current
-
-    if (element === null) {
-      return
-    }
-
-    const availableWidth = Math.max(1, element.clientWidth - 32)
-    const availableHeight = Math.max(1, element.clientHeight - 32)
-    const scale = Math.min(
-      1,
-      availableWidth / dimensions.width,
-      availableHeight / dimensions.height,
-    )
-    setView({ scale, x: 16, y: 16 })
-  }
-
-  function startPan(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.target !== event.currentTarget) {
-      return
-    }
-
-    panGesture.current = {
-      pointerId: event.pointerId,
-      startView: view,
-      startX: event.clientX,
-      startY: event.clientY,
-    }
-    event.currentTarget.setPointerCapture(event.pointerId)
-  }
-
-  function continuePan(event: ReactPointerEvent<HTMLDivElement>) {
-    const gesture = panGesture.current
-
-    if (gesture === null || gesture.pointerId !== event.pointerId) {
-      return
-    }
-
-    setView({
-      ...gesture.startView,
-      x: gesture.startView.x + event.clientX - gesture.startX,
-      y: gesture.startView.y + event.clientY - gesture.startY,
-    })
-  }
-
-  function finishPan(event: ReactPointerEvent<HTMLDivElement>) {
-    const gesture = panGesture.current
-
-    if (gesture === null || gesture.pointerId !== event.pointerId) {
-      return
-    }
-
-    panGesture.current = null
-    event.currentTarget.releasePointerCapture(event.pointerId)
-  }
-
-  function cancelPan() {
-    const gesture = panGesture.current
-
-    if (gesture === null) {
-      return
-    }
-
-    panGesture.current = null
-    setView(gesture.startView)
-  }
-
-  return (
-    <div
-      className="relative hidden h-full min-h-0 overflow-hidden @3xl/note-area:block"
-      ref={viewport}
-    >
-      <div
-        className="absolute left-0 top-0 cursor-grab touch-none active:cursor-grabbing"
-        onPointerCancel={cancelPan}
-        onPointerDown={startPan}
-        onPointerMove={continuePan}
-        onPointerUp={finishPan}
-        style={boardStyle}
-      >
-        {notes.map((note) => {
-          const editing = editingDraft?.noteId === note.id
-          const draftContent =
-            editingDraft?.noteId === note.id
-              ? editingDraft.content
-              : note.content
-          const itemKey = `${note.id}:board`
-
-          return (
-            <NoteCard
-              batchCopyReady={batchCopyReady}
-              batchCopyShortcutEnabled={batchCopyShortcutEnabled}
-              draftContent={draftContent}
-              editing={editing}
-              key={itemKey}
-              note={note}
-              onAddToBatchCopy={onAddToBatchCopy}
-              onBatchCopyItemAdded={onBatchCopyItemAdded}
-              onBeginEditing={onBeginEditing}
-              onCopy={onCopy}
-              onDraftChange={onDraftChange}
-              onFinishEditing={onFinishEditing}
-              onSaveGeometry={onSaveGeometry}
-              onSelect={onSelect}
-              placement="board"
-              scale={view.scale}
-              selected={selectedNoteId === note.id}
-            />
-          )
-        })}
-      </div>
-      <div
-        aria-label="보드 보기"
-        className="absolute bottom-3 left-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-2 rounded-panel border border-line bg-surface-raised p-2 shadow-floating"
-        role="group"
-      >
-        <Button onClick={() => moveView(48, 0)} tone="quiet">
-          왼쪽 보기
-        </Button>
-        <Button onClick={() => moveView(-48, 0)} tone="quiet">
-          오른쪽 보기
-        </Button>
-        <Button onClick={() => moveView(0, 48)} tone="quiet">
-          위 보기
-        </Button>
-        <Button onClick={() => moveView(0, -48)} tone="quiet">
-          아래 보기
-        </Button>
-        <Button onClick={() => adjustScale(-0.1)} tone="quiet">
-          축소
-        </Button>
-        <span className="min-w-12 text-center text-xs font-semibold tabular-nums text-soft-ink">
-          {scaleText}
-        </span>
-        <Button onClick={() => adjustScale(0.1)} tone="quiet">
-          확대
-        </Button>
-        <Button onClick={fitAllNotes} tone="quiet">
-          모두 보기
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-function byCreationTime(left: Note, right: Note) {
-  return left.createdAt.localeCompare(right.createdAt)
 }
 
 function noteIdFromHash() {
@@ -367,23 +62,42 @@ function noteIdFromHash() {
   }
 }
 
+function focusNote(noteId: string) {
+  document.getElementById(`note-${encodeURIComponent(noteId)}-board`)?.focus()
+}
+
 export function NotesCollection({
-  batchCopyShortcutEnabled,
-  copyNote,
   createNote,
+  draftContentByNote,
+  moveNoteToBack,
+  moveNoteToFront,
   notes,
+  removeNote,
+  restoreNote,
+  saveContent,
   updateNote,
 }: NotesCollectionProps) {
-  const batchCopy = useAddNoteToBatchCopy()
-  const batchCopyWorkspace = useBatchCopyWorkspace()
-  const orderedNotes = [...notes].sort(byCreationTime)
-  const [creationError, setCreationError] = useState("")
+  const session = useNoteSession()
+  const {
+    activateProperties: activatePropertiesInSession,
+    clearSelection,
+    forgetLatestRemoval,
+    forgetNote: forgetNoteInSession,
+    latestRemovedNote,
+    rememberRemoval,
+    select,
+    workspace,
+  } = session
+  const createButton = useRef<HTMLButtonElement>(null)
+  const orderedNotes = [...notes].sort(byTabIndex)
+  const [commandPressed, setCommandPressed] = useState(false)
   const [creationPending, setCreationPending] = useState(false)
-  const [editingDraft, setEditingDraft] = useState<EditingDraft | null>(null)
   const [linkedNoteId, setLinkedNoteId] = useState<string | null>(null)
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
+  const [notice, setNotice] = useState<WorkspaceNotice | null>(null)
   const createLabel = creationPending ? "메모 만드는 중" : "새 메모"
   const empty = orderedNotes.length === 0
+  const selectedNoteId = workspace.selectedNoteId
+  const propertiesNoteId = workspace.propertiesNoteId
 
   useEffect(() => {
     let frame = 0
@@ -397,13 +111,8 @@ export function NotesCollection({
       }
 
       setLinkedNoteId(noteId)
-      setSelectedNoteId(noteId)
-      frame = requestAnimationFrame(() => {
-        const encodedNoteId = encodeURIComponent(noteId)
-        document
-          .getElementById(`note-${encodedNoteId}-list`)
-          ?.scrollIntoView({ block: "center" })
-      })
+      select(noteId)
+      frame = requestAnimationFrame(() => focusNote(noteId))
     }
 
     focusLinkedNote()
@@ -413,78 +122,173 @@ export function NotesCollection({
       cancelAnimationFrame(frame)
       window.removeEventListener("hashchange", focusLinkedNote)
     }
-  }, [notes])
+  }, [notes, select])
+
+  useEffect(() => {
+    function clearSelectionForCommand() {
+      const activeElement = document.activeElement
+
+      if (!(activeElement instanceof HTMLElement)) {
+        clearSelection()
+        return
+      }
+
+      if (!activeElement.hasAttribute("data-note-header-action")) {
+        clearSelection()
+        return
+      }
+
+      activeElement.closest<HTMLElement>("article")?.focus()
+      clearSelection()
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        clearSelection()
+        return
+      }
+
+      if (event.key === "Meta") {
+        setCommandPressed(true)
+        clearSelectionForCommand()
+      }
+    }
+
+    function handleKeyUp(event: KeyboardEvent) {
+      if (event.key === "Meta") {
+        setCommandPressed(false)
+      }
+    }
+
+    function resetCommandState() {
+      setCommandPressed(false)
+    }
+
+    function resetCommandWhenHidden() {
+      if (document.visibilityState === "hidden") {
+        resetCommandState()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    window.addEventListener("keyup", handleKeyUp)
+    window.addEventListener("blur", resetCommandState)
+    document.addEventListener("visibilitychange", resetCommandWhenHidden)
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      window.removeEventListener("keyup", handleKeyUp)
+      window.removeEventListener("blur", resetCommandState)
+      document.removeEventListener("visibilitychange", resetCommandWhenHidden)
+    }
+  }, [clearSelection])
 
   async function createNewNote() {
     setCreationPending(true)
-    setCreationError("")
+    setNotice(null)
 
     try {
       const note = await createNote()
-      setSelectedNoteId(note.id)
-      setEditingDraft({ content: note.content, noteId: note.id })
+      select(note.id)
+      requestAnimationFrame(() => {
+        document
+          .getElementById(`note-${encodeURIComponent(note.id)}-content`)
+          ?.focus()
+      })
     } catch {
-      setCreationError("메모를 만들지 못했습니다. 다시 시도하세요.")
+      setNotice({
+        kind: "error",
+        message: "메모를 만들지 못했습니다. 다시 시도하세요.",
+      })
     } finally {
       setCreationPending(false)
     }
   }
 
-  function beginEditing(note: Note) {
-    setEditingDraft({ content: note.content, noteId: note.id })
+  function activateProperties(note: Note) {
+    activatePropertiesInSession(
+      createNoteReference(note),
+      geometryDraft(note),
+    )
   }
 
-  function changeDraft(content: string) {
-    setEditingDraft((current) => {
-      if (current === null) {
-        return current
+  function showSaveFailure(message: string) {
+    setNotice({ kind: "error", message })
+  }
+
+  function saveGeometry(note: Note, geometry: NoteGeometry) {
+    return updateNote(note, { geometry })
+  }
+
+  async function remove(note: Note) {
+    const removedIndex = orderedNotes.findIndex(({ id }) => id === note.id)
+    const nextNote = orderedNotes[removedIndex + 1]
+    const previousNote = orderedNotes[removedIndex - 1]
+    const focusTarget = nextNote ?? previousNote ?? null
+
+    const removedNote = await removeNote(note)
+    rememberRemoval(removedNote, new Date().toISOString())
+    forgetNoteInSession(removedNote.id)
+    setNotice(null)
+
+    requestAnimationFrame(() => {
+      if (focusTarget === null) {
+        createButton.current?.focus()
+        return
       }
 
-      return { ...current, content }
+      focusNote(focusTarget.id)
     })
   }
 
-  async function finishEditing(note: Note, content: string) {
-    await updateNote(note, { content })
-    setEditingDraft(null)
-  }
+  async function restoreLatestRemoval() {
+    const removedNote = latestRemovedNote
 
-  async function saveGeometry(note: Note, geometry: NoteGeometry) {
-    await updateNote(note, { geometry })
-  }
+    if (removedNote === null) {
+      return
+    }
 
-  const presentationProps: NotePresentationProps = {
-    batchCopyReady: batchCopy.ready,
-    batchCopyShortcutEnabled,
-    editingDraft,
-    notes: orderedNotes,
-    onAddToBatchCopy: batchCopy.add,
-    onBatchCopyItemAdded: batchCopyWorkspace.revealNewBatchCopyItem,
-    onBeginEditing: beginEditing,
-    onCopy: copyNote,
-    onDraftChange: changeDraft,
-    onFinishEditing: finishEditing,
-    onSaveGeometry: saveGeometry,
-    onSelect: setSelectedNoteId,
-    selectedNoteId,
+    try {
+      const restoredNote = await restoreNote(removedNote)
+      forgetLatestRemoval()
+      select(restoredNote.id)
+      requestAnimationFrame(() => focusNote(restoredNote.id))
+    } catch {
+      setNotice({
+        kind: "error",
+        message: "메모를 복원하지 못했습니다. 다시 시도하세요.",
+      })
+    }
   }
 
   return (
     <div className="notes-workspace-canvas @container/note-area relative h-full min-h-0 overflow-hidden">
       <Button
-        className="absolute left-3 top-3 z-20 shadow-floating sm:left-4"
+        className="absolute left-3 top-3 z-30 shadow-floating sm:left-4"
         disabled={creationPending}
         onClick={createNewNote}
+        ref={createButton}
       >
         {createLabel}
       </Button>
-      {creationError ? (
-        <p
-          className="absolute left-3 top-16 z-20 rounded-control border border-danger bg-surface-raised px-3 py-2 text-sm font-medium text-danger shadow-floating sm:left-4"
-          role="alert"
-        >
-          {creationError}
-        </p>
+      {notice ? (
+        <div className="absolute right-3 top-16 z-40 w-[min(24rem,calc(100%-1.5rem))]">
+          <ActionToast
+            kind={notice.kind}
+            message={notice.message}
+            onDismiss={() => setNotice(null)}
+          />
+        </div>
+      ) : null}
+      {latestRemovedNote ? (
+        <div className="absolute bottom-4 left-1/2 z-40 w-[min(28rem,calc(100%-1.5rem))] -translate-x-1/2">
+          <ActionToast
+            actionLabel="취소"
+            message="메모를 제거했습니다."
+            onAction={restoreLatestRemoval}
+            onDismiss={forgetLatestRemoval}
+          />
+        </div>
       ) : null}
       {empty ? (
         <p
@@ -494,11 +298,24 @@ export function NotesCollection({
           메모가 없습니다.
         </p>
       ) : null}
-      <NotesList {...presentationProps} />
+      <MobileNoteList notes={orderedNotes} />
       <NotesBoard
-        {...presentationProps}
+        commandPressed={commandPressed}
+        draftContentByNote={draftContentByNote}
         focusedNoteId={linkedNoteId}
         key={linkedNoteId ?? "notes-board"}
+        notes={orderedNotes}
+        onActivateProperties={activateProperties}
+        onClearSelection={clearSelection}
+        onMoveToBack={moveNoteToBack}
+        onMoveToFront={moveNoteToFront}
+        onRemove={remove}
+        onSaveContent={saveContent}
+        onSaveFailure={showSaveFailure}
+        onSaveGeometry={saveGeometry}
+        onSelect={select}
+        propertiesNoteId={propertiesNoteId}
+        selectedNoteId={selectedNoteId}
       />
     </div>
   )

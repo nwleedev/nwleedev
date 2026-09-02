@@ -2,8 +2,8 @@
 
 import { useState } from "react"
 
+import { ActionToast } from "@/shared/ui/action-toast"
 import { Button } from "@/shared/ui/button"
-import { StatusNotice } from "@/shared/ui/status-notice"
 
 import type { CopyBatchTextResult } from "../model/copy-batch-text"
 
@@ -15,6 +15,7 @@ type CopyBatchTextActionProps = {
 
 type CopyBatchTextNoticeProps = {
   result: CopyBatchTextResult
+  onDismiss(): void
 }
 
 function clipboardFailureMessage(
@@ -67,19 +68,20 @@ export function CopyBatchTextAction({
 }
 
 export function CopyBatchTextNotice({
+  onDismiss,
   result,
 }: CopyBatchTextNoticeProps) {
   if (result.status === "copied") {
     return (
-      <StatusNotice>
-        <p>복사했습니다.</p>
-      </StatusNotice>
+      <ActionToast message="복사했습니다." onDismiss={onDismiss} />
     )
   }
 
   return (
-    <StatusNotice kind="error">
-      <p>{clipboardFailureMessage(result.reason)}</p>
-    </StatusNotice>
+    <ActionToast
+      kind="error"
+      message={clipboardFailureMessage(result.reason)}
+      onDismiss={onDismiss}
+    />
   )
 }

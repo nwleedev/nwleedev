@@ -45,6 +45,31 @@ export function clearNoteSelection(
   return { ...state, selectedNoteId: null }
 }
 
+export function forgetNote(
+  state: NoteWorkspaceState,
+  noteId: string,
+): NoteWorkspaceState {
+  const selected = state.selectedNoteId === noteId
+  const propertiesTarget = state.propertiesNoteId === noteId
+
+  if (!selected && !propertiesTarget) {
+    return state
+  }
+
+  const activePanel =
+    propertiesTarget && state.activePanel === "note-properties"
+      ? null
+      : state.activePanel
+
+  return {
+    ...state,
+    activePanel,
+    geometryDraft: propertiesTarget ? null : state.geometryDraft,
+    propertiesNoteId: propertiesTarget ? null : state.propertiesNoteId,
+    selectedNoteId: selected ? null : state.selectedNoteId,
+  }
+}
+
 export function activateNoteProperties(
   state: NoteWorkspaceState,
   note: NoteReference,

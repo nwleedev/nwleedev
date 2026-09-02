@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -54,10 +55,11 @@ type NotesDataContextValue = NotesDataState & {
   batchCopyShortcutEnabled: boolean
   moveNoteToBack(noteId: string): Promise<readonly Note[]>
   moveNoteToFront(noteId: string): Promise<readonly Note[]>
-  removeNote(note: Note): Promise<void>
+  removeNote(note: Note): Promise<Note>
   restoreNote(note: Note): Promise<Note>
   retry(): void
-  saveContent(note: Note, content: string): Promise<SaveNoteContentResult>
+  saveContent(noteId: string, content: string): Promise<SaveNoteContentResult>
+  saveDraft(noteId: string, content: string): Promise<void>
   updateNote(
     note: Note,
     change: { content?: string; geometry?: NoteGeometry },
@@ -109,18 +111,6 @@ type NotesDataProviderProps = PropsWithChildren<{
   storageMonitor: NoteStorageMonitor
   usage: IndividualCopyUsageWriter
 }>
-
-function notesFromState(state: NotesDataState) {
-  return state.status === "ready" || state.status === "empty"
-    ? state.notes
-    : []
-}
-
-function draftContentFromState(state: NotesDataState) {
-  return state.status === "ready" || state.status === "empty"
-    ? state.draftContentByNote
-    : {}
-}
 
 function overlapsExistingNote(
   candidate: NoteGeometry,
@@ -198,6 +188,31 @@ export function NotesDataProvider({
 }: NotesDataProviderProps) {
   const [state, setState] = useState<NotesDataState>({ status: "loading" })
   const readSequence = useRef(0)
+  const availableNotesReference = useRef<readonly Note[]>([])
+  const draftContentReference = useRef<NoteDraftContent>({})
+  const mutationQueue = useRef<Promise<void>>(Promise.resolve())
+
+  const publishAvailable = useCallback((
+    notes: readonly Note[],
+    draftContentByNote: NoteDraftContent,
+  ) => {
+    availableNotesReference.current = notes
+    draftContentReference.current = draftContentByNote
+    setState({
+      draftContentByNote,
+      notes,
+      status: notes.length === 0 ? "empty" : "ready",
+    })
+  }, [])
+
+  function enqueue<Result>(operation: () => Promise<Result>) {
+    const result = mutationQueue.current.then(operation)
+    mutationQueue.current = result.then(
+      () => undefined,
+      () => undefined,
+    )
+    return result
+  }
 
   useEffect(() => {
     let active = true
@@ -213,6 +228,11 @@ export function NotesDataProvider({
     })
     void readNotes(repository, drafts).then((nextState) => {
       if (active && readSequence.current === sequence) {
+        if (nextState.status === "empty" || nextState.status === "ready") {
+          availableNotesReference.current = nextState.notes
+          draftContentReference.current = nextState.draftContentByNote
+        }
+
         setState(nextState)
       }
     })
@@ -228,106 +248,137 @@ export function NotesDataProvider({
     setState({ status: "loading" })
     void readNotes(repository, drafts).then((nextState) => {
       if (readSequence.current === sequence) {
+        if (nextState.status === "empty" || nextState.status === "ready") {
+          availableNotesReference.current = nextState.notes
+          draftContentReference.current = nextState.draftContentByNote
+        }
+
         setState(nextState)
       }
     })
   }
 
   async function createNote() {
-    const notes = notesFromState(state)
-    const timestamp = now()
-    const note: Note = {
-      content: "",
-      contentRevision: 0,
-      createdAt: timestamp,
-      geometry: nextGeometry(notes),
-      id: createId(),
-      revision: 0,
-      tabIndex: nextNoteTabIndex(notes),
-      updatedAt: timestamp,
-    }
-    const savedNote = await repository.save(note)
+    return enqueue(async () => {
+      const notes = availableNotesReference.current
+      const timestamp = now()
+      const note: Note = {
+        content: "",
+        contentRevision: 0,
+        createdAt: timestamp,
+        geometry: nextGeometry(notes),
+        id: createId(),
+        revision: 0,
+        tabIndex: nextNoteTabIndex(notes),
+        updatedAt: timestamp,
+      }
+      const savedNote = await repository.save(note)
 
-    setState((current) => ({
-      draftContentByNote: draftContentFromState(current),
-      notes: [...notesFromState(current), savedNote],
-      status: "ready",
-    }))
-
-    return savedNote
+      publishAvailable(
+        [...availableNotesReference.current, savedNote],
+        draftContentReference.current,
+      )
+      return savedNote
+    })
   }
 
   function copyNote(note: Note) {
     return executeCopyNote({ clipboard, usage }, note)
   }
 
-  async function saveContent(note: Note, content: string) {
-    const result = await executeSaveNoteContent(
-      { drafts, notes: repository, now },
-      note,
-      content,
-    )
+  async function saveContent(noteId: string, content: string) {
+    return enqueue(async () => {
+      const note = availableNotesReference.current.find(
+        ({ id }) => id === noteId,
+      )
 
-    if (result.status === "failure") {
-      return result
-    }
+      if (note === undefined) {
+        return { status: "failure" } as const
+      }
 
-    setState((current) => {
-      const currentNotes = notesFromState(current)
-      const nextNotes = currentNotes.map((currentNote) =>
+      const result = await executeSaveNoteContent(
+        { drafts, notes: repository, now },
+        note,
+        content,
+      )
+
+      if (result.status === "failure") {
+        return result
+      }
+
+      const nextNotes = availableNotesReference.current.map((currentNote) =>
         currentNote.id === result.note.id ? result.note : currentNote,
       )
-      const nextDraftContent = { ...draftContentFromState(current) }
+      const nextDraftContent = { ...draftContentReference.current }
       delete nextDraftContent[result.note.id]
-
-      return {
-        draftContentByNote: nextDraftContent,
-        notes: nextNotes,
-        status: nextNotes.length === 0 ? "empty" : "ready",
-      }
+      publishAvailable(nextNotes, nextDraftContent)
+      return result
     })
+  }
 
-    return result
+  async function saveDraft(noteId: string, content: string) {
+    return enqueue(async () => {
+      const note = availableNotesReference.current.find(
+        ({ id }) => id === noteId,
+      )
+
+      if (note === undefined) {
+        throw new Error("Cannot save a draft for a missing note")
+      }
+
+      const reference = {
+        contentRevision: note.contentRevision,
+        id: note.id,
+      }
+      const draftContentByNote = { ...draftContentReference.current }
+
+      if (content === note.content) {
+        await drafts.remove(reference)
+        delete draftContentByNote[noteId]
+      } else {
+        await drafts.save({ content, note: reference, updatedAt: now() })
+        draftContentByNote[noteId] = content
+      }
+
+      publishAvailable(availableNotesReference.current, draftContentByNote)
+    })
   }
 
   async function updateNote(
     note: Note,
     change: { content?: string; geometry?: NoteGeometry },
   ) {
-    const nextNote = reviseNote(note, { ...change, updatedAt: now() })
-    const savedNote = await repository.save(nextNote)
+    return enqueue(async () => {
+      const currentNote = availableNotesReference.current.find(
+        ({ id }) => id === note.id,
+      )
 
-    setState((current) => {
-      if (current.status !== "ready") {
-        return current
+      if (currentNote === undefined) {
+        throw new Error("Cannot update a missing note")
       }
 
-      return {
-        draftContentByNote: draftContentFromState(current),
-        notes: current.notes.map((currentNote) =>
-          currentNote.id === savedNote.id ? savedNote : currentNote,
-        ),
-        status: "ready",
-      }
+      const nextNote = reviseNote(currentNote, { ...change, updatedAt: now() })
+      const savedNote = await repository.save(nextNote)
+      const nextNotes = availableNotesReference.current.map((current) =>
+        current.id === savedNote.id ? savedNote : current,
+      )
+      publishAvailable(nextNotes, draftContentReference.current)
+      return savedNote
     })
-
-    return savedNote
   }
 
   async function changeStack(noteId: string, edge: "back" | "front") {
-    const notes = notesFromState(state)
-    const timestamp = now()
-    const ordered = edge === "front"
-      ? sendNoteToFront(notes, noteId, timestamp)
-      : sendNoteToBack(notes, noteId, timestamp)
-    const savedNotes = await repository.saveAll(ordered)
+    return enqueue(async () => {
+      const notes = availableNotesReference.current
+      const timestamp = now()
+      const ordered = edge === "front"
+        ? sendNoteToFront(notes, noteId, timestamp)
+        : sendNoteToBack(notes, noteId, timestamp)
+      const savedNotes = await repository.saveAll(ordered)
 
-    setState((current) => ({
-      draftContentByNote: draftContentFromState(current),
-      notes: savedNotes,
-      status: savedNotes.length === 0 ? "empty" : "ready",
-    }))
-    return savedNotes
+      publishAvailable(savedNotes, draftContentReference.current)
+      return savedNotes
+    })
   }
 
   function moveNoteToFront(noteId: string) {
@@ -339,34 +390,33 @@ export function NotesDataProvider({
   }
 
   async function removeNote(note: Note) {
-    await repository.remove(createNoteReference(note))
-    setState((current) => {
-      const notes = notesFromState(current).filter(
-        (currentNote) => currentNote.id !== note.id,
+    return enqueue(async () => {
+      const currentNote = availableNotesReference.current.find(
+        ({ id }) => id === note.id,
       )
-      const draftContentByNote = { ...draftContentFromState(current) }
-      delete draftContentByNote[note.id]
 
-      return {
-        draftContentByNote,
-        notes,
-        status: notes.length === 0 ? "empty" : "ready",
+      if (currentNote === undefined) {
+        throw new Error("Cannot remove a missing note")
       }
+
+      await repository.remove(createNoteReference(currentNote))
+      const notes = availableNotesReference.current.filter(
+        ({ id }) => id !== currentNote.id,
+      )
+      const draftContentByNote = { ...draftContentReference.current }
+      delete draftContentByNote[currentNote.id]
+      publishAvailable(notes, draftContentByNote)
+      return currentNote
     })
   }
 
   async function restoreNote(note: Note) {
-    const savedNote = await repository.save(note)
-
-    setState((current) => {
-      const notes = [...notesFromState(current), savedNote]
-      return {
-        draftContentByNote: draftContentFromState(current),
-        notes,
-        status: "ready",
-      }
+    return enqueue(async () => {
+      const savedNote = await repository.save(note)
+      const notes = [...availableNotesReference.current, savedNote]
+      publishAvailable(notes, draftContentReference.current)
+      return savedNote
     })
-    return savedNote
   }
 
   return (
@@ -382,6 +432,7 @@ export function NotesDataProvider({
         restoreNote,
         retry,
         saveContent,
+        saveDraft,
         updateNote,
       }}
     >
