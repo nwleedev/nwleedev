@@ -77,6 +77,7 @@ interface Note {
   id: EntityId;
   boardId: EntityId;
   content: string;
+  tabIndex: number;
   geometry: NoteGeometry;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
@@ -123,7 +124,9 @@ interface RemovedNoteSnapshot {
 
 `NoteGeometry`는 화면 픽셀이 아니라 작업 공간 좌표로 해석한다. 그래야 zoom을 바꿔도 메모의 논리 위치와 크기가 바뀌지 않는다. `revision`은 원문과 geometry를 포함한 저장 변경에 증가하고, `contentRevision`은 원문이 달라질 때만 증가한다. 이 구분은 위치, 크기와 겹침 순서만 바꿨을 때 사용 빈도와 분석 결과를 유지한다.
 
-`zIndex`는 한 보드 안의 전체 겹침 순서를 나타낸다. 맨 앞으로 보내기는 대상 메모를 모든 메모 위에, 맨 뒤로 보내기는 모든 메모 아래에 놓고 나머지 메모의 상대 순서는 유지해야 한다. 여러 `zIndex`를 바꾸는 경우 `notes` store의 한 transaction으로 완료한다. 키보드 Tab 순서는 높은 `zIndex`부터 낮은 `zIndex` 순으로 같은 전체 순서를 사용하고 양의 `tabindex` 값으로 별도 순서를 만들지 않는다. 연속 정수로 다시 번호를 매길지, 간격을 둔 순서를 사용하다가 필요할 때 정리할지와 오래된 동률 자료의 보조 정렬 기준은 구현 전에 결정해야 한다. 이 규칙을 정하지 않은 채 현재 최댓값 또는 최솟값만 계속 더하지 않는다.
+`Note.geometry.zIndex`는 한 보드 안의 시각적 겹침 순서만 나타낸다. 맨 앞으로 보내기는 대상 메모를 모든 메모 위에, 맨 뒤로 보내기는 모든 메모 아래에 놓고 나머지 메모의 상대 순서를 유지해야 한다. 여러 `zIndex`를 바꾸는 경우 `notes` store의 한 transaction으로 완료한다.
+
+`Note.tabIndex`는 메모 선택 지점 사이의 키보드 탐색 순서만 나타내는 양의 정수다. 낮은 값부터 높은 값 순으로 `Tab`에 도달하며 맨 앞으로 또는 맨 뒤로 보내기는 이 값을 바꾸지 않는다. 새 메모의 초기값, 이후 값의 증가 및 정리, 누락되거나 중복되거나 유효 범위를 벗어난 이전 record의 migration과 페이지의 다른 focusable 요소를 포함한 전체 탐색 순서는 아직 정하지 않았다. `zIndex` 정리와 `tabIndex` 정리를 같은 규칙으로 합치지 않는다.
 
 오른쪽 속성 패널에서 새로 적용하는 X, Y, 너비와 높이는 유한한 수이고 `0`보다 크며 애플리케이션이 한 곳에서 관리하는 해당 상한 이하여야 한다. 정확한 상한은 실제 화면과 보드 조작 성능을 검증한 뒤 승인한다. HTML 입력 제약과 폼 schema는 같은 규칙을 사용하되 application command가 저장 전에 다시 검사한다. 기존 `0` 좌표 record는 새 입력 검증 때문에 읽지 못하게 만들지 않고 migration 여부를 별도로 결정한다. 작은 화면 목록의 최대 세로 길이는 화면 표현 token이며 `Note.geometry.height`를 바꾸지 않는다.
 

@@ -199,6 +199,18 @@ Keep의 강점은 생성과 탐색 비용이 낮다는 점이다. 반면 위치 
 - light 및 dark 외에도 high contrast, reduced color distinction이나 density 같은 환경 차이를 별도 값으로 다룬다.
 - component 수보다 어떤 조합이 허용되고 어떤 상태가 빠지지 않는지가 완성도를 결정한다.
 
+### 항목 동작 팝오버와 모바일 재정렬 상태 재검토
+
+모바일 일괄 복사 확인 화면의 후속 요구를 위해 이전에 내려받은 `.fig`를 다시 비교했다. 이 비교의 대상은 Figma 애플리케이션 자체의 화면 구성이 아니라 각 파일 안에 정의된 menu, list, action menu와 interaction state다.
+
+- Material 3 파일의 menu와 list는 떠 있는 표면, 일정한 행 간격과 항목 상태를 별도 component로 보여준다.
+- Fluent 2 파일의 menu 예시는 실행 버튼 가까이에 붙는 흰색 표면, 절제된 깊이와 선행 아이콘이 있는 조밀한 세로 행을 보여준다.
+- Primer Web 파일은 ActionMenu를 독립 component page로 두어 실행 버튼, 떠 있는 ActionList와 항목 상태를 하나의 조작으로 구성한다.
+- Atlassian 파일은 foundations, components와 iconography를 분리해 같은 spacing, surface와 icon 체계에서 동작 상태를 구성한다. drag 중 삽입 위치와 drag가 아닌 대안의 구체적 근거는 `.fig`가 아니라 Atlassian의 공식 drag 지침으로 보완한다.
+- 사용자 제작 메모 template는 메모 표면과 모바일 목록의 밀도는 비교할 수 있지만 길게 누르기 대기, 활성화, 이동, 취소가 이어지는 prototype 상태를 일관되게 제공하지 않는다.
+
+따라서 항목 우측 상단 아이콘의 선택창은 버튼 가까이에 붙는 개인 메모 디자인 시스템 표면과 `복제`, `삭제`가 적힌 세로 행으로 만든다. 기본, hover, `focus-visible`, pressed를 같은 token으로 구분하고 `삭제`는 다른 동작과 떨어뜨리거나 구획선과 위험 동작용 의미 색을 함께 사용한다. 모바일 재정렬은 대기, 활성화, 삽입 위치와 취소 복원 상태를 각각 보여준다. `.fig`에서 확인할 수 없는 길게 누르기 인식 시간, pointer 취소와 스크롤 경합은 플랫폼 및 웹 표준 자료로 결정한다. 세부 근거는 [메모 Tab 순서, 항목 동작 팝오버와 모바일 지연 재정렬 조사](tab-order-popover-and-mobile-reorder-research.md)에 기록했다.
+
 ## 실제 사용자 제작 노트 앱 template 비교
 
 [Figma의 라이선스 안내](https://help.figma.com/hc/en-us/articles/360042296374-Figma-Community-copyright-and-licensing)에 따라 free Community 파일과 paid resource의 free preview는 CC BY 4.0으로 배포된다. 내려받은 화면은 조사와 비교 목적으로만 사용하고 원 제작자를 함께 기록했다.
