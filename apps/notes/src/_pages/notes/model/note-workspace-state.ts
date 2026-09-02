@@ -1,11 +1,14 @@
+import type {
+  NoteGeometryDraft as NoteGeometryFields,
+  NoteReference,
+} from "@/entities/note"
+
 export type NoteGeometryDraft = {
-  height: string
-  width: string
-  x: string
-  y: string
+  fields: NoteGeometryFields
+  note: NoteReference
 }
 
-export type NoteGeometryDraftField = keyof NoteGeometryDraft
+export type NoteGeometryDraftField = keyof NoteGeometryFields
 
 export type NoteWorkspacePanel = "batch-copy" | "note-properties"
 
@@ -44,15 +47,15 @@ export function clearNoteSelection(
 
 export function activateNoteProperties(
   state: NoteWorkspaceState,
-  noteId: string,
-  geometryDraft: NoteGeometryDraft,
+  note: NoteReference,
+  fields: NoteGeometryFields,
 ): NoteWorkspaceState {
   return {
     ...state,
     activePanel: "note-properties",
-    geometryDraft,
-    propertiesNoteId: noteId,
-    selectedNoteId: noteId,
+    geometryDraft: { fields, note },
+    propertiesNoteId: note.id,
+    selectedNoteId: note.id,
   }
 }
 
@@ -66,6 +69,16 @@ export function activateBatchCopyPanel(
   return { ...state, activePanel: "batch-copy" }
 }
 
+export function closeActivePanel(
+  state: NoteWorkspaceState,
+): NoteWorkspaceState {
+  if (state.activePanel === null) {
+    return state
+  }
+
+  return { ...state, activePanel: null }
+}
+
 export function updateNoteGeometryDraft(
   state: NoteWorkspaceState,
   field: NoteGeometryDraftField,
@@ -77,6 +90,9 @@ export function updateNoteGeometryDraft(
 
   return {
     ...state,
-    geometryDraft: { ...state.geometryDraft, [field]: value },
+    geometryDraft: {
+      ...state.geometryDraft,
+      fields: { ...state.geometryDraft.fields, [field]: value },
+    },
   }
 }

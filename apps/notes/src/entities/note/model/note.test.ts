@@ -15,6 +15,7 @@ const originalNote = {
   },
   id: "note-1",
   revision: 4,
+  tabIndex: 1000,
   updatedAt: "2026-08-31T01:00:00.000Z",
 }
 
@@ -97,6 +98,30 @@ describe("NoteRecordSchema", () => {
   it("rejects a blank identifier", () => {
     expect(
       NoteRecordSchema.safeParse({ ...originalNote, id: "   " }).success,
+    ).toBe(false)
+  })
+
+  it.each([999, 32768, 1000.5])(
+    "rejects a keyboard order outside the note range",
+    (tabIndex) => {
+      expect(
+        NoteRecordSchema.safeParse({ ...originalNote, tabIndex }).success,
+      ).toBe(false)
+    },
+  )
+
+  it("rejects geometry outside the logical canvas", () => {
+    expect(
+      NoteRecordSchema.safeParse({
+        ...originalNote,
+        geometry: { ...originalNote.geometry, x: 0 },
+      }).success,
+    ).toBe(false)
+    expect(
+      NoteRecordSchema.safeParse({
+        ...originalNote,
+        geometry: { ...originalNote.geometry, width: 1281 },
+      }).success,
     ).toBe(false)
   })
 })

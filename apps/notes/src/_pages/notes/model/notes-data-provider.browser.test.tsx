@@ -65,9 +65,10 @@ function createNote(id: string, content: string): Note {
     content,
     contentRevision: 0,
     createdAt: timestamp,
-    geometry: { height: 240, width: 320, x: 0, y: 0, zIndex: 0 },
+    geometry: { height: 240, width: 320, x: 20, y: 20, zIndex: 1 },
     id,
     revision: 0,
+    tabIndex: 1000,
     updatedAt: timestamp,
   }
 }

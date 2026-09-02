@@ -10,6 +10,7 @@ import {
 } from "react"
 
 import {
+  nextNoteTabIndex,
   reviseNote,
   type Note,
   type NoteGeometry,
@@ -194,6 +195,7 @@ export function NotesDataProvider({
       geometry: nextGeometry(notes),
       id: createId(),
       revision: 0,
+      tabIndex: nextNoteTabIndex(notes),
       updatedAt: timestamp,
     }
     const savedNote = await repository.save(note)

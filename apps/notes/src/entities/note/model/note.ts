@@ -8,15 +8,47 @@ import {
   type Revision,
 } from "@/shared/lib/entity-metadata"
 
+export const NOTE_CANVAS_SIZE = 4096
+export const NOTE_HEIGHT_MIN = 180
+export const NOTE_HEIGHT_MAX = 960
+export const NOTE_WIDTH_MIN = 240
+export const NOTE_WIDTH_MAX = 1280
+export const NOTE_TAB_INDEX_MIN = 1000
+export const NOTE_TAB_INDEX_MAX = 32767
+
 export const NoteGeometrySchema = z
   .object({
-    height: z.number().positive(),
-    width: z.number().positive(),
-    x: z.number(),
-    y: z.number(),
-    zIndex: z.number().int().nonnegative().safe(),
+    height: z.number().finite().min(NOTE_HEIGHT_MIN).max(NOTE_HEIGHT_MAX),
+    width: z.number().finite().min(NOTE_WIDTH_MIN).max(NOTE_WIDTH_MAX),
+    x: z.number().finite().min(1),
+    y: z.number().finite().min(1),
+    zIndex: z.number().int().positive().safe(),
   })
   .strict()
+  .superRefine((geometry, context) => {
+    if (geometry.x > NOTE_CANVAS_SIZE - geometry.width) {
+      context.addIssue({
+        code: "custom",
+        message: "Note must remain inside the canvas width",
+        path: ["x"],
+      })
+    }
+
+    if (geometry.y > NOTE_CANVAS_SIZE - geometry.height) {
+      context.addIssue({
+        code: "custom",
+        message: "Note must remain inside the canvas height",
+        path: ["y"],
+      })
+    }
+  })
+
+export const NoteTabIndexSchema = z
+  .number()
+  .int()
+  .min(NOTE_TAB_INDEX_MIN)
+  .max(NOTE_TAB_INDEX_MAX)
+  .safe()
 
 export const NoteRecordSchema = z
   .object({
@@ -26,6 +58,7 @@ export const NoteRecordSchema = z
     geometry: NoteGeometrySchema,
     id: EntityIdSchema,
     revision: RevisionSchema,
+    tabIndex: NoteTabIndexSchema,
     updatedAt: IsoDateTimeSchema,
   })
   .strict()
@@ -45,6 +78,7 @@ export const NoteContentReferenceSchema = z
   .strict()
 
 export type NoteGeometry = z.infer<typeof NoteGeometrySchema>
+export type NoteTabIndex = z.infer<typeof NoteTabIndexSchema>
 export type Note = z.infer<typeof NoteRecordSchema>
 export type NoteReference = z.infer<typeof NoteReferenceSchema>
 export type NoteContentReference = z.infer<typeof NoteContentReferenceSchema>

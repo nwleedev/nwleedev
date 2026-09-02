@@ -43,9 +43,10 @@ const note: Note = {
   content: "저장한 메모",
   contentRevision: 0,
   createdAt: timestamp,
-  geometry: { height: 240, width: 320, x: 40, y: 60, zIndex: 0 },
+  geometry: { height: 240, width: 320, x: 40, y: 60, zIndex: 1 },
   id: "note-1",
   revision: 0,
+  tabIndex: 1000,
   updatedAt: timestamp,
 }
 

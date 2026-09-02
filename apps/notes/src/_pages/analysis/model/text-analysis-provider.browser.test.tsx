@@ -43,9 +43,10 @@ function createNote(contentRevision: number): Note {
     content: "같은 줄\n같은 줄",
     contentRevision,
     createdAt: timestamp,
-    geometry: { height: 240, width: 320, x: 0, y: 0, zIndex: 0 },
+    geometry: { height: 240, width: 320, x: 20, y: 20, zIndex: 1 },
     id: "note-one",
     revision: contentRevision,
+    tabIndex: 1000,
     updatedAt: timestamp,
   }
 }
