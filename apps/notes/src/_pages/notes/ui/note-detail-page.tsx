@@ -6,9 +6,12 @@ import {
   useEffect,
   useRef,
   useState,
+  type ChangeEvent as ReactChangeEvent,
+  type FocusEvent as ReactFocusEvent,
   type MouseEvent as ReactMouseEvent,
   type SyntheticEvent,
 } from "react"
+import { useForm } from "react-hook-form"
 
 import type { Note } from "@/entities/note"
 import { ActionToast } from "@/shared/ui/action-toast"
@@ -22,6 +25,10 @@ import { noteContentFailureMessage } from "./note-content-failure-message"
 const DRAFT_SAVE_DELAY_MS = 800
 const backLinkClassName =
   "inline-flex min-h-[var(--notes-control-size)] items-center rounded-control border border-line bg-surface-raised px-3 py-1.5 text-sm font-semibold hover:border-line-strong hover:bg-canvas"
+
+type NoteContentFields = {
+  content: string
+}
 
 type ReadyNoteDetailProps = {
   initialContent: string
@@ -113,15 +120,21 @@ function ReadyNoteDetail({
   saveDraft,
 }: ReadyNoteDetailProps) {
   const router = useRouter()
-  const [content, setContent] = useState(initialContent)
+  const {
+    formState: { isSubmitting },
+    getValues,
+    handleSubmit,
+    register,
+    reset,
+  } = useForm<NoteContentFields>({
+    defaultValues: { content: initialContent },
+  })
   const [notice, setNotice] = useState<{
     kind: "error" | "status"
     message: string
   } | null>(null)
   const [confirmingNavigation, setConfirmingNavigation] = useState(false)
   const [discarding, setDiscarding] = useState(false)
-  const [pending, setPending] = useState(false)
-  const contentReference = useRef(content)
   const discardedDraft = useRef(false)
   const noteReference = useRef(note)
   const saveDraftReference = useRef(saveDraft)
@@ -143,7 +156,7 @@ function ReadyNoteDetail({
       }
 
       void saveDraftReference
-        .current(noteReference.current.id, contentReference.current)
+        .current(noteReference.current.id, getValues("content"))
         .catch(() => undefined)
     }
 
@@ -166,19 +179,16 @@ function ReadyNoteDetail({
 
       storeDraft()
     }
-  }, [])
+  }, [getValues])
 
-  function scheduleDraft(nextContent: string) {
-    contentReference.current = nextContent
-    setContent(nextContent)
-
+  function scheduleDraft() {
     if (timer.current !== null) {
       clearTimeout(timer.current)
     }
 
     timer.current = setTimeout(() => {
       timer.current = null
-      void saveDraft(note.id, contentReference.current).catch(() => {
+      void saveDraft(note.id, getValues("content")).catch(() => {
         setNotice({
           kind: "error",
           message: "편집 중인 내용을 보관하지 못했습니다.",
@@ -197,7 +207,7 @@ function ReadyNoteDetail({
       timer.current = null
     }
 
-    void saveDraft(note.id, contentReference.current).catch(() => {
+    void saveDraft(note.id, getValues("content")).catch(() => {
       setNotice({
         kind: "error",
         message: "편집 중인 내용을 보관하지 못했습니다.",
@@ -205,18 +215,13 @@ function ReadyNoteDetail({
     })
   }
 
-  async function save() {
-    if (pending) {
-      return
-    }
-
+  async function save(fields: NoteContentFields) {
     if (timer.current !== null) {
       clearTimeout(timer.current)
       timer.current = null
     }
 
-    setPending(true)
-    const result = await saveContent(note.id, contentReference.current)
+    const result = await saveContent(note.id, fields.content)
 
     if (result.status === "failure") {
       setNotice({
@@ -225,16 +230,22 @@ function ReadyNoteDetail({
       })
     } else {
       noteReference.current = result.note
+      const latestContent = getValues("content")
+
+      if (latestContent === fields.content) {
+        reset({ content: result.note.content })
+      } else {
+        reset({ content: result.note.content }, { keepValues: true })
+      }
+
       setNotice({ kind: "status", message: "저장했습니다." })
     }
-
-    setPending(false)
   }
 
   function requestBackNavigation(event: ReactMouseEvent<HTMLAnchorElement>) {
     const modifiedClick =
       event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
-    const changed = contentReference.current !== noteReference.current.content
+    const changed = getValues("content") !== noteReference.current.content
 
     if (modifiedClick || !changed) {
       return
@@ -277,6 +288,27 @@ function ReadyNoteDetail({
     }
   }
 
+  const contentRegistration = register("content")
+
+  function changeContent(event: ReactChangeEvent<HTMLTextAreaElement>) {
+    void contentRegistration.onChange(event)
+    scheduleDraft()
+  }
+
+  function blurContent(event: ReactFocusEvent<HTMLTextAreaElement>) {
+    void contentRegistration.onBlur(event)
+    storeDraftOnBlur()
+  }
+
+  function submitSave() {
+    void handleSubmit(save)()
+  }
+
+  function connectEditor(element: HTMLTextAreaElement | null) {
+    contentRegistration.ref(element)
+    editor.current = element
+  }
+
   return (
     <main
       className="relative grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] bg-canvas"
@@ -305,15 +337,15 @@ function ReadyNoteDetail({
         <textarea
           aria-label="메모 내용"
           className="h-full min-h-56 w-full resize-none rounded-note border border-note-line bg-note px-4 py-3 text-base leading-7 shadow-note outline-none"
-          onBlur={storeDraftOnBlur}
-          onChange={(event) => scheduleDraft(event.target.value)}
-          ref={editor}
-          value={content}
+          name={contentRegistration.name}
+          onBlur={blurContent}
+          onChange={changeContent}
+          ref={connectEditor}
         />
       </div>
       <footer className="flex justify-end border-t border-line bg-surface-raised px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <Button disabled={pending} onClick={save}>
-          {pending ? "저장하는 중" : "저장"}
+        <Button disabled={isSubmitting} onClick={submitSave}>
+          {isSubmitting ? "저장하는 중" : "저장"}
         </Button>
       </footer>
       {confirmingNavigation ? (

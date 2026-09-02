@@ -9,7 +9,6 @@ import {
   completeNoteContentSave,
   createNoteContentSaveState,
   failNoteContentSave,
-  updateNoteContentDraft,
   type NoteContentSaveState,
 } from "./note-content-save-state"
 import type {
@@ -22,15 +21,19 @@ const NOTE_AUTOSAVE_DELAY_MS = 800
 type UseNoteContentAutosaveOptions = {
   initialContent: string
   note: Note
+  onContentSaved(content: string): void
   onFailure(reason: SaveNoteContentFailureReason): void
   onSave(noteId: string, content: string): Promise<SaveNoteContentResult>
+  readContent(): string
 }
 
 export function useNoteContentAutosave({
   initialContent,
   note,
+  onContentSaved,
   onFailure,
   onSave,
+  readContent,
 }: UseNoteContentAutosaveOptions) {
   const [state, setState] = useState(() =>
     createNoteContentSaveState(note, initialContent),
@@ -38,7 +41,9 @@ export function useNoteContentAutosave({
   const stateReference = useRef(state)
   const noteReference = useRef(note)
   const saveReference = useRef(onSave)
+  const contentSavedReference = useRef(onContentSaved)
   const failureReference = useRef(onFailure)
+  const readContentReference = useRef(readContent)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mounted = useRef(false)
   const pendingSave = useRef<Promise<Note | null> | null>(null)
@@ -75,7 +80,10 @@ export function useNoteContentAutosave({
       ...stateReference.current,
       note: noteReference.current,
     }
-    const started = beginNoteContentSave(currentState)
+    const started = beginNoteContentSave(
+      currentState,
+      readContentReference.current(),
+    )
     const request = started.request
     publish(started.state)
 
@@ -100,10 +108,16 @@ export function useNoteContentAutosave({
           stateReference.current,
           result.note,
         )
+        noteReference.current = result.note
         publish(completed)
+        const latestContent = readContentReference.current()
 
-        if (completed.status === "dirty") {
+        if (latestContent !== result.note.content) {
           return executeSaveReference.current()
+        }
+
+        if (mounted.current) {
+          contentSavedReference.current(result.note.content)
         }
 
         return result.note
@@ -132,8 +146,16 @@ export function useNoteContentAutosave({
   }, [onSave])
 
   useEffect(() => {
+    contentSavedReference.current = onContentSaved
+  }, [onContentSaved])
+
+  useEffect(() => {
     failureReference.current = onFailure
   }, [onFailure])
+
+  useEffect(() => {
+    readContentReference.current = readContent
+  }, [readContent])
 
   useEffect(() => {
     executeSaveReference.current = save
@@ -168,15 +190,9 @@ export function useNoteContentAutosave({
     }
   }, [])
 
-  function change(content: string) {
-    publish(updateNoteContentDraft(stateReference.current, content))
-    scheduleSave()
-  }
-
   return {
-    change,
-    content: state.draftContent,
     save,
+    scheduleSave,
     status: state.status,
   }
 }

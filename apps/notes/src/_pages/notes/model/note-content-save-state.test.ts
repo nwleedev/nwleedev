@@ -7,7 +7,6 @@ import {
   completeNoteContentSave,
   createNoteContentSaveState,
   failNoteContentSave,
-  updateNoteContentDraft,
   type NoteContentSaveRequest,
 } from "./note-content-save-state"
 
@@ -33,60 +32,58 @@ function requireSaveRequest(
 }
 
 describe("note content save state", () => {
-  it("keeps newer text dirty when an earlier save completes", () => {
-    const edited = updateNoteContentDraft(
+  it("starts another save with newer text after an earlier save completes", () => {
+    const saving = beginNoteContentSave(
       createNoteContentSaveState(note),
       "먼저 저장할 원문",
     )
-    const saving = beginNoteContentSave(edited)
     const request = requireSaveRequest(saving.request)
-
-    const editedAgain = updateNoteContentDraft(
-      saving.state,
-      "저장 중에 추가한 원문",
-    )
     const savedNote = {
       ...note,
       content: request.content,
       contentRevision: 3,
       revision: 5,
     }
-    const completed = completeNoteContentSave(editedAgain, savedNote)
+    const completed = completeNoteContentSave(saving.state, savedNote)
+    const nextSave = beginNoteContentSave(
+      completed,
+      "저장 중에 추가한 원문",
+    )
 
-    expect(completed).toMatchObject({
-      draftContent: "저장 중에 추가한 원문",
+    expect(nextSave.state).toMatchObject({
       note: { content: "먼저 저장할 원문", contentRevision: 3 },
-      status: "dirty",
+      status: "saving",
     })
+    expect(nextSave.request?.content).toBe("저장 중에 추가한 원문")
   })
 
-  it("preserves text and offers the same content after a failed save", () => {
-    const edited = updateNoteContentDraft(
+  it("offers the current text again after a failed save", () => {
+    const saving = beginNoteContentSave(
       createNoteContentSaveState(note),
       "실패 뒤에도 남을 원문",
     )
-    const saving = beginNoteContentSave(edited)
     const failed = failNoteContentSave(saving.state)
-    const retried = beginNoteContentSave(failed)
+    const retried = beginNoteContentSave(failed, "실패 뒤에도 남을 원문")
 
     expect(failed).toMatchObject({
-      draftContent: "실패 뒤에도 남을 원문",
       status: "failure",
     })
     expect(retried.request?.content).toBe("실패 뒤에도 남을 원문")
   })
 
   it("does not create a save request when the text is unchanged", () => {
-    const result = beginNoteContentSave(createNoteContentSaveState(note))
+    const result = beginNoteContentSave(
+      createNoteContentSaveState(note),
+      note.content,
+    )
 
     expect(result.request).toBeNull()
-    expect(result.state.status).toBe("clean")
+    expect(result.state.status).toBe("idle")
   })
 
   it("removes a recovered draft after the user returns to the stored text", () => {
     const recovered = createNoteContentSaveState(note, "복구된 원문")
-    const reverted = updateNoteContentDraft(recovered, note.content)
-    const result = beginNoteContentSave(reverted)
+    const result = beginNoteContentSave(recovered, note.content)
 
     expect(result.request).toEqual({ content: note.content, note })
     expect(result.state.status).toBe("saving")

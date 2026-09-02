@@ -2,10 +2,9 @@ import type { Note } from "@/entities/note"
 
 export type NoteContentSaveState = {
   draftCleanupRequired: boolean
-  draftContent: string
   note: Note
   pendingContent: string | null
-  status: "clean" | "dirty" | "failure" | "saving"
+  status: "failure" | "idle" | "saving"
 }
 
 export type NoteContentSaveRequest = {
@@ -19,37 +18,20 @@ export function createNoteContentSaveState(
 ): NoteContentSaveState {
   return {
     draftCleanupRequired: recoveredContent !== note.content,
-    draftContent: recoveredContent,
     note,
     pendingContent: null,
-    status: recoveredContent === note.content ? "clean" : "dirty",
+    status: "idle",
   }
 }
 
-export function updateNoteContentDraft(
+export function beginNoteContentSave(
   state: NoteContentSaveState,
   content: string,
-): NoteContentSaveState {
-  if (content === state.draftContent) {
-    return state
-  }
-
-  let status: NoteContentSaveState["status"] = "dirty"
-
-  if (state.pendingContent !== null) {
-    status = "saving"
-  } else if (content === state.note.content && !state.draftCleanupRequired) {
-    status = "clean"
-  }
-
-  return { ...state, draftContent: content, status }
-}
-
-export function beginNoteContentSave(state: NoteContentSaveState): {
+): {
   request: NoteContentSaveRequest | null
   state: NoteContentSaveState
 } {
-  const unchanged = state.draftContent === state.note.content
+  const unchanged = content === state.note.content
 
   if (state.pendingContent !== null) {
     return {
@@ -61,16 +43,16 @@ export function beginNoteContentSave(state: NoteContentSaveState): {
   if (unchanged && !state.draftCleanupRequired) {
     return {
       request: null,
-      state: { ...state, status: "clean" },
+      state: { ...state, status: "idle" },
     }
   }
 
   return {
-    request: { content: state.draftContent, note: state.note },
+    request: { content, note: state.note },
     state: {
       ...state,
       draftCleanupRequired: true,
-      pendingContent: state.draftContent,
+      pendingContent: content,
       status: "saving",
     },
   }
@@ -80,14 +62,12 @@ export function completeNoteContentSave(
   state: NoteContentSaveState,
   note: Note,
 ): NoteContentSaveState {
-  const status = state.draftContent === note.content ? "clean" : "dirty"
-
   return {
     ...state,
     draftCleanupRequired: false,
     note,
     pendingContent: null,
-    status,
+    status: "idle",
   }
 }
 

@@ -10,6 +10,7 @@ import {
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react"
+import { useForm } from "react-hook-form"
 
 import {
   NOTE_CANVAS_SIZE,
@@ -42,6 +43,10 @@ type ResizeDirection =
   | "south-east"
   | "south-west"
   | "west"
+
+type NoteContentFields = {
+  content: string
+}
 
 type GeometryGesture = {
   action: "move" | ResizeDirection
@@ -239,17 +244,41 @@ export function NoteCard({
   const suppressClick = useRef(false)
   const suppressClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const article = useRef<HTMLElement>(null)
-  const content = useNoteContentAutosave({
+  const { getValues, register, reset } = useForm<NoteContentFields>({
+    defaultValues: { content: initialContent },
+  })
+
+  function readContent() {
+    return getValues("content")
+  }
+
+  function acceptSavedContent(savedContent: string) {
+    if (readContent() === savedContent) {
+      reset({ content: savedContent })
+    }
+  }
+
+  const contentSave = useNoteContentAutosave({
     initialContent,
     note,
+    onContentSaved: acceptSavedContent,
     onFailure: (reason) => onSaveFailure(noteContentFailureMessage(reason)),
     onSave: onSaveContent,
+    readContent,
+  })
+  const contentRegistration = register("content", {
+    onBlur() {
+      void contentSave.save()
+    },
+    onChange() {
+      contentSave.scheduleSave()
+    },
   })
   const geometry = geometryPreview ?? note.geometry
   const encodedNoteId = encodeURIComponent(note.id)
   const articleId = `note-${encodedNoteId}-board`
   const contentId = `note-${encodedNoteId}-content`
-  const interactionPending = geometryPending || content.status === "saving"
+  const interactionPending = geometryPending || contentSave.status === "saving"
   const selectedVisible = selected && !commandPressed
   const headerClassName = joinClassNames(
     "flex h-7 shrink-0 touch-none items-center justify-end gap-0.5 border-b border-note-line bg-note-header px-1",
@@ -416,7 +445,7 @@ export function NoteCard({
 
     if (event.target === event.currentTarget && validBatchCopyEnter) {
       event.preventDefault()
-      const noteSnapshot = { ...note, content: content.content }
+      const noteSnapshot = { ...note, content: readContent() }
       void onAddToBatchCopy(noteSnapshot)
       return
     }
@@ -463,7 +492,7 @@ export function NoteCard({
 
     event.preventDefault()
     event.stopPropagation()
-    const noteSnapshot = { ...note, content: content.content }
+    const noteSnapshot = { ...note, content: readContent() }
 
     if (batchCopy) {
       void onAddToBatchCopy(noteSnapshot)
@@ -495,7 +524,7 @@ export function NoteCard({
 
   async function remove(event: ReactMouseEvent<HTMLButtonElement>) {
     stopHeaderAction(event)
-    const savedNote = await content.save()
+    const savedNote = await contentSave.save()
 
     if (savedNote === null) {
       return
@@ -574,12 +603,10 @@ export function NoteCard({
         aria-label="메모 내용"
         className="min-h-0 flex-1 resize-none overflow-auto border-0 bg-transparent px-4 py-3 text-[0.98rem] leading-7 text-ink outline-none placeholder:text-soft-ink"
         id={contentId}
-        onBlur={content.save}
-        onChange={(event) => content.change(event.target.value)}
         onClick={runContentShortcut}
         onMouseDown={prepareContentShortcut}
         placeholder="메모를 입력하세요"
-        value={content.content}
+        {...contentRegistration}
       />
       <ResizeHandle
         direction="north"

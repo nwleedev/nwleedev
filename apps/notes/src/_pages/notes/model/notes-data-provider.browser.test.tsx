@@ -1,5 +1,6 @@
 import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"
+import { useForm } from "react-hook-form"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { page, userEvent } from "vitest/browser"
 
@@ -44,19 +45,41 @@ function AutosaveEditor({
   note,
   onSave,
 }: AutosaveEditorProps) {
+  const { getValues, register, reset } = useForm<{ content: string }>({
+    defaultValues: { content: initialContent },
+  })
+
+  function readContent() {
+    return getValues("content")
+  }
+
+  function acceptSavedContent(savedContent: string) {
+    if (readContent() === savedContent) {
+      reset({ content: savedContent })
+    }
+  }
+
   const content = useNoteContentAutosave({
     initialContent,
     note,
+    onContentSaved: acceptSavedContent,
     onFailure: () => undefined,
     onSave,
+    readContent,
+  })
+  const contentRegistration = register("content", {
+    onBlur() {
+      void content.save()
+    },
+    onChange() {
+      content.scheduleSave()
+    },
   })
 
   return (
     <textarea
       aria-label="메모 내용"
-      onBlur={content.save}
-      onChange={(event) => content.change(event.target.value)}
-      value={content.content}
+      {...contentRegistration}
     />
   )
 }
