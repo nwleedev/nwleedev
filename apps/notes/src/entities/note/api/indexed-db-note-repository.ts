@@ -51,6 +51,21 @@ export class IndexedDbNoteRepository implements NoteRepository {
     return record
   }
 
+  async saveAll(notes: readonly Note[]) {
+    const records = notes.map(parseNoteRecord)
+    const database = await this.#connection.get()
+    const transaction = database.transaction(NOTE_STORE_NAME, "readwrite")
+    const completion = waitForTransaction(transaction)
+    const store = transaction.objectStore(NOTE_STORE_NAME)
+
+    for (const record of records) {
+      store.put(record)
+    }
+
+    await completion
+    return records
+  }
+
   async remove(reference: NoteReference) {
     const database = await this.#connection.get()
     const transaction = database.transaction(NOTE_STORE_NAME, "readwrite")

@@ -5,6 +5,7 @@ import { page, userEvent } from "vitest/browser"
 
 import type { BatchCopyList } from "@/entities/batch-copy"
 import type { Note, NoteRepository } from "@/entities/note"
+import type { NoteDraftRepository } from "@/entities/note"
 import type { IndividualCopyUsageWriter } from "@/entities/usage"
 import { AddNoteToBatchCopyProvider } from "@/features/add-note-to-batch-copy"
 import {
@@ -27,6 +28,11 @@ const clipboard = {
 }
 const usage: IndividualCopyUsageWriter = {
   recordIndividualCopy: async () => undefined,
+}
+const drafts: NoteDraftRepository = {
+  get: async () => null,
+  remove: async () => undefined,
+  save: async (draft) => draft,
 }
 const emptyBatchCopyList: BatchCopyList = {
   content: { items: [], separator: "\n" },
@@ -87,6 +93,7 @@ function createRepository(
     },
     remove: async () => undefined,
     save: async (note) => note,
+    saveAll: async (notes) => notes,
   }
 }
 
@@ -146,6 +153,7 @@ describe("NotesDataProvider", () => {
               batchCopyShortcutEnabled
               clipboard={clipboard}
               createId={() => "created-note"}
+              drafts={drafts}
               now={() => timestamp}
               repository={repository}
               storageMonitor={storageMonitor}

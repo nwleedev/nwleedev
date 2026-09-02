@@ -52,6 +52,7 @@ function ApplicationProviders({
           <NotesDataProvider
             clipboard={application.notes.clipboard}
             createId={application.notes.createId}
+            drafts={application.notes.draftRepository}
             batchCopyShortcutEnabled={batchCopyShortcutEnabled}
             now={application.notes.now}
             repository={application.notes.repository}
