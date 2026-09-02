@@ -31,6 +31,7 @@ type ActionPopoverProps = {
   actions: readonly ActionPopoverAction[]
   disabled: boolean
   label: string
+  triggerClassName?: string
 }
 
 type ActionPopoverRowProps = {
@@ -87,6 +88,7 @@ export function ActionPopover({
   actions,
   disabled,
   label,
+  triggerClassName,
 }: ActionPopoverProps) {
   const trigger = useRef<HTMLButtonElement>(null)
   const popover = useRef<HTMLDivElement>(null)
@@ -237,6 +239,7 @@ export function ActionPopover({
         aria-controls={popoverId}
         aria-expanded={expanded}
         aria-label={label}
+        className={triggerClassName}
         disabled={disabled}
         onClick={togglePopover}
         onPointerDown={stopPointer}

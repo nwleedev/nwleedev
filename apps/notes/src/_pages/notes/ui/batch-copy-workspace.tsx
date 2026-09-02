@@ -225,6 +225,10 @@ export function BatchCopyWorkspace({ children }: PropsWithChildren) {
     "shadow-floating",
     batchCopyActive && showInlinePanel ? "invisible" : undefined,
   )
+  const batchCopyTriggerPositionClassName = joinClassNames(
+    "absolute top-3 z-20 hidden @3xl/notes-workspace:block",
+    showInlinePanel ? "right-[22.75rem]" : "right-3 sm:right-4",
+  )
   const copyNoticeClassName = joinClassNames(
     "absolute top-3 z-40 w-[min(24rem,calc(100%-1.5rem))]",
     showInlinePanel ? "right-[22.75rem]" : "right-3",
@@ -319,7 +323,7 @@ export function BatchCopyWorkspace({ children }: PropsWithChildren) {
           onUndo={batchCopy.undo}
           pending={batchCopy.pending}
         />
-        <div className="absolute right-3 top-3 z-20 hidden @3xl/notes-workspace:block sm:right-4">
+        <div className={batchCopyTriggerPositionClassName}>
           <Button
             aria-label={`일괄 복사 ${batchCopyCountText}`}
             aria-controls={controlledPanelId}
@@ -369,8 +373,10 @@ export function BatchCopyWorkspace({ children }: PropsWithChildren) {
           </section>
           {showInlinePanel ? (
             <div
+              aria-label={batchCopyActive ? "일괄 복사" : undefined}
               className="h-full min-h-0 overflow-hidden border-l border-line bg-surface-raised shadow-floating"
               id={INLINE_PANEL_ID}
+              role={batchCopyActive ? "complementary" : undefined}
             >
               {batchCopyActive ? (
                 <BatchCopyPanelContent

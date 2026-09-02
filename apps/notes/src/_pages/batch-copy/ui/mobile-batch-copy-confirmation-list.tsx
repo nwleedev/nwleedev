@@ -241,7 +241,21 @@ export function MobileBatchCopyConfirmationList({
     : (drag.targetIndex + 1).toLocaleString("ko-KR")
 
   useEffect(() => {
+    const element = list.current
+
+    function preventNativePan(event: TouchEvent) {
+      if (gesture.current?.active) {
+        event.preventDefault()
+      }
+    }
+
+    element?.addEventListener("touchmove", preventNativePan, {
+      passive: false,
+    })
+
     return () => {
+      element?.removeEventListener("touchmove", preventNativePan)
+
       if (gesture.current !== null) {
         clearTimeout(gesture.current.timer)
       }

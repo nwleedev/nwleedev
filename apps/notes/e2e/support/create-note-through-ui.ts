@@ -26,3 +26,22 @@ export async function createNoteThroughUi(
   await removeButton.click({ trial: true })
   return note
 }
+
+export async function createMobileNoteThroughUi(
+  page: Page,
+  content: string,
+): Promise<Locator> {
+  await page.getByRole("button", { name: "새 메모" }).click()
+  await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)
+
+  const editor = page.getByRole("textbox", { name: "메모 내용" })
+  await editor.fill(content)
+  await page.getByRole("button", { exact: true, name: "저장" }).click()
+  await expect(page.getByRole("status")).toContainText("저장했습니다.")
+  await page.getByRole("link", { exact: true, name: "메모 목록" }).click()
+  await expect(page).toHaveURL("/")
+
+  const note = page.getByRole("article").filter({ hasText: content })
+  await expect(note).toBeVisible()
+  return note
+}

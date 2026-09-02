@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test"
 
 const clipboardPermissionSpec = /clipboard-permissions\.spec\.ts/u
+const touchInteractionSpec = /touch-interactions\.spec\.ts/u
+const desktopTestIgnore = [clipboardPermissionSpec, touchInteractionSpec]
 
 export default defineConfig({
   expect: {
@@ -11,7 +13,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      testIgnore: clipboardPermissionSpec,
+      testIgnore: desktopTestIgnore,
       use: {
         ...devices["Desktop Chrome"],
         permissions: ["clipboard-read", "clipboard-write"],
@@ -19,18 +21,27 @@ export default defineConfig({
     },
     {
       name: "firefox",
-      testIgnore: clipboardPermissionSpec,
+      testIgnore: desktopTestIgnore,
       use: devices["Desktop Firefox"],
     },
     {
       name: "webkit",
-      testIgnore: clipboardPermissionSpec,
+      testIgnore: desktopTestIgnore,
       use: devices["Desktop Safari"],
     },
     {
       name: "chromium-clipboard",
       testMatch: clipboardPermissionSpec,
       use: devices["Desktop Chrome"],
+    },
+    {
+      name: "chromium-touch",
+      testMatch: touchInteractionSpec,
+      use: {
+        ...devices["Pixel 5"],
+        permissions: ["clipboard-read", "clipboard-write"],
+        viewport: { height: 720, width: 320 },
+      },
     },
   ],
   reporter: "line",

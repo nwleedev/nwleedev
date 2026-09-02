@@ -37,7 +37,7 @@ async function createGeneratedTemplate(page: Page) {
   }
 }
 
-test("메모 본문 클릭으로 원문 전체를 클립보드에 쓴다", async ({
+test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", async ({
   context,
   page,
 }) => {
@@ -48,12 +48,29 @@ test("메모 본문 클릭으로 원문 전체를 클립보드에 쓴다", async
   await page.goto("/")
   const content = "클립보드에 기록할 메모 원문"
   const note = await createNoteThroughUi(page, content)
+  const editor = note.getByRole("textbox", { name: "메모 내용" })
 
-  await note.getByText(content, { exact: true }).click()
-  await expect(note.getByRole("status")).toContainText("복사했습니다.")
+  await editor.click({ modifiers: ["Meta"] })
+  await editor.click({ modifiers: ["Meta"] })
+  await expect(
+    page.getByRole("status").filter({ hasText: "복사했습니다." }),
+  ).toBeVisible()
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
     .toBe(content)
+
+  await editor.click({ modifiers: ["Meta", "Alt"] })
+  const panel = page.getByRole("complementary", { name: "일괄 복사" })
+  await expect(panel).toBeVisible()
+  await panel.getByRole("button", { name: "일괄 복사 패널 닫기" }).click()
+  await page.setViewportSize({ height: 720, width: 320 })
+  await page.getByRole("button", { name: "탐색" }).click()
+  await page.getByRole("link", { exact: true, name: "사용 빈도" }).click()
+
+  const usageRow = page.getByRole("row").filter({ hasText: content })
+  await expect(usageRow.getByRole("cell", { name: "개별 복사 2회" })).toBeVisible()
+  await expect(usageRow.getByRole("cell", { name: "일괄 복사 1회" })).toBeVisible()
+  await expect(usageRow.getByRole("cell", { name: "합계 3회" })).toBeVisible()
 })
 
 test("클립보드 권한이 거절되면 원인을 알리고 일반 복사 횟수를 늘리지 않는다", async ({
@@ -71,16 +88,21 @@ test("클립보드 권한이 거절되면 원인을 알리고 일반 복사 횟�
   await page.goto("/")
   const content = "클립보드 거절을 확인할 메모"
   const note = await createNoteThroughUi(page, content)
+  const editor = note.getByRole("textbox", { name: "메모 내용" })
 
-  await note.getByRole("button", { name: "복사" }).click()
-  await expect(note.getByRole("alert")).toContainText(
-    "클립보드 쓰기가 허용되지 않았습니다.",
+  await editor.click({ modifiers: ["Meta"] })
+  const individualCopyAlert = page.getByRole("alert").filter({
+    hasText: "브라우저가 클립보드 쓰기를 허용하지 않았습니다.",
+  })
+  await expect(individualCopyAlert).toContainText(
+    "브라우저가 클립보드 쓰기를 허용하지 않았습니다.",
   )
   await expect(
-    note.getByRole("link", { name: /설정/u }),
+    individualCopyAlert.getByRole("link", { name: /설정/u }),
   ).toHaveCount(0)
 
-  await note.getByRole("button", { name: "누적" }).click()
+  await editor.click({ modifiers: ["Meta", "Alt"] })
+  await page.getByRole("button", { name: "일괄 복사 1개" }).click()
   const panel = page.getByRole("dialog", { name: "일괄 복사" })
   await panel.getByRole("button", { exact: true, name: "복사" }).click()
   const batchCopyAlert = page.getByRole("alert").filter({
@@ -95,10 +117,10 @@ test("클립보드 권한이 거절되면 원인을 알리고 일반 복사 횟�
   await page.getByRole("link", { exact: true, name: "사용 빈도" }).click()
   const usageRow = page.getByRole("row").filter({ hasText: content })
   await expect(
-    usageRow.getByRole("cell", { name: "일반 복사 0회" }),
+    usageRow.getByRole("cell", { name: "개별 복사 0회" }),
   ).toBeVisible()
   await expect(
-    usageRow.getByRole("cell", { name: "누적 1회" }),
+    usageRow.getByRole("cell", { name: "일괄 복사 1회" }),
   ).toBeVisible()
   await expect(
     usageRow.getByRole("cell", { name: "합계 1회" }),

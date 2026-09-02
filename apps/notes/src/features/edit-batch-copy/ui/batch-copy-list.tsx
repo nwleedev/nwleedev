@@ -155,11 +155,12 @@ function BatchCopyItemActions({
     ]
 
     return (
-      <div className="pointer-events-none absolute right-2 top-2 opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:pointer-events-auto [@media(pointer:coarse)]:opacity-100">
+      <div className="absolute right-2 top-2">
         <ActionPopover
           actions={actions}
           disabled={pending}
           label="일괄 복사 항목 동작"
+          triggerClassName="pointer-events-none opacity-0 group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100 [@media(pointer:coarse)]:pointer-events-auto [@media(pointer:coarse)]:opacity-100"
         />
       </div>
     )
