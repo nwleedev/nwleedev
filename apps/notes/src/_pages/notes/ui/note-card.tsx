@@ -80,6 +80,7 @@ type ResizeHandleProps = {
   direction: ResizeDirection
   disabled: boolean
   positionClassName: string
+  onLostPointerCapture(event: ReactPointerEvent<HTMLSpanElement>): void
   onPointerCancel(event: ReactPointerEvent<HTMLSpanElement>): void
   onPointerDown(
     event: ReactPointerEvent<HTMLSpanElement>,
@@ -180,6 +181,7 @@ function geometryFromGesture(
 function ResizeHandle({
   direction,
   disabled,
+  onLostPointerCapture,
   onPointerCancel,
   onPointerDown,
   onPointerMove,
@@ -197,6 +199,7 @@ function ResizeHandle({
     <span
       aria-hidden="true"
       className={handleClassName}
+      onLostPointerCapture={onLostPointerCapture}
       onPointerCancel={onPointerCancel}
       onPointerDown={(event) => onPointerDown(event, direction)}
       onPointerMove={onPointerMove}
@@ -372,6 +375,7 @@ export function NoteCard({
 
     gesture.current = null
     setGeometryPreview(null)
+    suppressClickSequence()
   }
 
   function selectFromHeader(event: ReactMouseEvent<HTMLElement>) {
@@ -519,6 +523,7 @@ export function NoteCard({
         className={headerClassName}
         onClick={selectFromHeader}
         onDoubleClick={openPropertiesFromHeader}
+        onLostPointerCapture={cancelGeometryGesture}
         onPointerCancel={cancelGeometryGesture}
         onPointerDown={(event) => startGeometryGesture(event, "move")}
         onPointerMove={moveGeometryGesture}
@@ -579,6 +584,7 @@ export function NoteCard({
       <ResizeHandle
         direction="north"
         disabled={interactionPending}
+        onLostPointerCapture={cancelGeometryGesture}
         onPointerCancel={cancelGeometryGesture}
         onPointerDown={startGeometryGesture}
         onPointerMove={moveGeometryGesture}
@@ -588,6 +594,7 @@ export function NoteCard({
       <ResizeHandle
         direction="south"
         disabled={interactionPending}
+        onLostPointerCapture={cancelGeometryGesture}
         onPointerCancel={cancelGeometryGesture}
         onPointerDown={startGeometryGesture}
         onPointerMove={moveGeometryGesture}
@@ -597,6 +604,7 @@ export function NoteCard({
       <ResizeHandle
         direction="west"
         disabled={interactionPending}
+        onLostPointerCapture={cancelGeometryGesture}
         onPointerCancel={cancelGeometryGesture}
         onPointerDown={startGeometryGesture}
         onPointerMove={moveGeometryGesture}
@@ -606,6 +614,7 @@ export function NoteCard({
       <ResizeHandle
         direction="east"
         disabled={interactionPending}
+        onLostPointerCapture={cancelGeometryGesture}
         onPointerCancel={cancelGeometryGesture}
         onPointerDown={startGeometryGesture}
         onPointerMove={moveGeometryGesture}
@@ -615,6 +624,7 @@ export function NoteCard({
       <ResizeHandle
         direction="north-west"
         disabled={interactionPending}
+        onLostPointerCapture={cancelGeometryGesture}
         onPointerCancel={cancelGeometryGesture}
         onPointerDown={startGeometryGesture}
         onPointerMove={moveGeometryGesture}
@@ -624,6 +634,7 @@ export function NoteCard({
       <ResizeHandle
         direction="north-east"
         disabled={interactionPending}
+        onLostPointerCapture={cancelGeometryGesture}
         onPointerCancel={cancelGeometryGesture}
         onPointerDown={startGeometryGesture}
         onPointerMove={moveGeometryGesture}
@@ -633,6 +644,7 @@ export function NoteCard({
       <ResizeHandle
         direction="south-west"
         disabled={interactionPending}
+        onLostPointerCapture={cancelGeometryGesture}
         onPointerCancel={cancelGeometryGesture}
         onPointerDown={startGeometryGesture}
         onPointerMove={moveGeometryGesture}
@@ -642,6 +654,7 @@ export function NoteCard({
       <ResizeHandle
         direction="south-east"
         disabled={interactionPending}
+        onLostPointerCapture={cancelGeometryGesture}
         onPointerCancel={cancelGeometryGesture}
         onPointerDown={startGeometryGesture}
         onPointerMove={moveGeometryGesture}

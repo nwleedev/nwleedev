@@ -32,14 +32,14 @@ type TouchReorderGesture = {
   sourceIndex: number
   startX: number
   startY: number
-  targetIndex: number
+  targetIndex: number | null
   timer: ReturnType<typeof setTimeout>
 }
 
 type TouchReorderView = {
   entryId: string
   sourceIndex: number
-  targetIndex: number
+  targetIndex: number | null
 }
 
 type MobileBatchCopyEntryRowProps = {
@@ -205,7 +205,23 @@ function MobileBatchCopyEntryRow({
   )
 }
 
-function indexAtPoint(element: HTMLElement, clientY: number, itemCount: number) {
+function indexAtPoint(
+  element: HTMLElement,
+  clientX: number,
+  clientY: number,
+  itemCount: number,
+) {
+  const listBounds = element.getBoundingClientRect()
+  const outsideList =
+    clientX < listBounds.left ||
+    clientX > listBounds.right ||
+    clientY < listBounds.top ||
+    clientY > listBounds.bottom
+
+  if (outsideList) {
+    return null
+  }
+
   const candidates = element.querySelectorAll<HTMLElement>(
     "[data-mobile-batch-copy-entry]",
   )
@@ -236,9 +252,14 @@ export function MobileBatchCopyConfirmationList({
   const placementActive = placementIndex >= 0
   const itemCount = entries.length
   const lastInsertionSlot = itemCount
-  const movingPosition = drag === null
-    ? ""
-    : (drag.targetIndex + 1).toLocaleString("ko-KR")
+  let movingMessage = ""
+
+  if (drag?.targetIndex === null) {
+    movingMessage = "놓을 수 없는 위치"
+  } else if (drag !== null) {
+    const movingPosition = (drag.targetIndex + 1).toLocaleString("ko-KR")
+    movingMessage = `${movingPosition}번째 위치로 이동 중`
+  }
 
   useEffect(() => {
     const element = list.current
@@ -333,7 +354,12 @@ export function MobileBatchCopyConfirmationList({
     }
 
     event.preventDefault()
-    const targetIndex = indexAtPoint(list.current, event.clientY, itemCount)
+    const targetIndex = indexAtPoint(
+      list.current,
+      event.clientX,
+      event.clientY,
+      itemCount,
+    )
     current.targetIndex = targetIndex
     setDrag({
       entryId: current.entryId,
@@ -357,13 +383,15 @@ export function MobileBatchCopyConfirmationList({
       return
     }
 
-    const shouldMove =
-      current.active && current.sourceIndex !== current.targetIndex
     const entryId = current.entryId
     const targetIndex = current.targetIndex
     clearGesture(event.currentTarget, event.pointerId)
 
-    if (shouldMove) {
+    if (
+      current.active &&
+      targetIndex !== null &&
+      current.sourceIndex !== targetIndex
+    ) {
       void onMove(entryId, targetIndex)
     }
   }
@@ -400,21 +428,28 @@ export function MobileBatchCopyConfirmationList({
       ) : null}
       {drag ? (
         <p className="sr-only" role="status">
-          {movingPosition}번째 위치로 이동 중
+          {movingMessage}
         </p>
       ) : null}
       <ol className="grid gap-3" ref={list}>
         {entries.map((entry, position) => {
           const dragging = drag?.entryId === entry.id
-          const target = drag?.targetIndex === position
+          const targetIndex = drag?.targetIndex ?? null
+          const target = targetIndex === position
           let dropPlacement: "after" | "before" | null = null
 
-          if (target && drag !== null && drag.targetIndex < drag.sourceIndex) {
+          if (
+            target &&
+            drag !== null &&
+            targetIndex !== null &&
+            targetIndex < drag.sourceIndex
+          ) {
             dropPlacement = "before"
           } else if (
             target &&
             drag !== null &&
-            drag.targetIndex > drag.sourceIndex
+            targetIndex !== null &&
+            targetIndex > drag.sourceIndex
           ) {
             dropPlacement = "after"
           }

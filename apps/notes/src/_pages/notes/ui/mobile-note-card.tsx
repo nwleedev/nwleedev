@@ -4,6 +4,7 @@ import Link from "next/link"
 import {
   useEffect,
   useRef,
+  useState,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react"
@@ -38,8 +39,11 @@ export function MobileNoteCard({
   onCopy,
 }: MobileNoteCardProps) {
   const gesture = useRef<LongPressGesture | null>(null)
+  const preview = useRef<HTMLAnchorElement>(null)
   const suppressClick = useRef(false)
+  const [contentOverflow, setContentOverflow] = useState(false)
   const text = note.content.length === 0 ? "빈 메모" : note.content
+  const overflowDescriptionId = `note-${encodeURIComponent(note.id)}-overflow`
   const href = `/notes/${encodeURIComponent(note.id)}/`
   const accessibleName = batchCopyActive
     ? "일괄 복사에 추가"
@@ -56,6 +60,35 @@ export function MobileNoteCard({
       }
     }
   }, [])
+
+  useEffect(() => {
+    const element = preview.current
+
+    if (element === null) {
+      return
+    }
+
+    function measureOverflow() {
+      const currentElement = preview.current
+
+      if (currentElement !== null) {
+        setContentOverflow(
+          currentElement.scrollHeight > currentElement.clientHeight,
+        )
+      }
+    }
+
+    measureOverflow()
+
+    if (typeof ResizeObserver === "undefined") {
+      return
+    }
+
+    const observer = new ResizeObserver(measureOverflow)
+    observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [text])
 
   function cancelGesture(suppressFollowingClick: boolean) {
     const current = gesture.current
@@ -177,9 +210,10 @@ export function MobileNoteCard({
   }
 
   return (
-    <article className="overflow-hidden rounded-note border border-note-line bg-note shadow-note">
+    <article className="relative overflow-hidden rounded-note border border-note-line bg-note shadow-note">
       <Link
         aria-disabled={disabled}
+        aria-describedby={contentOverflow ? overflowDescriptionId : undefined}
         aria-label={accessibleName}
         className={linkClassName}
         href={href}
@@ -190,9 +224,18 @@ export function MobileNoteCard({
         onPointerDown={beginLongPress}
         onPointerMove={trackLongPress}
         onPointerUp={finishLongPress}
+        ref={preview}
       >
         {text}
       </Link>
+      {contentOverflow ? (
+        <span
+          className="pointer-events-none absolute bottom-2 right-2 rounded-full border border-note-line bg-note-header px-2 py-0.5 text-[0.7rem] font-semibold text-ink shadow-sm"
+          id={overflowDescriptionId}
+        >
+          내용 더 있음
+        </span>
+      ) : null}
     </article>
   )
 }

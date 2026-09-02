@@ -4,6 +4,10 @@ import {
   createMobileNoteThroughUi,
   createNoteThroughUi,
 } from "./support/create-note-through-ui"
+import {
+  preparePointerCaptureRelease,
+  releasePointerCapture,
+} from "./support/pointer-capture"
 
 async function visibleBox(locator: Locator) {
   await expect(locator).toBeVisible()
@@ -28,6 +32,20 @@ async function clickBlankCanvas(page: Page) {
   const box = await visibleBox(workspace)
 
   await page.mouse.click(box.x + box.width * 0.72, box.y + box.height * 0.72)
+}
+
+async function readTopControlTabIndex(locator: Locator) {
+  const attribute = await locator.getAttribute("tabindex")
+
+  if (attribute === null) {
+    throw new Error("Top control has no tabindex")
+  }
+
+  const value = Number(attribute)
+  expect(Number.isInteger(value)).toBe(true)
+  expect(value).toBeGreaterThan(0)
+  expect(value).toBeLessThan(1000)
+  return value
 }
 
 test.beforeEach(async ({ page }) => {
@@ -80,20 +98,18 @@ test("저장된 Tab 순서로 메모를 선택하고 Enter에서만 속성을 �
   const first = await createNoteThroughUi(page, "첫 번째 키보드 메모")
   const second = await createNoteThroughUi(page, "두 번째 키보드 메모")
   const batchCopy = page.getByRole("button", { name: "일괄 복사 0개" })
+  const topControls = [
+    page.getByRole("link", { name: "본문으로 이동" }),
+    page.getByRole("link", { exact: true, name: "메모" }),
+    page.getByRole("button", { name: "새 메모" }),
+    batchCopy,
+  ]
+  const topTabIndices = await Promise.all(
+    topControls.map(readTopControlTabIndex),
+  )
 
-  await expect(page.getByRole("link", { name: "본문으로 이동" })).toHaveAttribute(
-    "tabindex",
-    "1",
-  )
-  await expect(page.getByRole("link", { exact: true, name: "메모" })).toHaveAttribute(
-    "tabindex",
-    "11",
-  )
-  await expect(page.getByRole("button", { name: "새 메모" })).toHaveAttribute(
-    "tabindex",
-    "100",
-  )
-  await expect(batchCopy).toHaveAttribute("tabindex", "101")
+  expect(topTabIndices).toEqual([...topTabIndices].sort((left, right) => left - right))
+  expect(new Set(topTabIndices).size).toBe(topTabIndices.length)
   await expect(first).toHaveAttribute("tabindex", "1000")
   await expect(second).toHaveAttribute("tabindex", "1001")
 
@@ -102,6 +118,8 @@ test("저장된 Tab 순서로 메모를 선택하고 Enter에서만 속성을 �
   await expect(first).toBeFocused()
   await first.press("Tab")
   await expect(second).toBeFocused()
+  await second.press("Shift+Tab")
+  await expect(first).toBeFocused()
   await expect(page.getByRole("complementary", { name: "메모 속성" })).toHaveCount(0)
 
   await first.getByRole("button", { name: "메모를 맨 앞으로" }).click()
@@ -121,10 +139,23 @@ test("저장된 Tab 순서로 메모를 선택하고 Enter에서만 속성을 �
 
   await page.reload()
   properties = await openPropertiesWithKeyboard(first)
-  await expect(properties.getByRole("spinbutton", { name: "X" })).toHaveValue("80")
+  const storedX = properties.getByRole("spinbutton", { name: "X" })
+  await expect(storedX).toHaveValue("80")
+  await expect(storedX).toHaveAttribute("max", "3776")
+  await storedX.fill("3777")
+  const validBeyondMaximum = await storedX.evaluate((element) => {
+    return element instanceof HTMLInputElement && element.checkValidity()
+  })
+  expect(validBeyondMaximum).toBe(false)
 
-  const invalidX = properties.getByRole("spinbutton", { name: "X" })
+  const invalidX = storedX
   await invalidX.fill("0")
+  await clickBlankCanvas(page)
+  await expect(properties).toBeVisible()
+  await expect(properties.getByRole("alert")).toContainText(
+    "값의 범위와 캔버스 안의 위치를 확인하세요.",
+  )
+  await expect(invalidX).not.toBeFocused()
   await properties.getByRole("button", { name: "메모 속성 패널 닫기" }).click()
   await expect(properties).toBeVisible()
   await expect(properties.getByRole("alert")).toContainText(
@@ -150,6 +181,14 @@ test("헤더 이동, 가장자리 크기 조절과 빈 캔버스 시점 이동�
   const note = await createNoteThroughUi(page, "공간 조작을 확인할 메모")
   const original = await visibleBox(note)
 
+  await preparePointerCaptureRelease(page)
+  await page.mouse.move(original.x + 120, original.y + 14)
+  await page.mouse.down()
+  await page.mouse.move(original.x + 165, original.y + 54)
+  await releasePointerCapture(page)
+  await page.mouse.up()
+  await expect.poll(async () => (await visibleBox(note)).x).toBe(original.x)
+
   await page.mouse.move(original.x + 120, original.y + 14)
   await page.mouse.down()
   await page.mouse.move(original.x + 200, original.y + 74)
@@ -160,6 +199,14 @@ test("헤더 이동, 가장자리 크기 조절과 빈 캔버스 시점 이동�
   await expect(page.getByRole("complementary", { name: "메모 속성" })).toHaveCount(0)
 
   const moved = await visibleBox(note)
+  await preparePointerCaptureRelease(page)
+  await page.mouse.move(moved.x + moved.width - 1, moved.y + moved.height - 1)
+  await page.mouse.down()
+  await page.mouse.move(moved.x + moved.width + 30, moved.y + moved.height + 24)
+  await releasePointerCapture(page)
+  await page.mouse.up()
+  await expect.poll(async () => (await visibleBox(note)).width).toBe(moved.width)
+
   await page.mouse.move(moved.x + moved.width - 1, moved.y + moved.height - 1)
   await page.mouse.down()
   await page.mouse.move(moved.x + moved.width + 64, moved.y + moved.height + 48)
@@ -175,6 +222,14 @@ test("헤더 이동, 가장자리 크기 조절과 빈 캔버스 시점 이동�
     x: workspaceBox.x + workspaceBox.width * 0.72,
     y: workspaceBox.y + workspaceBox.height * 0.72,
   }
+  await preparePointerCaptureRelease(page)
+  await page.mouse.move(panStart.x, panStart.y)
+  await page.mouse.down()
+  await page.mouse.move(panStart.x - 35, panStart.y - 25)
+  await releasePointerCapture(page)
+  await page.mouse.up()
+  await expect.poll(async () => (await visibleBox(note)).x).toBe(resized.x)
+
   await page.mouse.move(panStart.x, panStart.y)
   await page.mouse.down()
   await page.mouse.move(panStart.x - 70, panStart.y - 50)
@@ -267,6 +322,7 @@ test.describe("320px 메모 화면", () => {
     const revisedContent = `${initialContent}\n두 번째 줄\n세 번째 줄\n네 번째 줄\n다섯 번째 줄\n여섯 번째 줄\n일곱 번째 줄`
     const note = await createMobileNoteThroughUi(page, initialContent)
 
+    await expect(note.getByText("내용 더 있음")).toHaveCount(0)
     await note.getByRole("link", { name: "메모 열기" }).click()
     const editor = page.getByRole("textbox", { name: "메모 내용" })
     await editor.fill(revisedContent)
@@ -277,6 +333,7 @@ test.describe("320px 메모 화면", () => {
     const savedNote = page.getByRole("article").filter({ hasText: initialContent })
     const box = await visibleBox(savedNote)
     expect(box.height).toBeLessThanOrEqual(194)
+    await expect(savedNote.getByText("내용 더 있음")).toBeVisible()
     await page.setViewportSize({ height: 800, width: 1280 })
     await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
       revisedContent,

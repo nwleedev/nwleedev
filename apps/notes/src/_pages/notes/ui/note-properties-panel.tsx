@@ -33,24 +33,71 @@ import { useNotesData } from "../model/notes-data-provider"
 const geometryFields: ReadonlyArray<{
   field: NoteGeometryDraftField
   label: string
-  maximum: number
   minimum: number
 }> = [
-  { field: "x", label: "X", maximum: NOTE_CANVAS_SIZE, minimum: 1 },
-  { field: "y", label: "Y", maximum: NOTE_CANVAS_SIZE, minimum: 1 },
-  {
-    field: "width",
-    label: "너비",
-    maximum: NOTE_WIDTH_MAX,
-    minimum: NOTE_WIDTH_MIN,
-  },
-  {
-    field: "height",
-    label: "높이",
-    maximum: NOTE_HEIGHT_MAX,
-    minimum: NOTE_HEIGHT_MIN,
-  },
+  { field: "x", label: "X", minimum: 1 },
+  { field: "y", label: "Y", minimum: 1 },
+  { field: "width", label: "너비", minimum: NOTE_WIDTH_MIN },
+  { field: "height", label: "높이", minimum: NOTE_HEIGHT_MIN },
 ]
+
+type GeometryInputMaximums = Record<NoteGeometryDraftField, number>
+
+type ApplyDraftOptions = {
+  focusInvalid: boolean
+}
+
+function readSafeDraftNumber(
+  value: string,
+  fallback: number,
+  minimum: number,
+  maximum: number,
+) {
+  const parsed = Number(value)
+
+  if (!Number.isInteger(parsed) || parsed < minimum || parsed > maximum) {
+    return fallback
+  }
+
+  return parsed
+}
+
+function geometryInputMaximums(
+  note: Note,
+  draft: NoteGeometryDraft,
+): GeometryInputMaximums {
+  const width = readSafeDraftNumber(
+    draft.width,
+    note.geometry.width,
+    NOTE_WIDTH_MIN,
+    NOTE_WIDTH_MAX,
+  )
+  const height = readSafeDraftNumber(
+    draft.height,
+    note.geometry.height,
+    NOTE_HEIGHT_MIN,
+    NOTE_HEIGHT_MAX,
+  )
+  const x = readSafeDraftNumber(
+    draft.x,
+    Math.min(note.geometry.x, NOTE_CANVAS_SIZE - width),
+    1,
+    NOTE_CANVAS_SIZE - width,
+  )
+  const y = readSafeDraftNumber(
+    draft.y,
+    Math.min(note.geometry.y, NOTE_CANVAS_SIZE - height),
+    1,
+    NOTE_CANVAS_SIZE - height,
+  )
+
+  return {
+    height: Math.min(NOTE_HEIGHT_MAX, NOTE_CANVAS_SIZE - y),
+    width: Math.min(NOTE_WIDTH_MAX, NOTE_CANVAS_SIZE - x),
+    x: NOTE_CANVAS_SIZE - width,
+    y: NOTE_CANVAS_SIZE - height,
+  }
+}
 
 function noteTitle(note: Note) {
   const firstLine = note.content
@@ -107,6 +154,10 @@ export function NotePropertiesPanel() {
   )
   const draft = session.workspace.geometryDraft?.fields ?? null
   const title = note === undefined ? "메모 속성" : noteTitle(note)
+  const maximums =
+    note === undefined || draft === null
+      ? null
+      : geometryInputMaximums(note, draft)
 
   useEffect(() => {
     const focusFirstField =
@@ -122,7 +173,7 @@ export function NotePropertiesPanel() {
     session.workspace.propertiesFocus,
   ])
 
-  const applyDraft = useCallback(() => {
+  const applyDraft = useCallback(({ focusInvalid }: ApplyDraftOptions) => {
     if (note === undefined || draft === null) {
       return { completion: Promise.resolve(false), valid: true }
     }
@@ -132,20 +183,22 @@ export function NotePropertiesPanel() {
     if (result.status === "invalid") {
       setInvalidFields(result.fields)
       setMessage("값의 범위와 캔버스 안의 위치를 확인하세요.")
-      requestAnimationFrame(() => {
-        const firstInvalidField = result.fields[0]
+      if (focusInvalid) {
+        requestAnimationFrame(() => {
+          const firstInvalidField = result.fields[0]
 
-        if (firstInvalidField === undefined) {
-          firstField.current?.focus()
-          return
-        }
+          if (firstInvalidField === undefined) {
+            firstField.current?.focus()
+            return
+          }
 
-        panel.current
-          ?.querySelector<HTMLInputElement>(
-            `input[name="${firstInvalidField}"]`,
-          )
-          ?.focus()
-      })
+          panel.current
+            ?.querySelector<HTMLInputElement>(
+              `input[name="${firstInvalidField}"]`,
+            )
+            ?.focus()
+        })
+      }
       return { completion: Promise.resolve(false), valid: false }
     }
 
@@ -195,12 +248,7 @@ export function NotePropertiesPanel() {
         return
       }
 
-      const application = applyDraft()
-
-      if (!application.valid) {
-        event.preventDefault()
-        event.stopPropagation()
-      }
+      applyDraft({ focusInvalid: false })
     }
 
     document.addEventListener("pointerdown", applyBeforeOutsideAction, true)
@@ -215,7 +263,7 @@ export function NotePropertiesPanel() {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    applyDraft()
+    applyDraft({ focusInvalid: true })
   }
 
   function applyOnEnter(event: ReactKeyboardEvent<HTMLInputElement>) {
@@ -224,7 +272,7 @@ export function NotePropertiesPanel() {
     }
 
     event.preventDefault()
-    applyDraft()
+    applyDraft({ focusInvalid: true })
   }
 
   async function closeProperties() {
@@ -233,7 +281,7 @@ export function NotePropertiesPanel() {
       return
     }
 
-    const application = applyDraft()
+    const application = applyDraft({ focusInvalid: true })
 
     if (!application.valid) {
       return
@@ -304,8 +352,9 @@ export function NotePropertiesPanel() {
       <form className="grid gap-4 overflow-auto p-4" onSubmit={submit}>
         <fieldset className="grid grid-cols-2 gap-3" disabled={pending}>
           <legend className="sr-only">위치와 크기</legend>
-          {geometryFields.map(({ field, label, maximum, minimum }, index) => {
+          {geometryFields.map(({ field, label, minimum }, index) => {
             const invalid = invalidFields.includes(field)
+            const maximum = maximums?.[field]
 
             return (
               <label className="grid gap-1.5 text-xs font-semibold" key={field}>
@@ -315,7 +364,7 @@ export function NotePropertiesPanel() {
                   max={maximum}
                   min={minimum}
                   name={field}
-                  onBlur={applyDraft}
+                  onBlur={() => applyDraft({ focusInvalid: false })}
                   onChange={(event) =>
                     session.changeGeometryDraft(field, event.target.value)
                   }

@@ -302,6 +302,7 @@ export function NotesBoard({
   return (
     <div
       className="relative hidden h-full min-h-0 cursor-grab overflow-hidden touch-none active:cursor-grabbing @3xl/note-area:block"
+      onLostPointerCapture={cancelPan}
       onPointerCancel={cancelPan}
       onPointerDown={startBackgroundPan}
       onPointerDownCapture={startSpacePan}
