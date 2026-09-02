@@ -110,6 +110,7 @@ type RightPanel = "note-properties" | "batch-copy";
 
 interface NoteWorkspaceSession {
   selectedNoteId?: EntityId;
+  propertiesPanelNoteId?: EntityId;
   geometryDraft?: NoteGeometryDraft;
   activeRightPanel?: RightPanel;
 }
@@ -134,7 +135,11 @@ interface RemovedNoteSnapshot {
 
 `ViewportState`는 기본적으로 기기 로컬에 둔다. 여러 기기에서 같은 보드를 열 때 마지막 pan과 zoom까지 동기화할지는 사용자 기대를 확인한 뒤 결정해야 한다.
 
-`NoteWorkspaceSession.selectedNoteId`는 오른쪽 속성 패널의 대상을 식별할 뿐 메모 자체의 영구 속성이 아니다. `activeRightPanel`은 메모 속성 패널과 일괄 복사 패널 가운데 마지막으로 활성화한 패널을 나타낸다. 메모 선택은 `note-properties`를, 일괄 복사 동작은 `batch-copy`를 활성화하지만 패널 전환만으로 선택, 입력 초안이나 일괄 복사 항목을 지우지 않는다. 선택과 활성 패널이 바뀌거나 route를 벗어나면 유지할 범위는 화면 조작 결정에 따르고, IndexedDB `notes` record에 이 상태를 추가하지 않는다.
+`NoteWorkspaceSession.selectedNoteId`는 얇은 붉은 테두리를 표시할 메모를, `propertiesPanelNoteId`는 오른쪽 속성 패널이 편집하는 메모를 식별한다. 한 번의 헤더 클릭과 `Tab` 선택은 첫 값만 바꾸고, 이동으로 판정되지 않은 헤더 더블클릭 또는 이후 승인할 키보드 동작이 두 번째 값과 `activeRightPanel`의 `note-properties`를 함께 바꾼다. 일괄 복사 동작은 `activeRightPanel`만 `batch-copy`로 바꾸며 패널 전환만으로 선택, 속성 패널 대상, 입력 초안이나 일괄 복사 항목을 지우지 않는다. 속성 패널이 열린 상태에서 다른 메모를 한 번 클릭해도 패널의 표시 여부와 대상은 유지하므로 두 ID를 하나로 합치지 않는다.
+
+`NoteGeometryDraft.note`는 초안을 만든 `propertiesPanelNoteId`와 같은 메모를 가리킨다. 한 번의 헤더 클릭이나 `Tab`으로 `selectedNoteId`만 바뀌어도 기존 속성 패널 대상과 초안을 다른 메모로 옮기거나 덮어쓰지 않는다.
+
+`Command`의 눌림 상태, pointer capture와 drag 시작 때 측정한 캔버스 크기는 현재 입력을 해석하기 위한 짧은 수명의 UI 상태다. 이 값은 `NoteWorkspaceSession`, IndexedDB record나 route 사이에서 유지하는 실행 중 자료에 넣지 않는다. `keyup`, 창의 포커스 상실, 문서 숨김, `pointerup`, `pointercancel`과 `lostpointercapture`에서 해당 상태를 정리한다.
 
 속성 입력은 사용자가 `-`나 빈 문자열처럼 아직 완성되지 않은 값을 입력할 수 있으므로 저장용 `NoteGeometry`와 별도 문자열 초안으로 둔다. `blur`, 패널 밖 클릭과 `Enter`는 같은 검증 및 적용 동작을 사용하며 유효하고 실제로 달라진 값만 `Note.geometry`에 반영한다. geometry 변경은 전체 revision만 증가시키고 content revision은 유지한다.
 
