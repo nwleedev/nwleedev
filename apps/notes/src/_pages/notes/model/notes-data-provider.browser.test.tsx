@@ -3,22 +3,20 @@ import { createRoot, type Root } from "react-dom/client"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { page, userEvent } from "vitest/browser"
 
-import type { BatchCopyList } from "@/entities/batch-copy"
 import type { Note, NoteRepository } from "@/entities/note"
 import type { NoteDraftRepository } from "@/entities/note"
 import type { IndividualCopyUsageWriter } from "@/entities/usage"
-import { AddNoteToBatchCopyProvider } from "@/features/add-note-to-batch-copy"
-import {
-  EditBatchCopyProvider,
-  type EditBatchCopyContextValue,
-} from "@/features/edit-batch-copy"
 
 import type {
   NoteStorageEvent,
   NoteStorageMonitor,
 } from "./note-storage-monitor"
-import { NotesDataProvider } from "./notes-data-provider"
-import { NotesStartPage } from "../ui/notes-start-page"
+import {
+  NotesDataProvider,
+  useNotesData,
+} from "./notes-data-provider"
+import type { SaveNoteContentResult } from "./save-note-content"
+import { useNoteContentAutosave } from "./use-note-content-autosave"
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
@@ -34,27 +32,91 @@ const drafts: NoteDraftRepository = {
   remove: async () => undefined,
   save: async (draft) => draft,
 }
-const emptyBatchCopyList: BatchCopyList = {
-  content: { items: [], separator: "\n" },
-  id: "primary",
-  revision: 0,
-  updatedAt: timestamp,
+
+type AutosaveEditorProps = {
+  initialContent: string
+  note: Note
+  onSave(noteId: string, content: string): Promise<SaveNoteContentResult>
 }
-const savedEditResult = Promise.resolve({ status: "saved" } as const)
-const editor: EditBatchCopyContextValue = {
-  canRedo: false,
-  canUndo: false,
-  copyAll: async () => ({ status: "copied" }),
-  items: [],
-  list: emptyBatchCopyList,
-  moveItem: () => savedEditResult,
-  pending: false,
-  redo: () => savedEditResult,
-  removeItem: () => savedEditResult,
-  retry: () => undefined,
-  separator: "\n",
-  status: "ready",
-  undo: () => savedEditResult,
+
+function AutosaveEditor({
+  initialContent,
+  note,
+  onSave,
+}: AutosaveEditorProps) {
+  const content = useNoteContentAutosave({
+    initialContent,
+    note,
+    onFailure: () => undefined,
+    onSave,
+  })
+
+  return (
+    <textarea
+      aria-label="메모 내용"
+      onBlur={content.save}
+      onChange={(event) => content.change(event.target.value)}
+      value={content.content}
+    />
+  )
+}
+
+function NotesDataProbe() {
+  const notesData = useNotesData()
+
+  if (notesData.status === "loading") {
+    return <p>메모 불러오는 중</p>
+  }
+
+  if (notesData.status === "blocked") {
+    return (
+      <>
+        <p>다른 탭을 닫고 다시 시도하세요.</p>
+        <button onClick={notesData.retry} type="button">다시 시도</button>
+      </>
+    )
+  }
+
+  if (notesData.status === "version-changed") {
+    return (
+      <>
+        <p>다른 탭에서 변경되었습니다. 다시 불러오세요.</p>
+        <button onClick={notesData.retry} type="button">다시 시도</button>
+      </>
+    )
+  }
+
+  if (notesData.status === "failure") {
+    return (
+      <>
+        <p>메모를 불러오지 못했습니다.</p>
+        <button onClick={notesData.retry} type="button">다시 시도</button>
+      </>
+    )
+  }
+
+  if (notesData.status === "empty") {
+    return <p>메모가 없습니다.</p>
+  }
+
+  const firstNote = notesData.notes[0]
+
+  return (
+    <>
+      {notesData.notes.map((note) => (
+        <article key={note.id}>{note.content}</article>
+      ))}
+      {firstNote ? (
+        <AutosaveEditor
+          initialContent={
+            notesData.draftContentByNote[firstNote.id] ?? firstNote.content
+          }
+          note={firstNote}
+          onSave={notesData.saveContent}
+        />
+      ) : null}
+    </>
+  )
 }
 
 function createDeferred<T>() {
@@ -94,6 +156,35 @@ function createRepository(
     remove: async () => undefined,
     save: async (note) => note,
     saveAll: async (notes) => notes,
+  }
+}
+
+function createDelayedSaveRepository(note: Note) {
+  const firstSave = createDeferred<void>()
+  let currentNote = note
+  let saveCount = 0
+
+  const repository: NoteRepository = {
+    getAll: async () => [currentNote],
+    remove: async () => undefined,
+    async save(nextNote) {
+      saveCount += 1
+
+      if (saveCount === 1) {
+        await firstSave.promise
+      }
+
+      currentNote = nextNote
+      return nextNote
+    },
+    saveAll: async (notes) => notes,
+  }
+
+  return {
+    completeFirstSave: () => firstSave.resolve(),
+    readContent: () => currentNote.content,
+    repository,
+    saveCount: () => saveCount,
   }
 }
 
@@ -144,25 +235,18 @@ describe("NotesDataProvider", () => {
   ) {
     await act(async () => {
       root.render(
-        <AddNoteToBatchCopyProvider
-          add={async () => ({ status: "failure" })}
-          ready
+        <NotesDataProvider
+          batchCopyShortcutEnabled
+          clipboard={clipboard}
+          createId={() => "created-note"}
+          drafts={drafts}
+          now={() => timestamp}
+          repository={repository}
+          storageMonitor={storageMonitor}
+          usage={usage}
         >
-          <EditBatchCopyProvider value={editor}>
-            <NotesDataProvider
-              batchCopyShortcutEnabled
-              clipboard={clipboard}
-              createId={() => "created-note"}
-              drafts={drafts}
-              now={() => timestamp}
-              repository={repository}
-              storageMonitor={storageMonitor}
-              usage={usage}
-            >
-              <NotesStartPage />
-            </NotesDataProvider>
-          </EditBatchCopyProvider>
-        </AddNoteToBatchCopyProvider>,
+          <NotesDataProbe />
+        </NotesDataProvider>,
       )
     })
   }
@@ -221,5 +305,27 @@ describe("NotesDataProvider", () => {
     })
     await expect.element(notePreview).toHaveTextContent(latestNote.content)
     await expect.element(notePreview).not.toHaveTextContent(staleNote.content)
+  })
+
+  it("blur saves the latest text immediately after an earlier save finishes", async () => {
+    const storage = createStorageMonitor()
+    const delayed = createDelayedSaveRepository(
+      createNote("note-autosave", "저장된 메모"),
+    )
+    await renderNotes(delayed.repository, storage.monitor)
+    const editor = page.getByRole("textbox", { name: "메모 내용" })
+
+    await act(async () => {
+      await userEvent.fill(editor, "먼저 저장할 메모")
+      await userEvent.tab()
+    })
+    await expect.poll(delayed.saveCount).toBe(1)
+
+    await act(async () => {
+      await userEvent.fill(editor, "저장 중에 완성한 메모")
+      await userEvent.tab()
+      delayed.completeFirstSave()
+      await expect.poll(delayed.readContent).toBe("저장 중에 완성한 메모")
+    })
   })
 })

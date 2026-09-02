@@ -8,7 +8,13 @@ export default defineConfig({
     "process.env": "{}",
   },
   optimizeDeps: {
-    include: ["next/link", "react", "react-dom", "react-dom/client"],
+    include: [
+      "next/link",
+      "next/navigation",
+      "react",
+      "react-dom",
+      "react-dom/client",
+    ],
   },
   resolve: {
     alias: {

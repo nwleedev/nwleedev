@@ -38,6 +38,7 @@ export function useNoteContentAutosave({
   const failureReference = useRef(onFailure)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const mounted = useRef(false)
+  const pendingSave = useRef<Promise<Note | null> | null>(null)
   const executeSaveReference = useRef<() => Promise<Note | null>>(
     async () => null,
   )
@@ -61,7 +62,7 @@ export function useNoteContentAutosave({
     }, NOTE_AUTOSAVE_DELAY_MS)
   }, [])
 
-  const save = useCallback(async () => {
+  const save = useCallback(() => {
     if (timer.current !== null) {
       clearTimeout(timer.current)
       timer.current = null
@@ -72,35 +73,52 @@ export function useNoteContentAutosave({
       note: noteReference.current,
     }
     const started = beginNoteContentSave(currentState)
+    const request = started.request
     publish(started.state)
 
-    if (started.request === null) {
-      return started.state.note
+    if (request === null) {
+      return pendingSave.current ?? Promise.resolve(started.state.note)
     }
 
-    const result = await saveReference.current(
-      started.request.note.id,
-      started.request.content,
-    )
+    const operation = (async () => {
+      try {
+        const result = await saveReference.current(
+          request.note.id,
+          request.content,
+        )
 
-    if (result.status === "failure") {
-      publish(failNoteContentSave(stateReference.current))
-      failureReference.current()
-      return null
-    }
+        if (result.status === "failure") {
+          publish(failNoteContentSave(stateReference.current))
+          failureReference.current()
+          return null
+        }
 
-    const completed = completeNoteContentSave(
-      stateReference.current,
-      result.note,
-    )
-    publish(completed)
+        const completed = completeNoteContentSave(
+          stateReference.current,
+          result.note,
+        )
+        publish(completed)
 
-    if (completed.status === "dirty") {
-      scheduleSave()
-    }
+        if (completed.status === "dirty") {
+          return executeSaveReference.current()
+        }
 
-    return result.note
-  }, [publish, scheduleSave])
+        return result.note
+      } catch {
+        publish(failNoteContentSave(stateReference.current))
+        failureReference.current()
+        return null
+      }
+    })()
+
+    pendingSave.current = operation
+    void operation.finally(() => {
+      if (pendingSave.current === operation) {
+        pendingSave.current = null
+      }
+    })
+    return operation
+  }, [publish])
 
   useEffect(() => {
     noteReference.current = note
