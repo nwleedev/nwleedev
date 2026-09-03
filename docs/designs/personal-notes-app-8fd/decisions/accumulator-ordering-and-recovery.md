@@ -1,6 +1,6 @@
 # 일괄 복사 순서와 제거 복구 결정
 
-일괄 복사 항목은 추가 당시의 원문 스냅샷을 줄바꿈으로 이어 붙이고 같은 텍스트의 반복 추가를 허용한다. 실행 취소와 다시 실행은 저장 목록의 제거에만 적용하며 새로고침 전 애플리케이션 실행 동안 유지한다. 넓은 패널과 모바일 확인 페이지는 drag를 빠른 재정렬 방법으로 제공하고, 항목 동작 선택창의 `위치 변경`과 삽입 위치 선택을 drag 없는 대안으로 함께 제공한다. 순서 번호, 위로와 아래로 버튼은 항상 표시하지 않는다.
+일괄 복사 항목은 추가 당시의 원문 스냅샷을 줄바꿈으로 이어 붙이고 같은 텍스트의 반복 추가를 허용한다. 실행 취소와 다시 실행은 저장 목록의 제거에만 적용하며 새로고침 전 애플리케이션 실행 동안 유지한다. 넓은 패널은 drag와 키보드 조작으로 순서를 바꾸고 항목 우측 상단에 직접 삭제 버튼을 제공한다. 모바일 확인 페이지는 길게 누른 뒤 drag와 항목 동작 선택창의 `위치 변경`을 함께 제공한다. 순서 번호, 위로와 아래로 버튼은 항상 표시하지 않는다.
 
 ## 결정 질문과 요구 결과
 
@@ -27,15 +27,18 @@
 - 후속 요구에서 `다음`은 별도 확인 페이지로 이동하고, 확인 항목은 길게 누른 뒤 touch drag로 재정렬하며 우측 상단 동작 선택창에서 복제 또는 삭제하도록 확정했다. 이 편집은 원본 메모에 영향을 주지 않는다. 당시에는 확인 작업과 저장 목록의 관계 및 복제 항목의 삽입 위치가 남아 있었다.
 - 구현 필수 결정 재검토에서 키보드 단축키만으로는 WCAG의 단일 pointer 대안이 되지 않고, 위아래 버튼을 다시 항상 표시하면 간소화 요구를 되돌린다는 점을 확인했다. 동작 선택창에서 `위치 변경`을 고른 뒤 항목 사이의 삽입 위치를 누르는 방식을 채택했다.
 - 같은 재검토에서 hover를 사용할 수 없는 환경에는 항목 동작 버튼을 항상 표시하고, 키보드에서는 `focus-within`에서 표시하기로 했다. 모바일 확인 작업은 저장 목록과 분리하고 복제 항목은 대상 바로 뒤에 넣는다.
+- 2026년 9월 3일 데스크톱 사용 검토에서는 항목 동작 선택창을 거쳐 `위치 변경` 또는 `제거`를 실행하는 흐름이 불필요하다고 확인했다. 넓은 패널에서는 선택창과 `위치 변경`을 없애고, 항목 우측 상단의 붉은 삭제 버튼과 drag 재정렬을 직접 제공하기로 했다. 모바일 확인 페이지의 선택창은 그대로 유지한다.
+- 같은 검토에서 목록 요소가 아니라 패널 전체를 삭제 판단 영역으로 정했다. 패널 안에 놓은 항목은 사라지지 않고, 패널 밖에 놓았을 때만 제거한다. 다른 항목 위를 지나는 동안에는 해당 항목 전체를 현재 놓기 대상으로 표시한다.
 
 ## 승인된 결정과 이유
 
 - 일괄 복사 항목은 고유 ID, 원본 메모와 content revision, 추가 당시 원문을 보관한다.
 - 배열 순서가 결합 순서이며 기본 구분자는 줄바꿈이다. 같은 원문도 별도 ID를 가진 항목으로 여러 번 추가할 수 있다.
-- 목록 안에 놓으면 순서를 바꾸고 목록 밖에 놓으면 제거한다. 목록 밖에 있는 동안 제거 예정 상태를 표시하며 `Escape`와 `pointercancel`은 드래그를 취소한다.
-- 넓은 메모 화면의 일괄 복사 패널에서는 항목 전체를 pointer로 드래그해 순서를 바꾼다. 순서 번호, 위로 이동, 아래로 이동과 상시 이력 버튼을 표시하지 않는다.
-- 항목 우측 상단의 동작 버튼은 pointer hover와 항목 내부 `focus-within`에서 표시하고, hover가 없거나 coarse pointer인 환경에서는 항상 표시한다. 동작 선택창은 `위치 변경`과 `제거`를 제공한다.
-- `위치 변경`을 실행하면 항목 사이에 최소 `24 × 24` CSS px의 삽입 위치 버튼을 표시한다. 하나를 누르면 drag와 같은 재정렬 명령을 실행하고, 취소하거나 목록을 벗어나면 원래 순서를 유지한다. 키보드 사용자는 같은 동작 버튼과 삽입 위치를 사용한다.
+- 넓은 패널 안에 놓으면 순서를 바꾸고 패널 전체의 외곽을 벗어난 곳에 놓으면 제거한다. 패널 밖에 있는 동안 제거 예정 상태를 표시하며 `Escape`, `pointercancel`과 `lostpointercapture`는 드래그를 취소한다.
+- 넓은 메모 화면의 일괄 복사 패널에서는 항목 전체를 pointer로 드래그해 순서를 바꾼다. 순서 번호, 위로 이동, 아래로 이동, 상시 이력 버튼과 항목 동작 선택창을 표시하지 않는다.
+- 드래그 중 pointer가 다른 항목 위에 있으면 그 항목 전체를 현재 놓기 대상으로 식별할 수 있게 표시한다. 단순 hover 상태와 놓기 대상 상태를 색 하나에만 의존하지 않고 구분한다.
+- 항목 우측 상단에는 삭제만 실행하는 붉은 아이콘 버튼을 둔다. pointer hover와 항목 내부 `focus-within`에서 표시하고, hover가 없거나 coarse pointer인 환경에서는 항상 표시한다. 버튼은 접근 가능한 이름과 키보드 포커스 표시를 제공한다.
+- 넓은 패널의 키보드 재정렬 동작은 유지하되 pointer용 `위치 변경` 선택창과 삽입 위치 버튼은 제공하지 않는다.
 - 저장 목록 관리 표현에서는 각 항목 왼쪽에 재정렬을 시작하는 네이티브 버튼을 두고 충분한 pointer 조작 크기와 접근 가능한 이름을 제공한다. 각 항목의 위로 이동, 아래로 이동과 제거 버튼도 유지한다.
 - 모바일 일괄 복사 확인 페이지에서는 항목의 동작 버튼이 아닌 영역을 500ms 동안 누르고 10 CSS px 이내에 머문 뒤에만 touch drag를 시작한다. 그 전에 이동, 스크롤, `pointercancel`과 `lostpointercapture`가 발생하면 순서를 바꾸지 않는다.
 - 확인 항목 우측 상단의 아이콘 버튼은 `위치 변경`, `복제`와 `삭제`를 제공하는 작은 동작 선택창을 연다. 복제는 같은 원본 메모 참조와 원문 스냅샷을 가진 새 항목 ID를 대상 바로 뒤에 만들고, 삭제는 대상 ID 하나만 작업 초안에서 제거한다.
@@ -45,11 +48,13 @@
 - 제거 이력은 라우트를 이동해도 유지하지만 새로고침하면 지운다. 실행 취소 뒤 추가, 재정렬 또는 제거가 성공하면 다시 실행 이력을 지운다.
 - 메모 편집기에 포커스가 있으면 애플리케이션의 실행 취소 단축키가 텍스트 편집 이력을 가로채지 않는다. 넓은 일괄 복사 패널에는 실행 취소와 다시 실행 버튼을 표시하지 않지만, 패널 밖에서 사용하는 키보드 단축키와 이력 규칙은 유지한다.
 
-[WCAG Dragging Movements 설명](https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html)은 drag와 같은 결과를 내는 단일 pointer 조작을 요구하므로 넓은 패널의 drag 전용 순서 변경과 모바일 확인 페이지의 길게 누른 뒤 drag는 현재 접근성 목표와 충돌한다. [WCAG Target Size 설명](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)은 pointer 조작 대상이 원칙적으로 최소 `24 × 24` CSS px 영역을 포함하도록 요구한다. [Atlassian drag and drop 지침](https://atlassian.design/components/pragmatic-drag-and-drop/design-guidelines/)은 보조 조작을 hover와 `focus-within`에서 함께 나타내고, drag 결과를 만드는 action menu를 보조 기술에 제공하도록 안내한다. [모바일 일괄 복사 확인과 오른쪽 패널 우선순위 조사](../references/mobile-batch-copy-confirmation-and-panel-priority-research.md)는 Pointer Events의 취소 처리, 동작 선택창과 작업 사본 경계를 추가로 정리한다. [Carbon Common actions](https://carbondesignsystem.com/patterns/common-actions/)은 목록에서 항목을 없애는 remove를 과도하게 강조하지 않는 버튼이나 아이콘으로 표현하고, close 아이콘은 요소 우측 상단에 두는 사례를 보여준다. [Apple의 Drag and drop 지침](https://developer.apple.com/design/human-interface-guidelines/drag-and-drop)은 drag 결과를 계속 보여주고 가능하면 되돌릴 수 있게 하도록 안내하며, [Undo and Redo 지침](https://developer.apple.com/design/human-interface-guidelines/undo-and-redo)은 되돌릴 대상과 결과를 사용자가 예측할 수 있게 표시하도록 안내한다.
+[WCAG Dragging Movements 설명](https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html)은 drag와 같은 결과를 내는 단일 pointer 조작을 요구한다. 넓은 패널에는 키보드 재정렬이 남지만 단일 pointer로 drag와 같은 결과를 만드는 대안은 없으므로 현재 데스크톱 요구와 WCAG 2.5.7 사이의 충돌을 해소한 것으로 간주하지 않는다. 모바일 확인 페이지는 동작 선택창의 `위치 변경`을 그 대안으로 유지한다. [WCAG Target Size 설명](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)은 pointer 조작 대상이 원칙적으로 최소 `24 × 24` CSS px 영역을 포함하도록 요구한다.
+
+[데스크톱 입력과 피드백 복원력 조사](../references/desktop-input-and-feedback-resilience-research.md)는 패널 전체를 기준으로 한 제거 판정, 현재 놓기 대상 피드백과 직접 삭제 동작의 근거 및 남은 접근성 제한을 정리한다. [모바일 일괄 복사 확인과 오른쪽 패널 우선순위 조사](../references/mobile-batch-copy-confirmation-and-panel-priority-research.md)는 모바일 Pointer Events 취소 처리, 동작 선택창과 작업 사본 구분을 추가로 정리한다. [Carbon Common actions](https://carbondesignsystem.com/patterns/common-actions/)은 목록에서 항목을 없애는 remove를 과도하게 강조하지 않는 버튼이나 아이콘으로 표현하고, close 아이콘은 요소 우측 상단에 두는 사례를 보여준다. [Apple의 Drag and drop 지침](https://developer.apple.com/design/human-interface-guidelines/drag-and-drop)은 drag 결과를 계속 보여주고 가능하면 되돌릴 수 있게 하도록 안내하며, [Undo and Redo 지침](https://developer.apple.com/design/human-interface-guidelines/undo-and-redo)은 되돌릴 대상과 결과를 사용자가 예측할 수 있게 표시하도록 안내한다.
 
 ## 예상 결과와 계획 영향
 
-현재 저장된 일괄 복사 목록은 IndexedDB에 두고 제거 이력은 애플리케이션 실행 동안 메모리에 둔다. 모바일 확인 작업은 별도 IndexedDB 초안으로 분리한다. 제거, 복원, 다시 제거와 이력 분기, 모바일 확인 작업의 재정렬, 새 ID 복제 및 삭제와 삽입 위치 선택 명령은 TDD 대상으로 삼는다. 길게 누른 뒤 drag, 동작 선택창 위치와 단일 pointer 대안은 실제 브라우저에서 검증한다. 패널과 확인 페이지의 위치 및 반응형 표현은 [일괄 복사 패널과 모바일 확인 페이지 결정](accumulator-workspace-panel.md)을 따른다.
+현재 저장된 일괄 복사 목록은 IndexedDB에 두고 제거 이력은 애플리케이션 실행 동안 메모리에 둔다. 모바일 확인 작업은 별도 IndexedDB 초안으로 분리한다. 제거, 복원, 다시 제거와 이력 분기, 모바일 확인 작업의 재정렬, 새 ID 복제 및 삭제와 삽입 위치 선택 명령은 TDD 대상으로 삼는다. 데스크톱의 패널 안 재정렬과 패널 밖 제거 판정은 순수 규칙으로 분리할 때 TDD 대상으로 삼고, 놓기 대상 피드백과 직접 삭제 버튼은 실제 브라우저에서 검증한다. 모바일의 길게 누른 뒤 drag, 동작 선택창 위치와 단일 pointer 대안도 실제 브라우저에서 검증한다. 패널과 확인 페이지의 위치 및 반응형 표현은 [일괄 복사 패널과 모바일 확인 페이지 결정](accumulator-workspace-panel.md)을 따른다.
 
 ## 다시 검토할 조건
 
@@ -59,3 +64,4 @@
 - hover가 없는 환경에서 항목 동작 버튼을 찾거나 실행할 수 없는 경우
 - `위치 변경`과 삽입 위치 선택이 drag와 같은 결과를 만들지 못하는 경우
 - 500ms 또는 10 CSS px 기준이 모바일 스크롤 및 길게 누르기 기본 동작과 반복해서 충돌하는 경우
+- 데스크톱 목표 접근성 수준에서 drag와 같은 단일 pointer 대안을 반드시 제공해야 하는 경우
