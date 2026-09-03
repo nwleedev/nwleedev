@@ -4,7 +4,7 @@
 
 ## 결정 배경
 
-기존 계획은 React Hook Form을 템플릿의 제출 단위에만 사용했다. 2026년 9월 3일 상태 및 폼 검토에서 넓은 화면과 모바일 상세의 메모 본문, 템플릿 원문, 속성 패널 수치와 설정 checkbox가 React state 또는 Context에 남아 있음이 확인됐다. 이후 요구사항 작성자가 React Hook Form이 모든 직접 입력 상태를 관리하도록 결정했다.
+기존 계획은 React Hook Form을 템플릿의 제출 단위에만 사용했다. 2026년 9월 3일 상태 및 폼 검토에서 넓은 화면과 모바일 상세의 메모 본문, 템플릿 원문, 속성 패널 수치와 설정 checkbox가 React state 또는 Context에 남아 있음이 확인됐다. 이후 React Hook Form이 모든 직접 입력 상태를 관리하도록 요구사항이 변경됐다.
 
 [입력 상태 조사](../references/react-hook-form-input-state-research.md)는 공식 문서, 공식 source와 오픈소스 애플리케이션을 교차검증했다. 조사 근거에 따라 직접 편집값까지 React Hook Form의 책임을 넓히되 모든 사용자 동작을 폼 상태로 바꾸지는 않는 구분을 채택했다.
 
@@ -25,4 +25,4 @@
 
 ## 적용과 재검토
 
-구현자는 [React Hook Form 사용 지침](../../../dev/personal-notes-app/react-hook-form.md)을 따른다. 폼 연결에는 TDD를 적용하지 않고 기존 사용자 동작과 자료 규칙을 브라우저 검사 및 기존 테스트로 비교한다. 직접 입력이 아닌 새로운 상태를 폼으로 옮기거나, 네이티브 입력에 `Controller`를 도입하거나, React Hook Form 버전을 바꾸려면 책임과 의존성 근거를 다시 검토한다.
+[React Hook Form 사용 지침](../../../dev/personal-notes-app/react-hook-form.md)을 적용한다. 폼 연결에는 TDD를 적용하지 않고 기존 사용자 동작과 자료 규칙을 브라우저 검사 및 기존 테스트로 비교한다. 직접 입력이 아닌 새로운 상태를 폼으로 옮기거나, 네이티브 입력에 `Controller`를 도입하거나, React Hook Form 버전을 바꾸려면 상태 관리 범위와 의존성 근거를 다시 검토한다.

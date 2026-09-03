@@ -2,7 +2,7 @@
 
 ## 후속 변경 안내
 
-2026년 9월 3일 후속 요구는 이 조사에서 다룬 얇은 선택 테두리, `1280 × 960` 크기 상한, 자동으로 사라지지 않는 제거 알림과 `keyup` 중심의 `Command` 복원을 대체했다. 현재 기준은 [개인 메모 애플리케이션 요구사항](../requirements.md), [메모 선택과 오른쪽 속성 패널 결정](../decisions/note-selection-and-properties.md), [메모 제거와 취소 알림 결정](../decisions/note-removal-recovery.md)과 [데스크톱 입력과 피드백 복원력 조사](desktop-input-and-feedback-resilience-research.md)를 따른다. 아래 내용은 당시 선택 과정과 근거를 보존한 조사 기록이다.
+2026년 9월 3일 후속 요구는 이 조사에서 다룬 얇은 선택 테두리, `1280 × 960` 크기 상한, 자동으로 사라지지 않는 제거 알림과 `keyup` 중심의 `Command` 복원을 대체했다. 2026년 9월 4일 후속 요구는 모든 토스트의 수명을 5초로 정하고, `Escape`로 메모와 일괄 복사 항목 선택을 함께 해제하도록 범위를 넓혔다. 현재 기준은 [개인 메모 애플리케이션 요구사항](../requirements.md), [메모 선택과 오른쪽 속성 패널 결정](../decisions/note-selection-and-properties.md), [메모 제거와 취소 알림 결정](../decisions/note-removal-recovery.md)과 [데스크톱 입력과 피드백 복원력 조사](desktop-input-and-feedback-resilience-research.md)를 따른다. 아래 내용은 당시 선택 과정과 근거를 보존한 조사 기록이다.
 
 ## 결론
 
@@ -58,7 +58,7 @@
 
 사용자가 요청한 얇은 붉은 테두리는 선택 표시다. [WCAG 2.2 Focus Appearance 설명](https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance.html)은 키보드 포커스 표시의 면적과 대비를 다루며, [Use of Color 설명](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html)은 색만으로 상태를 전달하지 말라고 한다. 따라서 붉은색 자체만 바꾸는 대신 이전에 없던 테두리 형태를 추가하고, 고대비 환경에서도 선택을 구분할 대체 표현을 제공한다. 별도의 포커스 외곽선은 선택 테두리보다 충분히 두껍고 인접 색과 구분돼야 한다.
 
-[WCAG 2.2 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard)는 pointer로 제공한 기능을 특정 키 입력 시간에 의존하지 않고 키보드로도 실행할 수 있어야 한다고 요구한다. [On Focus 설명](https://www.w3.org/WAI/WCAG22/Understanding/on-focus.html)은 `Tab`으로 포커스가 도달한 것만으로 예상하지 못한 문맥 변화를 만들지 말라고 설명한다. [WAI 키보드 인터페이스 지침](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/)은 포커스와 선택을 구분하고, 포커스 이동과 별도로 실행할 동작에 `Enter` 또는 `Space`를 사용하는 관례를 설명한다. 요구사항 책임자는 이 애플리케이션에서 보조 키 없는 `Enter`를 더블클릭과 동등한 패널 활성화 동작으로 승인했다. 따라서 `Tab`은 선택까지만 수행하고 선택 지점 자체에 포커스가 있을 때의 `Enter`가 속성 패널 대상과 최근 활성 패널을 바꾼다.
+[WCAG 2.2 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard)는 pointer로 제공한 기능을 특정 키 입력 시간에 의존하지 않고 키보드로도 실행할 수 있어야 한다고 요구한다. [On Focus 설명](https://www.w3.org/WAI/WCAG22/Understanding/on-focus.html)은 `Tab`으로 포커스가 도달한 것만으로 예상하지 못한 문맥 변화를 만들지 말라고 설명한다. [WAI 키보드 인터페이스 지침](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/)은 포커스와 선택을 구분하고, 포커스 이동과 별도로 실행할 동작에 `Enter` 또는 `Space`를 사용하는 관례를 설명한다. 현재 요구사항은 이 애플리케이션에서 보조 키 없는 `Enter`를 더블클릭과 동등한 패널 활성화 동작으로 정했다. 따라서 `Tab`은 선택까지만 수행하고 선택 지점 자체에 포커스가 있을 때의 `Enter`가 속성 패널 대상과 최근 활성 패널을 바꾼다.
 
 패널을 연 뒤 포커스를 메모에 유지하면 선택 문맥을 계속 확인하기 쉽지만, 양의 `tabindex` 때문에 패널 입력까지 많은 요소를 지나야 할 수 있다. 키보드의 `Enter`로 패널을 연 경우에는 첫 X 입력으로 포커스를 옮겨 즉시 편집하게 하고, pointer 더블클릭으로 연 경우에는 현재 pointer 포커스를 유지한다.
 

@@ -212,7 +212,7 @@ Service Locator처럼 application 동작이 전역 레지스트리에서 의존�
 
 Secure Contexts 표준은 이 프로젝트에서 허용하지 않는 일부 주소도 잠재적으로 신뢰할 수 있다고 판정할 수 있다. 이 프로젝트의 로컬 모드는 HTTPS URL 또는 호스트 이름이 정확히 `localhost`인 HTTP URL로만 접속한다. `file://`, loopback IP를 포함한 다른 호스트 이름의 HTTP URL과 원격 HTTP URL은 지원하지 않는다. 현재 Next.js 운영 서버도 같은 URL 조건을 적용한다.
 
-접속 프로토콜과 호스트 이름은 환경변수로 선택하지 않는다. 배포 구성이 URL을 정하고, 애플리케이션은 실행 시점의 `location.protocol`, `location.hostname`과 `isSecureContext`를 검사해 잘못된 접속 주소를 안내해야 한다. 지원 주소에서도 브라우저 권한과 사용자 활성화 조건이 남으므로 클립보드 성공 여부는 실제 `writeText` 결과로 판정한다.
+접속 프로토콜과 호스트 이름은 환경변수로 선택하지 않는다. 배포 구성이 URL을 정하고, 애플리케이션은 실행 시점의 `location.protocol`, `location.hostname`과 `isSecureContext`를 검사한다. 조건을 통과하지 못하면 내부 판정값 대신 `잘못된 접근입니다.`와 HTTPS 또는 `http://localhost`로 다시 여는 방법을 안내한다. 지원 주소에서도 브라우저 권한과 사용자 활성화 조건이 남으므로 클립보드 성공 여부는 실제 `writeText` 결과로 판정한다.
 
 ## 최우선 백로그: 계정 동기화에는 서버가 최종 변경을 판정할 기준이 필요하다
 

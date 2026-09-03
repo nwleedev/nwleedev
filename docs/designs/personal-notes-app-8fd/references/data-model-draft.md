@@ -6,7 +6,7 @@
 
 안정적인 ID와 revision은 로컬 분석 결과가 어떤 메모 상태를 대상으로 했는지 식별하는 데에도 필요하다. 계정 동기화에 필요한 삭제 표시, 충돌 해결, 삭제 보존 기간과 계정별 보관 범위는 최우선 백로그에서 다룬다. 이 초안은 데이터베이스 스키마가 아니며, 아래 TypeScript 형태는 논리 객체와 쟁점을 검토하기 위한 예시일 뿐 승인된 API나 구현이 아니다.
 
-이 문서는 [개인 메모 애플리케이션 요구사항](../requirements.md)의 공간형 메모, 일괄 복사와 실행 취소, 사용 빈도, 줄 단위 텍스트 분석과 템플릿에 필요한 값을 조사하고, 최우선 계정 및 동기화 백로그의 추가 쟁점을 구분한 참고 자료다. 도메인 설계 담당자와 데이터 설계 담당자가 객체 책임을 검토하고 결정 책임자가 보관 및 동기화 규칙을 승인할 때 사용한다. 공식 문서와 표준은 2026년 8월 30일에 처음 검토하고 모바일 확인 작업 변경에 맞춰 2026년 9월 2일에 다시 확인했다.
+이 문서는 [개인 메모 애플리케이션 요구사항](../requirements.md)의 공간형 메모, 일괄 복사와 실행 취소, 사용 빈도, 줄 단위 텍스트 분석과 템플릿에 필요한 값을 조사하고, 최우선 계정 및 동기화 백로그의 추가 쟁점을 구분한 참고 자료다. 객체 책임, 보관 및 동기화 규칙을 검토할 때 사용한다. 공식 문서와 표준은 2026년 8월 30일에 처음 검토하고 모바일 확인 작업 변경에 맞춰 2026년 9월 2일에 다시 확인했다.
 
 ## 조사 근거
 
@@ -116,6 +116,7 @@ type RightPanel = "note-properties" | "batch-copy";
 
 interface NoteWorkspaceSession {
   selectedNoteId?: EntityId;
+  selectedBatchCopyItemId?: EntityId;
   propertiesPanelNoteId?: EntityId;
   geometryDraft?: NoteGeometryDraft;
   activeRightPanel?: RightPanel;
@@ -147,17 +148,19 @@ interface RemovedNoteHistory {
 
 `Note.tabIndex`는 메모 선택 지점 사이의 키보드 탐색 순서만 나타내는 `1000..32767`의 양의 정수다. 첫 메모는 `1000`, 새 메모는 현재 최댓값 다음 값을 받는다. 누락, 중복, 정수가 아닌 값과 범위 밖 값은 기존 유효 값, 생성 시각과 ID 순으로 안정 정렬한 뒤 `1000`부터 빈틈없이 다시 배정한다. 상단 탐색과 주 작업 제어는 `1..999`, 본문과 하위 제어는 양수 구간 뒤의 네이티브 DOM 순서를 사용한다. `zIndex` 정리와 `tabIndex` 정리를 같은 규칙으로 합치지 않는다.
 
-오른쪽 속성 패널에서 새로 적용하는 값은 너비 `240..1280`, 높이 `180..960`, X `1..(4096 - width)`, Y `1..(4096 - height)` 범위의 유한한 수다. HTML 입력 제약과 폼 schema는 같은 규칙을 사용하되 application command가 저장 전에 다시 검사한다. 기존 `0` 좌표와 범위 밖 geometry는 원래 배치를 가능한 많이 유지하도록 캔버스 안으로 옮기고 전체 revision만 증가시킨다. 작은 화면 목록의 `12rem` 최대 높이는 화면 표현 token이며 `Note.geometry.height`를 바꾸지 않는다.
+오른쪽 속성 패널에서 새로 적용하는 값은 너비 `240..4095`, 높이 `180..4095`, X `1..(4096 - width)`, Y `1..(4096 - height)` 범위의 유한한 수다. HTML 입력 제약과 폼 schema는 같은 규칙을 사용하되 application command가 저장 전에 다시 검사한다. 기존 `0` 좌표와 범위 밖 geometry는 원래 배치를 가능한 많이 유지하도록 캔버스 안으로 옮기고 전체 revision만 증가시킨다. 작은 화면 목록의 `12rem` 최대 높이는 화면 표현 token이며 `Note.geometry.height`를 바꾸지 않는다.
 
 메모 작업 영역의 너비가 작은 환경의 목록은 별도 메모 엔티티가 아니라 같은 `Note` 객체를 다른 형태로 표시한다. [공간형 보드와 작은 화면 목록 결정](../decisions/responsive-note-presentation.md)에 따라 작업 영역의 inline size가 `48rem` 미만이면 생성 순서로 표시하고, 목록으로 전환할 때 `Note.geometry`를 수정하지 않는다.
 
 `ViewportState`는 기본적으로 기기 로컬에 둔다. 여러 기기에서 같은 보드를 열 때 마지막 pan과 zoom까지 동기화할지는 사용자 기대를 확인한 뒤 결정해야 한다.
 
-`NoteWorkspaceSession.selectedNoteId`는 얇은 붉은 테두리를 표시할 메모를, `propertiesPanelNoteId`는 오른쪽 속성 패널이 편집하는 메모를 식별한다. 한 번의 헤더 클릭과 `Tab` 선택은 첫 값만 바꾸고, 이동으로 판정되지 않은 헤더 더블클릭 또는 선택된 메모의 선택 지점에서 실행한 `Enter`가 두 번째 값과 `activeRightPanel`의 `note-properties`를 함께 바꾼다. 빈 캔버스 클릭, `Escape`와 `Command`는 `selectedNoteId`만 `undefined`로 바꾸며 패널 대상, 초안, 활성 패널과 일괄 복사 항목을 유지한다. 일괄 복사 동작은 `activeRightPanel`만 `batch-copy`로 바꾸며 패널 전환만으로 선택, 속성 패널 대상, 입력 초안이나 일괄 복사 항목을 지우지 않는다. 속성 패널이 열린 상태에서 다른 메모를 한 번 클릭해도 패널의 표시 여부와 대상은 유지하므로 두 ID를 하나로 합치지 않는다.
+`NoteWorkspaceSession.selectedNoteId`는 굵고 끊기지 않는 붉은 테두리를 표시할 메모를, `selectedBatchCopyItemId`는 같은 선택 의미를 표시할 넓은 일괄 복사 패널의 항목을, `propertiesPanelNoteId`는 오른쪽 속성 패널이 편집하는 메모를 식별한다. 한 번의 헤더 클릭과 `Tab` 선택은 `selectedNoteId`만 바꾸고, 이동으로 판정되지 않은 헤더 더블클릭 또는 선택된 메모의 선택 지점에서 실행한 `Enter`가 `propertiesPanelNoteId`와 `activeRightPanel`의 `note-properties`를 함께 바꾼다. 빈 캔버스 클릭과 `Command`는 `selectedNoteId`만 `undefined`로 바꾸고, 상위 임시 조작이 없는 `Escape`는 두 선택 ID를 함께 `undefined`로 바꾼다. 이 해제 동작은 패널 대상, 초안, 활성 패널과 일괄 복사 항목 배열을 유지한다. 일괄 복사 동작은 `activeRightPanel`만 `batch-copy`로 바꾸며 패널 전환만으로 두 선택, 속성 패널 대상, 입력 초안이나 일괄 복사 항목을 지우지 않는다. 속성 패널이 열린 상태에서 다른 메모를 한 번 클릭해도 패널의 표시 여부와 대상은 유지하므로 세 ID를 하나로 합치지 않는다.
+
+일괄 복사 항목을 재정렬하면 `selectedBatchCopyItemId`와 키보드 포커스는 같은 항목 ID를 유지한다. 선택한 항목을 제거하면 선택 ID를 비우고, 제거를 취소해 복원하더라도 사용자가 다시 선택하기 전에는 선택 상태를 만들지 않는다. 이 값은 현재 실행의 UI 상태이며 IndexedDB의 일괄 복사 목록에 저장하지 않는다.
 
 `NoteGeometryDraft.note`는 초안을 만든 `propertiesPanelNoteId`와 같은 메모를 가리킨다. 한 번의 헤더 클릭이나 `Tab`으로 `selectedNoteId`만 바뀌어도 기존 속성 패널 대상과 초안을 다른 메모로 옮기거나 덮어쓰지 않는다.
 
-`Command`의 눌림 상태, pointer capture와 drag 시작 때 측정한 캔버스 크기는 현재 입력을 해석하기 위한 짧은 수명의 UI 상태다. `KeyboardEvent.isComposing`과 `repeat`도 수신한 event에서만 패널 활성화 여부를 판정하며 별도 자료로 저장하지 않는다. 이 값은 `NoteWorkspaceSession`, IndexedDB record나 route 사이에서 유지하는 실행 중 자료에 넣지 않는다. `keyup`, 창의 포커스 상실, 문서 숨김, `pointerup`, `pointercancel`과 `lostpointercapture`에서 해당 상태를 정리한다.
+`Command`의 눌림 상태, pointer capture와 drag 시작 때 측정한 캔버스 크기는 현재 입력을 해석하기 위한 짧은 수명의 UI 상태다. `KeyboardEvent.isComposing`과 `repeat`도 수신한 event에서만 패널 활성화 여부를 판정하며 별도 자료로 저장하지 않는다. 이 값은 `NoteWorkspaceSession`, IndexedDB record나 route 사이에서 유지하는 실행 중 자료에 넣지 않는다. `keyup`, 창의 `blur` 및 `focus`, 문서의 `hidden` 및 `visible` 전환과 modifier가 없는 다음 신뢰할 수 있는 키 또는 pointer 입력에서 `Command` 표시 상태를 다시 맞춘다. Clipboard 실행이나 선택처럼 지나간 사용자 동작을 추정해서 재실행하지 않는다. Pointer 상태는 `pointerup`, `pointercancel`과 `lostpointercapture`에서 정리하되 이미 시작된 캔버스 이동은 마지막으로 표시한 유효 시점을 유지한다.
 
 속성 입력은 사용자가 `-`나 빈 문자열처럼 아직 완성되지 않은 값을 입력할 수 있으므로 저장용 `NoteGeometry`와 별도 문자열 초안으로 둔다. `blur`, 패널 밖 클릭과 `Enter`는 같은 검증 및 적용 동작을 사용하며 유효하고 실제로 달라진 값만 `Note.geometry`에 반영한다. geometry 변경은 전체 revision만 증가시키고 content revision은 유지한다.
 

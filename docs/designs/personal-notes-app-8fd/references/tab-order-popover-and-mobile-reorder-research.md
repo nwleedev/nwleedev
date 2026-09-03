@@ -23,7 +23,7 @@
 
 [HTML Standard의 `tabindex` 처리](https://html.spec.whatwg.org/multipage/interaction.html#the-tabindex-attribute)는 양의 값이 같은 focus navigation scope 안에서 상대 순서를 만들며 값이 클수록 뒤에 놓인다고 정의한다. 양의 값을 가진 요소는 `tabindex="0"` 또는 기본 focusable 요소보다 먼저 탐색된다. 표준은 `0`과 `-1` 이외의 값을 올바르게 관리하기 어렵다고 함께 경고한다.
 
-[WCAG Focus Order 설명](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html)은 포커스 순서가 시각적 배치와 반드시 같아야 하는 것은 아니지만 의미와 조작 가능성을 보존해야 한다고 설명한다. [WAI 키보드 인터페이스 지침](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/)은 DOM 읽기 순서와 키보드 탐색 순서를 논리적이고 예측 가능하게 유지하는 방식을 기본으로 제시한다. 이 일반 권고와 달리 현재 요구사항 책임자는 메모의 시각적 겹침 순서와 독립된 `tabindex` 순서를 명시적으로 선택했다.
+[WCAG Focus Order 설명](https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html)은 포커스 순서가 시각적 배치와 반드시 같아야 하는 것은 아니지만 의미와 조작 가능성을 보존해야 한다고 설명한다. [WAI 키보드 인터페이스 지침](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/)은 DOM 읽기 순서와 키보드 탐색 순서를 논리적이고 예측 가능하게 유지하는 방식을 기본으로 제시한다. 이 일반 권고와 달리 현재 요구사항은 메모의 시각적 겹침 순서와 독립된 `tabindex` 순서를 명시적으로 선택했다.
 
 따라서 다음 책임을 분리한다.
 
@@ -33,7 +33,7 @@
 - 같은 `tabindex` 값이 문서 트리 순서를 보조 순서로 사용하는 문제를 확인했고, 저장 자료에서는 중복을 허용하지 않는 다음 정리 규칙으로 해결했다.
 - 상단 탐색과 주 작업 제어는 `1..999`, 메모 선택 지점은 `1000..32767`을 사용한다. 첫 메모는 `1000`, 새 메모는 현재 최댓값 다음 값을 받고, 누락, 중복과 범위 밖 값은 기존 유효 값, 생성 시각과 ID 순서로 정리한 뒤 `1000`부터 다시 배정한다.
 
-양의 `tabindex`가 페이지의 다른 제어보다 먼저 탐색되는 것은 표준 동작이다. 이 선택을 유지하려면 메모 선택 지점만 먼저 연속해서 방문한 뒤 헤더 아이콘, 본문, 오른쪽 패널과 전역 탐색으로 이동하는 실제 순서가 과업을 방해하지 않는지 확인해야 한다. 내부 제어를 건너뛰거나 같은 메모가 혼란스럽게 여러 번 나타나는 경우에는 값을 임의로 조정하지 않고 요구사항 책임자에게 다시 확인한다.
+양의 `tabindex`가 페이지의 다른 제어보다 먼저 탐색되는 것은 표준 동작이다. 이 선택을 유지하려면 메모 선택 지점만 먼저 연속해서 방문한 뒤 헤더 아이콘, 본문, 오른쪽 패널과 전역 탐색으로 이동하는 실제 순서가 과업을 방해하지 않는지 확인해야 한다. 내부 제어를 건너뛰거나 같은 메모가 혼란스럽게 여러 번 나타나는 경우에는 값을 임의로 조정하지 않고 요구사항을 다시 검토한다.
 
 ## 내려받은 `.fig` 디자인 파일 교차검증
 
@@ -65,7 +65,7 @@
 
 ## 항목 동작 팝오버의 동작과 접근성
 
-[HTML Popover API](https://html.spec.whatwg.org/multipage/popover.html)는 `popover="auto"`에 top layer 표시, 다른 auto popover 닫기, 바깥 영역 실행과 close request에 따른 light dismiss를 제공한다. 또한 접근성 의미가 없는 요소에 적절한 semantics를 별도로 제공해야 하며, custom menu의 방향키 이동과 실행은 작성자가 구현해야 한다고 명시한다.
+[HTML Popover API](https://html.spec.whatwg.org/multipage/popover.html)는 `popover="auto"`에 top layer 표시, 다른 auto popover 닫기, 바깥 영역 실행과 close request에 따른 light dismiss를 제공한다. 또한 접근성 의미가 없는 요소에 적절한 semantics를 별도로 제공해야 하며, custom menu의 방향키 이동과 실행은 애플리케이션에서 직접 구현해야 한다고 명시한다.
 
 현재 세 동작에는 다음 방식을 채택한다.
 

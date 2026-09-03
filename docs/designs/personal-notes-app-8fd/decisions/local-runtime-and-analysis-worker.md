@@ -24,6 +24,8 @@
 - 통합 검토에서 정적 결과물 전용 기본 실행 스크립트가 IndexedDB 내부 스키마, 화면 순서와 조작 시간까지 직접 고정해 검증 책임을 벗어난 문제가 확인됐다.
 - 정적 사이트 배포가 필요하지 않다는 요구사항에 따라 `output: "export"`, 자체 정적 서버와 전용 기본 실행 스크립트를 제거하고 Next.js 운영 서버 및 표준 Playwright Test로 책임을 나누기로 했다.
 - Worker 경계 검토에서는 요청과 응답의 메모 및 줄 참조를 결합해 검증하고, 표시 원문을 결과 쌍마다 반복하지 않는 메시지 형태가 필요하다고 확인했다.
+- 2026년 9월 4일 접속 안내를 다시 검토했다. 판정만 말하는 제목으로는 다시 열 수 있는 조건을 알기 어려우므로 문제와 허용되는 주소 조건을 함께 안내하기로 했다.
+- 같은 날 후속 요구사항에서 접속 제한 화면의 제목을 `잘못된 접근입니다.`로 확정했다. 구체적인 해결 방법은 본문에 남겨 제목만으로 주소 조건을 추측하게 하지 않는다.
 - 현재 결정은 Next.js Node.js 서버, 지연 생성한 단일 Dedicated Worker와 실제 운영용 빌드의 브라우저 검증을 함께 적용하는 것이다. 오래된 응답 폐기와 오류 처리는 유지한다.
 
 ## 승인된 결정과 이유
@@ -32,7 +34,8 @@
 - 현재 과업은 IndexedDB, Clipboard와 Dedicated Worker만으로 완료할 수 있으므로 Server Actions, 동적 Route Handlers, 요청 시점 서버 렌더링, 계정과 원격 자료 기능을 현재 결과물에 포함하지 않는다. 이후 작업 단위에서 필요한 사용자 동작이 확인되면 구현 전에 이 결정과 배포 형식을 다시 검토한다.
 - 호스트 이름이 정확히 `localhost`인 HTTP는 Next.js 운영 서버에서 제공한다. HTTPS는 운영 서버 앞의 reverse proxy 또는 배포 플랫폼이 TLS를 종료하며, 인증서와 개인 키를 다루는 자체 서버를 이 저장소에 추가하지 않는다.
 - 애플리케이션 자료를 초기화하기 전에 `location.protocol`, `location.hostname`과 `window.isSecureContext`를 함께 확인한다. secure context인 HTTPS 또는 호스트 이름이 정확히 `localhost`인 secure context HTTP만 지원한다.
-- `file:`을 포함한 다른 protocol, `localhost`가 아닌 HTTP와 secure context가 아닌 실행 환경에서는 저장소 Provider와 사용자 과업 화면을 시작하지 않는다. 대신 HTTPS 주소 또는 `http://localhost` 주소로 다시 접속하라는 다음 행동을 안내한다.
+- `file:`을 포함한 다른 protocol, `localhost`가 아닌 HTTP와 secure context가 아닌 실행 환경에서는 저장소 Provider와 사용자 과업 화면을 시작하지 않는다. 안내 제목은 `잘못된 접근입니다.`로 쓰고, 본문에서 HTTPS 주소 또는 `http://localhost` 주소로 다시 열라는 다음 행동을 설명한다. `지원하지 않는 접속 주소`, `유효하지 않음`, 내부 판정값과 Web API 이름은 화면에 표시하지 않는다.
+- 주소를 확인하는 동안에는 별도 카드, 테두리, 그림자와 채운 표면을 만들지 않고 주 화면의 빈 배경 위에 간결한 진행 상태만 표시한다. 실패 안내도 페이지 안의 유일한 내용을 장식용 카드로 감싸지 않고 제목, 본문과 여백으로 읽기 순서를 만든다.
 - 접속 주소 판정은 현재 문서에 확정된 실행 조건이므로 환경변수나 배포별 분기로 바꾸지 않는다.
 - 분석 버튼을 누르기 전에는 Worker를 만들거나 분석을 시작하지 않는다.
 - 첫 분석 요청에서 Dedicated Worker를 하나 만들고 현재 실행 동안 재사용한다. 분석 영역의 수명이 끝나면 이벤트 listener와 Worker를 정리한다.
@@ -45,9 +48,11 @@
 
 [Next.js 배포 문서](https://nextjs.org/docs/app/getting-started/deploying)는 `next build`와 `next start`를 Node.js 배포의 표준 명령으로 안내하고, [Next.js CLI 문서](https://nextjs.org/docs/app/api-reference/cli/next)는 `next start`가 운영 모드 서버를 시작한다고 설명한다. [Next.js 자체 호스팅 문서](https://nextjs.org/docs/app/guides/self-hosting)는 공개 배포에서 Next.js 서버 앞에 reverse proxy를 두도록 권장한다. [Next.js SPA 가이드](https://nextjs.org/docs/app/guides/single-page-applications)와 [정적 내보내기 문서](https://nextjs.org/docs/app/guides/static-exports)는 정적 내보내기가 선택 사항이며 서버 기능을 제한한다고 설명한다. [Playwright 설정 문서](https://playwright.dev/docs/test-configuration)는 `webServer`로 대상 애플리케이션 서버를 시작하는 표준 구성을 제공한다. [HTML Web Workers](https://html.spec.whatwg.org/multipage/workers.html)는 Worker의 독립 실행과 생성 비용을 정의한다.
 
+[GOV.UK 오류 메시지 지침](https://design-system.service.gov.uk/components/error-message/)은 `valid`와 `invalid`처럼 해결 방법을 보태지 않는 판정어를 피하고, 무엇이 일어났는지와 어떻게 바로잡을지를 구체적으로 쓰도록 안내한다. 같은 지침은 사용자가 고칠 폼 입력 오류가 아닌 서비스 이용 제한을 필드 오류처럼 표시하지 말고 문제와 다음 행동을 설명하는 별도 화면으로 다루도록 구분한다. [WCAG 2.2 Error Identification](https://www.w3.org/WAI/WCAG22/Understanding/error-identification)은 오류를 텍스트로 설명해야 한다는 최소 조건을 제시하지만 표시 형태를 카드로 요구하지 않는다.
+
 ## 예상 결과와 계획 영향
 
-운영용 빌드와 Worker 자산은 TDD가 아니라 Next.js 운영 서버를 시작하는 Playwright Test와 실제 브라우저 메시지 왕복으로 검증한다. IndexedDB repository 자체는 Vitest Browser Mode에서 운영 모듈을 직접 확인한다. 접속 주소 판정의 순수 규칙은 `file:`과 `localhost`가 아닌 HTTP를 포함한 입력별 결과로 확인하고, 안내 화면은 실제 브라우저에서 확인한다. Worker 안의 순수 분석기는 TDD를 적용한다. 메시지 규칙과 원래 요청 결합은 경계 입력으로 확인하고, Worker 자산 실패 뒤 재시도, 오래된 응답 폐기와 분석 요청 직후 탐색은 Chromium, Firefox와 WebKit의 운영용 빌드에서 확인한다.
+운영용 빌드와 Worker 자산은 TDD가 아니라 Next.js 운영 서버를 시작하는 Playwright Test와 실제 브라우저 메시지 왕복으로 검증한다. IndexedDB repository 자체는 Vitest Browser Mode에서 운영 모듈을 직접 확인한다. 접속 주소 판정의 순수 규칙은 `file:`과 `localhost`가 아닌 HTTP를 포함한 입력별 결과로 확인하고, 안내 화면은 실제 브라우저에서 제목, 다음 행동과 카드 없는 진행 및 실패 상태를 확인한다. Worker 안의 순수 분석기는 TDD를 적용한다. 메시지 규칙과 원래 요청 결합은 경계 입력으로 확인하고, Worker 자산 실패 뒤 재시도, 오래된 응답 폐기와 분석 요청 직후 탐색은 Chromium, Firefox와 WebKit의 운영용 빌드에서 확인한다.
 
 ## 다시 검토할 조건
 
