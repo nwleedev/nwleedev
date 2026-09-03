@@ -66,6 +66,6 @@ test("분석 요청 직후 메모 화면으로 이동할 수 있다", async ({ p
 
   await expect(page).toHaveURL("/")
   await expect(
-    page.getByRole("article").filter({ hasText: content, visible: true }),
-  ).toBeVisible()
+    page.getByRole("textbox", { name: "메모 내용" }).filter({ visible: true }),
+  ).toHaveValue(content)
 })
