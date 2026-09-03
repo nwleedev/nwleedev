@@ -5,9 +5,14 @@ import {
   useEffect,
   useRef,
   useState,
+  type FocusEvent as ReactFocusEvent,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react"
+import {
+  useWatch,
+  type UseFormRegisterReturn,
+} from "react-hook-form"
 
 import {
   NOTE_CANVAS_SIZE,
@@ -15,6 +20,7 @@ import {
   NOTE_HEIGHT_MIN,
   NOTE_WIDTH_MAX,
   NOTE_WIDTH_MIN,
+  createNoteGeometryDraft,
   createNoteReference,
   readNoteGeometryDraft,
   type Note,
@@ -27,6 +33,7 @@ import { IconButton } from "@/shared/ui/icon-button"
 import { CloseIcon } from "@/shared/ui/icons"
 import { TextField } from "@/shared/ui/text-field"
 
+import { useNotePropertiesForm } from "../model/note-properties-form-provider"
 import { useNoteSession } from "../model/note-session-provider"
 import { useNotesData } from "../model/notes-data-provider"
 
@@ -41,10 +48,65 @@ const geometryFields: ReadonlyArray<{
   { field: "height", label: "높이", minimum: NOTE_HEIGHT_MIN },
 ]
 
+const invalidGeometryMessage = "값의 범위와 캔버스 안의 위치를 확인하세요."
+
 type GeometryInputMaximums = Record<NoteGeometryDraftField, number>
 
 type ApplyDraftOptions = {
   focusInvalid: boolean
+}
+
+type ApplyDraftResult = {
+  completion: Promise<boolean>
+  valid: boolean
+}
+
+type GeometryFieldProps = {
+  invalid: boolean
+  label: string
+  maximum: number
+  minimum: number
+  registration: UseFormRegisterReturn<NoteGeometryDraftField>
+  onApply(options: ApplyDraftOptions): ApplyDraftResult
+}
+
+function GeometryField({
+  invalid,
+  label,
+  maximum,
+  minimum,
+  onApply,
+  registration,
+}: GeometryFieldProps) {
+  function applyOnBlur(event: ReactFocusEvent<HTMLInputElement>) {
+    void registration.onBlur(event)
+    onApply({ focusInvalid: false })
+  }
+
+  function applyOnEnter(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter") {
+      return
+    }
+
+    event.preventDefault()
+    onApply({ focusInvalid: true })
+  }
+
+  return (
+    <label className="grid gap-1.5 text-xs font-semibold">
+      <span>{label}</span>
+      <TextField
+        aria-invalid={invalid}
+        max={maximum}
+        min={minimum}
+        {...registration}
+        onBlur={applyOnBlur}
+        onKeyDown={applyOnEnter}
+        step="1"
+        type="number"
+      />
+    </label>
+  )
 }
 
 function readSafeDraftNumber(
@@ -111,15 +173,6 @@ function noteTitle(note: Note) {
   return firstLine.length > 28 ? `${firstLine.slice(0, 28)}…` : firstLine
 }
 
-function geometryDraft(note: Note): NoteGeometryDraft {
-  return {
-    height: String(note.geometry.height),
-    width: String(note.geometry.width),
-    x: String(note.geometry.x),
-    y: String(note.geometry.y),
-  }
-}
-
 function sameGeometry(note: Note, geometry: NoteGeometry) {
   return (
     note.geometry.height === geometry.height &&
@@ -140,24 +193,50 @@ function availableNotes(notesData: ReturnType<typeof useNotesData>) {
 export function NotePropertiesPanel() {
   const notesData = useNotesData()
   const session = useNoteSession()
+  const {
+    clearErrors,
+    control,
+    formState: { errors },
+    getValues,
+    handleSubmit,
+    register,
+    reset,
+    setError,
+    setFocus,
+  } = useNotePropertiesForm()
   const panel = useRef<HTMLElement>(null)
-  const firstField = useRef<HTMLInputElement>(null)
   const pendingOperation = useRef<Promise<boolean> | null>(null)
-  const [invalidFields, setInvalidFields] = useState<
-    readonly NoteGeometryDraftField[]
-  >([])
   const [message, setMessage] = useState("")
   const [pending, setPending] = useState(false)
-  const propertiesNoteId = session.workspace.geometryDraft?.note.id ?? null
+  const propertiesNoteId = session.workspace.propertiesTarget?.id ?? null
   const note = availableNotes(notesData).find(
     ({ id }) => id === propertiesNoteId,
   )
-  const draft = session.workspace.geometryDraft?.fields ?? null
+  const watchedFields = useWatch({ control })
+  const draft: NoteGeometryDraft = {
+    height: watchedFields.height ?? "",
+    width: watchedFields.width ?? "",
+    x: watchedFields.x ?? "",
+    y: watchedFields.y ?? "",
+  }
   const title = note === undefined ? "메모 속성" : noteTitle(note)
-  const maximums =
-    note === undefined || draft === null
-      ? null
-      : geometryInputMaximums(note, draft)
+  const maximums = note === undefined
+    ? null
+    : geometryInputMaximums(note, draft)
+  const fieldValidationFailed = geometryFields.some(
+    ({ field }) => errors[field] !== undefined,
+  )
+  const validationFailed = fieldValidationFailed || errors.root !== undefined
+  const visibleMessage = validationFailed ? invalidGeometryMessage : message
+  const registrations: Record<
+    NoteGeometryDraftField,
+    UseFormRegisterReturn<NoteGeometryDraftField>
+  > = {
+    height: register("height"),
+    width: register("width"),
+    x: register("x"),
+    y: register("y"),
+  }
 
   useEffect(() => {
     const focusFirstField =
@@ -165,44 +244,48 @@ export function NotePropertiesPanel() {
       session.workspace.propertiesFocus === "first-field"
 
     if (focusFirstField) {
-      firstField.current?.focus()
+      setFocus("x")
     }
   }, [
     propertiesNoteId,
+    setFocus,
     session.workspace.activePanel,
     session.workspace.propertiesFocus,
   ])
 
   const applyDraft = useCallback(({ focusInvalid }: ApplyDraftOptions) => {
-    if (note === undefined || draft === null) {
+    if (note === undefined) {
       return { completion: Promise.resolve(false), valid: true }
     }
 
-    const result = readNoteGeometryDraft(draft, note.geometry.zIndex)
+    const submittedDraft = getValues()
+    const result = readNoteGeometryDraft(
+      submittedDraft,
+      note.geometry.zIndex,
+    )
 
     if (result.status === "invalid") {
-      setInvalidFields(result.fields)
-      setMessage("값의 범위와 캔버스 안의 위치를 확인하세요.")
-      if (focusInvalid) {
-        requestAnimationFrame(() => {
-          const firstInvalidField = result.fields[0]
+      clearErrors()
+      setMessage("")
 
-          if (firstInvalidField === undefined) {
-            firstField.current?.focus()
-            return
-          }
-
-          panel.current
-            ?.querySelector<HTMLInputElement>(
-              `input[name="${firstInvalidField}"]`,
-            )
-            ?.focus()
-        })
+      for (const field of result.fields) {
+        setError(field, { message: invalidGeometryMessage })
       }
+
+      if (result.fields.length === 0) {
+        setError("root.geometry", { message: invalidGeometryMessage })
+      }
+
+      const firstInvalidField = result.fields[0]
+
+      if (focusInvalid && firstInvalidField !== undefined) {
+        requestAnimationFrame(() => setFocus(firstInvalidField))
+      }
+
       return { completion: Promise.resolve(false), valid: false }
     }
 
-    setInvalidFields([])
+    clearErrors()
     setMessage("")
 
     if (sameGeometry(note, result.geometry)) {
@@ -213,16 +296,28 @@ export function NotePropertiesPanel() {
       return { completion: pendingOperation.current, valid: true }
     }
 
-    const expectedReference = session.workspace.geometryDraft?.note
+    const expectedReference = session.workspace.propertiesTarget
     setPending(true)
     const operation = notesData
       .updateNote(note, { geometry: result.geometry })
       .then((savedNote) => {
-        if (expectedReference !== undefined) {
-          session.confirmGeometryDraft(
+        if (expectedReference !== null) {
+          session.confirmPropertiesTarget(
             expectedReference,
             createNoteReference(savedNote),
           )
+        }
+
+        const savedFields = createNoteGeometryDraft(savedNote.geometry)
+        const latestFields = getValues()
+        const unchanged = geometryFields.every(
+          ({ field }) => latestFields[field] === submittedDraft[field],
+        )
+
+        if (unchanged) {
+          reset(savedFields)
+        } else {
+          reset(savedFields, { keepValues: true })
         }
 
         return true
@@ -238,7 +333,16 @@ export function NotePropertiesPanel() {
     pendingOperation.current = operation
 
     return { completion: operation, valid: true }
-  }, [draft, note, notesData, session])
+  }, [
+    clearErrors,
+    getValues,
+    note,
+    notesData,
+    reset,
+    session,
+    setError,
+    setFocus,
+  ])
 
   useEffect(() => {
     function applyBeforeOutsideAction(event: PointerEvent) {
@@ -262,17 +366,9 @@ export function NotePropertiesPanel() {
   }, [applyDraft])
 
   function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    applyDraft({ focusInvalid: true })
-  }
-
-  function applyOnEnter(event: ReactKeyboardEvent<HTMLInputElement>) {
-    if (event.key !== "Enter") {
-      return
-    }
-
-    event.preventDefault()
-    applyDraft({ focusInvalid: true })
+    void handleSubmit(() => {
+      return applyDraft({ focusInvalid: true }).completion
+    })(event)
   }
 
   async function closeProperties() {
@@ -299,15 +395,12 @@ export function NotePropertiesPanel() {
       return
     }
 
-    setInvalidFields([])
+    reset(createNoteGeometryDraft(note.geometry))
     setMessage("")
-    session.restoreGeometryDraft(
-      createNoteReference(note),
-      geometryDraft(note),
-    )
+    session.restorePropertiesTarget(createNoteReference(note))
   }
 
-  if (note === undefined || draft === null) {
+  if (note === undefined || maximums === null) {
     return (
       <aside
         aria-label="메모 속성"
@@ -352,35 +445,21 @@ export function NotePropertiesPanel() {
       <form className="grid gap-4 overflow-auto p-4" onSubmit={submit}>
         <fieldset className="grid grid-cols-2 gap-3" disabled={pending}>
           <legend className="sr-only">위치와 크기</legend>
-          {geometryFields.map(({ field, label, minimum }, index) => {
-            const invalid = invalidFields.includes(field)
-            const maximum = maximums?.[field]
-
-            return (
-              <label className="grid gap-1.5 text-xs font-semibold" key={field}>
-                <span>{label}</span>
-                <TextField
-                  aria-invalid={invalid}
-                  max={maximum}
-                  min={minimum}
-                  name={field}
-                  onBlur={() => applyDraft({ focusInvalid: false })}
-                  onChange={(event) =>
-                    session.changeGeometryDraft(field, event.target.value)
-                  }
-                  onKeyDown={applyOnEnter}
-                  ref={index === 0 ? firstField : undefined}
-                  step="1"
-                  type="number"
-                  value={draft[field]}
-                />
-              </label>
-            )
-          })}
+          {geometryFields.map(({ field, label, minimum }) => (
+            <GeometryField
+              invalid={errors[field] !== undefined}
+              key={field}
+              label={label}
+              maximum={maximums[field]}
+              minimum={minimum}
+              onApply={applyDraft}
+              registration={registrations[field]}
+            />
+          ))}
         </fieldset>
-        {message ? (
+        {visibleMessage ? (
           <p className="text-sm leading-6 text-danger" role="alert">
-            {message}
+            {visibleMessage}
           </p>
         ) : null}
         <Button

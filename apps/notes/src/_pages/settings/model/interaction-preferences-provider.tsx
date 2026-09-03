@@ -21,7 +21,7 @@ type PreferencesState =
 
 type InteractionPreferencesContextValue = PreferencesState & {
   retry(): void
-  setBatchCopyShortcutEnabled(enabled: boolean): Promise<void>
+  setBatchCopyShortcutEnabled(enabled: boolean): Promise<boolean>
 }
 
 const InteractionPreferencesContext =
@@ -77,7 +77,7 @@ export function InteractionPreferencesProvider({
 
   async function setBatchCopyShortcutEnabled(enabled: boolean) {
     if (!("preferences" in state) || state.status === "saving") {
-      return
+      return false
     }
 
     const previous = state.preferences
@@ -89,8 +89,10 @@ export function InteractionPreferencesProvider({
         updatedAt: now(),
       })
       setState({ preferences, status: "ready" })
+      return true
     } catch {
       setState({ preferences: previous, status: "save-failure" })
+      return false
     }
   }
 

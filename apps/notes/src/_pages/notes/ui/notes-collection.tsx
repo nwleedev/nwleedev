@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react"
 
 import {
+  createNoteGeometryDraft,
   createNoteReference,
   type Note,
   type NoteGeometry,
+  type NoteGeometryDraftField,
 } from "@/entities/note"
 import { useAddNoteToBatchCopy } from "@/features/add-note-to-batch-copy"
 import type { ClipboardWriteFailureReason } from "@/shared/lib/clipboard"
@@ -15,6 +17,7 @@ import { Button } from "@/shared/ui/button"
 import type { CopyNoteResult } from "../model/copy-note"
 import type { SaveNoteContentResult } from "../model/save-note-content"
 import { useNoteSession } from "../model/note-session-provider"
+import { useNotePropertiesForm } from "../model/note-properties-form-provider"
 import { MobileNotesWorkspace } from "./mobile-notes-workspace"
 import { NotesBoard } from "./notes-board"
 import { useBatchCopyWorkspace } from "./batch-copy-workspace"
@@ -88,14 +91,12 @@ function byTabIndex(left: Note, right: Note) {
   return left.tabIndex - right.tabIndex
 }
 
-function geometryDraft(note: Note) {
-  return {
-    height: String(note.geometry.height),
-    width: String(note.geometry.width),
-    x: String(note.geometry.x),
-    y: String(note.geometry.y),
-  }
-}
+const noteGeometryDraftFields: readonly NoteGeometryDraftField[] = [
+  "height",
+  "width",
+  "x",
+  "y",
+]
 
 function noteIdFromHash() {
   const prefix = "#note-"
@@ -129,6 +130,11 @@ export function NotesCollection({
   updateNote,
 }: NotesCollectionProps) {
   const session = useNoteSession()
+  const {
+    getFieldState: getNotePropertyFieldState,
+    getValues: getNotePropertyValues,
+    reset: resetNoteProperties,
+  } = useNotePropertiesForm()
   const batchCopy = useAddNoteToBatchCopy()
   const batchCopyWorkspace = useBatchCopyWorkspace()
   const {
@@ -150,7 +156,7 @@ export function NotesCollection({
   const createLabel = creationPending ? "메모 만드는 중" : "새 메모"
   const empty = orderedNotes.length === 0
   const selectedNoteId = workspace.selectedNoteId
-  const propertiesNoteId = workspace.geometryDraft?.note.id ?? null
+  const propertiesNoteId = workspace.propertiesTarget?.id ?? null
 
   useEffect(() => {
     let frame = 0
@@ -176,6 +182,39 @@ export function NotesCollection({
       window.removeEventListener("hashchange", focusLinkedNote)
     }
   }, [notes, select])
+
+  useEffect(() => {
+    const target = workspace.propertiesTarget
+
+    if (target === null) {
+      return
+    }
+
+    const targetNote = notes.find(({ id }) => id === target.id)
+    const draftChanged = noteGeometryDraftFields.some(
+      (field) => getNotePropertyFieldState(field).isDirty,
+    )
+    const savedDraft = targetNote === undefined
+      ? null
+      : createNoteGeometryDraft(targetNote.geometry)
+    const currentDraft = getNotePropertyValues()
+    const draftMatchesSaved = savedDraft !== null &&
+      noteGeometryDraftFields.every(
+        (field) => currentDraft[field] === savedDraft[field],
+      )
+
+    if (savedDraft === null || draftChanged || draftMatchesSaved) {
+      return
+    }
+
+    resetNoteProperties(savedDraft)
+  }, [
+    getNotePropertyFieldState,
+    getNotePropertyValues,
+    notes,
+    resetNoteProperties,
+    workspace.propertiesTarget,
+  ])
 
   useEffect(() => {
     function clearSelectionForCommand() {
@@ -264,9 +303,21 @@ export function NotesCollection({
     note: Note,
     focus: "first-field" | "preserve",
   ) {
+    const target = workspace.propertiesTarget
+    const sameTarget = target?.id === note.id
+    const draftChanged = noteGeometryDraftFields.some(
+      (field) => getNotePropertyFieldState(field).isDirty,
+    )
+    const targetRevisionChanged =
+      sameTarget && target.revision !== note.revision
+    const replaceCurrentDraft = targetRevisionChanged && !draftChanged
+
+    if (!sameTarget || replaceCurrentDraft) {
+      resetNoteProperties(createNoteGeometryDraft(note.geometry))
+    }
+
     activatePropertiesInSession(
       createNoteReference(note),
-      geometryDraft(note),
       focus,
     )
   }
@@ -333,8 +384,14 @@ export function NotesCollection({
     })
   }
 
-  function saveGeometry(note: Note, geometry: NoteGeometry) {
-    return updateNote(note, { geometry })
+  async function saveGeometry(note: Note, geometry: NoteGeometry) {
+    const savedNote = await updateNote(note, { geometry })
+
+    session.confirmPropertiesTarget(
+      createNoteReference(note),
+      createNoteReference(savedNote),
+    )
+    return savedNote
   }
 
   async function remove(note: Note) {

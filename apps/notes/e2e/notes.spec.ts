@@ -175,6 +175,37 @@ test("저장된 Tab 순서로 메모를 선택하고 Enter에서만 속성을 �
   await expect(page.getByRole("complementary", { name: "메모 속성" })).toHaveCount(0)
 })
 
+test("같은 메모를 옮긴 뒤 속성 패널에서 최신 위치를 유지한다", async ({
+  page,
+}) => {
+  const note = await createNoteThroughUi(page, "속성 위치를 확인할 메모")
+  let properties = await openPropertiesWithKeyboard(note)
+  const initialX = Number(
+    await properties.getByRole("spinbutton", { name: "X" }).inputValue(),
+  )
+
+  await properties.getByRole("button", { name: "메모 속성 패널 닫기" }).click()
+  const original = await visibleBox(note)
+  await page.mouse.move(original.x + 120, original.y + 14)
+  await page.mouse.down()
+  await page.mouse.move(original.x + 200, original.y + 54)
+  await page.mouse.up()
+  await expect
+    .poll(async () => (await visibleBox(note)).x)
+    .toBeGreaterThan(original.x + 50)
+
+  await note.dblclick({ position: { x: 12, y: 14 } })
+  properties = page.getByRole("complementary", { name: "메모 속성" })
+  await expect(properties).toBeVisible()
+  const movedX = properties.getByRole("spinbutton", { name: "X" })
+
+  await expect(movedX).toHaveValue(String(initialX + 80))
+  await properties.getByRole("button", { name: "메모 속성 패널 닫기" }).click()
+  await expect
+    .poll(async () => (await visibleBox(note)).x)
+    .toBeGreaterThan(original.x + 50)
+})
+
 test("헤더 이동, 가장자리 크기 조절과 빈 캔버스 시점 이동을 구분한다", async ({
   page,
 }) => {
@@ -287,10 +318,23 @@ test("가장 최근에 활성화한 오른쪽 패널 하나만 표시한다", as
   const properties = page.getByRole("complementary", { name: "메모 속성" })
   await expect(properties).toBeVisible()
   await expect(batchPanel).toHaveCount(0)
+  const xField = properties.getByRole("spinbutton", { name: "X" })
 
-  await page.getByRole("button", { name: "일괄 복사 1개" }).click()
+  await xField.fill("0")
+  const batchCopyTrigger = page.getByRole("button", { name: "일괄 복사 1개" })
+  await batchCopyTrigger.click()
   await expect(batchPanel).toBeVisible()
   await expect(properties).toHaveCount(0)
+  await note.dblclick({ position: { x: 12, y: 14 } })
+  await expect(properties).toBeVisible()
+  await expect(
+    properties.getByRole("spinbutton", { name: "X" }),
+  ).toHaveValue("0")
+  await properties.getByRole("button", { name: "저장값으로 되돌리기" }).click()
+  await expect(properties).toHaveCount(0)
+
+  await batchCopyTrigger.click()
+  await expect(batchPanel).toBeVisible()
   await batchPanel.getByRole("button", { name: "일괄 복사 패널 닫기" }).click()
   await expect(batchPanel).toHaveCount(0)
   await expect(properties).toHaveCount(0)

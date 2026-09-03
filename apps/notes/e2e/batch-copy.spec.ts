@@ -39,6 +39,41 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/")
 })
 
+test("설정에서 데스크톱 일괄 복사 단축키를 끄고 새로고침 뒤에도 유지한다", async ({
+  page,
+}) => {
+  await page.goto("/settings/")
+  const shortcut = page.getByRole("checkbox", {
+    name: "Command+Option+클릭으로 일괄 복사에 추가",
+  })
+
+  await expect(shortcut).toBeChecked()
+  await page.getByText(
+    "Command+Option+클릭으로 일괄 복사에 추가",
+    { exact: true },
+  ).click()
+  await expect(shortcut).not.toBeChecked()
+  await page.reload()
+  await expect(
+    page.getByRole("checkbox", {
+      name: "Command+Option+클릭으로 일괄 복사에 추가",
+    }),
+  ).not.toBeChecked()
+
+  await page.goto("/")
+  const note = await createNoteThroughUi(page, "단축키 설정을 확인할 메모")
+
+  await note
+    .getByRole("textbox", { name: "메모 내용" })
+    .click({ modifiers: ["Meta", "Alt"] })
+  await expect(
+    page.getByRole("complementary", { name: "일괄 복사" }),
+  ).toHaveCount(0)
+  await expect(
+    page.getByRole("button", { name: "일괄 복사 0개" }),
+  ).toBeVisible()
+})
+
 test("오른쪽 패널에서 항목을 끌어 순서를 바꾸고 제거 이력을 키보드로 복구한다", async ({
   page,
 }) => {

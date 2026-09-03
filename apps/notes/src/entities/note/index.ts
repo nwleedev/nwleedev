@@ -34,6 +34,7 @@ export {
 } from "./model/note"
 export {
   NoteGeometryDraftSchema,
+  createNoteGeometryDraft,
   findNewNoteGeometry,
   fitNoteGeometryToCanvas,
   readNoteGeometryDraft,

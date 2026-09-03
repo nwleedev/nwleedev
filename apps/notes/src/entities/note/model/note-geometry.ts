@@ -79,6 +79,17 @@ const noteGeometryDraftFields: readonly NoteGeometryDraftField[] = [
   "y",
 ]
 
+export function createNoteGeometryDraft(
+  geometry: NoteGeometry,
+): NoteGeometryDraft {
+  return {
+    height: String(geometry.height),
+    width: String(geometry.width),
+    x: String(geometry.x),
+    y: String(geometry.y),
+  }
+}
+
 function isNoteGeometryDraftField(
   value: PropertyKey,
 ): value is NoteGeometryDraftField {

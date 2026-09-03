@@ -1,30 +1,20 @@
-import type {
-  NoteGeometryDraft as NoteGeometryFields,
-  NoteReference,
-} from "@/entities/note"
-
-export type NoteGeometryDraft = {
-  fields: NoteGeometryFields
-  note: NoteReference
-}
-
-export type NoteGeometryDraftField = keyof NoteGeometryFields
+import type { NoteReference } from "@/entities/note"
 
 export type NoteWorkspacePanel = "batch-copy" | "note-properties"
 export type NotePropertiesFocus = "first-field" | "preserve"
 
 export type NoteWorkspaceState = {
   activePanel: NoteWorkspacePanel | null
-  geometryDraft: NoteGeometryDraft | null
   propertiesFocus: NotePropertiesFocus
+  propertiesTarget: NoteReference | null
   selectedNoteId: string | null
 }
 
 export function createNoteWorkspaceState(): NoteWorkspaceState {
   return {
     activePanel: null,
-    geometryDraft: null,
     propertiesFocus: "preserve",
+    propertiesTarget: null,
     selectedNoteId: null,
   }
 }
@@ -51,7 +41,7 @@ export function forgetNote(
   noteId: string,
 ): NoteWorkspaceState {
   const selected = state.selectedNoteId === noteId
-  const propertiesTarget = state.geometryDraft?.note.id === noteId
+  const propertiesTarget = state.propertiesTarget?.id === noteId
 
   if (!selected && !propertiesTarget) {
     return state
@@ -65,7 +55,7 @@ export function forgetNote(
   return {
     ...state,
     activePanel,
-    geometryDraft: propertiesTarget ? null : state.geometryDraft,
+    propertiesTarget: propertiesTarget ? null : state.propertiesTarget,
     selectedNoteId: selected ? null : state.selectedNoteId,
   }
 }
@@ -73,14 +63,13 @@ export function forgetNote(
 export function activateNoteProperties(
   state: NoteWorkspaceState,
   note: NoteReference,
-  fields: NoteGeometryFields,
   focus: NotePropertiesFocus = "preserve",
 ): NoteWorkspaceState {
   return {
     ...state,
     activePanel: "note-properties",
-    geometryDraft: { fields, note },
     propertiesFocus: focus,
+    propertiesTarget: note,
     selectedNoteId: note.id,
   }
 }
@@ -105,23 +94,23 @@ export function closeActivePanel(
   return { ...state, activePanel: null }
 }
 
-export function confirmNoteGeometryDraft(
+export function confirmNotePropertiesTarget(
   state: NoteWorkspaceState,
   expected: NoteReference,
   saved: NoteReference,
 ): NoteWorkspaceState {
-  const current = state.geometryDraft
-  const expectedDraft =
-    current?.note.id === expected.id &&
-    current.note.revision === expected.revision
+  const current = state.propertiesTarget
+  const expectedTarget =
+    current?.id === expected.id &&
+    current.revision === expected.revision
 
-  if (!expectedDraft) {
+  if (!expectedTarget) {
     return state
   }
 
   return {
     ...state,
-    geometryDraft: { ...current, note: saved },
+    propertiesTarget: saved,
   }
 }
 
@@ -129,7 +118,7 @@ export function closeNoteProperties(
   state: NoteWorkspaceState,
   noteId: string,
 ): NoteWorkspaceState {
-  const currentTarget = state.geometryDraft?.note.id
+  const currentTarget = state.propertiesTarget?.id
 
   if (state.activePanel !== "note-properties" || currentTarget !== noteId) {
     return state
@@ -138,37 +127,18 @@ export function closeNoteProperties(
   return { ...state, activePanel: null }
 }
 
-export function restoreNoteGeometryDraft(
+export function restoreNotePropertiesTarget(
   state: NoteWorkspaceState,
   note: NoteReference,
-  fields: NoteGeometryFields,
 ): NoteWorkspaceState {
-  if (state.geometryDraft?.note.id !== note.id) {
+  if (state.propertiesTarget?.id !== note.id) {
     return state
   }
 
   return {
     ...state,
     activePanel: null,
-    geometryDraft: { fields, note },
     propertiesFocus: "preserve",
-  }
-}
-
-export function updateNoteGeometryDraft(
-  state: NoteWorkspaceState,
-  field: NoteGeometryDraftField,
-  value: string,
-): NoteWorkspaceState {
-  if (state.geometryDraft === null) {
-    return state
-  }
-
-  return {
-    ...state,
-    geometryDraft: {
-      ...state.geometryDraft,
-      fields: { ...state.geometryDraft.fields, [field]: value },
-    },
+    propertiesTarget: note,
   }
 }

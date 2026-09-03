@@ -1,11 +1,63 @@
 "use client"
 
+import { type ChangeEvent } from "react"
+import { useForm } from "react-hook-form"
+
+import type { InteractionPreferences } from "@/entities/preference"
+
 import { Button } from "@/shared/ui/button"
 import { Checkbox } from "@/shared/ui/checkbox"
 import { PageHeading } from "@/shared/ui/page-heading"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
 import { useInteractionPreferences } from "../model/interaction-preferences-provider"
+
+type InteractionPreferenceFields = {
+  batchCopyShortcutEnabled: boolean
+}
+
+type InteractionPreferencesFormProps = {
+  preferences: InteractionPreferences
+  saving: boolean
+  saveBatchCopyShortcut(enabled: boolean): Promise<boolean>
+}
+
+function InteractionPreferencesForm({
+  preferences,
+  saveBatchCopyShortcut,
+  saving,
+}: InteractionPreferencesFormProps) {
+  const { getValues, register, reset } = useForm<InteractionPreferenceFields>({
+    defaultValues: {
+      batchCopyShortcutEnabled: preferences.batchCopyShortcutEnabled,
+    },
+  })
+  const shortcutRegistration = register("batchCopyShortcutEnabled")
+
+  async function saveShortcut(enabled: boolean) {
+    const saved = await saveBatchCopyShortcut(enabled)
+    const storedValue = saved
+      ? enabled
+      : preferences.batchCopyShortcutEnabled
+
+    reset({ batchCopyShortcutEnabled: storedValue })
+  }
+
+  function changeShortcut(event: ChangeEvent<HTMLInputElement>) {
+    void shortcutRegistration.onChange(event)
+    void saveShortcut(getValues("batchCopyShortcutEnabled"))
+  }
+
+  return (
+    <Checkbox
+      description="메모 본문에서만 적용됩니다."
+      disabled={saving}
+      label="Command+Option+클릭으로 일괄 복사에 추가"
+      {...shortcutRegistration}
+      onChange={changeShortcut}
+    />
+  )
+}
 
 export function SettingsStartPage() {
   const preferences = useInteractionPreferences()
@@ -24,17 +76,10 @@ export function SettingsStartPage() {
       <section className="mt-5 rounded-panel border border-line bg-surface-raised px-5 py-6 shadow-note sm:px-6">
         {"preferences" in preferences ? (
           <div>
-            <Checkbox
-              checked={preferences.preferences.batchCopyShortcutEnabled}
-              description="메모 본문에서만 적용됩니다."
-              disabled={preferences.status === "saving"}
-              label="Command+Option+클릭으로 일괄 복사에 추가"
-              name="batchCopyShortcutEnabled"
-              onChange={(event) => {
-                void preferences.setBatchCopyShortcutEnabled(
-                  event.currentTarget.checked,
-                )
-              }}
+            <InteractionPreferencesForm
+              preferences={preferences.preferences}
+              saveBatchCopyShortcut={preferences.setBatchCopyShortcutEnabled}
+              saving={preferences.status === "saving"}
             />
             {preferences.status === "saving" ? (
               <div className="mt-5">

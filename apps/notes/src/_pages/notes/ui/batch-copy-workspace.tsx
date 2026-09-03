@@ -29,6 +29,7 @@ import { IconButton } from "@/shared/ui/icon-button"
 import { CloseIcon } from "@/shared/ui/icons"
 
 import { useNoteSession } from "../model/note-session-provider"
+import { NotePropertiesFormProvider } from "../model/note-properties-form-provider"
 import { NotePropertiesPanel } from "./note-properties-panel"
 
 const INLINE_PANEL_THRESHOLD_REM = 72
@@ -195,7 +196,7 @@ function BatchCopyPanelContent({
   )
 }
 
-export function BatchCopyWorkspace({ children }: PropsWithChildren) {
+function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
   const batchCopy = useBatchCopyEditor()
   const mobileBatchCopy = useMobileBatchCopy()
   const session = useNoteSession()
@@ -419,9 +420,19 @@ export function BatchCopyWorkspace({ children }: PropsWithChildren) {
               status={batchCopy.status}
             />
           ) : null}
-          {propertiesActive ? <NotePropertiesPanel /> : null}
+          {propertiesActive && !showInlinePanel ? (
+            <NotePropertiesPanel />
+          ) : null}
         </dialog>
       </main>
     </BatchCopyWorkspaceContext>
+  )
+}
+
+export function BatchCopyWorkspace({ children }: PropsWithChildren) {
+  return (
+    <NotePropertiesFormProvider>
+      <BatchCopyWorkspaceContent>{children}</BatchCopyWorkspaceContent>
+    </NotePropertiesFormProvider>
   )
 }
