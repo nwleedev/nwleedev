@@ -12,7 +12,7 @@ type IconButtonProps = Omit<ComponentPropsWithRef<"button">, "aria-label"> & {
 }
 
 const commonClassName =
-  "inline-flex shrink-0 items-center justify-center rounded-control border transition-[background-color,border-color,color,opacity,transform] duration-[var(--notes-motion-fast)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45"
+  "inline-flex shrink-0 items-center justify-center rounded-control border-0 transition-[background-color,color,opacity,transform] duration-[var(--notes-motion-fast)] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45"
 
 const sizeClassNames: Record<IconButtonSize, string> = {
   compact: "h-8 w-8",
@@ -20,10 +20,8 @@ const sizeClassNames: Record<IconButtonSize, string> = {
 }
 
 const toneClassNames: Record<IconButtonTone, string> = {
-  danger:
-    "border-line bg-surface-raised text-danger hover:border-danger hover:bg-canvas",
-  quiet:
-    "border-line bg-surface-raised text-ink hover:border-line-strong hover:bg-canvas",
+  danger: "bg-transparent text-danger hover:bg-danger/10",
+  quiet: "bg-transparent text-ink hover:bg-ink/8",
 }
 
 export function IconButton({

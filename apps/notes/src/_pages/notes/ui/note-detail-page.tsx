@@ -330,6 +330,7 @@ function ReadyNoteDetail({
             kind={notice.kind}
             message={notice.message}
             onDismiss={() => setNotice(null)}
+            resetKey={notice}
           />
         </div>
       ) : null}

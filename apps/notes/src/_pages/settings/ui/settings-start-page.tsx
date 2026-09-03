@@ -27,7 +27,7 @@ function InteractionPreferencesForm({
   saveBatchCopyShortcut,
   saving,
 }: InteractionPreferencesFormProps) {
-  const { getValues, register, reset } = useForm<InteractionPreferenceFields>({
+  const { register, reset } = useForm<InteractionPreferenceFields>({
     defaultValues: {
       batchCopyShortcutEnabled: preferences.batchCopyShortcutEnabled,
     },
@@ -45,7 +45,7 @@ function InteractionPreferencesForm({
 
   function changeShortcut(event: ChangeEvent<HTMLInputElement>) {
     void shortcutRegistration.onChange(event)
-    void saveShortcut(getValues("batchCopyShortcutEnabled"))
+    void saveShortcut(event.currentTarget.checked)
   }
 
   return (
@@ -73,7 +73,7 @@ export function SettingsStartPage() {
       id="main-content"
     >
       <PageHeading density="compact" title="설정" />
-      <section className="mt-5 rounded-panel border border-line bg-surface-raised px-5 py-6 shadow-note sm:px-6">
+      <section className="mt-5 border-y border-line py-6">
         {"preferences" in preferences ? (
           <div>
             <InteractionPreferencesForm

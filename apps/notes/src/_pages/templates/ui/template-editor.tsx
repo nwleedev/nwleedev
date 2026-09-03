@@ -282,7 +282,7 @@ export function TemplateEditor({
   return (
     <section
       aria-labelledby="template-editor-title"
-      className="grid gap-4 rounded-panel border border-line bg-surface-raised p-4 shadow-note sm:p-5"
+      className="grid gap-4 border-y border-line py-4 sm:py-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-base font-bold" id="template-editor-title">

@@ -1,3 +1,7 @@
+"use client"
+
+import { useEffect, useEffectEvent } from "react"
+
 import { joinClassNames } from "@/shared/lib/join-class-names"
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
@@ -10,7 +14,10 @@ type ActionToastProps = {
   message: string
   onAction?(): void
   onDismiss(): void
+  resetKey?: unknown
 }
+
+const TOAST_DURATION_MS = 5_000
 
 export function ActionToast({
   actionLabel,
@@ -19,12 +26,24 @@ export function ActionToast({
   message,
   onAction,
   onDismiss,
+  resetKey,
 }: ActionToastProps) {
+  const dismiss = useEffectEvent(onDismiss)
   const toastClassName = joinClassNames(
-    "flex items-center gap-3 rounded-panel border bg-surface-raised px-3 py-2.5 text-sm leading-5 shadow-floating",
+    "notes-action-toast flex items-center gap-3 rounded-panel border bg-surface-raised px-3 py-2.5 text-sm leading-5 shadow-floating",
     kind === "error" ? "border-danger" : "border-line-strong",
     className,
   )
+
+  useEffect(() => {
+    const dismissTimer = window.setTimeout(() => {
+      dismiss()
+    }, TOAST_DURATION_MS)
+
+    return () => {
+      window.clearTimeout(dismissTimer)
+    }
+  }, [message, resetKey])
 
   return (
     <div

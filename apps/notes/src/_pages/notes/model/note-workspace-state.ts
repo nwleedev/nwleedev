@@ -7,6 +7,7 @@ export type NoteWorkspaceState = {
   activePanel: NoteWorkspacePanel | null
   propertiesFocus: NotePropertiesFocus
   propertiesTarget: NoteReference | null
+  selectedBatchCopyItemId: string | null
   selectedNoteId: string | null
 }
 
@@ -15,6 +16,7 @@ export function createNoteWorkspaceState(): NoteWorkspaceState {
     activePanel: null,
     propertiesFocus: "preserve",
     propertiesTarget: null,
+    selectedBatchCopyItemId: null,
     selectedNoteId: null,
   }
 }
@@ -34,6 +36,44 @@ export function clearNoteSelection(
   }
 
   return { ...state, selectedNoteId: null }
+}
+
+export function toggleBatchCopyItemSelection(
+  state: NoteWorkspaceState,
+  itemId: string,
+): NoteWorkspaceState {
+  const selectedBatchCopyItemId =
+    state.selectedBatchCopyItemId === itemId ? null : itemId
+
+  return { ...state, selectedBatchCopyItemId }
+}
+
+export function clearWorkspaceSelections(
+  state: NoteWorkspaceState,
+): NoteWorkspaceState {
+  const batchCopySelectionEmpty = state.selectedBatchCopyItemId === null
+  const noteSelectionEmpty = state.selectedNoteId === null
+
+  if (batchCopySelectionEmpty && noteSelectionEmpty) {
+    return state
+  }
+
+  return {
+    ...state,
+    selectedBatchCopyItemId: null,
+    selectedNoteId: null,
+  }
+}
+
+export function forgetBatchCopyItem(
+  state: NoteWorkspaceState,
+  itemId: string,
+): NoteWorkspaceState {
+  if (state.selectedBatchCopyItemId !== itemId) {
+    return state
+  }
+
+  return { ...state, selectedBatchCopyItemId: null }
 }
 
 export function forgetNote(

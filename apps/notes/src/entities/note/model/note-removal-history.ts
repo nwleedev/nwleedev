@@ -23,6 +23,16 @@ export function rememberRemovedNote(
   }
 }
 
+export function dismissNoteRemovalHistory(
+  history: NoteRemovalHistory,
+): NoteRemovalHistory {
+  if (history.entries.length === 0) {
+    return history
+  }
+
+  return createNoteRemovalHistory()
+}
+
 export function restoreMostRecentlyRemovedNote(
   history: NoteRemovalHistory,
 ): { history: NoteRemovalHistory; note: Note } | null {

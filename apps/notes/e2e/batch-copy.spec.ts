@@ -74,7 +74,7 @@ test("설정에서 데스크톱 일괄 복사 단축키를 끄고 새로고침 �
   ).toBeVisible()
 })
 
-test("오른쪽 패널에서 항목을 끌어 순서를 바꾸고 제거 이력을 키보드로 복구한다", async ({
+test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분한다", async ({
   page,
 }) => {
   const { firstContent, panel, secondContent } =
@@ -82,12 +82,23 @@ test("오른쪽 패널에서 항목을 끌어 순서를 바꾸고 제거 이력�
   const items = panel.getByRole("listitem")
   const firstItem = items.filter({ hasText: firstContent })
   const secondItem = items.filter({ hasText: secondContent })
-  const firstHandle = firstItem.getByRole("button", {
-    name: "1번째 일괄 복사 항목 순서 변경",
+  const firstSelection = firstItem.getByRole("button", {
+    name: `일괄 복사 항목 선택: ${firstContent}`,
   })
+
+  await firstSelection.click()
+  await expect(firstSelection).toHaveAttribute("aria-pressed", "true")
+  await firstSelection.press("ArrowDown")
+  await expect(items).toContainText([secondContent, firstContent])
+  await expect(firstSelection).toBeFocused()
+  await firstSelection.press("ArrowUp")
+  await expect(items).toContainText([firstContent, secondContent])
+  await firstSelection.press("Escape")
+  await expect(firstSelection).toHaveAttribute("aria-pressed", "false")
+
   const secondBox = await visibleBox(secondItem)
 
-  await firstHandle.hover()
+  await firstSelection.hover()
   await page.mouse.down()
   await page.mouse.move(
     secondBox.x + secondBox.width / 2,
@@ -101,27 +112,75 @@ test("오른쪽 패널에서 항목을 끌어 순서를 바꾸고 제거 이력�
   await expect(panel.getByRole("button", { name: "실행 취소" })).toHaveCount(0)
   await expect(panel.getByRole("button", { name: "다시 실행" })).toHaveCount(0)
   await expect(panel.getByRole("region", { name: "합친 텍스트" })).toHaveCount(0)
+  await expect(
+    panel.getByRole("button", { name: "일괄 복사 항목 동작" }),
+  ).toHaveCount(0)
+
+  const panelBox = await visibleBox(panel)
+  await firstSelection.hover()
+  await page.mouse.down()
+  await page.mouse.move(panelBox.x + panelBox.width / 2, panelBox.y + 10)
+  await page.mouse.up()
+  await expect(items).toHaveCount(2)
+  await expect(items).toContainText([secondContent, firstContent])
 
   await firstItem.hover()
-  await firstItem.getByRole("button", { name: "일괄 복사 항목 동작" }).click()
-  await firstItem.getByRole("button", { exact: true, name: "제거" }).click()
+  const removeFirst = firstItem.getByRole("button", {
+    name: `일괄 복사 항목 제거: ${firstContent}`,
+  })
+  await expect(removeFirst).toBeVisible()
+  await removeFirst.click()
   await expect(firstItem).toHaveCount(0)
   await page.keyboard.press("ControlOrMeta+z")
   await expect(firstItem).toBeVisible()
+
+  await firstSelection.hover()
+  await page.mouse.down()
+  await page.mouse.move(panelBox.x - 12, panelBox.y + panelBox.height / 2)
+  await page.mouse.up()
+  await expect(firstItem).toHaveCount(0)
+  await page.keyboard.press("ControlOrMeta+z")
+  await expect(firstItem).toBeVisible()
+  await firstSelection.click()
+  await expect(firstSelection).toHaveAttribute("aria-pressed", "true")
   await page.keyboard.press("ControlOrMeta+Shift+z")
   await expect(firstItem).toHaveCount(0)
 
-  await page.setViewportSize({ height: 720, width: 320 })
+  await page.setViewportSize({ height: 720, width: 1000 })
   const dialog = page.getByRole("dialog", { name: "일괄 복사" })
   await expect(dialog).toBeVisible()
-  await dialog.getByRole("button", { name: "일괄 복사 패널 닫기" }).click()
+  await page.keyboard.press("Escape")
+  await expect(dialog).toHaveCount(0)
+  await page.getByRole("button", { name: "일괄 복사 1개" }).click()
+  await expect(dialog).toBeVisible()
+  const modalSelection = dialog.getByRole("button", {
+    name: `일괄 복사 항목 선택: ${secondContent}`,
+  })
+  await modalSelection.click()
+  await modalSelection.press("Escape")
+  await expect(modalSelection).toHaveAttribute("aria-pressed", "false")
+  await expect(dialog).toBeVisible()
+  await modalSelection.press("Escape")
+  await expect(dialog).toHaveCount(0)
+
+  await page.setViewportSize({ height: 720, width: 320 })
   const managementLink = page.getByRole("link", { name: "일괄 복사 1개 관리" })
   await expect(managementLink).toBeVisible()
   await managementLink.click()
   await expect(page).toHaveURL("/batch-copy/")
+  const management = page.getByRole("region", {
+    name: "일괄 복사 항목 관리",
+  })
+  await expect(management).toContainText(secondContent)
+  await expect(management.getByRole("button", { name: "위로" })).toBeVisible()
+  await expect(management.getByRole("button", { name: "아래로" })).toBeVisible()
+  await expect(management.getByRole("button", { name: "제거" })).toBeVisible()
+  await management
+    .getByRole("button", { name: "1번째 일괄 복사 항목 위치 변경" })
+    .click()
   await expect(
-    page.getByRole("region", { name: "일괄 복사 항목 관리" }),
-  ).toContainText(secondContent)
+    management.getByRole("button", { name: /삽입 위치$/u }),
+  ).toHaveCount(2)
 })
 
 test.describe("320px 일괄 복사", () => {

@@ -19,7 +19,7 @@ function SavedTemplateItem({
   template,
 }: SavedTemplateItemProps) {
   return (
-    <li className="grid gap-3 rounded-control border border-line bg-surface-raised p-4">
+    <li className="grid gap-3 px-1 py-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="font-display text-sm font-bold">{template.title}</h3>
         <Button
@@ -47,7 +47,7 @@ function SavedTemplateList({
   templates,
 }: SavedTemplateListProps) {
   return (
-    <ol className="grid gap-3">
+    <ol className="divide-y divide-line border-y border-line">
       {templates.map((template) => (
         <SavedTemplateItem
           key={template.id}

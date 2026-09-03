@@ -120,7 +120,7 @@ describe("NoteRecordSchema", () => {
     expect(
       NoteRecordSchema.safeParse({
         ...originalNote,
-        geometry: { ...originalNote.geometry, width: 1281 },
+        geometry: { ...originalNote.geometry, width: 4096 },
       }).success,
     ).toBe(false)
   })

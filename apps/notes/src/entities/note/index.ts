@@ -58,6 +58,7 @@ export {
 } from "./model/note-draft"
 export {
   createNoteRemovalHistory,
+  dismissNoteRemovalHistory,
   rememberRemovedNote,
   restoreMostRecentlyRemovedNote,
   type NoteRemovalHistory,

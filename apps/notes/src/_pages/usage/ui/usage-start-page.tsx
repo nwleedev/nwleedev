@@ -41,7 +41,7 @@ function UsageContent({ onRetry, state }: UsageContentProps) {
   if (state.rows.length === 0) {
     return (
       <p
-        className="rounded-panel border border-line bg-surface-raised px-5 py-12 text-center text-sm text-soft-ink shadow-note"
+        className="border-y border-line px-5 py-12 text-center text-sm text-soft-ink"
         role="status"
       >
         복사 기록이 없습니다.

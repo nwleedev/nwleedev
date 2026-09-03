@@ -67,6 +67,24 @@ test("초기 화면을 hydration 오류 없이 연다", async ({ page }) => {
   expect(hydrationErrors).toEqual([])
 })
 
+test("허용하지 않는 주소에서 다시 접속할 방법을 안내한다", async ({ page }) => {
+  const unsupportedAddress = new URL(page.url())
+  unsupportedAddress.hostname = "localhost."
+
+  await page.goto(unsupportedAddress.toString())
+  await expect(
+    page.getByRole("heading", { name: "잘못된 접근입니다." }),
+  ).toBeVisible()
+  await expect(
+    page.getByText(
+      /HTTPS 주소 또는 http:\/\/localhost 주소로 다시 접속하세요\./u,
+    ),
+  ).toBeVisible()
+  await expect(
+    page.getByText("지원하지 않는 접속 주소", { exact: true }),
+  ).toHaveCount(0)
+})
+
 test("항상 편집할 수 있는 메모 원문을 저장하고 불필요한 조작을 표시하지 않는다", async ({
   page,
 }) => {
@@ -259,7 +277,9 @@ test("헤더 이동, 가장자리 크기 조절과 빈 캔버스 시점 이동�
   await page.mouse.move(panStart.x - 35, panStart.y - 25)
   await releasePointerCapture(page)
   await page.mouse.up()
-  await expect.poll(async () => (await visibleBox(note)).x).toBe(resized.x)
+  await expect
+    .poll(async () => (await visibleBox(note)).x)
+    .toBeLessThan(resized.x - 20)
 
   await page.mouse.move(panStart.x, panStart.y)
   await page.mouse.down()
@@ -301,6 +321,36 @@ test("Escape, 빈 캔버스와 Command는 선택만 해제한다", async ({ page
   await expect(note).not.toBeFocused()
   await page.keyboard.press("Enter")
   await expect(page.getByRole("complementary", { name: "메모 속성" })).toHaveCount(0)
+})
+
+test("누락된 Command keyup 뒤 신뢰할 수 있는 입력에서 헤더를 복원한다", async ({
+  page,
+}) => {
+  const note = await createNoteThroughUi(page, "Command 상태를 복원할 메모")
+  const headerAction = note.getByRole("button", { name: "메모를 맨 앞으로" })
+
+  await note.focus()
+  await page.keyboard.down("Meta")
+  await expect(headerAction).toBeHidden()
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: "Meta" }))
+    window.dispatchEvent(new Event("blur"))
+  })
+  await expect(headerAction).toBeHidden()
+
+  await page.evaluate(() => {
+    window.addEventListener(
+      "keyup",
+      (event) => event.stopImmediatePropagation(),
+      { capture: true, once: true },
+    )
+  })
+  await page.keyboard.up("Meta")
+  await expect(headerAction).toBeHidden()
+
+  await clickBlankCanvas(page)
+  await expect(headerAction).toBeVisible()
 })
 
 test("가장 최근에 활성화한 오른쪽 패널 하나만 표시한다", async ({ page }) => {
@@ -354,6 +404,32 @@ test("메모 삭제를 알리고 같은 메모를 취소로 복원한다", async
   await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
     content,
   )
+
+  await note.hover()
+  await note.getByRole("button", { name: "메모 삭제" }).click()
+  await expect(removalNotice).toBeVisible()
+  await expect(removalNotice).toBeHidden({ timeout: 6_000 })
+})
+
+test("연속 삭제 알림이 사라진 뒤 이전 삭제를 다시 알리지 않는다", async ({
+  page,
+}) => {
+  const firstNote = await createNoteThroughUi(page, "먼저 삭제할 메모")
+  await createNoteThroughUi(page, "나중에 삭제할 메모")
+  const removalNotice = page.getByRole("status").filter({
+    hasText: "메모를 제거했습니다.",
+  })
+
+  await firstNote.hover()
+  await firstNote.getByRole("button", { name: "메모 삭제" }).click()
+  await expect(removalNotice).toBeVisible()
+  const remainingNote = page.getByRole("article", {
+    exact: true,
+    name: "메모",
+  })
+  await remainingNote.hover()
+  await remainingNote.getByRole("button", { name: "메모 삭제" }).click()
+  await expect(removalNotice).toBeHidden({ timeout: 6_000 })
 })
 
 test.describe("320px 메모 화면", () => {

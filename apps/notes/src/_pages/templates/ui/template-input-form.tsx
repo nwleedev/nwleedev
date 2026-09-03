@@ -204,7 +204,7 @@ export function TemplateInputForm({ template }: TemplateInputFormProps) {
   return (
     <section
       aria-labelledby="template-input-title"
-      className="grid gap-4 rounded-panel border border-line bg-surface-raised p-4 shadow-note sm:p-5"
+      className="grid gap-4 border-y border-line py-4 sm:py-5"
     >
       <h2 className="font-display text-base font-bold" id="template-input-title">
         {template.title}

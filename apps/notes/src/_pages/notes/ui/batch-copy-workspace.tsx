@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type PropsWithChildren,
+  type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
   type SyntheticEvent,
 } from "react"
@@ -93,13 +94,16 @@ type BatchCopyPanelContentProps = {
   headingRef?: RefObject<HTMLHeadingElement | null>
   items: readonly BatchCopyItem[]
   pending: boolean
+  selectedItemId: string | null
   status: "failure" | "loading" | "ready"
   onClose(): void
   onCopy(): Promise<CopyBatchTextResult>
   onCopyResult(result: CopyBatchTextResult): void
   onMove(itemId: string, index: number): Promise<EditBatchCopyResult>
   onRemove(itemId: string): Promise<EditBatchCopyResult>
+  onRemovalSaved(itemId: string): void
   onRetry(): void
+  onToggleSelection(itemId: string): void
 }
 
 type EmptyBatchCopyContentProps = {
@@ -147,12 +151,18 @@ function BatchCopyPanelContent({
   onCopyResult,
   onMove,
   onRemove,
+  onRemovalSaved,
   onRetry,
+  onToggleSelection,
   pending,
+  selectedItemId,
   status,
 }: BatchCopyPanelContentProps) {
   return (
-    <div className="flex h-full min-h-0 flex-col bg-surface-raised">
+    <div
+      className="flex h-full min-h-0 flex-col bg-surface-raised"
+      data-batch-copy-panel-boundary
+    >
       <header className="flex h-[2.375rem] shrink-0 items-center justify-between gap-3 border-b border-line px-3">
         <h2
           className="text-sm font-semibold tracking-[-0.01em]"
@@ -179,8 +189,11 @@ function BatchCopyPanelContent({
               items={items}
               onMove={onMove}
               onRemove={onRemove}
+              onRemovalSaved={onRemovalSaved}
+              onToggleSelection={onToggleSelection}
               pending={pending}
               presentation="panel"
+              selectedItemId={selectedItemId}
             />
           </div>
           <div className="flex shrink-0 justify-end border-t border-line p-3">
@@ -212,6 +225,11 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
   const switchingToInline = useRef(false)
   const inline = useInlinePanel(container)
   const activePanel = session.workspace.activePanel
+  const selectedBatchCopyItemId =
+    session.workspace.selectedBatchCopyItemId
+  const batchCopyItemSelected = selectedBatchCopyItemId !== null
+  const noteSelected = session.workspace.selectedNoteId !== null
+  const workspaceSelectionActive = batchCopyItemSelected || noteSelected
   const open = activePanel !== null
   const batchCopyActive = activePanel === "batch-copy"
   const propertiesActive = activePanel === "note-properties"
@@ -293,6 +311,16 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
     void retryCopy()
   }
 
+  async function redoBatchCopyItemRemoval() {
+    const result = await batchCopy.redo()
+
+    if (result.status === "saved" && result.removedItemId !== undefined) {
+      session.forgetBatchCopyItem(result.removedItemId)
+    }
+
+    return result
+  }
+
   function handleDialogClose() {
     if (switchingToInline.current) {
       switchingToInline.current = false
@@ -306,8 +334,21 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
     }
   }
 
-  function preventDialogCancel(event: SyntheticEvent<HTMLDialogElement>) {
+  function handleDialogKeyDown(
+    event: ReactKeyboardEvent<HTMLDialogElement>,
+  ) {
+    if (event.key === "Escape") {
+      event.stopPropagation()
+    }
+  }
+
+  function handleDialogCancel(event: SyntheticEvent<HTMLDialogElement>) {
+    if (!workspaceSelectionActive) {
+      return
+    }
+
     event.preventDefault()
+    session.clearSelections()
   }
 
   return (
@@ -320,7 +361,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
         <BatchCopyHistoryShortcuts
           canRedo={batchCopy.canRedo}
           canUndo={batchCopy.canUndo}
-          onRedo={batchCopy.redo}
+          onRedo={redoBatchCopyItemRemoval}
           onUndo={batchCopy.undo}
           pending={batchCopy.pending}
         />
@@ -388,8 +429,11 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
                   onCopyResult={setCopyResult}
                   onMove={batchCopy.moveItem}
                   onRemove={batchCopy.removeItem}
+                  onRemovalSaved={session.forgetBatchCopyItem}
                   onRetry={batchCopy.retry}
+                  onToggleSelection={session.toggleBatchCopyItem}
                   pending={batchCopy.pending}
+                  selectedItemId={selectedBatchCopyItemId}
                   status={batchCopy.status}
                 />
               ) : null}
@@ -401,8 +445,9 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
           aria-label={propertiesActive ? "메모 속성" : "일괄 복사"}
           className="m-auto h-[min(42rem,calc(100dvh-2rem))] w-[min(32rem,calc(100vw-2rem))] max-w-none overflow-visible rounded-panel border border-line bg-surface-raised p-0 text-ink shadow-floating"
           id={MODAL_PANEL_ID}
-          onCancel={preventDialogCancel}
+          onCancel={handleDialogCancel}
           onClose={handleDialogClose}
+          onKeyDown={handleDialogKeyDown}
           ref={dialog}
         >
           {batchCopyActive ? (
@@ -415,8 +460,11 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
               onCopyResult={setCopyResult}
               onMove={batchCopy.moveItem}
               onRemove={batchCopy.removeItem}
+              onRemovalSaved={session.forgetBatchCopyItem}
               onRetry={batchCopy.retry}
+              onToggleSelection={session.toggleBatchCopyItem}
               pending={batchCopy.pending}
+              selectedItemId={selectedBatchCopyItemId}
               status={batchCopy.status}
             />
           ) : null}

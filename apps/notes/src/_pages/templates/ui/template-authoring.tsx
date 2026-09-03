@@ -79,7 +79,7 @@ export function TemplateAuthoring({ onSaved }: TemplateAuthoringProps) {
 
   if (draft === null) {
     return (
-      <section className="grid min-h-52 place-items-center rounded-panel border border-line bg-surface-raised p-6 text-center shadow-note">
+      <section className="grid min-h-52 place-items-center border-y border-line p-6 text-center">
         <div className="grid max-w-lg gap-4 justify-items-center">
           <p className="text-sm leading-6 text-soft-ink">{seed.reason}</p>
           <div className="flex flex-wrap justify-center gap-2">

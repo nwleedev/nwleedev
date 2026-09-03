@@ -32,7 +32,7 @@ function AnalysisSourceLine({ line }: AnalysisSourceLineProps) {
   const noteHref = `/#note-${encodeURIComponent(line.note.id)}`
 
   return (
-    <div className="min-w-0 rounded-control border border-line bg-canvas p-3">
+    <div className="min-w-0 border-l-2 border-line bg-canvas p-3">
       <p className="whitespace-pre-wrap break-words text-sm leading-6 text-ink">
         {line.rawText}
       </p>
@@ -127,7 +127,7 @@ export function AnalysisResults({
           {noteCount}개 메모 분석 완료, {completedAt}
         </p>
         <p
-          className="rounded-panel border border-line bg-surface-raised px-5 py-12 text-center text-sm text-soft-ink shadow-note"
+          className="border-y border-line px-5 py-12 text-center text-sm text-soft-ink"
           role="status"
         >
           분석 후보가 없습니다.
@@ -146,7 +146,7 @@ export function AnalysisResults({
           {noteCount}개 메모 분석 완료, {completedAt}
         </p>
       </div>
-      <ol className="divide-y divide-line overflow-hidden rounded-panel border border-line bg-surface-raised shadow-note">
+      <ol className="divide-y divide-line border-y border-line">
         {completed.rows.map((row) => {
           const key = [
             row.left.note.id,

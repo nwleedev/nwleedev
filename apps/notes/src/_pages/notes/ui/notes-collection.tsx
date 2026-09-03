@@ -62,6 +62,7 @@ function WorkspaceNoticeToast({
         message={notice.message}
         onAction={notice.retry}
         onDismiss={onDismiss}
+        resetKey={notice}
       />
     )
   }
@@ -71,6 +72,7 @@ function WorkspaceNoticeToast({
       kind={notice.kind}
       message={notice.message}
       onDismiss={onDismiss}
+      resetKey={notice}
     />
   )
 }
@@ -140,6 +142,8 @@ export function NotesCollection({
   const {
     activateProperties: activatePropertiesInSession,
     clearSelection,
+    clearSelections,
+    dismissRemovalNotice,
     forgetLatestRemoval,
     forgetNote: forgetNoteInSession,
     latestRemovedNote,
@@ -234,46 +238,75 @@ export function NotesCollection({
       clearSelection()
     }
 
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        clearSelection()
+    function updateCommandState(event: KeyboardEvent | PointerEvent) {
+      if (!event.isTrusted) {
         return
       }
 
-      if (event.key === "Meta") {
-        setCommandPressed(true)
+      setCommandPressed(event.metaKey)
+
+      if (event.metaKey) {
         clearSelectionForCommand()
       }
     }
 
-    function handleKeyUp(event: KeyboardEvent) {
-      if (event.key === "Meta") {
-        setCommandPressed(false)
+    function handleKeyDown(event: KeyboardEvent) {
+      if (!event.isTrusted) {
+        return
+      }
+
+      updateCommandState(event)
+
+      if (event.key === "Escape") {
+        clearSelections()
+        return
       }
     }
 
-    function resetCommandState() {
+    function handleKeyUp(event: KeyboardEvent) {
+      updateCommandState(event)
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      updateCommandState(event)
+    }
+
+    function resetCommandState(event: Event) {
+      if (!event.isTrusted) {
+        return
+      }
+
       setCommandPressed(false)
     }
 
-    function resetCommandWhenHidden() {
+    function resetCommandWhenHidden(event: Event) {
+      if (!event.isTrusted) {
+        return
+      }
+
       if (document.visibilityState === "hidden") {
-        resetCommandState()
+        setCommandPressed(false)
       }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     window.addEventListener("keyup", handleKeyUp)
+    window.addEventListener("pointerdown", handlePointerDown, true)
     window.addEventListener("blur", resetCommandState)
+    window.addEventListener("focus", resetCommandState)
+    window.addEventListener("pageshow", resetCommandState)
     document.addEventListener("visibilitychange", resetCommandWhenHidden)
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("keyup", handleKeyUp)
+      window.removeEventListener("pointerdown", handlePointerDown, true)
       window.removeEventListener("blur", resetCommandState)
+      window.removeEventListener("focus", resetCommandState)
+      window.removeEventListener("pageshow", resetCommandState)
       document.removeEventListener("visibilitychange", resetCommandWhenHidden)
     }
-  }, [clearSelection])
+  }, [clearSelection, clearSelections])
 
   async function createNewNote() {
     setCreationPending(true)
@@ -462,7 +495,8 @@ export function NotesCollection({
             actionLabel="취소"
             message="메모를 제거했습니다."
             onAction={restoreLatestRemoval}
-            onDismiss={forgetLatestRemoval}
+            onDismiss={dismissRemovalNotice}
+            resetKey={latestRemovedNote}
           />
         </div>
       ) : null}

@@ -288,15 +288,14 @@ export function NotesBoard({
     }
   }
 
-  function cancelPan() {
+  function cancelPan(event: ReactPointerEvent<HTMLDivElement>) {
     const gesture = panGesture.current
 
-    if (gesture === null) {
+    if (gesture === null || gesture.pointerId !== event.pointerId) {
       return
     }
 
     panGesture.current = null
-    setView(gesture.startView)
   }
 
   return (

@@ -285,8 +285,10 @@ export function NoteCard({
     commandPressed ? "invisible" : undefined,
   )
   const cardClassName = joinClassNames(
-    "absolute flex flex-col overflow-visible rounded-note border bg-note shadow-note transition-[border-color,box-shadow] duration-[var(--notes-motion-fast)]",
-    selectedVisible ? "border-selection" : "border-note-line",
+    "absolute flex flex-col overflow-visible rounded-note border bg-note shadow-note outline-none transition-[border-color,box-shadow] duration-[var(--notes-motion-fast)] focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[0.2rem] focus-visible:outline-[var(--notes-focus-ring)]",
+    selectedVisible
+      ? "border-selection ring-1 ring-inset ring-selection"
+      : "border-note-line",
     propertiesTarget ? "outline outline-1 outline-offset-2 outline-dashed outline-line-strong" : undefined,
   )
   const cardStyle: CSSProperties = {
@@ -601,7 +603,7 @@ export function NoteCard({
       </header>
       <textarea
         aria-label="메모 내용"
-        className="min-h-0 flex-1 resize-none overflow-auto border-0 bg-transparent px-4 py-3 text-[0.98rem] leading-7 text-ink outline-none placeholder:text-soft-ink"
+        className="min-h-0 flex-1 resize-none overflow-auto border-0 bg-transparent px-4 py-3 text-[0.98rem] leading-7 text-ink outline-none placeholder:text-soft-ink focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[-0.2rem] focus-visible:outline-[var(--notes-focus-ring)]"
         id={contentId}
         onClick={runContentShortcut}
         onMouseDown={prepareContentShortcut}

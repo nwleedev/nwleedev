@@ -9,7 +9,7 @@ import {
 
 export type EditBatchCopyResult =
   | { status: "failure" }
-  | { status: "saved" }
+  | { removedItemId?: string; status: "saved" }
   | { status: "unchanged" }
 
 export type EditBatchCopyExecution = {
@@ -77,9 +77,23 @@ export function undoBatchCopyItemRemoval(
   return saveTransition(dependencies, session, undoRemoval)
 }
 
-export function redoBatchCopyItemRemoval(
+export async function redoBatchCopyItemRemoval(
   dependencies: EditBatchCopyDependencies,
   session: BatchCopySession,
 ) {
-  return saveTransition(dependencies, session, redoRemoval)
+  const removedItemId = session.history.redo.at(-1)?.item.id
+  const execution = await saveTransition(
+    dependencies,
+    session,
+    redoRemoval,
+  )
+
+  if (execution.result.status !== "saved" || removedItemId === undefined) {
+    return execution
+  }
+
+  return {
+    ...execution,
+    result: { removedItemId, status: "saved" } as const,
+  }
 }

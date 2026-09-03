@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import type { Note } from "./note"
 import {
   createNoteRemovalHistory,
+  dismissNoteRemovalHistory,
   rememberRemovedNote,
   restoreMostRecentlyRemovedNote,
 } from "./note-removal-history"
@@ -52,5 +53,20 @@ describe("메모 삭제 복구 이력", () => {
 
   it("삭제 이력이 없으면 복원 대상을 만들지 않는다", () => {
     expect(restoreMostRecentlyRemovedNote(createNoteRemovalHistory())).toBeNull()
+  })
+
+  it("제거 알림을 닫으면 이전 삭제도 다시 알리지 않는다", () => {
+    const firstRemoval = rememberRemovedNote(
+      createNoteRemovalHistory(),
+      firstNote,
+      "2026-09-02T01:00:00.000Z",
+    )
+    const secondRemoval = rememberRemovedNote(
+      firstRemoval,
+      secondNote,
+      "2026-09-02T02:00:00.000Z",
+    )
+
+    expect(dismissNoteRemovalHistory(secondRemoval).entries).toEqual([])
   })
 })

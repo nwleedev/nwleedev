@@ -12,16 +12,22 @@ type BatchCopyEditingViewProps = {
   items: readonly BatchCopyItem[]
   pending: boolean
   presentation: "management" | "panel"
+  selectedItemId?: string | null
   onMove(itemId: string, index: number): Promise<EditBatchCopyResult>
   onRemove(itemId: string): Promise<EditBatchCopyResult>
+  onRemovalSaved?(itemId: string): void
+  onToggleSelection?(itemId: string): void
 }
 
 export function BatchCopyEditingView({
   items,
   onMove,
   onRemove,
+  onRemovalSaved,
+  onToggleSelection,
   pending,
   presentation,
+  selectedItemId,
 }: BatchCopyEditingViewProps) {
   const [errorMessage, setErrorMessage] = useState("")
 
@@ -42,6 +48,10 @@ export function BatchCopyEditingView({
         ? "일괄 복사 항목을 제거하지 못했습니다. 다시 시도하세요."
         : "",
     )
+
+    if (result.status === "saved") {
+      onRemovalSaved?.(itemId)
+    }
   }
 
   function moveFromList(itemId: string, index: number) {
@@ -63,8 +73,10 @@ export function BatchCopyEditingView({
         items={items}
         onMove={moveFromList}
         onRemove={removeFromList}
+        onToggleSelection={onToggleSelection}
         pending={pending}
         presentation={presentation}
+        selectedItemId={selectedItemId}
       />
     </div>
   )

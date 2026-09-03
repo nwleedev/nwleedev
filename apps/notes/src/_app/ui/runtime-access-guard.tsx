@@ -2,8 +2,6 @@
 
 import { useSyncExternalStore, type PropsWithChildren } from "react"
 
-import { StatusNotice } from "@/shared/ui/status-notice"
-
 import { isSupportedRuntimeAddress } from "../model/runtime-access"
 
 type RuntimeAccess = "checking" | "supported" | "unsupported"
@@ -43,23 +41,21 @@ export function RuntimeAccessGuard({ children }: PropsWithChildren) {
       className="grid min-h-screen place-items-center bg-canvas px-4 py-10 text-ink"
       id="main-content"
     >
-      <section className="w-full max-w-xl rounded-panel border border-line bg-surface-raised p-6 shadow-floating sm:p-8">
-        {access === "checking" ? (
-          <StatusNotice>
-            <p>접속 주소 확인 중</p>
-          </StatusNotice>
-        ) : (
-          <>
-            <h1 className="font-display text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
-              지원하지 않는 접속 주소
-            </h1>
-            <p className="mt-4 text-sm leading-6 text-soft-ink sm:text-base">
-              HTTPS 주소 또는 <code>http://localhost</code> 주소로 다시
-              접속하세요.
-            </p>
-          </>
-        )}
-      </section>
+      {access === "checking" ? (
+        <p className="text-sm text-soft-ink" role="status">
+          접속 주소 확인 중
+        </p>
+      ) : (
+        <section className="w-full max-w-xl px-2 py-4 sm:px-4">
+          <h1 className="font-display text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">
+            잘못된 접근입니다.
+          </h1>
+          <p className="mt-4 text-sm leading-6 text-soft-ink sm:text-base">
+            HTTPS 주소 또는 <code>http://localhost</code> 주소로 다시
+            접속하세요.
+          </p>
+        </section>
+      )}
     </main>
   )
 }

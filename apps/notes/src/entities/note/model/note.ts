@@ -10,9 +10,9 @@ import {
 
 export const NOTE_CANVAS_SIZE = 4096
 export const NOTE_HEIGHT_MIN = 180
-export const NOTE_HEIGHT_MAX = 960
+export const NOTE_HEIGHT_MAX = NOTE_CANVAS_SIZE - 1
 export const NOTE_WIDTH_MIN = 240
-export const NOTE_WIDTH_MAX = 1280
+export const NOTE_WIDTH_MAX = NOTE_CANVAS_SIZE - 1
 export const NOTE_TAB_INDEX_MIN = 1000
 export const NOTE_TAB_INDEX_MAX = 32767
 

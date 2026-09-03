@@ -87,10 +87,24 @@ dialog::backdrop {
   background: oklch(18% 0.01 255deg / 68%);
 }
 
+@keyframes notes-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+.notes-action-toast {
+  animation: notes-toast-enter var(--notes-motion-panel) ease-out;
+  opacity: 1;
+  transform: translateY(0);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
+    animation-duration: 0.01ms !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }

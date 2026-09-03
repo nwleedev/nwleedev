@@ -77,7 +77,11 @@ export function CopyBatchTextNotice({
 }: CopyBatchTextNoticeProps) {
   if (result.status === "copied") {
     return (
-      <ActionToast message="복사했습니다." onDismiss={onDismiss} />
+      <ActionToast
+        message="복사했습니다."
+        onDismiss={onDismiss}
+        resetKey={result}
+      />
     )
   }
 
@@ -88,6 +92,7 @@ export function CopyBatchTextNotice({
       message={clipboardFailureMessage(result.reason)}
       onAction={onRetry}
       onDismiss={onDismiss}
+      resetKey={result}
     />
   )
 }

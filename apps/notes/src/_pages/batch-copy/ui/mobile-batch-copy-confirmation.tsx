@@ -60,6 +60,7 @@ function ConfirmationNoticeView({
       message={notice.message}
       onAction={notice.retry}
       onDismiss={onDismiss}
+      resetKey={notice}
     />
   )
 }

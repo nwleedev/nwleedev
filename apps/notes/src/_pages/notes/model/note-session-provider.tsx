@@ -10,6 +10,7 @@ import {
 
 import {
   createNoteRemovalHistory,
+  dismissNoteRemovalHistory,
   rememberRemovedNote,
   restoreMostRecentlyRemovedNote,
   type Note,
@@ -20,13 +21,16 @@ import {
   activateBatchCopyPanel,
   activateNoteProperties,
   clearNoteSelection,
+  clearWorkspaceSelections,
   closeActivePanel,
   closeNoteProperties,
   confirmNotePropertiesTarget,
   createNoteWorkspaceState,
+  forgetBatchCopyItem,
   forgetNote,
   restoreNotePropertiesTarget,
   selectNote,
+  toggleBatchCopyItemSelection,
   type NotePropertiesFocus,
   type NoteWorkspaceState,
 } from "./note-workspace-state"
@@ -40,14 +44,18 @@ type NoteSessionContextValue = {
     focus?: NotePropertiesFocus,
   ): void
   clearSelection(): void
+  clearSelections(): void
   closeProperties(noteId: string): void
   closePanel(): void
   confirmPropertiesTarget(expected: NoteReference, saved: NoteReference): void
+  dismissRemovalNotice(): void
   forgetLatestRemoval(): void
+  forgetBatchCopyItem(itemId: string): void
   forgetNote(noteId: string): void
   rememberRemoval(note: Note, removedAt: string): void
   restorePropertiesTarget(note: NoteReference): void
   select(noteId: string): void
+  toggleBatchCopyItem(itemId: string): void
 }
 
 const NoteSessionContext = createContext<NoteSessionContextValue | null>(null)
@@ -66,6 +74,16 @@ export function NoteSessionProvider({ children }: PropsWithChildren) {
 
   const clearSelection = useCallback(() => {
     setWorkspace(clearNoteSelection)
+  }, [])
+
+  const clearSelections = useCallback(() => {
+    setWorkspace(clearWorkspaceSelections)
+  }, [])
+
+  const toggleBatchCopyItem = useCallback((itemId: string) => {
+    setWorkspace((current) =>
+      toggleBatchCopyItemSelection(current, itemId),
+    )
   }, [])
 
   const activateProperties = useCallback((
@@ -119,8 +137,16 @@ export function NoteSessionProvider({ children }: PropsWithChildren) {
     })
   }, [])
 
+  const dismissRemovalNotice = useCallback(() => {
+    setRemovalHistory(dismissNoteRemovalHistory)
+  }, [])
+
   const forgetRemovedNoteFromWorkspace = useCallback((noteId: string) => {
     setWorkspace((current) => forgetNote(current, noteId))
+  }, [])
+
+  const forgetBatchCopyItemFromWorkspace = useCallback((itemId: string) => {
+    setWorkspace((current) => forgetBatchCopyItem(current, itemId))
   }, [])
 
   return (
@@ -129,15 +155,19 @@ export function NoteSessionProvider({ children }: PropsWithChildren) {
         activateBatchCopy,
         activateProperties,
         clearSelection,
+        clearSelections,
         closeProperties,
         closePanel,
         confirmPropertiesTarget,
+        dismissRemovalNotice,
         forgetLatestRemoval,
+        forgetBatchCopyItem: forgetBatchCopyItemFromWorkspace,
         forgetNote: forgetRemovedNoteFromWorkspace,
         latestRemovedNote,
         rememberRemoval,
         restorePropertiesTarget,
         select,
+        toggleBatchCopyItem,
         workspace,
       }}
     >

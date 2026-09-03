@@ -4,13 +4,16 @@ import {
   activateBatchCopyPanel,
   activateNoteProperties,
   clearNoteSelection,
+  clearWorkspaceSelections,
   closeActivePanel,
   closeNoteProperties,
   confirmNotePropertiesTarget,
   createNoteWorkspaceState,
+  forgetBatchCopyItem,
   forgetNote,
   restoreNotePropertiesTarget,
   selectNote,
+  toggleBatchCopyItemSelection,
 } from "./note-workspace-state"
 
 function activateFirstNote() {
@@ -21,6 +24,13 @@ function activateFirstNote() {
 }
 
 describe("메모 작업 상태", () => {
+  it("새 작업에는 선택된 메모와 일괄 복사 항목이 없다", () => {
+    const workspace = createNoteWorkspaceState()
+
+    expect(workspace.selectedNoteId).toBeNull()
+    expect(workspace.selectedBatchCopyItemId).toBeNull()
+  })
+
   it("메모를 선택해도 기존 속성 대상과 최근 패널을 유지한다", () => {
     const selected = selectNote(activateFirstNote(), "note-2")
 
@@ -67,6 +77,43 @@ describe("메모 작업 상태", () => {
     expect(batchCopy.activePanel).toBe("batch-copy")
     expect(batchCopy.selectedNoteId).toBe("note-1")
     expect(batchCopy.propertiesTarget?.id).toBe("note-1")
+  })
+
+  it("일괄 복사 항목 선택은 메모와 독립적으로 같은 항목을 선택하거나 해제한다", () => {
+    const batchCopy = activateBatchCopyPanel(activateFirstNote())
+    const selected = toggleBatchCopyItemSelection(batchCopy, "item-1")
+    const cleared = toggleBatchCopyItemSelection(selected, "item-1")
+
+    expect(selected.selectedBatchCopyItemId).toBe("item-1")
+    expect(selected.selectedNoteId).toBe("note-1")
+    expect(selected.activePanel).toBe("batch-copy")
+    expect(selected.propertiesTarget?.id).toBe("note-1")
+    expect(cleared.selectedBatchCopyItemId).toBeNull()
+    expect(cleared.selectedNoteId).toBe("note-1")
+  })
+
+  it("Escape를 누르면 두 선택만 해제하고 패널 대상과 활성 상태를 유지한다", () => {
+    const properties = activateFirstNote()
+    const batchCopy = activateBatchCopyPanel(properties)
+    const selected = toggleBatchCopyItemSelection(batchCopy, "item-1")
+    const cleared = clearWorkspaceSelections(selected)
+
+    expect(cleared.selectedNoteId).toBeNull()
+    expect(cleared.selectedBatchCopyItemId).toBeNull()
+    expect(cleared.activePanel).toBe("batch-copy")
+    expect(cleared.propertiesTarget).toEqual(properties.propertiesTarget)
+    expect(cleared.propertiesFocus).toBe(properties.propertiesFocus)
+  })
+
+  it("선택한 일괄 복사 항목을 제거하면 일괄 복사 항목 선택만 지운다", () => {
+    const batchCopy = activateBatchCopyPanel(activateFirstNote())
+    const selected = toggleBatchCopyItemSelection(batchCopy, "item-1")
+    const forgotten = forgetBatchCopyItem(selected, "item-1")
+
+    expect(forgotten.selectedBatchCopyItemId).toBeNull()
+    expect(forgotten.selectedNoteId).toBe("note-1")
+    expect(forgotten.activePanel).toBe("batch-copy")
+    expect(forgotten.propertiesTarget).toEqual(selected.propertiesTarget)
   })
 
   it("선택을 해제해도 속성 대상과 최근 패널을 보존한다", () => {
