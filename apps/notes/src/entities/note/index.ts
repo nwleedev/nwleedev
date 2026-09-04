@@ -57,8 +57,12 @@ export {
   type NoteDraftRepository,
 } from "./model/note-draft"
 export {
+  NOTE_REMOVAL_UNDO_DURATION_MS,
   createNoteRemovalHistory,
   dismissNoteRemovalHistory,
+  expireNoteRemoval,
+  forgetRemovedNote,
+  noteRemovalUndoRemainingMs,
   rememberRemovedNote,
   restoreMostRecentlyRemovedNote,
   type NoteRemovalHistory,

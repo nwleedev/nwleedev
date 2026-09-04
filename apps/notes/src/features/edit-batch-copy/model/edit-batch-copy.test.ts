@@ -8,7 +8,10 @@ import {
   type BatchCopyRepository,
 } from "@/entities/batch-copy"
 
-import { redoBatchCopyItemRemoval } from "./edit-batch-copy"
+import {
+  redoBatchCopyItemRemoval,
+  removeBatchCopyItem,
+} from "./edit-batch-copy"
 
 const firstItem = {
   addedAt: "2026-09-02T03:00:00.000Z",
@@ -37,7 +40,20 @@ const repository: BatchCopyRepository = {
 }
 
 describe("일괄 복사 항목 다시 실행", () => {
-  it("다시 제거된 항목을 작업 결과로 알려 선택 상태를 정리할 수 있게 한다", async () => {
+  it("직접 제거된 항목 ID를 저장 응답에 포함해 모든 화면의 선택을 정리한다", async () => {
+    const execution = await removeBatchCopyItem(
+      { now: () => "2026-09-02T04:00:00.000Z", repository },
+      createBatchCopySession(list),
+      firstItem.id,
+    )
+
+    expect(execution.result).toEqual({
+      removedItemId: firstItem.id,
+      status: "saved",
+    })
+  })
+
+  it("다시 제거된 항목 ID를 저장 응답에 포함해 선택 상태를 정리한다", async () => {
     const removed = removeFromBatchCopySession(
       createBatchCopySession(list),
       firstItem.id,

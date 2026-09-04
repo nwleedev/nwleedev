@@ -283,6 +283,17 @@ test("헤더 이동, 가장자리 크기 조절과 빈 캔버스 시점 이동�
 
   await page.mouse.move(panStart.x, panStart.y)
   await page.mouse.down()
+  await page.mouse.move(panStart.x - 30, panStart.y - 20)
+  const interruptedView = await visibleBox(note)
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("blur"))
+  })
+  await page.mouse.move(panStart.x - 90, panStart.y - 60)
+  await expect.poll(async () => (await visibleBox(note)).x).toBe(interruptedView.x)
+  await page.mouse.up()
+
+  await page.mouse.move(panStart.x, panStart.y)
+  await page.mouse.down()
   await page.mouse.move(panStart.x - 70, panStart.y - 50)
   await page.mouse.up()
   await expect
@@ -391,6 +402,7 @@ test("가장 최근에 활성화한 오른쪽 패널 하나만 표시한다", as
 })
 
 test("메모 삭제를 알리고 같은 메모를 취소로 복원한다", async ({ page }) => {
+  await page.clock.install({ time: new Date("2026-09-04T01:00:00.000Z") })
   const content = "삭제 뒤 복원할 메모"
   const note = await createNoteThroughUi(page, content)
 
@@ -408,7 +420,16 @@ test("메모 삭제를 알리고 같은 메모를 취소로 복원한다", async
   await note.hover()
   await note.getByRole("button", { name: "메모 삭제" }).click()
   await expect(removalNotice).toBeVisible()
-  await expect(removalNotice).toBeHidden({ timeout: 6_000 })
+  await page.clock.fastForward(3_000)
+  await page.getByRole("link", { exact: true, name: "설정" }).click()
+  await expect(page).toHaveURL("/settings/")
+  await page.getByRole("link", { exact: true, name: "메모" }).click()
+  await expect(page).toHaveURL("/")
+  await expect(removalNotice).toBeVisible()
+  await page.clock.fastForward(1_500)
+  await expect(removalNotice).toBeVisible()
+  await page.clock.fastForward(1_000)
+  await expect(removalNotice).toBeHidden()
 })
 
 test("연속 삭제 알림이 사라진 뒤 이전 삭제를 다시 알리지 않는다", async ({

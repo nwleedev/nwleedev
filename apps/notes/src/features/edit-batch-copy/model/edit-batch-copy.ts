@@ -49,6 +49,24 @@ async function saveTransition(
   }
 }
 
+async function saveRemovalTransition(
+  dependencies: EditBatchCopyDependencies,
+  session: BatchCopySession,
+  transition: BatchCopyTransition,
+  removedItemId: string | undefined,
+): Promise<EditBatchCopyExecution> {
+  const execution = await saveTransition(dependencies, session, transition)
+
+  if (execution.result.status !== "saved" || removedItemId === undefined) {
+    return execution
+  }
+
+  return {
+    ...execution,
+    result: { removedItemId, status: "saved" },
+  }
+}
+
 export function saveBatchCopyItemPosition(
   dependencies: EditBatchCopyDependencies,
   session: BatchCopySession,
@@ -65,8 +83,12 @@ export function removeBatchCopyItem(
   session: BatchCopySession,
   itemId: string,
 ) {
-  return saveTransition(dependencies, session, (current, updatedAt) =>
-    removeFromBatchCopySession(current, itemId, updatedAt),
+  return saveRemovalTransition(
+    dependencies,
+    session,
+    (current, updatedAt) =>
+      removeFromBatchCopySession(current, itemId, updatedAt),
+    itemId,
   )
 }
 
@@ -82,18 +104,10 @@ export async function redoBatchCopyItemRemoval(
   session: BatchCopySession,
 ) {
   const removedItemId = session.history.redo.at(-1)?.item.id
-  const execution = await saveTransition(
+  return saveRemovalTransition(
     dependencies,
     session,
     redoRemoval,
+    removedItemId,
   )
-
-  if (execution.result.status !== "saved" || removedItemId === undefined) {
-    return execution
-  }
-
-  return {
-    ...execution,
-    result: { removedItemId, status: "saved" } as const,
-  }
 }

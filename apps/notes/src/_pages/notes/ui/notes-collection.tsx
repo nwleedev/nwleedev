@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import {
   createNoteGeometryDraft,
   createNoteReference,
+  noteRemovalUndoRemainingMs,
   type Note,
   type NoteGeometry,
   type NoteGeometryDraftField,
@@ -144,9 +145,10 @@ export function NotesCollection({
     clearSelection,
     clearSelections,
     dismissRemovalNotice,
-    forgetLatestRemoval,
+    expireRemoval,
     forgetNote: forgetNoteInSession,
-    latestRemovedNote,
+    forgetRemoval,
+    latestRemoval,
     rememberRemoval,
     select,
     workspace,
@@ -257,10 +259,23 @@ export function NotesCollection({
 
       updateCommandState(event)
 
-      if (event.key === "Escape") {
-        clearSelections()
+      if (event.defaultPrevented || event.key !== "Escape") {
         return
       }
+
+      if (event.isComposing) {
+        return
+      }
+
+      if (event.metaKey || event.altKey) {
+        return
+      }
+
+      if (event.ctrlKey || event.shiftKey) {
+        return
+      }
+
+      clearSelections()
     }
 
     function handleKeyUp(event: KeyboardEvent) {
@@ -279,23 +294,13 @@ export function NotesCollection({
       setCommandPressed(false)
     }
 
-    function resetCommandWhenHidden(event: Event) {
-      if (!event.isTrusted) {
-        return
-      }
-
-      if (document.visibilityState === "hidden") {
-        setCommandPressed(false)
-      }
-    }
-
     window.addEventListener("keydown", handleKeyDown)
     window.addEventListener("keyup", handleKeyUp)
     window.addEventListener("pointerdown", handlePointerDown, true)
     window.addEventListener("blur", resetCommandState)
     window.addEventListener("focus", resetCommandState)
     window.addEventListener("pageshow", resetCommandState)
-    document.addEventListener("visibilitychange", resetCommandWhenHidden)
+    document.addEventListener("visibilitychange", resetCommandState)
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown)
@@ -304,7 +309,7 @@ export function NotesCollection({
       window.removeEventListener("blur", resetCommandState)
       window.removeEventListener("focus", resetCommandState)
       window.removeEventListener("pageshow", resetCommandState)
-      document.removeEventListener("visibilitychange", resetCommandWhenHidden)
+      document.removeEventListener("visibilitychange", resetCommandState)
     }
   }, [clearSelection, clearSelections])
 
@@ -449,15 +454,20 @@ export function NotesCollection({
   }
 
   async function restoreLatestRemoval() {
-    const removedNote = latestRemovedNote
+    const removal = latestRemoval
 
-    if (removedNote === null) {
+    if (removal === null) {
+      return
+    }
+
+    if (noteRemovalUndoRemainingMs(removal, Date.now()) === 0) {
+      expireRemoval(removal)
       return
     }
 
     try {
-      const restoredNote = await restoreNote(removedNote)
-      forgetLatestRemoval()
+      const restoredNote = await restoreNote(removal.note)
+      forgetRemoval(removal)
       select(restoredNote.id)
       requestAnimationFrame(() => focusNote(restoredNote.id))
     } catch {
@@ -489,14 +499,14 @@ export function NotesCollection({
           />
         </div>
       ) : null}
-      {latestRemovedNote ? (
+      {latestRemoval ? (
         <div className="absolute bottom-4 left-1/2 z-40 w-[min(28rem,calc(100%-1.5rem))] -translate-x-1/2">
           <ActionToast
             actionLabel="취소"
             message="메모를 제거했습니다."
             onAction={restoreLatestRemoval}
             onDismiss={dismissRemovalNotice}
-            resetKey={latestRemovedNote}
+            resetKey={latestRemoval}
           />
         </div>
       ) : null}

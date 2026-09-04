@@ -4,6 +4,9 @@ import type { Note } from "./note"
 import {
   createNoteRemovalHistory,
   dismissNoteRemovalHistory,
+  expireNoteRemoval,
+  forgetRemovedNote,
+  noteRemovalUndoRemainingMs,
   rememberRemovedNote,
   restoreMostRecentlyRemovedNote,
 } from "./note-removal-history"
@@ -68,5 +71,57 @@ describe("메모 삭제 복구 이력", () => {
     )
 
     expect(dismissNoteRemovalHistory(secondRemoval).entries).toEqual([])
+  })
+
+  it("삭제 완료 시각에서 5초가 지나면 취소 가능 시간을 늘리지 않는다", () => {
+    const history = rememberRemovedNote(
+      createNoteRemovalHistory(),
+      firstNote,
+      "2026-09-02T01:00:00.000Z",
+    )
+    const snapshot = history.entries[0]
+
+    expect(noteRemovalUndoRemainingMs(snapshot, 1_788_310_804_999)).toBe(1)
+    expect(noteRemovalUndoRemainingMs(snapshot, 1_788_310_805_000)).toBe(0)
+  })
+
+  it("복원을 시작한 삭제만 제거하고 그 뒤에 생긴 삭제는 유지한다", () => {
+    const firstRemoval = rememberRemovedNote(
+      createNoteRemovalHistory(),
+      firstNote,
+      "2026-09-02T01:00:00.000Z",
+    )
+    const firstSnapshot = firstRemoval.entries[0]
+    const secondRemoval = rememberRemovedNote(
+      firstRemoval,
+      secondNote,
+      "2026-09-02T02:00:00.000Z",
+    )
+
+    const remaining = forgetRemovedNote(secondRemoval, firstSnapshot)
+
+    expect(remaining.entries).toEqual([secondRemoval.entries[1]])
+  })
+
+  it("기한이 지난 최근 삭제를 지워도 이전 삭제를 다시 알리지 않는다", () => {
+    const firstRemoval = rememberRemovedNote(
+      createNoteRemovalHistory(),
+      firstNote,
+      "2026-09-02T01:00:00.000Z",
+    )
+    const secondRemoval = rememberRemovedNote(
+      firstRemoval,
+      secondNote,
+      "2026-09-02T02:00:00.000Z",
+    )
+    const latestSnapshot = secondRemoval.entries[1]
+
+    const expired = expireNoteRemoval(
+      secondRemoval,
+      latestSnapshot,
+      1_788_314_405_000,
+    )
+
+    expect(expired.entries).toEqual([])
   })
 })

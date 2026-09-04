@@ -45,6 +45,7 @@ type BatchCopyProviderProps = PropsWithChildren<{
   clipboard: ClipboardWriter
   createId(): string
   now(): string
+  onItemRemoved(itemId: string): void
   repository: BatchCopyRepository
   writer: BatchCopyItemWriter
 }>
@@ -75,6 +76,7 @@ export function BatchCopyProvider({
   clipboard,
   createId,
   now,
+  onItemRemoved,
   repository,
   writer,
 }: BatchCopyProviderProps) {
@@ -174,6 +176,13 @@ export function BatchCopyProvider({
 
       if (execution.session !== undefined) {
         publish(execution.session)
+      }
+
+      if (
+        execution.result.status === "saved" &&
+        execution.result.removedItemId !== undefined
+      ) {
+        onItemRemoved(execution.result.removedItemId)
       }
 
       return execution.result

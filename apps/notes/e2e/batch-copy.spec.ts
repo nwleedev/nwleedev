@@ -88,6 +88,16 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
 
   await firstSelection.click()
   await expect(firstSelection).toHaveAttribute("aria-pressed", "true")
+  await firstSelection.press("Shift+Escape")
+  await expect(firstSelection).toHaveAttribute("aria-pressed", "true")
+  await page.evaluate(() => {
+    window.addEventListener("keydown", (event) => event.preventDefault(), {
+      capture: true,
+      once: true,
+    })
+  })
+  await firstSelection.press("Escape")
+  await expect(firstSelection).toHaveAttribute("aria-pressed", "true")
   await firstSelection.press("ArrowDown")
   await expect(items).toContainText([secondContent, firstContent])
   await expect(firstSelection).toBeFocused()
@@ -107,6 +117,7 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   await page.mouse.up()
 
   await expect(items).toContainText([secondContent, firstContent])
+  await expect(firstSelection).toHaveAttribute("aria-pressed", "true")
   await expect(panel.getByRole("button", { name: "위로" })).toHaveCount(0)
   await expect(panel.getByRole("button", { name: "아래로" })).toHaveCount(0)
   await expect(panel.getByRole("button", { name: "실행 취소" })).toHaveCount(0)
@@ -133,6 +144,7 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   await expect(firstItem).toHaveCount(0)
   await page.keyboard.press("ControlOrMeta+z")
   await expect(firstItem).toBeVisible()
+  await expect(firstSelection).toHaveAttribute("aria-pressed", "false")
 
   await firstSelection.hover()
   await page.mouse.down()
@@ -141,17 +153,21 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   await expect(firstItem).toHaveCount(0)
   await page.keyboard.press("ControlOrMeta+z")
   await expect(firstItem).toBeVisible()
+  await expect(firstSelection).toHaveAttribute("aria-pressed", "false")
   await firstSelection.click()
   await expect(firstSelection).toHaveAttribute("aria-pressed", "true")
   await page.keyboard.press("ControlOrMeta+Shift+z")
   await expect(firstItem).toHaveCount(0)
+  await page.keyboard.press("ControlOrMeta+z")
+  await expect(firstItem).toBeVisible()
+  await expect(firstSelection).toHaveAttribute("aria-pressed", "false")
 
   await page.setViewportSize({ height: 720, width: 1000 })
   const dialog = page.getByRole("dialog", { name: "일괄 복사" })
   await expect(dialog).toBeVisible()
   await page.keyboard.press("Escape")
   await expect(dialog).toHaveCount(0)
-  await page.getByRole("button", { name: "일괄 복사 1개" }).click()
+  await page.getByRole("button", { name: "일괄 복사 2개" }).click()
   await expect(dialog).toBeVisible()
   const modalSelection = dialog.getByRole("button", {
     name: `일괄 복사 항목 선택: ${secondContent}`,
@@ -163,24 +179,57 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   await modalSelection.press("Escape")
   await expect(dialog).toHaveCount(0)
 
+  await page.getByRole("button", { name: "일괄 복사 2개" }).click()
+  const firstModalSelection = dialog.getByRole("button", {
+    name: `일괄 복사 항목 선택: ${firstContent}`,
+  })
+  await firstModalSelection.click()
+  await expect(firstModalSelection).toHaveAttribute("aria-pressed", "true")
+  await dialog
+    .getByRole("button", { name: "일괄 복사 패널 닫기" })
+    .click()
+  await expect(dialog).toHaveCount(0)
+
   await page.setViewportSize({ height: 720, width: 320 })
-  const managementLink = page.getByRole("link", { name: "일괄 복사 1개 관리" })
+  const managementLink = page.getByRole("link", { name: "일괄 복사 2개 관리" })
   await expect(managementLink).toBeVisible()
   await managementLink.click()
   await expect(page).toHaveURL("/batch-copy/")
   const management = page.getByRole("region", {
     name: "일괄 복사 항목 관리",
   })
-  await expect(management).toContainText(secondContent)
-  await expect(management.getByRole("button", { name: "위로" })).toBeVisible()
-  await expect(management.getByRole("button", { name: "아래로" })).toBeVisible()
-  await expect(management.getByRole("button", { name: "제거" })).toBeVisible()
+  const managementItems = management.getByRole("listitem")
+  await expect(managementItems).toContainText([secondContent, firstContent])
+  await expect(management.getByRole("button", { name: "위로" })).toHaveCount(2)
+  await expect(management.getByRole("button", { name: "아래로" })).toHaveCount(2)
+  await expect(management.getByRole("button", { name: "제거" })).toHaveCount(2)
   await management
-    .getByRole("button", { name: "1번째 일괄 복사 항목 위치 변경" })
+    .getByRole("button", { name: "2번째 일괄 복사 항목 위치 변경" })
     .click()
   await expect(
     management.getByRole("button", { name: /삽입 위치$/u }),
-  ).toHaveCount(2)
+  ).toHaveCount(3)
+  await management.getByRole("button", { name: "1번째 삽입 위치" }).click()
+  await expect(managementItems).toContainText([firstContent, secondContent])
+
+  await managementItems
+    .filter({ hasText: firstContent })
+    .getByRole("button", { name: "제거" })
+    .click()
+  await page.getByRole("link", { exact: true, name: "취소" }).click()
+  await page.setViewportSize({ height: 720, width: 1000 })
+  await page.getByRole("button", { name: "일괄 복사 1개" }).click()
+  await expect(dialog).toBeVisible()
+  await page.keyboard.press("Escape")
+  await expect(dialog).toHaveCount(0)
+
+  await page.keyboard.press("ControlOrMeta+z")
+  await expect(page.getByRole("button", { name: "일괄 복사 2개" })).toBeVisible()
+  await page.setViewportSize({ height: 720, width: 320 })
+  await page.getByRole("link", { name: "일괄 복사 2개 관리" }).click()
+  await expect(managementItems).toContainText([firstContent, secondContent])
+  await page.reload()
+  await expect(managementItems).toContainText([firstContent, secondContent])
 })
 
 test.describe("320px 일괄 복사", () => {

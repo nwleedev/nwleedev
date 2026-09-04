@@ -2,6 +2,7 @@
 
 import {
   Fragment,
+  useEffect,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -29,6 +30,11 @@ type PointerDrag = {
   startClientY: number
   threshold: number
   targetIndex: number | null
+}
+
+type ReorderAnnouncement = {
+  id: number
+  message: string
 }
 
 const POINTER_DRAG_THRESHOLD_PX = 5
@@ -525,11 +531,22 @@ export function BatchCopyList({
   const dragSession = useRef<PointerDrag | null>(null)
   const suppressPointerClick = useRef(false)
   const itemButtons = useRef(new Map<string, HTMLButtonElement>())
-  const [announcement, setAnnouncement] = useState("")
+  const announcementId = useRef(0)
+  const focusFrame = useRef<number | null>(null)
+  const [announcement, setAnnouncement] =
+    useState<ReorderAnnouncement | null>(null)
   const [drag, setDrag] = useState<PointerDrag | null>(null)
   const [placementItemId, setPlacementItemId] = useState<string | null>(null)
   const placementIndex = items.findIndex(({ id }) => id === placementItemId)
   const placementActive = placementIndex >= 0
+
+  useEffect(() => {
+    return () => {
+      if (focusFrame.current !== null) {
+        cancelAnimationFrame(focusFrame.current)
+      }
+    }
+  }, [])
 
   function updateDrag(nextDrag: PointerDrag | null) {
     dragSession.current = nextDrag
@@ -599,6 +616,12 @@ export function BatchCopyList({
     const enteredDropState = outside || targetIndex !== null
     const active = current.active || passedThreshold || enteredDropState
     const nextDrag = { ...current, active, outside, targetIndex }
+
+    if (!current.active && active && presentation === "panel") {
+      if (selectedItemId !== current.itemId) {
+        onToggleSelection?.(current.itemId)
+      }
+    }
 
     dragSession.current = nextDrag
     setDrag(active ? nextDrag : null)
@@ -729,10 +752,20 @@ export function BatchCopyList({
 
     const positionText = (targetIndex + 1).toLocaleString("ko-KR")
     const totalText = items.length.toLocaleString("ko-KR")
-    setAnnouncement(
-      `일괄 복사 항목을 ${positionText}번째로 옮겼습니다. 전체 ${totalText}개입니다.`,
-    )
-    requestAnimationFrame(() => itemButtons.current.get(itemId)?.focus())
+    announcementId.current += 1
+    setAnnouncement({
+      id: announcementId.current,
+      message: `일괄 복사 항목을 ${positionText}번째로 옮겼습니다. 전체 ${totalText}개입니다.`,
+    })
+
+    if (focusFrame.current !== null) {
+      cancelAnimationFrame(focusFrame.current)
+    }
+
+    focusFrame.current = requestAnimationFrame(() => {
+      focusFrame.current = null
+      itemButtons.current.get(itemId)?.focus()
+    })
   }
 
   function handleSelectedItemKeyDown(
@@ -765,7 +798,9 @@ export function BatchCopyList({
     return (
       <div className="grid gap-2">
         <p aria-live="polite" className="sr-only">
-          {announcement}
+          {announcement === null ? null : (
+            <span key={announcement.id}>{announcement.message}</span>
+          )}
         </p>
         <PanelBatchCopyItems
           drag={drag}

@@ -152,18 +152,23 @@ export function NotesBoard({
       }
     }
 
-    function releaseAllKeys() {
+    function releaseTransientInput() {
       setSpacePressed(false)
+      panGesture.current = null
     }
 
     window.addEventListener("keydown", pressSpace)
     window.addEventListener("keyup", releaseSpace)
-    window.addEventListener("blur", releaseAllKeys)
+    window.addEventListener("blur", releaseTransientInput)
+    window.addEventListener("pageshow", releaseTransientInput)
+    document.addEventListener("visibilitychange", releaseTransientInput)
 
     return () => {
       window.removeEventListener("keydown", pressSpace)
       window.removeEventListener("keyup", releaseSpace)
-      window.removeEventListener("blur", releaseAllKeys)
+      window.removeEventListener("blur", releaseTransientInput)
+      window.removeEventListener("pageshow", releaseTransientInput)
+      document.removeEventListener("visibilitychange", releaseTransientInput)
     }
   }, [])
 
@@ -225,6 +230,8 @@ export function NotesBoard({
   }
 
   function startSpacePan(event: ReactPointerEvent<HTMLDivElement>) {
+    panGesture.current = null
+
     if (!spacePressed) {
       return
     }

@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation"
 
 import type { Note } from "@/entities/note"
 import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
-import { ActionToast } from "@/shared/ui/action-toast"
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
 import { ArrowBackIcon, BatchCopyIcon } from "@/shared/ui/icons"
+import { StatusNotice } from "@/shared/ui/status-notice"
 
 import { MobileNoteList } from "./mobile-note-list"
 
@@ -144,13 +144,12 @@ export function MobileNotesWorkspace({
       </header>
       {batchCopy.status === "failure" ? (
         <div className="absolute left-3 right-3 top-[4.25rem] z-30">
-          <ActionToast
-            actionLabel="다시 시도"
-            kind="error"
-            message="일괄 복사 작업을 불러오지 못했습니다."
-            onAction={batchCopy.retry}
-            onDismiss={batchCopy.retry}
-          />
+          <StatusNotice kind="error">
+            <p>일괄 복사 작업을 불러오지 못했습니다.</p>
+            <Button onClick={batchCopy.retry} tone="quiet">
+              다시 시도
+            </Button>
+          </StatusNotice>
         </div>
       ) : null}
       <MobileNoteList

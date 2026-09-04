@@ -101,7 +101,6 @@ type BatchCopyPanelContentProps = {
   onCopyResult(result: CopyBatchTextResult): void
   onMove(itemId: string, index: number): Promise<EditBatchCopyResult>
   onRemove(itemId: string): Promise<EditBatchCopyResult>
-  onRemovalSaved(itemId: string): void
   onRetry(): void
   onToggleSelection(itemId: string): void
 }
@@ -151,7 +150,6 @@ function BatchCopyPanelContent({
   onCopyResult,
   onMove,
   onRemove,
-  onRemovalSaved,
   onRetry,
   onToggleSelection,
   pending,
@@ -189,7 +187,6 @@ function BatchCopyPanelContent({
               items={items}
               onMove={onMove}
               onRemove={onRemove}
-              onRemovalSaved={onRemovalSaved}
               onToggleSelection={onToggleSelection}
               pending={pending}
               presentation="panel"
@@ -311,16 +308,6 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
     void retryCopy()
   }
 
-  async function redoBatchCopyItemRemoval() {
-    const result = await batchCopy.redo()
-
-    if (result.status === "saved" && result.removedItemId !== undefined) {
-      session.forgetBatchCopyItem(result.removedItemId)
-    }
-
-    return result
-  }
-
   function handleDialogClose() {
     if (switchingToInline.current) {
       switchingToInline.current = false
@@ -361,7 +348,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
         <BatchCopyHistoryShortcuts
           canRedo={batchCopy.canRedo}
           canUndo={batchCopy.canUndo}
-          onRedo={redoBatchCopyItemRemoval}
+          onRedo={batchCopy.redo}
           onUndo={batchCopy.undo}
           pending={batchCopy.pending}
         />
@@ -429,7 +416,6 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
                   onCopyResult={setCopyResult}
                   onMove={batchCopy.moveItem}
                   onRemove={batchCopy.removeItem}
-                  onRemovalSaved={session.forgetBatchCopyItem}
                   onRetry={batchCopy.retry}
                   onToggleSelection={session.toggleBatchCopyItem}
                   pending={batchCopy.pending}
@@ -460,7 +446,6 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
               onCopyResult={setCopyResult}
               onMove={batchCopy.moveItem}
               onRemove={batchCopy.removeItem}
-              onRemovalSaved={session.forgetBatchCopyItem}
               onRetry={batchCopy.retry}
               onToggleSelection={session.toggleBatchCopyItem}
               pending={batchCopy.pending}

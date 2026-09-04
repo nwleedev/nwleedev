@@ -4,6 +4,7 @@ import {
   useCallback,
   createContext,
   useContext,
+  useEffect,
   useState,
   type PropsWithChildren,
 } from "react"
@@ -11,10 +12,13 @@ import {
 import {
   createNoteRemovalHistory,
   dismissNoteRemovalHistory,
+  expireNoteRemoval,
+  forgetRemovedNote,
+  noteRemovalUndoRemainingMs,
   rememberRemovedNote,
-  restoreMostRecentlyRemovedNote,
   type Note,
   type NoteReference,
+  type RemovedNoteSnapshot,
 } from "@/entities/note"
 
 import {
@@ -36,7 +40,7 @@ import {
 } from "./note-workspace-state"
 
 type NoteSessionContextValue = {
-  latestRemovedNote: Note | null
+  latestRemoval: RemovedNoteSnapshot | null
   workspace: NoteWorkspaceState
   activateBatchCopy(): void
   activateProperties(
@@ -49,9 +53,10 @@ type NoteSessionContextValue = {
   closePanel(): void
   confirmPropertiesTarget(expected: NoteReference, saved: NoteReference): void
   dismissRemovalNotice(): void
-  forgetLatestRemoval(): void
+  expireRemoval(snapshot: RemovedNoteSnapshot): void
   forgetBatchCopyItem(itemId: string): void
   forgetNote(noteId: string): void
+  forgetRemoval(snapshot: RemovedNoteSnapshot): void
   rememberRemoval(note: Note, removedAt: string): void
   restorePropertiesTarget(note: NoteReference): void
   select(noteId: string): void
@@ -65,8 +70,27 @@ export function NoteSessionProvider({ children }: PropsWithChildren) {
   const [removalHistory, setRemovalHistory] = useState(
     createNoteRemovalHistory,
   )
-  const latestRemovedNote =
-    removalHistory.entries.at(-1)?.note ?? null
+  const latestRemoval = removalHistory.entries.at(-1) ?? null
+
+  useEffect(() => {
+    if (latestRemoval === null) {
+      return
+    }
+
+    const remainingMs = noteRemovalUndoRemainingMs(
+      latestRemoval,
+      Date.now(),
+    )
+    const expirationTimer = window.setTimeout(() => {
+      setRemovalHistory((current) =>
+        expireNoteRemoval(current, latestRemoval, Date.now()),
+      )
+    }, remainingMs)
+
+    return () => {
+      window.clearTimeout(expirationTimer)
+    }
+  }, [latestRemoval])
 
   const select = useCallback((noteId: string) => {
     setWorkspace((current) => selectNote(current, noteId))
@@ -130,11 +154,16 @@ export function NoteSessionProvider({ children }: PropsWithChildren) {
     )
   }, [])
 
-  const forgetLatestRemoval = useCallback(() => {
-    setRemovalHistory((current) => {
-      const restored = restoreMostRecentlyRemovedNote(current)
-      return restored?.history ?? current
-    })
+  const forgetRemoval = useCallback((snapshot: RemovedNoteSnapshot) => {
+    setRemovalHistory((current) => forgetRemovedNote(current, snapshot))
+  }, [])
+
+  const expireRemovalFromHistory = useCallback((
+    snapshot: RemovedNoteSnapshot,
+  ) => {
+    setRemovalHistory((current) =>
+      expireNoteRemoval(current, snapshot, Date.now()),
+    )
   }, [])
 
   const dismissRemovalNotice = useCallback(() => {
@@ -160,10 +189,11 @@ export function NoteSessionProvider({ children }: PropsWithChildren) {
         closePanel,
         confirmPropertiesTarget,
         dismissRemovalNotice,
-        forgetLatestRemoval,
+        expireRemoval: expireRemovalFromHistory,
         forgetBatchCopyItem: forgetBatchCopyItemFromWorkspace,
         forgetNote: forgetRemovedNoteFromWorkspace,
-        latestRemovedNote,
+        forgetRemoval,
+        latestRemoval,
         rememberRemoval,
         restorePropertiesTarget,
         select,

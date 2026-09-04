@@ -239,7 +239,7 @@ describe("personal notes IndexedDB storage", () => {
     })
   })
 
-  it("migrates the previous database without changing saved text order", async () => {
+  it("이전 자료를 옮기며 유효한 너비와 저장된 텍스트 순서를 보존한다", async () => {
     const previousBatchCopyStoreName = "accumulators"
     const previousDatabase = await openIndexedDatabase({
       name: PERSONAL_NOTES_DATABASE_NAME,
@@ -288,6 +288,12 @@ describe("personal notes IndexedDB storage", () => {
         createdAt: "2026-08-31T00:00:00.000Z",
         geometry: { ...note.geometry, zIndex: 2 },
         id: "note-b",
+      },
+      {
+        ...previousNoteFields,
+        createdAt: "2026-08-31T03:00:00.000Z",
+        geometry: { ...note.geometry, width: 5000, zIndex: 3 },
+        id: "note-c",
       },
     ]
     const previousBatchCopyList = {
@@ -368,9 +374,14 @@ describe("personal notes IndexedDB storage", () => {
       tabIndex: 1000,
     })
     expect(notesById.get("note-a")).toMatchObject({
-      geometry: { height: 180, width: 1280, x: 1, y: 3916, zIndex: 2 },
+      geometry: { height: 180, width: 1600, x: 1, y: 3916, zIndex: 2 },
       revision: 1,
       tabIndex: 1001,
+    })
+    expect(notesById.get("note-c")).toMatchObject({
+      geometry: { width: 4095, zIndex: 3 },
+      revision: 1,
+      tabIndex: 1002,
     })
   })
 
