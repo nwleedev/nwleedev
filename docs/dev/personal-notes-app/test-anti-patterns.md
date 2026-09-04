@@ -283,6 +283,37 @@ expect(classifyLineRelation('memo', 'memory')).toMatchObject({
 
 `expect-expect`는 검증문이 전혀 없는 테스트를 찾고 Playwright의 `no-unnecessary-assertions`는 절대로 실패할 수 없는 일부 locator 검증문을 찾는다. `no-restricted-matchers`로 `toBeTruthy`와 `toBeDefined`를 제한할 수 있지만, boolean 또는 optional 값 자체가 승인된 출력인 테스트도 있으므로 전역 금지는 하지 않는다. 실행 로직 복제, 잘못된 fixture와 빠진 실패 분기는 ESLint가 판정할 수 없으며 요구사항별 검토가 필요하다.
 
+## 가능한 제어의 개수로 상태 전이와 저장을 대신하지 않는다
+
+### 막으려는 실패
+
+재정렬 항목이 하나뿐인 화면에서 삽입 위치 버튼의 개수만 확인하면 실제로 실행 가능한 이동이 없는데도 재정렬을 검증한 것처럼 보인다. 삭제 뒤 화면에서 사라졌다는 결과만 확인하고 다른 route나 새로고침 뒤의 저장 상태를 읽지 않으면 실행 중 배열만 바뀌고 IndexedDB 저장이 누락된 회귀를 찾지 못한다. migration 테스트가 이전 상한을 예상값으로 고정하면 새 허용 범위에서 보존해야 하는 정상 자료를 손상시키는 구현을 오히려 통과시킬 수 있다.
+
+```ts
+await expect(management.getByRole('button', {name: /삽입 위치$/u})).toHaveCount(2)
+```
+
+```ts
+await expect(items).toContainText(['첫 번째', '두 번째'])
+await moveControlFor('첫 번째').click()
+await page.getByRole('button', {name: '3번째 삽입 위치'}).click()
+await expect(items).toContainText(['두 번째', '첫 번째'])
+
+await page.reload()
+await expect(items).toContainText(['두 번째', '첫 번째'])
+```
+
+적용 규칙은 다음과 같다.
+
+- 재정렬 시나리오는 서로 구분되는 항목을 두 개 이상 준비하고, 현재 위치와 다른 활성 제어를 실행한다.
+- 화면 순서 변경과 저장 성공을 모두 요구하면 같은 시나리오에서 새로고침 또는 새 repository 읽기 뒤 순서를 다시 확인한다.
+- 제거 시나리오는 선택된 항목을 다른 화면에서 없앤 뒤 돌아와 숨은 선택이 남지 않는 결과까지 확인한다. 내부 선택 변수나 Context 값을 직접 검사하지 않는다.
+- 자동으로 닫히는 오류 알림은 닫기 뒤 repository 재시도가 발생하지 않는 결과와 명시적인 재시도 뒤 읽기가 발생하는 결과를 구분한다.
+- 시간 제한이 있는 취소는 mount 뒤 경과 시간이 아니라 작업 완료 시각에서 계산한다. 주입한 시각을 쓰는 순수 이력 테스트와 route 재진입을 포함한 브라우저 검사를 나눈다.
+- migration fixture는 새 규칙에서도 유효한 값과 실제 범위 밖 값을 함께 제공하고, 보존 결과와 보정 결과를 각각 명시한다.
+
+Playwright의 web-first assertion은 결과가 나타날 때까지 기다릴 수 있지만, 시나리오가 유효한 상태 전이를 만들었는지와 저장을 다시 읽었는지는 판정하지 못한다. `no-unnecessary-assertions`도 역할을 찾은 검증문이 업무 결과를 증명하는지까지 알 수 없다. 이 항목은 테스트 이름, 준비 자료, 실행한 제어, 화면 결과와 재진입 뒤 결과를 한 번에 검토한다.
+
 ## 테스트 사이에 상태와 순서를 공유하지 않는다
 
 ### 막으려는 실패

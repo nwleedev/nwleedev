@@ -27,15 +27,19 @@ TDD 대상으로 승인된 모듈은 한 번에 하나의 동작을 나타내는
 
 - Clipboard 대역은 명령이 성공과 실패를 처리하는 규칙을 확인할 때만 사용한다. 실제 쓰기, 사용자 활성화와 권한 알림은 대상 브라우저에서 별도로 확인한다.
 - IndexedDB 대역은 application interface를 빠르게 검사하는 보조 수단일 수 있지만 transaction 완료, upgrade, `blocked`, `versionchange`, quota와 새로고침 보존의 증거가 될 수 없다.
+- IndexedDB migration 검사는 이전 schema의 실제 record를 운영 repository로 읽는다. 새 규칙에서도 유효한 값은 그대로 유지되고 범위 밖 값만 보정되는지를 구분해 확인한다.
 - Worker의 제어 가능한 메시지 수신기는 오래된 응답 판정 규칙을 검사할 수 있다. 자산 URL, MIME type, 실제 메시지 왕복과 주 실행 흐름의 응답성은 Next.js 운영 서버를 연 브라우저에서 확인한다.
 - 메모 본문 클릭, 텍스트 선택, `Command+클릭`과 편집 전환은 순수 판정 함수로 복제하지 않는다. 실제 Selection API, 이벤트 순서와 브라우저 기본 동작을 사용하는 브라우저 검사에서 복사, 누적 또는 편집 가운데 의도한 결과 하나만 발생하는지 확인한다.
 - 드래그 모의 동작은 최종 순서와 제거 결과를 확인한다. 라이브러리의 중간 이벤트 수나 정확한 포인터 좌표를 고정하지 않는다.
+- route를 오가는 흐름은 메모리 상태와 저장 상태를 함께 확인한다. 제거 및 다시 실행 뒤 대상 선택이 정리되는지, 삭제 취소의 원래 만료 시각이 route 재진입으로 늘어나지 않는지 확인한다.
 
 [Selection API](https://www.w3.org/TR/selection-api/)와 [Clipboard API](https://www.w3.org/TR/clipboard-apis/)는 선택 범위, 사용자 활성화와 권한 동작을 브라우저가 처리하는 규칙으로 정의한다. [IndexedDB](https://w3c.github.io/IndexedDB/)의 transaction 수명과 [HTML Worker 표준](https://html.spec.whatwg.org/multipage/workers.html)의 Worker 실행 및 메시지 규칙도 같은 이유로 실제 대상 브라우저의 증거가 필요하다. 내부 모의 객체는 application 명령의 분기만 확인하며 이 플랫폼 동작의 완료 증거로 사용하지 않는다.
 
 ## UI 테스트 기준
 
 UI 자동화는 role, 접근 가능한 이름, 사용자가 입력한 값, 상태 알림, Clipboard 결과, 저장된 순서와 라우트 결과를 사용한다. CSS class, DOM 중첩, hook 호출 횟수와 구성요소 instance는 완료 증거가 아니다. 큰 스냅샷 대신 요구사항의 한 결과를 직접 확인하는 검증문을 사용한다.
+
+재정렬 검사는 항목을 두 개 이상 준비하고 현재 위치와 다른 활성 삽입 위치를 실제로 실행한다. 화면 순서가 바뀐 결과를 확인한 뒤 새로고침 또는 새 repository 읽기로 같은 순서가 저장됐는지 다시 확인한다. 버튼 수나 비활성 버튼의 존재만으로 재정렬과 저장을 검증했다고 판단하지 않는다.
 
 [Testing Library Guiding Principles](https://testing-library.com/docs/guiding-principles/)는 DOM node와 사용자가 쓰는 방식에 가까운 test를 권한다. [Playwright Best Practices](https://playwright.dev/docs/best-practices)는 사용자에게 보이는 동작과 접근 가능한 locator를 우선하고 구현 세부를 피하도록 안내한다.
 

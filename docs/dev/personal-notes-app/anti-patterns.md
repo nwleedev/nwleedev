@@ -166,6 +166,87 @@ function useAnalysisEvents(worker: Worker, accept: (value: unknown) => void) {
 
 설치할 React hooks lint 버전을 확정한 뒤 `exhaustive-deps`와 `set-state-in-effect`의 판별력을 저장소의 무시된 임시 입력에서 한 번 확인한다. 전자는 stale closure를 만드는 누락 dependency를 찾고, 후자는 effect 안의 동기적 state 변경을 찾을 수 있다. 두 규칙 모두 effect가 업무상 맞는 위치인지, 외부 작업이 멱등인지 또는 cleanup이 실제 자원을 모두 해제하는지는 결정하지 못한다. 리뷰어는 effect마다 동기화 대상, setup, cleanup과 재실행 조건을 확인하고 Strict Mode, 빠른 mount 및 unmount와 browser listener 수로 결과를 검사한다.
 
+## 알림 종료와 업무 명령을 같은 동작으로 처리하지 않는다
+
+### 막으려는 실패
+
+시간이 지나거나 닫기 버튼을 눌러 알림을 없애는 동작이 읽기 재시도, 저장 또는 복원까지 실행하면 알림 component의 mount와 unmount가 업무 명령의 실행 횟수를 결정한다. 일시적인 오류 토스트가 5초마다 저장소 읽기를 반복하거나, route를 오간 뒤 다시 mount된 토스트가 삭제 취소 기한을 새로 시작하는 문제가 여기에 해당한다.
+
+React는 특정 상호작용 때문에 실행하는 로직을 event handler에 두고, effect는 외부 시스템과 현재 화면 상태를 동기화할 때 사용하도록 구분한다. React Spectrum의 고정된 `ToastQueue` 구현도 `close`와 `onClose`를 알림 종료 책임으로 제한하고, timer에는 남은 시간을 별도로 보관한다. 이 구조가 이 애플리케이션의 업무 규칙을 대신하지는 않지만, 알림 timer가 재시도 명령을 직접 뜻하지 않아야 한다는 근거가 된다.
+
+### 적용 규칙
+
+- `onDismiss`는 알림 표시 상태만 끝낸다. 읽기 재시도, Clipboard 쓰기, 저장, 삭제 복원과 사용 횟수 기록은 이름이 드러나는 별도 명령에서만 실행한다.
+- 자동으로 닫히는 오류 알림에 유일한 복구 동작을 두지 않는다. 오류가 해결될 때까지 재시도가 필요하면 시간 제한이 없는 오류 영역과 명시적인 `다시 시도` 제어를 사용한다.
+- 삭제 취소처럼 실행 가능 시간이 업무 규칙인 경우 만료 시각은 삭제가 완료된 시각에서 한 번 계산해 route보다 오래 사는 실행 중 상태에 둔다. component가 다시 mount된 시각부터 기간을 새로 세지 않는다.
+- 만료 timer는 화면을 숨기는 보조 수단으로만 사용한다. 취소 명령도 실행 직전에 원래 만료 시각을 확인해 늦은 timer, background tab과 event loop 지연으로 기한이 늘어나지 않게 한다.
+- 비동기 복원은 시작할 때 잡은 삭제 스냅샷의 ID와 삭제 시각을 결과 처리까지 유지한다. 완료 시점의 “가장 최근 항목”을 제거하면 그 사이에 생긴 다른 삭제 이력을 잘못 없앨 수 있다.
+- 같은 위치에 새 알림이 나타난 경우에만 새 알림의 수명을 시작한다. route 이동이나 부모 component 재렌더링은 같은 알림을 새 작업으로 만들지 않는다.
+
+### 검증
+
+ESLint는 `onDismiss`와 `onRetry`의 함수 본문이 같은 업무 명령을 호출하는지, timer가 업무 기한인지 표현 수명인지 판정하지 못한다. 순수 삭제 이력에는 주입한 현재 시각으로 만료 직전, 만료 시점, 만료 뒤와 비동기 복원 중 새 삭제를 TDD로 검사한다. 실제 브라우저에서는 오류 알림을 닫고 5초를 기다려 저장소 읽기가 반복되지 않는지, 삭제 직후 다른 route를 오갔다가 돌아와도 원래 5초 뒤 취소가 사라지는지 확인한다.
+
+## 저장 변경과 실행 중 선택의 후처리를 화면마다 나누지 않는다
+
+### 막으려는 실패
+
+같은 제거 명령을 패널과 관리 route가 함께 사용하면서 한 화면만 선택 ID를 정리하면, 보이지 않는 삭제 항목이 선택 상태에 남는다. 화면마다 `onRemovalSaved` wrapper를 복제하면 새 진입점이나 다시 실행 경로가 추가될 때 같은 누락이 반복된다. 늦게 끝난 비동기 작업이 “현재 선택”이나 “가장 최근 삭제”를 기준으로 후처리하면 그 사이에 바뀐 다른 항목까지 정리할 수 있다.
+
+Excalidraw의 고정된 삭제 action은 삭제된 element 목록과 다음 `selectedElementIds`를 하나의 action 결과로 만들고, 더 이상 존재하지 않는 element를 이전 선택에 그대로 남기지 않는다. 구체적인 자료 구조를 복사하지는 않되, 저장 변경과 그 변경 때문에 반드시 따라오는 실행 중 상태 정리를 같은 application 명령의 성공 후처리로 묶는다.
+
+### 적용 규칙
+
+- 제거 및 다시 실행 결과는 실제로 없어진 항목 ID를 discriminated union에 포함한다. 화면은 성공 여부를 추측하거나 제거 전 props에서 ID를 다시 계산하지 않는다.
+- 저장 성공 뒤 선택 ID 정리는 해당 명령을 제공하는 조립 지점에서 한 번 실행한다. 패널, 모달과 관리 route가 같은 정리 callback을 각각 연결하지 않는다.
+- 저장 실패와 변경 없음 결과에서는 선택을 지우지 않는다. 저장 결과와 실행 중 상태가 서로 다른 성공 상태를 표시하지 않게 한다.
+- 비동기 후처리는 작업을 시작한 항목 ID 또는 스냅샷의 ID와 시각을 사용한다. 완료 시점의 최근 항목이나 현재 선택에 암묵적으로 적용하지 않는다.
+- 화면 전환 뒤에도 유지하는 선택은 대상 항목이 현재 목록에 있는지 확인한다. 대상 제거가 성공하면 route와 표시 방식에 관계없이 같은 명령에서 선택을 비운다.
+
+### 검증
+
+TypeScript union은 성공 결과에서 영향을 받은 ID를 빠뜨리는 일부 코드를 막지만, 모든 호출 지점이 같은 후처리를 거치는지는 보장하지 못한다. 순수 명령 테스트는 직접 제거와 다시 실행이 정확한 ID를 반환하는지 확인한다. 브라우저 검사는 패널에서 선택한 항목을 관리 route에서 제거한 뒤 돌아왔을 때 숨은 선택이 남지 않고, 첫 `Escape`가 다른 동작에 소비되지 않는지를 저장된 목록과 함께 확인한다.
+
+## 전역 키보드 명령은 입력 조합과 IME 상태를 확인한다
+
+### 막으려는 실패
+
+`event.key === "Escape"`만 확인한 전역 handler는 `Command+Escape`와 같은 보조 키 조합도 애플리케이션 명령으로 처리하고, 한글을 포함한 IME 조합 중 key event가 전달되면 편집과 무관한 선택 해제를 실행할 수 있다. 반대로 `keyup` 하나에만 의존한 modifier 표시 상태는 운영체제가 event를 가로챈 뒤 계속 남을 수 있다.
+
+UI Events는 `KeyboardEvent.isComposing`을 조합 시작과 종료 사이의 key event로 정의하며, modifier 상태는 각 event의 `metaKey`, `altKey`, `ctrlKey`, `shiftKey`와 `getModifierState()`가 전달한다. Page Visibility는 문서가 `visible`로 바뀌는 경우도 알리며, 다른 애플리케이션이나 보조 기술이 가려도 문서가 계속 `visible`일 수 있다고 명시한다. 따라서 하나의 lifecycle event를 실제 키 상태의 완전한 기록으로 취급하지 않는다.
+
+### 적용 규칙
+
+- 선택 해제 같은 전역 `Escape` 명령은 `isComposing`이 거짓이고 `metaKey`, `altKey`, `ctrlKey`, `shiftKey`가 모두 거짓일 때만 실행한다.
+- dialog 닫기, 열린 popover와 활성 drag 취소처럼 더 직접적인 `Escape` 대상이 있으면 해당 동작이 전역 선택 해제보다 먼저 event를 처리한다.
+- modifier 표시 상태는 영구 자료로 저장하지 않는다. 신뢰할 수 있는 key 및 pointer event의 현재 modifier 값, 창 `blur`와 `focus`, `pageshow` 및 `visibilitychange`에서 안전한 기본 상태로 다시 맞춘다.
+- `visibilitychange`가 `hidden`일 때만 복원하도록 제한하지 않는다. 운영체제와 브라우저가 중간 event를 누락할 수 있으므로 `visible` 전환도 일시적인 modifier 표시를 끝낸다.
+- 합성 event로 실제 운영체제 단축키가 전달됐다고 판정하지 않는다. 자동 검사는 누락 가능한 상태 전이만 확인하고 `Shift+Command+5`는 대상 macOS와 브라우저에서 별도로 확인한다.
+
+### 검증
+
+일반적인 ESLint keyboard 규칙은 `isComposing` 및 모든 modifier guard가 업무 의도에 맞는지 판정하지 못한다. 브라우저 검사에서 보조 키 없는 `Escape`, 보조 키가 있는 `Escape`, 조합 중 `Escape`, dialog 또는 drag가 먼저 처리하는 `Escape`를 구분한다. `hidden`과 `visible` 각각의 `visibilitychange`, 누락된 `keyup` 뒤 신뢰할 수 있는 pointer 입력도 확인한다.
+
+## 반복되는 live region 알림을 문자열 state 하나에만 맡기지 않는다
+
+### 막으려는 실패
+
+서로 다른 재정렬 결과가 우연히 같은 문구를 만들었을 때 React state를 같은 문자열로 다시 설정하면 `Object.is` 비교로 렌더링을 건너뛸 수 있다. 렌더링이 일어나더라도 live region의 DOM에 실제 추가나 text 변경이 없으면 보조 기술에 새 결과가 전달된다고 보장할 수 없다.
+
+WAI-ARIA는 live region의 변경을 보조 기술에 알리며 `polite`와 `assertive`를 알림 우선순위로 정의한다. React Spectrum의 고정된 LiveAnnouncer 구현은 알릴 때마다 별도 DOM node를 live log에 추가하고 일정 시간 뒤 그 node를 제거한다. 같은 문자열을 상태에 다시 넣는 것만으로 알림을 대신하지 않는 공개 구현 사례다.
+
+### 적용 규칙
+
+- 재정렬 성공처럼 매번 알려야 하는 결과에는 message와 별도의 알림 식별값을 둔다. 같은 문구가 연속돼도 live region 안에 새 DOM 추가가 발생해야 한다.
+- 한 번의 성공에 한 알림만 만든다. 저장 실패, 취소와 범위 밖 방향키 입력에서는 성공 알림을 추가하지 않는다.
+- 알림에는 새 위치와 전체 개수처럼 결과를 이해하는 데 필요한 내용을 넣되 내부 ID나 구현 순번을 노출하지 않는다.
+- `assertive`는 즉시 대응이 필요한 오류에만 사용한다. 순서 변경 결과는 `polite`로 알리고 현재 키보드 포커스를 옮기지 않는다.
+- 예약한 frame, timer 또는 비동기 작업이 새 알림으로 교체되거나 component가 unmount될 때 남은 작업을 정리한다.
+
+### 검증
+
+정적 분석은 같은 문자열이 실제로 다시 전달되는지와 화면 읽기 프로그램의 발화를 판정하지 못한다. 명령 테스트는 이동 성공 및 실패 결과를 확인하고, 브라우저 검사는 연속 이동 뒤 같은 항목의 선택과 포커스, 화면 순서와 live region의 새 변경을 확인한다. 최종 판정에는 지원 화면 읽기 프로그램으로 연속된 같은 위치 알림도 확인한다.
+
 ## JSX 렌더링 흐름을 한눈에 확인할 수 있게 작성한다
 
 이 절의 코드 작성 규칙은 `current`다. 기존 코드를 이 규칙에 맞추는 작업, 조건부 class 결합 도구 도입과 ESLint 검사 추가는 `proposed`다. 이 구분은 새 코드에 규칙을 적용하면서 아직 정리하지 않은 코드 때문에 현재 lint 기준선이 즉시 실패하는 일을 막기 위한 것이다.
@@ -1078,6 +1159,8 @@ IndexedDB 3.0은 transaction이 event dispatch 밖에서 inactive가 되고 짧�
 - database name과 record key에 애플리케이션과 schema 범위를 포함한다. 최우선 계정 및 동기화 백로그에서 local profile을 도입하면 계정 전환만으로 local 데이터가 섞이지 않게 범위를 추가한다.
 - `navigator.storage.persist()`는 결과를 확인하고 거절 가능성을 처리한다. persistence가 승인되어도 export와 import를 대체하지 않으며, 최우선 계정 및 동기화 백로그에서는 서버 동기화 정책도 대신하지 않는다.
 - quota, transaction abort와 schema migration 실패를 사용자에게 알리고, commit 전 UI를 영구 저장 완료로 표시하지 않는다.
+- 이전 schema fixture에는 새 규칙에서도 유효한 값과 실제로 보정해야 하는 값을 함께 둔다. migration은 현재 허용 범위 안의 값을 임의의 예전 상한으로 줄이지 않고, 범위 밖 값만 승인된 규칙으로 보정한다.
+- geometry처럼 허용 범위가 바뀌면 운영 IndexedDB 구현을 실행하는 browser test의 입력 의도와 예상값을 함께 다시 확인한다. 실패를 없애기 위해 현재 구현값으로 예상값만 바꾸지 않고, 보존과 보정 중 어느 결과가 요구사항인지 테스트 이름에 드러낸다.
 
 안티패턴:
 
@@ -1217,7 +1300,7 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 - FSD 문서 고정 revision `a6b69ae`: [Layers](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/layers.mdx), [Public API](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/public-api.mdx), [Next.js와 함께 사용하기](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/guides/tech/with-nextjs.mdx)
 - JS Boundaries 7 계열의 [element 분류](https://www.jsboundaries.dev/docs/classification/elements/), [의존성 규칙](https://www.jsboundaries.dev/docs/rules/dependencies/), [selector](https://www.jsboundaries.dev/docs/selectors/)와 [설정](https://www.jsboundaries.dev/docs/settings/), 그리고 `@boundaries/eslint-plugin` 7.2.0의 [공식 저장소](https://github.com/javierbrea/eslint-plugin-boundaries)
 - WHATWG [HTML Web Workers](https://html.spec.whatwg.org/multipage/workers.html), [structured clone과 transferable](https://html.spec.whatwg.org/multipage/structured-data.html#structuredserializewithtransfer), [Storage Standard](https://storage.spec.whatwg.org/)
-- W3C [Indexed Database API 3.0](https://w3c.github.io/IndexedDB/), [Clipboard API and events](https://www.w3.org/TR/clipboard-apis/), [Secure Contexts](https://www.w3.org/TR/secure-contexts/)
+- W3C [Indexed Database API 3.0](https://w3c.github.io/IndexedDB/), [Clipboard API and events](https://www.w3.org/TR/clipboard-apis/), [Secure Contexts](https://www.w3.org/TR/secure-contexts/), [UI Events](https://www.w3.org/TR/uievents/), [Page Visibility Level 2](https://www.w3.org/TR/page-visibility-2/)와 [WAI-ARIA 1.2 live region](https://www.w3.org/TR/wai-aria-1.2/#aria-live)
 - IETF [RFC 9110 If-Match](https://httpwg.org/specs/rfc9110.html#field.if-match)
 - PostgreSQL 18 [constraints](https://www.postgresql.org/docs/18/ddl-constraints.html), [JSON types](https://www.postgresql.org/docs/18/datatype-json.html), [transaction isolation](https://www.postgresql.org/docs/18/transaction-iso.html), [INSERT ON CONFLICT](https://www.postgresql.org/docs/18/sql-insert.html)
 - Alistair Cockburn, [Hexagonal Architecture 원문](https://alistair.cockburn.us/hexagonal-architecture)
@@ -1239,3 +1322,5 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 - Vercel Analytics client entry directive 보존: [PR #37](https://github.com/vercel/analytics/pull/37), [554bb2c](https://github.com/vercel/analytics/commit/554bb2c6e0ee6e30cf6f576ccd820cbcc8a37af3)
 - Actual Budget SharedWorker 탭 조정: [PR #7172](https://github.com/actualbudget/actual/pull/7172), [4f7c3c5](https://github.com/actualbudget/actual/commit/4f7c3c51a58fc4e70b8d2d79bf80397d3235392b)
 - Actual Budget persistent storage 요청: [PR #8667](https://github.com/actualbudget/actual/pull/8667), [4dedf88](https://github.com/actualbudget/actual/commit/4dedf88e58a5c92478ac1d8eb909d216b242a59f)
+- React Spectrum의 고정 revision `91a3a48`: [남은 시간을 보존하는 ToastQueue](https://github.com/adobe/react-spectrum/blob/91a3a484be57a24afc31f2e7c45926769455bb12/packages/react-stately/src/toast/useToastState.ts)와 [알림마다 새 node를 추가하는 LiveAnnouncer](https://github.com/adobe/react-spectrum/blob/91a3a484be57a24afc31f2e7c45926769455bb12/packages/react-aria/src/live-announcer/LiveAnnouncer.tsx)
+- Excalidraw 고정 revision `214cd6e`: [삭제 결과와 다음 선택을 함께 만드는 action](https://github.com/excalidraw/excalidraw/blob/214cd6e6e8ac3ad6b68486aa7aa7241abdf9445f/packages/excalidraw/actions/actionDeleteSelected.tsx)
