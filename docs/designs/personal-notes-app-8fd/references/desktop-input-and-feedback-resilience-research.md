@@ -66,6 +66,8 @@ macOS의 `Shift+Command+5`는 웹 페이지 안에서 끝나는 키 조합이 �
 
 Excalidraw의 고정 revision `214cd6e`는 [`pointerup`이 빠지는 경우를 정리하는 함수](https://github.com/excalidraw/excalidraw/blob/214cd6e6e8ac3ad6b68486aa7aa7241abdf9445f/packages/excalidraw/components/App.tsx#L8965-L8973)를 두고 [창 `focus`](https://github.com/excalidraw/excalidraw/blob/214cd6e6e8ac3ad6b68486aa7aa7241abdf9445f/packages/excalidraw/components/App.tsx#L3925-L3933)와 다음 pointer 시작에서 이를 실행한다. 구현 규모와 자료 구조는 이 애플리케이션과 다르지만, 종료 event 하나를 전제로 두지 않고 재진입 및 다음 시작에서 남은 제스처를 정리하는 실제 공개 사례다.
 
+이 애플리케이션의 Playwright WebKit 검증에서는 창 `focus`를 단독 종료 신호로 사용했을 때 첫 mouse 입력과 창 활성화가 겹쳐 정상 pan이 취소됐다. 따라서 Excalidraw의 event 조합을 그대로 복사하지 않는다. 창 `blur`, `pageshow`, 양방향 `visibilitychange`, pointer 수명 event와 다음 `pointerdown`에서 남은 제스처를 정리하고, 앞선 비활성화 event와 연결되지 않은 `focus`는 제외한다.
+
 현재 [`notes-board.tsx`](../../../../apps/notes/src/_pages/notes/ui/notes-board.tsx)는 이동 중 화면에 새 시점을 표시하지만 `pointercancel`과 `lostpointercapture`를 같은 취소 handler에 연결해 제스처 시작 시점으로 되돌린다. 따라서 이동이 시작된 뒤 capture가 중단되면 사용자가 이미 본 시점도 취소된다. 화면 캡처 뒤의 정확한 event 순서는 별도로 재현해야 하지만, 이 복원 규칙은 보고된 “이동 뒤 이전 시점으로 돌아감”을 만들 수 있는 직접적인 저장소 근거다.
 
 후속 구현은 하나의 pan 제스처를 다음 상태로 구분해야 한다.
@@ -74,7 +76,7 @@ Excalidraw의 고정 revision `214cd6e`는 [`pointerup`이 빠지는 경우를 �
 - 거리 기준을 넘긴 뒤: pan이 시작됐으며 각 유효한 이동의 마지막 시점을 화면과 확정값에 함께 반영한다.
 - `pointerup`: 마지막 유효 시점을 한 번 확정하고 제스처 상태와 capture만 정리한다.
 - `pointercancel`, 완료 전의 `lostpointercapture`, 창 `blur`와 문서 `hidden`: pan 시작 전이면 원래 시점을 유지하고, 시작 뒤이면 마지막으로 표시한 유효 시점을 유지한 채 제스처만 끝낸다.
-- 창 `focus`, `pageshow`와 문서가 다시 `visible`이 되는 경우에도 이전 제스처를 이어가지 않는다. 같은 시점을 유지한 채 남은 제스처를 정리한다.
+- `pageshow`와 문서가 다시 `visible`이 되는 경우에도 이전 제스처를 이어가지 않는다. 같은 시점을 유지한 채 남은 제스처를 정리한다.
 - 새 `pointerdown`은 남은 제스처를 먼저 정리한 뒤 별도 시작점으로 기록한다.
 - 확정과 정리는 여러 종료 event가 이어져도 같은 결과를 한 번만 적용하는 전이로 만든다. `pointerup` 뒤의 `lostpointercapture`는 이미 완료한 결과를 되돌리거나 다시 저장하지 않는다.
 - 명시적으로 capture를 해제할 때는 해당 pointer가 활성 상태이고 `hasPointerCapture(pointerId)`가 참인지 확인한다. 표준상 활성 pointer가 아닌 ID로 `releasePointerCapture()`를 호출하면 `NotFoundError`가 발생할 수 있다.

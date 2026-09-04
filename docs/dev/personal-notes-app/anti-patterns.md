@@ -258,7 +258,8 @@ Pointer Events는 `pointerup`, `pointercancel`과 `lostpointercapture`를 서로
 ### 적용 규칙
 
 - 캔버스 pan은 활성 pointer ID, 시작점과 마지막으로 반영한 시점을 한 묶음으로 관리한다.
-- `pointerup`, `pointercancel`, `lostpointercapture`, 창 `blur`와 `focus`, `pageshow` 및 양방향 `visibilitychange`가 오면 마지막으로 반영한 시점은 유지하고 활성 제스처만 정리한다.
+- `pointerup`, `pointercancel`, `lostpointercapture`, 창 `blur`, `pageshow` 및 양방향 `visibilitychange`가 오면 마지막으로 반영한 시점은 유지하고 활성 제스처만 정리한다.
+- 창 `focus` 하나만으로 활성 제스처를 끝내지 않는다. Playwright WebKit 교차검증에서 첫 mouse 입력과 창 활성화가 겹쳐 정상 pan이 취소됐으므로, 앞선 비활성화 event나 다음 pointer 시작과 연결되지 않은 `focus`는 종료 증거가 아니다.
 - mouse 또는 pen의 `pointermove.buttons`와 `pressure`를 종료 증거로 사용하지 않는다. Playwright WebKit 교차검증에서 두 값이 정상 drag를 중단시켰으므로, event 수명과 다음 pointer 시작에서 남은 제스처를 정리한다.
 - 정상 `pointerup` 뒤 발생한 `lostpointercapture`처럼 종료 event가 연달아 와도 저장과 정리를 한 번만 적용한다.
 - 다음 `pointerdown` 전에 남은 제스처가 있으면 먼저 정리한다. 이전 시작점으로 새 입력을 이어 붙이지 않는다.
@@ -266,7 +267,7 @@ Pointer Events는 `pointerup`, `pointercancel`과 `lostpointercapture`를 서로
 
 ### 검증
 
-순수 상태 테스트로 브라우저 pointer 수명 전체를 복제하지 않는다. 실제 브라우저에서 capture 상실, 창 포커스 왕복과 문서 가시성 왕복 뒤 hover만으로 시점이 움직이지 않는지 확인한다. 이어지는 새 drag는 중단 직전 시점에서 시작해야 한다. 실제 `Shift+Command+5` 완료 및 취소 검증은 자동 검사와 별도로 남긴다.
+순수 상태 테스트로 브라우저 pointer 수명 전체를 복제하지 않는다. 실제 브라우저에서 capture 상실, 창 비활성화와 문서 가시성 왕복 뒤 hover만으로 시점이 움직이지 않는지 확인한다. 이어지는 새 drag는 중단 직전 시점에서 시작해야 한다. 실제 `Shift+Command+5` 완료 및 취소 검증은 자동 검사와 별도로 남긴다.
 
 ## JSX 렌더링 흐름을 한눈에 확인할 수 있게 작성한다
 
