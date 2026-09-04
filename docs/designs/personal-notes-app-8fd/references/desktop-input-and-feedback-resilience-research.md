@@ -62,7 +62,7 @@ macOS의 `Shift+Command+5`는 웹 페이지 안에서 끝나는 키 조합이 �
 
 [Pointer Events](https://www.w3.org/TR/pointerevents/)는 user agent가 이후 pointer event를 페이지에 계속 전달하지 않을 상황을 감지하면 `pointercancel`을 보내도록 정한다. 같은 표준은 `pointerup` 또는 `pointercancel` 바로 뒤 implicit pointer capture를 해제하고 `lostpointercapture`를 보내도록 요구한다. 따라서 `lostpointercapture` 자체는 취소의 동의어가 아니며, 이미 `pointerup`으로 확정한 결과를 뒤집으면 정상 drag도 되돌아갈 수 있다.
 
-[Pointer Events 3의 버튼 상태](https://www.w3.org/TR/pointerevents3/#button-states)는 `buttons`를 현재 눌린 버튼의 bitmask로 정의한다. 주 버튼으로 시작한 mouse 또는 pen pan에서 후속 `pointermove`의 주 버튼 bit가 사라졌다면 화면은 종료 event가 빠진 상태를 그대로 유지해서는 안 된다. 그 이동을 새 좌표로 반영하지 않고 활성 제스처만 끝내는 보조 종료 조건으로 사용할 수 있다.
+[Pointer Events 3의 버튼 상태](https://www.w3.org/TR/pointerevents3/#button-states)는 `buttons`를 현재 눌린 버튼의 bitmask로 정의하고, [`pressure`](https://www.w3.org/TR/pointerevents3/#dom-pointerevent-pressure)를 활성 버튼이 없는 상태에서는 `0`으로 정한다. 주 버튼으로 시작한 mouse 또는 pen pan에서 후속 `pointermove`의 주 버튼 bit가 사라지고 `pressure`도 `0`이면 화면은 종료 event가 빠진 상태를 그대로 유지해서는 안 된다. 한 속성만으로 정상 drag를 취소하지 않고 두 상태를 함께 확인한 뒤, 그 pointer 이동 좌표를 시점에 반영하지 않고 활성 제스처만 끝내는 보조 종료 조건으로 사용한다.
 
 Excalidraw의 고정 revision `214cd6e`는 [`pointerup`이 빠지는 경우를 정리하는 함수](https://github.com/excalidraw/excalidraw/blob/214cd6e6e8ac3ad6b68486aa7aa7241abdf9445f/packages/excalidraw/components/App.tsx#L8965-L8973)를 두고 [창 `focus`](https://github.com/excalidraw/excalidraw/blob/214cd6e6e8ac3ad6b68486aa7aa7241abdf9445f/packages/excalidraw/components/App.tsx#L3925-L3933)와 다음 pointer 시작에서 이를 실행한다. 구현 규모와 자료 구조는 이 애플리케이션과 다르지만, 종료 event 하나를 전제로 두지 않고 재진입 및 다음 시작에서 남은 제스처를 정리하는 실제 공개 사례다.
 
@@ -75,7 +75,7 @@ Excalidraw의 고정 revision `214cd6e`는 [`pointerup`이 빠지는 경우를 �
 - `pointerup`: 마지막 유효 시점을 한 번 확정하고 제스처 상태와 capture만 정리한다.
 - `pointercancel`, 완료 전의 `lostpointercapture`, 창 `blur`와 문서 `hidden`: pan 시작 전이면 원래 시점을 유지하고, 시작 뒤이면 마지막으로 표시한 유효 시점을 유지한 채 제스처만 끝낸다.
 - 창 `focus`, `pageshow`와 문서가 다시 `visible`이 되는 경우에도 이전 제스처를 이어가지 않는다. 같은 시점을 유지한 채 남은 제스처를 정리한다.
-- mouse 또는 pen의 `pointermove`에서 주 버튼 bit가 사라지면 그 좌표를 반영하지 않고 제스처를 끝낸다. 다음 hover가 이전 시작점을 기준으로 pan을 재개해서는 안 된다.
+- mouse 또는 pen의 `pointermove`에서 주 버튼 bit가 사라지고 `pressure`도 `0`이면 그 좌표를 반영하지 않고 제스처를 끝낸다. 다음 hover가 이전 시작점을 기준으로 pan을 재개해서는 안 된다.
 - 새 `pointerdown`은 남은 제스처를 먼저 정리한 뒤 별도 시작점으로 기록한다.
 - 확정과 정리는 여러 종료 event가 이어져도 같은 결과를 한 번만 적용하는 전이로 만든다. `pointerup` 뒤의 `lostpointercapture`는 이미 완료한 결과를 되돌리거나 다시 저장하지 않는다.
 - 명시적으로 capture를 해제할 때는 해당 pointer가 활성 상태이고 `hasPointerCapture(pointerId)`가 참인지 확인한다. 표준상 활성 pointer가 아닌 ID로 `releasePointerCapture()`를 호출하면 `NotFoundError`가 발생할 수 있다.

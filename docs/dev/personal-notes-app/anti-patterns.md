@@ -259,7 +259,7 @@ Pointer Events는 `pointerup`, `pointercancel`과 `lostpointercapture`를 서로
 
 - 캔버스 pan은 활성 pointer ID, 시작점과 마지막으로 반영한 시점을 한 묶음으로 관리한다.
 - `pointerup`, `pointercancel`, `lostpointercapture`, 창 `blur`와 `focus`, `pageshow` 및 양방향 `visibilitychange`가 오면 마지막으로 반영한 시점은 유지하고 활성 제스처만 정리한다.
-- mouse 또는 pen의 활성 pan 중 `pointermove.buttons`에 주 버튼이 없으면 누락된 종료로 간주해 제스처만 정리한다. 이 event로 새 시점 이동을 계산하지 않는다.
+- mouse 또는 pen의 활성 pan 중 `pointermove.buttons`에 주 버튼이 없고 `pressure`도 `0`이면 누락된 종료로 간주해 제스처만 정리한다. 한 속성만 보고 정상 drag를 중단하지 않으며, 이 event로 새 시점 이동을 계산하지 않는다.
 - 정상 `pointerup` 뒤 발생한 `lostpointercapture`처럼 종료 event가 연달아 와도 저장과 정리를 한 번만 적용한다.
 - 다음 `pointerdown` 전에 남은 제스처가 있으면 먼저 정리한다. 이전 시작점으로 새 입력을 이어 붙이지 않는다.
 - 제스처 중단은 보이는 시점을 되돌리지 않는다. 거리 기준 전에는 시점이 바뀌지 않았고, 기준을 넘은 뒤에는 마지막 유효 이동이 이미 반영돼 있어야 한다.
