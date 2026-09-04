@@ -247,6 +247,27 @@ WAI-ARIA는 live region의 변경을 보조 기술에 알리며 `polite`와 `ass
 
 정적 분석은 같은 문자열이 실제로 다시 전달되는지와 화면 읽기 프로그램의 발화를 판정하지 못한다. 명령 테스트는 이동 성공 및 실패 결과를 확인하고, 브라우저 검사는 연속 이동 뒤 같은 항목의 선택과 포커스, 화면 순서와 live region의 새 변경을 확인한다. 최종 판정에는 지원 화면 읽기 프로그램으로 연속된 같은 위치 알림도 확인한다.
 
+## pointer 제스처를 종료 event 하나에 맡기지 않는다
+
+### 막으려는 실패
+
+캔버스 drag가 `pointerup`만 기다리면 운영체제 화면, 창 전환 또는 capture 상실 중 종료 event가 빠졌을 때 시작 자료가 남을 수 있다. 같은 pointer ID의 다음 hover가 이전 drag를 다시 움직이거나, `lostpointercapture`를 취소로 오해해 이미 표시한 시점을 시작 위치로 되돌리는 문제가 생긴다.
+
+Pointer Events는 `pointerup`, `pointercancel`과 `lostpointercapture`를 서로 다른 event로 정의하고, `buttons` bitmask로 현재 눌린 버튼을 전달한다. Excalidraw의 고정 revision은 pointer 종료가 누락될 수 있음을 명시하고 창 `focus` 및 다음 `pointerdown`에서 남은 pointer handler를 정리한다. 이 사례의 구조를 복사하지는 않되, 정상 종료 하나만으로 제스처 수명을 관리하지 않는 근거로 사용한다.
+
+### 적용 규칙
+
+- 캔버스 pan은 활성 pointer ID, 시작점과 마지막으로 반영한 시점을 한 묶음으로 관리한다.
+- `pointerup`, `pointercancel`, `lostpointercapture`, 창 `blur`와 `focus`, `pageshow` 및 양방향 `visibilitychange`가 오면 마지막으로 반영한 시점은 유지하고 활성 제스처만 정리한다.
+- mouse 또는 pen의 활성 pan 중 `pointermove.buttons`에 주 버튼이 없으면 누락된 종료로 간주해 제스처만 정리한다. 이 event로 새 시점 이동을 계산하지 않는다.
+- 정상 `pointerup` 뒤 발생한 `lostpointercapture`처럼 종료 event가 연달아 와도 저장과 정리를 한 번만 적용한다.
+- 다음 `pointerdown` 전에 남은 제스처가 있으면 먼저 정리한다. 이전 시작점으로 새 입력을 이어 붙이지 않는다.
+- 제스처 중단은 보이는 시점을 되돌리지 않는다. 거리 기준 전에는 시점이 바뀌지 않았고, 기준을 넘은 뒤에는 마지막 유효 이동이 이미 반영돼 있어야 한다.
+
+### 검증
+
+순수 상태 테스트로 브라우저 pointer 수명 전체를 복제하지 않는다. 실제 브라우저에서 주 버튼이 풀린 pointer 이동, capture 상실, 창 포커스 왕복과 문서 가시성 왕복 뒤 hover만으로 시점이 움직이지 않는지 확인한다. 이어지는 새 drag는 중단 직전 시점에서 시작해야 한다. 실제 `Shift+Command+5` 완료 및 취소 검증은 자동 검사와 별도로 남긴다.
+
 ## JSX 렌더링 흐름을 한눈에 확인할 수 있게 작성한다
 
 이 절의 코드 작성 규칙은 `current`다. 기존 코드를 이 규칙에 맞추는 작업, 조건부 class 결합 도구 도입과 ESLint 검사 추가는 `proposed`다. 이 구분은 새 코드에 규칙을 적용하면서 아직 정리하지 않은 코드 때문에 현재 lint 기준선이 즉시 실패하는 일을 막기 위한 것이다.
@@ -1300,7 +1321,7 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 - FSD 문서 고정 revision `a6b69ae`: [Layers](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/layers.mdx), [Public API](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/reference/public-api.mdx), [Next.js와 함께 사용하기](https://github.com/feature-sliced/documentation/blob/a6b69ae21d571d64b0387ff261b95477165030b2/src/content/docs/docs/guides/tech/with-nextjs.mdx)
 - JS Boundaries 7 계열의 [element 분류](https://www.jsboundaries.dev/docs/classification/elements/), [의존성 규칙](https://www.jsboundaries.dev/docs/rules/dependencies/), [selector](https://www.jsboundaries.dev/docs/selectors/)와 [설정](https://www.jsboundaries.dev/docs/settings/), 그리고 `@boundaries/eslint-plugin` 7.2.0의 [공식 저장소](https://github.com/javierbrea/eslint-plugin-boundaries)
 - WHATWG [HTML Web Workers](https://html.spec.whatwg.org/multipage/workers.html), [structured clone과 transferable](https://html.spec.whatwg.org/multipage/structured-data.html#structuredserializewithtransfer), [Storage Standard](https://storage.spec.whatwg.org/)
-- W3C [Indexed Database API 3.0](https://w3c.github.io/IndexedDB/), [Clipboard API and events](https://www.w3.org/TR/clipboard-apis/), [Secure Contexts](https://www.w3.org/TR/secure-contexts/), [UI Events](https://www.w3.org/TR/uievents/), [Page Visibility Level 2](https://www.w3.org/TR/page-visibility-2/)와 [WAI-ARIA 1.2 live region](https://www.w3.org/TR/wai-aria-1.2/#aria-live)
+- W3C [Indexed Database API 3.0](https://w3c.github.io/IndexedDB/), [Clipboard API and events](https://www.w3.org/TR/clipboard-apis/), [Secure Contexts](https://www.w3.org/TR/secure-contexts/), [UI Events](https://www.w3.org/TR/uievents/), [Pointer Events 3](https://www.w3.org/TR/pointerevents3/), [Page Visibility Level 2](https://www.w3.org/TR/page-visibility-2/)와 [WAI-ARIA 1.2 live region](https://www.w3.org/TR/wai-aria-1.2/#aria-live)
 - IETF [RFC 9110 If-Match](https://httpwg.org/specs/rfc9110.html#field.if-match)
 - PostgreSQL 18 [constraints](https://www.postgresql.org/docs/18/ddl-constraints.html), [JSON types](https://www.postgresql.org/docs/18/datatype-json.html), [transaction isolation](https://www.postgresql.org/docs/18/transaction-iso.html), [INSERT ON CONFLICT](https://www.postgresql.org/docs/18/sql-insert.html)
 - Alistair Cockburn, [Hexagonal Architecture 원문](https://alistair.cockburn.us/hexagonal-architecture)
@@ -1324,3 +1345,4 @@ schema와 migration 리뷰에서 column type, nullability, foreign key, check와
 - Actual Budget persistent storage 요청: [PR #8667](https://github.com/actualbudget/actual/pull/8667), [4dedf88](https://github.com/actualbudget/actual/commit/4dedf88e58a5c92478ac1d8eb909d216b242a59f)
 - React Spectrum의 고정 revision `91a3a48`: [남은 시간을 보존하는 ToastQueue](https://github.com/adobe/react-spectrum/blob/91a3a484be57a24afc31f2e7c45926769455bb12/packages/react-stately/src/toast/useToastState.ts)와 [알림마다 새 node를 추가하는 LiveAnnouncer](https://github.com/adobe/react-spectrum/blob/91a3a484be57a24afc31f2e7c45926769455bb12/packages/react-aria/src/live-announcer/LiveAnnouncer.tsx)
 - Excalidraw 고정 revision `214cd6e`: [삭제 결과와 다음 선택을 함께 만드는 action](https://github.com/excalidraw/excalidraw/blob/214cd6e6e8ac3ad6b68486aa7aa7241abdf9445f/packages/excalidraw/actions/actionDeleteSelected.tsx)
+- Excalidraw 고정 revision `214cd6e`: [창 focus와 다음 pointerdown에서 누락된 pointer 종료를 정리하는 구현](https://github.com/excalidraw/excalidraw/blob/214cd6e6e8ac3ad6b68486aa7aa7241abdf9445f/packages/excalidraw/components/App.tsx#L3925-L3933)
