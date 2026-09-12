@@ -110,13 +110,16 @@ describe("NoteRecordSchema", () => {
     },
   )
 
-  it("rejects geometry outside the logical canvas", () => {
+  it("accepts positions outside the logical canvas", () => {
     expect(
       NoteRecordSchema.safeParse({
         ...originalNote,
-        geometry: { ...originalNote.geometry, x: 0 },
+        geometry: { ...originalNote.geometry, x: 0, y: -5000 },
       }).success,
-    ).toBe(false)
+    ).toBe(true)
+  })
+
+  it("rejects geometry with a dimension outside its supported range", () => {
     expect(
       NoteRecordSchema.safeParse({
         ...originalNote,

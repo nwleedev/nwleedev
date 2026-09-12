@@ -4,6 +4,7 @@ import {
   NOTE_CANVAS_SIZE,
   NOTE_HEIGHT_MAX,
   NOTE_HEIGHT_MIN,
+  NOTE_POSITION_ABS_MAX,
   NOTE_WIDTH_MAX,
   NOTE_WIDTH_MIN,
   NoteGeometrySchema,
@@ -42,18 +43,18 @@ export const NoteGeometryDraftSchema = z
       })
     }
 
-    if (geometry.x < 1 || geometry.x > NOTE_CANVAS_SIZE - geometry.width) {
+    if (Math.abs(geometry.x) > NOTE_POSITION_ABS_MAX) {
       context.addIssue({
         code: "custom",
-        message: "Horizontal position is outside the canvas",
+        message: "Horizontal position exceeds the safe numeric range",
         path: ["x"],
       })
     }
 
-    if (geometry.y < 1 || geometry.y > NOTE_CANVAS_SIZE - geometry.height) {
+    if (Math.abs(geometry.y) > NOTE_POSITION_ABS_MAX) {
       context.addIssue({
         code: "custom",
-        message: "Vertical position is outside the canvas",
+        message: "Vertical position exceeds the safe numeric range",
         path: ["y"],
       })
     }
@@ -212,8 +213,14 @@ export function fitNoteGeometryToCanvas(
     geometry.zIndex,
   ]
 
-  if (!values.every(Number.isFinite)) {
-    throw new TypeError("Note geometry must contain finite numbers")
+  if (
+    !values.every(Number.isFinite) ||
+    Math.abs(geometry.x) > NOTE_POSITION_ABS_MAX ||
+    Math.abs(geometry.y) > NOTE_POSITION_ABS_MAX
+  ) {
+    throw new TypeError(
+      "Note geometry must contain finite, safely representable numbers",
+    )
   }
 
   const width = clamp(geometry.width, NOTE_WIDTH_MIN, NOTE_WIDTH_MAX)
@@ -222,8 +229,8 @@ export function fitNoteGeometryToCanvas(
   return {
     height,
     width,
-    x: clamp(geometry.x, 1, NOTE_CANVAS_SIZE - width),
-    y: clamp(geometry.y, 1, NOTE_CANVAS_SIZE - height),
+    x: geometry.x,
+    y: geometry.y,
     zIndex: geometry.zIndex,
   }
 }

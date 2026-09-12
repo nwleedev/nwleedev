@@ -8,4 +8,7 @@ export {
   MoreIcon,
   RemoveIcon,
   SendToBackIcon,
+  FitViewIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
 } from "./icons"

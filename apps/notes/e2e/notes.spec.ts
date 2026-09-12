@@ -159,28 +159,34 @@ test("저장된 Tab 순서로 메모를 선택하고 Enter에서만 속성을 �
   properties = await openPropertiesWithKeyboard(first)
   const storedX = properties.getByRole("spinbutton", { name: "X" })
   await expect(storedX).toHaveValue("80")
-  await expect(storedX).toHaveAttribute("max", "3776")
-  await storedX.fill("3777")
-  const validBeyondMaximum = await storedX.evaluate((element) => {
-    return element instanceof HTMLInputElement && element.checkValidity()
-  })
-  expect(validBeyondMaximum).toBe(false)
+  await expect(storedX).not.toHaveAttribute("max", /.+/u)
+  await storedX.fill("-500")
+  await storedX.press("Enter")
+  await properties.getByRole("button", { name: "메모 속성 패널 닫기" }).click()
+  await page.reload()
+  properties = await openPropertiesWithKeyboard(first)
+  await expect(properties.getByRole("spinbutton", { name: "X" })).toHaveValue("-500")
 
-  const invalidX = storedX
-  await invalidX.fill("0")
+  const invalidWidth = properties.getByRole("spinbutton", { name: "너비" })
+  await invalidWidth.fill("4096")
   await clickBlankCanvas(page)
   await expect(properties).toBeVisible()
   await expect(properties.getByRole("alert")).toContainText(
-    "값의 범위와 캔버스 안의 위치를 확인하세요.",
+    "값의 범위와 위치를 확인하세요.",
   )
-  await expect(invalidX).not.toBeFocused()
+  await expect(invalidWidth).not.toBeFocused()
   await properties.getByRole("button", { name: "메모 속성 패널 닫기" }).click()
   await expect(properties).toBeVisible()
   await expect(properties.getByRole("alert")).toContainText(
-    "값의 범위와 캔버스 안의 위치를 확인하세요.",
+    "값의 범위와 위치를 확인하세요.",
   )
-  await expect(invalidX).toBeFocused()
-  await properties.getByRole("button", { name: "저장값으로 되돌리기" }).click()
+  await expect(invalidWidth).toBeFocused()
+  await invalidWidth.fill("320")
+  await invalidWidth.press("Enter")
+  const restoredX = properties.getByRole("spinbutton", { name: "X" })
+  await restoredX.fill("80")
+  await restoredX.press("Enter")
+  await properties.getByRole("button", { name: "메모 속성 패널 닫기" }).click()
   await expect(properties).toHaveCount(0)
 
   await first.dblclick({ position: { x: 12, y: 14 } })
@@ -228,6 +234,23 @@ test("헤더 이동, 가장자리 크기 조절과 빈 캔버스 시점 이동�
   page,
 }) => {
   const note = await createNoteThroughUi(page, "공간 조작을 확인할 메모")
+  const viewControls = page.getByRole("group", { name: "캔버스 보기" })
+
+  await expect(viewControls).toBeVisible()
+  for (const name of [
+    "왼쪽 보기",
+    "오른쪽 보기",
+    "위 보기",
+    "아래 보기",
+    "축소",
+    "확대",
+    "모두 보기",
+  ]) {
+    const control = viewControls.getByRole("button", { name })
+    await expect(control).toBeVisible()
+    await expect(control).toHaveText("")
+  }
+
   const original = await visibleBox(note)
 
   await preparePointerCaptureRelease(page)

@@ -13,35 +13,26 @@ export const NOTE_HEIGHT_MIN = 180
 export const NOTE_HEIGHT_MAX = NOTE_CANVAS_SIZE - 1
 export const NOTE_WIDTH_MIN = 240
 export const NOTE_WIDTH_MAX = NOTE_CANVAS_SIZE - 1
+export const NOTE_POSITION_ABS_MAX = Number.MAX_SAFE_INTEGER
 export const NOTE_TAB_INDEX_MIN = 1000
 export const NOTE_TAB_INDEX_MAX = 32767
+
+const NoteCoordinateSchema = z
+  .number()
+  .finite()
+  .refine((value) => Math.abs(value) <= NOTE_POSITION_ABS_MAX, {
+    message: "Note position exceeds the safe numeric range",
+  })
 
 export const NoteGeometrySchema = z
   .object({
     height: z.number().finite().min(NOTE_HEIGHT_MIN).max(NOTE_HEIGHT_MAX),
     width: z.number().finite().min(NOTE_WIDTH_MIN).max(NOTE_WIDTH_MAX),
-    x: z.number().finite().min(1),
-    y: z.number().finite().min(1),
+    x: NoteCoordinateSchema,
+    y: NoteCoordinateSchema,
     zIndex: z.number().int().positive().safe(),
   })
   .strict()
-  .superRefine((geometry, context) => {
-    if (geometry.x > NOTE_CANVAS_SIZE - geometry.width) {
-      context.addIssue({
-        code: "custom",
-        message: "Note must remain inside the canvas width",
-        path: ["x"],
-      })
-    }
-
-    if (geometry.y > NOTE_CANVAS_SIZE - geometry.height) {
-      context.addIssue({
-        code: "custom",
-        message: "Note must remain inside the canvas height",
-        path: ["y"],
-      })
-    }
-  })
 
 export const NoteTabIndexSchema = z
   .number()

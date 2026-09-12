@@ -78,9 +78,11 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
-:focus-visible {
-  outline: 0.2rem solid var(--notes-focus-ring);
-  outline-offset: 0.2rem;
+@layer base {
+  :focus-visible {
+    outline: 0.2rem solid var(--notes-focus-ring);
+    outline-offset: 0.2rem;
+  }
 }
 
 dialog::backdrop {
@@ -115,8 +117,10 @@ dialog::backdrop {
     background: Canvas;
   }
 
-  :focus-visible {
-    outline-color: Highlight;
+  @layer base {
+    :focus-visible {
+      outline-color: Highlight;
+    }
   }
 
   dialog::backdrop {

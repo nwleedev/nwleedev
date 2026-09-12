@@ -19,6 +19,18 @@ describe("메모 속성 입력", () => {
     })
   })
 
+  it("X와 Y의 음수, 0과 기존 캔버스 바깥 위치를 저장한다", () => {
+    expect(
+      readNoteGeometryDraft(
+        { height: "360", width: "480", x: "-120", y: "5000" },
+        3,
+      ),
+    ).toEqual({
+      geometry: { height: 360, width: 480, x: -120, y: 5000, zIndex: 3 },
+      status: "valid",
+    })
+  })
+
   it("너비와 높이가 4095이고 X와 Y가 1인 geometry를 저장한다", () => {
     expect(
       readNoteGeometryDraft(
@@ -34,18 +46,14 @@ describe("메모 속성 입력", () => {
   it.each([
     { height: "360", width: "480", x: "", y: "240" },
     { height: "360", width: "480", x: "문자", y: "240" },
-    { height: "360", width: "480", x: "0", y: "240" },
     { height: "360", width: "4096", x: "1", y: "240" },
-    { height: "4095", width: "480", x: "120", y: "2" },
-    { height: "360", width: "4095", x: "2", y: "240" },
-    { height: "360", width: "480", x: "3617", y: "240" },
   ])("완성되지 않았거나 범위를 벗어난 입력을 거절한다", (draft) => {
     expect(readNoteGeometryDraft(draft, 3).status).toBe("invalid")
   })
 })
 
-describe("기존 메모 배치 보정", () => {
-  it("원래 배치를 가능한 만큼 유지하며 논리 캔버스 안으로 옮긴다", () => {
+describe("기존 메모 크기 보정", () => {
+  it("크기만 허용 범위로 맞추고 위치는 그대로 둔다", () => {
     expect(
       fitNoteGeometryToCanvas({
         height: 5000,
@@ -57,8 +65,8 @@ describe("기존 메모 배치 보정", () => {
     ).toEqual({
       height: 4095,
       width: 4095,
-      x: 1,
-      y: 1,
+      x: 0,
+      y: 3900,
       zIndex: 2,
     })
   })

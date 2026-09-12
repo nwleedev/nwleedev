@@ -9,12 +9,15 @@ import {
 } from "react"
 
 import { NOTE_CANVAS_SIZE, type Note, type NoteGeometry } from "@/entities/note"
-import { Button } from "@/shared/ui/button"
+import { IconButton } from "@/shared/ui/icon-button"
+import { ArrowBackIcon, FitViewIcon, ZoomInIcon, ZoomOutIcon } from "@/shared/ui/icons"
 
 import type { SaveNoteContentResult } from "../model/save-note-content"
 import { NoteCard } from "./note-card"
 
 type BoardView = {
+  originX: number
+  originY: number
   scale: number
   x: number
   y: number
@@ -60,13 +63,15 @@ function initialBoardView(
   const focusedNote = notes.find(({ id }) => id === focusedNoteId)
 
   if (focusedNote === undefined) {
-    return { scale: 1, x: 0, y: 0 }
+    return { originX: 0, originY: 0, scale: 1, x: 0, y: 0 }
   }
 
   return {
+    originX: focusedNote.geometry.x,
+    originY: focusedNote.geometry.y,
     scale: 1,
-    x: 48 - focusedNote.geometry.x,
-    y: 80 - focusedNote.geometry.y,
+    x: 48,
+    y: 80,
   }
 }
 
@@ -88,7 +93,13 @@ function panThreshold(pointerType: string) {
 }
 
 function noteBounds(notes: readonly Note[]) {
-  return notes.reduce(
+  const [firstNote, ...remainingNotes] = notes
+
+  if (firstNote === undefined) {
+    return { bottom: 0, left: 0, right: 0, top: 0 }
+  }
+
+  return remainingNotes.reduce(
     (bounds, note) => ({
       bottom: Math.max(bounds.bottom, note.geometry.y + note.geometry.height),
       left: Math.min(bounds.left, note.geometry.x),
@@ -96,10 +107,10 @@ function noteBounds(notes: readonly Note[]) {
       top: Math.min(bounds.top, note.geometry.y),
     }),
     {
-      bottom: 1,
-      left: NOTE_CANVAS_SIZE,
-      right: 1,
-      top: NOTE_CANVAS_SIZE,
+      bottom: firstNote.geometry.y + firstNote.geometry.height,
+      left: firstNote.geometry.x,
+      right: firstNote.geometry.x + firstNote.geometry.width,
+      top: firstNote.geometry.y,
     },
   )
 }
@@ -191,7 +202,7 @@ export function NotesBoard({
     const element = viewport.current
 
     if (element === null || notes.length === 0) {
-      setView({ scale: 1, x: 0, y: 0 })
+      setView({ originX: 0, originY: 0, scale: 1, x: 0, y: 0 })
       return
     }
 
@@ -207,9 +218,11 @@ export function NotesBoard({
       availableHeight / contentHeight,
     )
     setView({
+      originX: bounds.left,
+      originY: bounds.top,
       scale,
-      x: padding - bounds.left * scale,
-      y: padding - bounds.top * scale,
+      x: padding,
+      y: padding,
     })
   }
 
@@ -336,6 +349,8 @@ export function NotesBoard({
             onSaveGeometry={onSaveGeometry}
             onSelect={onSelect}
             propertiesTarget={propertiesNoteId === note.id}
+            renderOriginX={view.originX}
+            renderOriginY={view.originY}
             scale={view.scale}
             selected={selectedNoteId === note.id}
           />
@@ -346,30 +361,54 @@ export function NotesBoard({
         className="absolute bottom-3 left-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-2 rounded-panel border border-line bg-surface-raised p-2 shadow-floating"
         role="group"
       >
-        <Button onClick={() => moveView(48, 0)} tone="quiet">
-          왼쪽 보기
-        </Button>
-        <Button onClick={() => moveView(-48, 0)} tone="quiet">
-          오른쪽 보기
-        </Button>
-        <Button onClick={() => moveView(0, 48)} tone="quiet">
-          위 보기
-        </Button>
-        <Button onClick={() => moveView(0, -48)} tone="quiet">
-          아래 보기
-        </Button>
-        <Button onClick={() => adjustScale(-0.1)} tone="quiet">
-          축소
-        </Button>
+        <IconButton
+          aria-label="왼쪽 보기"
+          onClick={() => moveView(48, 0)}
+          title="왼쪽 보기"
+        >
+          <ArrowBackIcon />
+        </IconButton>
+        <IconButton
+          aria-label="오른쪽 보기"
+          onClick={() => moveView(-48, 0)}
+          title="오른쪽 보기"
+        >
+          <ArrowBackIcon className="rotate-180" />
+        </IconButton>
+        <IconButton
+          aria-label="위 보기"
+          onClick={() => moveView(0, 48)}
+          title="위 보기"
+        >
+          <ArrowBackIcon className="rotate-90" />
+        </IconButton>
+        <IconButton
+          aria-label="아래 보기"
+          onClick={() => moveView(0, -48)}
+          title="아래 보기"
+        >
+          <ArrowBackIcon className="-rotate-90" />
+        </IconButton>
+        <IconButton
+          aria-label="축소"
+          onClick={() => adjustScale(-0.1)}
+          title="축소"
+        >
+          <ZoomOutIcon />
+        </IconButton>
         <span className="min-w-12 text-center text-xs font-semibold tabular-nums text-soft-ink">
           {scaleText}
         </span>
-        <Button onClick={() => adjustScale(0.1)} tone="quiet">
-          확대
-        </Button>
-        <Button onClick={fitAllNotes} tone="quiet">
-          모두 보기
-        </Button>
+        <IconButton
+          aria-label="확대"
+          onClick={() => adjustScale(0.1)}
+          title="확대"
+        >
+          <ZoomInIcon />
+        </IconButton>
+        <IconButton aria-label="모두 보기" onClick={fitAllNotes} title="모두 보기">
+          <FitViewIcon />
+        </IconButton>
       </div>
     </div>
   )

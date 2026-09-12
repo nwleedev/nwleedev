@@ -374,7 +374,7 @@ describe("personal notes IndexedDB storage", () => {
       tabIndex: 1000,
     })
     expect(notesById.get("note-a")).toMatchObject({
-      geometry: { height: 180, width: 1600, x: 1, y: 3916, zIndex: 2 },
+      geometry: { height: 180, width: 1600, x: 0, y: 5000, zIndex: 2 },
       revision: 1,
       tabIndex: 1001,
     })

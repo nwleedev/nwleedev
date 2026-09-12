@@ -84,6 +84,70 @@ export function ArrowBackIcon(props: IconProps) {
   )
 }
 
+export function ZoomOutIcon(props: IconProps) {
+  return (
+    <svg
+      {...props}
+      aria-hidden="true"
+      fill="none"
+      height="16"
+      viewBox="0 0 16 16"
+      width="16"
+    >
+      <circle cx="6.75" cy="6.75" r="3.75" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="m9.5 9.5 3.25 3.25M5 6.75h3.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  )
+}
+
+export function ZoomInIcon(props: IconProps) {
+  return (
+    <svg
+      {...props}
+      aria-hidden="true"
+      fill="none"
+      height="16"
+      viewBox="0 0 16 16"
+      width="16"
+    >
+      <circle cx="6.75" cy="6.75" r="3.75" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="m9.5 9.5 3.25 3.25M6.75 5v3.5M5 6.75h3.5"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.5"
+      />
+    </svg>
+  )
+}
+
+export function FitViewIcon(props: IconProps) {
+  return (
+    <svg
+      {...props}
+      aria-hidden="true"
+      fill="none"
+      height="16"
+      viewBox="0 0 16 16"
+      width="16"
+    >
+      <path
+        d="M5.75 2.75H3.5a.75.75 0 0 0-.75.75v2.25M10.25 2.75h2.25a.75.75 0 0 1 .75.75v2.25M5.75 13.25H3.5a.75.75 0 0 1-.75-.75v-2.25M10.25 13.25h2.25a.75.75 0 0 0 .75-.75v-2.25"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+      <rect height="5" rx=".75" stroke="currentColor" width="5" x="5.5" y="5.5" />
+    </svg>
+  )
+}
+
 export function BringToFrontIcon(props: IconProps) {
   return (
     <svg

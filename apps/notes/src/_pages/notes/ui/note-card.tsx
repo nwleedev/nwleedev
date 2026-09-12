@@ -13,7 +13,6 @@ import {
 import { useForm } from "react-hook-form"
 
 import {
-  NOTE_CANVAS_SIZE,
   NOTE_HEIGHT_MAX,
   NOTE_HEIGHT_MIN,
   NOTE_WIDTH_MAX,
@@ -79,6 +78,8 @@ type NoteCardProps = {
   onSaveFailure(message: string): void
   onSaveGeometry(note: Note, geometry: NoteGeometry): Promise<Note>
   onSelect(noteId: string): void
+  renderOriginX: number
+  renderOriginY: number
 }
 
 type ResizeHandleProps = {
@@ -129,7 +130,7 @@ function resizedGeometry(
     width = clamp(
       geometry.width + deltaX,
       NOTE_WIDTH_MIN,
-      Math.min(NOTE_WIDTH_MAX, NOTE_CANVAS_SIZE - geometry.x),
+      NOTE_WIDTH_MAX,
     )
   }
 
@@ -137,7 +138,7 @@ function resizedGeometry(
     height = clamp(
       geometry.height + deltaY,
       NOTE_HEIGHT_MIN,
-      Math.min(NOTE_HEIGHT_MAX, NOTE_CANVAS_SIZE - geometry.y),
+      NOTE_HEIGHT_MAX,
     )
   }
 
@@ -146,7 +147,7 @@ function resizedGeometry(
     width = clamp(
       geometry.width - deltaX,
       NOTE_WIDTH_MIN,
-      Math.min(NOTE_WIDTH_MAX, right - 1),
+      NOTE_WIDTH_MAX,
     )
     x = right - width
   }
@@ -156,7 +157,7 @@ function resizedGeometry(
     height = clamp(
       geometry.height - deltaY,
       NOTE_HEIGHT_MIN,
-      Math.min(NOTE_HEIGHT_MAX, bottom - 1),
+      NOTE_HEIGHT_MAX,
     )
     y = bottom - height
   }
@@ -234,12 +235,15 @@ export function NoteCard({
   onSaveGeometry,
   onSelect,
   propertiesTarget,
+  renderOriginX,
+  renderOriginY,
   scale,
   selected,
 }: NoteCardProps) {
   const [geometryPreview, setGeometryPreview] =
     useState<NoteGeometry | null>(null)
   const [geometryPending, setGeometryPending] = useState(false)
+  const [contentPointerFocused, setContentPointerFocused] = useState(false)
   const gesture = useRef<GeometryGesture | null>(null)
   const suppressClick = useRef(false)
   const suppressClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -268,6 +272,7 @@ export function NoteCard({
   })
   const contentRegistration = register("content", {
     onBlur() {
+      setContentPointerFocused(false)
       void contentSave.save()
     },
     onChange() {
@@ -285,16 +290,16 @@ export function NoteCard({
     commandPressed ? "invisible" : undefined,
   )
   const cardClassName = joinClassNames(
-    "absolute flex flex-col overflow-visible rounded-note border bg-note shadow-note outline-none transition-[border-color,box-shadow] duration-[var(--notes-motion-fast)] focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[0.2rem] focus-visible:outline-[var(--notes-focus-ring)]",
+    "absolute flex flex-col overflow-visible rounded-note border border-note-line bg-note shadow-note outline-none transition-[border-color,box-shadow] duration-[var(--notes-motion-fast)] focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[0.2rem] focus-visible:outline-[var(--notes-focus-ring)]",
     selectedVisible
-      ? "border-selection ring-1 ring-inset ring-selection"
-      : "border-note-line",
+      ? "after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-note after:border-2 after:border-selection after:content-['']"
+      : undefined,
     propertiesTarget ? "outline outline-1 outline-offset-2 outline-dashed outline-line-strong" : undefined,
   )
   const cardStyle: CSSProperties = {
     height: geometry.height,
-    left: geometry.x,
-    top: geometry.y,
+    left: geometry.x - renderOriginX,
+    top: geometry.y - renderOriginY,
     width: geometry.width,
     zIndex: geometry.zIndex,
   }
@@ -603,10 +608,14 @@ export function NoteCard({
       </header>
       <textarea
         aria-label="메모 내용"
-        className="min-h-0 flex-1 resize-none overflow-auto border-0 bg-transparent px-4 py-3 text-[0.98rem] leading-7 text-ink outline-none placeholder:text-soft-ink focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[-0.2rem] focus-visible:outline-[var(--notes-focus-ring)]"
+        className={joinClassNames(
+          "min-h-0 flex-1 resize-none overflow-auto border-0 bg-transparent px-4 py-3 text-[0.98rem] leading-7 text-ink outline-none placeholder:text-soft-ink focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[-0.2rem] focus-visible:outline-[var(--notes-focus-ring)]",
+          contentPointerFocused ? "focus-visible:outline-none" : undefined,
+        )}
         id={contentId}
         onClick={runContentShortcut}
         onMouseDown={prepareContentShortcut}
+        onPointerDown={() => setContentPointerFocused(true)}
         placeholder="메모를 입력하세요"
         {...contentRegistration}
       />

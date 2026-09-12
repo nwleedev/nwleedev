@@ -79,7 +79,7 @@
 - 패널 닫기 전에 유효하고 달라진 초안은 같은 적용 명령으로 한 번 저장한다. 유효하지 않은 초안이 있으면 패널을 유지하고 첫 오류 입력으로 포커스를 옮긴다. 사용자가 `저장값으로 되돌리기`를 실행한 뒤에만 잘못된 초안을 버리고 닫을 수 있다. 상위 임시 조작이 없는 `Escape`는 메모와 일괄 복사 항목 선택만 해제하며 패널 대상과 초안을 바꾸지 않는다.
 - 기존 메모의 위치와 크기는 변경 없이 읽는다. 예전 0 좌표의 양수 보정과 캔버스 안으로 옮기는 보정은 새 위치 저장에 적용하지 않는다. 이미 소실된 과거 좌표를 추정하지 않으며, 좌표 정책 변경만으로 원문이나 revision을 올리지 않는다.
 - 속성 패널에서 적용한 geometry 변경은 전체 revision만 증가시키고 content revision을 바꾸지 않는다.
-- 가장자리와 꼭짓점 drag에 의한 직접 크기 조절을 계속 제공한다. 위쪽 가장자리를 포함한 resize는 캔버스 안에 공간이 남았는데 작은 고정 상한에서 멈추지 않는다. 메모 표면에는 숫자 입력, 단계 조절 또는 설정 버튼을 추가하지 않는다.
+- 가장자리와 꼭짓점 drag에 의한 직접 크기 조절을 계속 제공한다. 위쪽과 왼쪽을 포함한 resize는 좌표와 독립된 너비 및 높이 범위에서 반대편 변을 고정한다. 메모 표면에는 숫자 입력, 단계 조절 또는 설정 버튼을 추가하지 않는다.
 
 [메모 선택, 속성 편집과 제거 복구 조사](../references/note-selection-properties-and-removal-research.md)는 브라우저의 `click` 및 `dblclick`, Pointer Events, CSS 표시 방식과 WAI의 키보드 및 포커스 기준을 현재 화면에 적용할 근거를 기록한다. [데스크톱 입력 상태와 피드백 복원력 조사](../references/desktop-input-and-feedback-resilience-research.md)는 운영체제 단축키 뒤 modifier 복원, 굵고 끊기지 않는 선택 테두리와 캔버스 경계 기반 resize 변경을 보완한다. [모바일 일괄 복사 확인과 오른쪽 패널 우선순위 조사](../references/mobile-batch-copy-confirmation-and-panel-priority-research.md)는 최근 활성 패널과 geometry 입력 범위를 보완한다. [`tabindex`, 항목 동작 팝오버와 모바일 지연 재정렬 조사](../references/tab-order-popover-and-mobile-reorder-research.md)는 키보드 탐색과 시각적 겹침을 분리한 근거와 전체 문서 포커스 순서의 위험을 기록한다. [구현 필수 결정 교차검증](../references/required-implementation-decisions-research.md)은 양수 범위, 포커스 결과와 수치 기본값의 근거 및 한계를 정리한다.
 

@@ -9,13 +9,9 @@ import {
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react"
-import {
-  useWatch,
-  type UseFormRegisterReturn,
-} from "react-hook-form"
+import type { UseFormRegisterReturn } from "react-hook-form"
 
 import {
-  NOTE_CANVAS_SIZE,
   NOTE_HEIGHT_MAX,
   NOTE_HEIGHT_MIN,
   NOTE_WIDTH_MAX,
@@ -25,7 +21,6 @@ import {
   readNoteGeometryDraft,
   type Note,
   type NoteGeometry,
-  type NoteGeometryDraft,
   type NoteGeometryDraftField,
 } from "@/entities/note"
 import { Button } from "@/shared/ui/button"
@@ -40,17 +35,17 @@ import { useNotesData } from "../model/notes-data-provider"
 const geometryFields: ReadonlyArray<{
   field: NoteGeometryDraftField
   label: string
-  minimum: number
+  minimum?: number
 }> = [
-  { field: "x", label: "X", minimum: 1 },
-  { field: "y", label: "Y", minimum: 1 },
+  { field: "x", label: "X" },
+  { field: "y", label: "Y" },
   { field: "width", label: "너비", minimum: NOTE_WIDTH_MIN },
   { field: "height", label: "높이", minimum: NOTE_HEIGHT_MIN },
 ]
 
-const invalidGeometryMessage = "값의 범위와 캔버스 안의 위치를 확인하세요."
+const invalidGeometryMessage = "값의 범위와 위치를 확인하세요."
 
-type GeometryInputMaximums = Record<NoteGeometryDraftField, number>
+type GeometryInputMaximums = Record<NoteGeometryDraftField, number | undefined>
 
 type ApplyDraftOptions = {
   focusInvalid: boolean
@@ -64,8 +59,8 @@ type ApplyDraftResult = {
 type GeometryFieldProps = {
   invalid: boolean
   label: string
-  maximum: number
-  minimum: number
+  maximum?: number
+  minimum?: number
   registration: UseFormRegisterReturn<NoteGeometryDraftField>
   onApply(options: ApplyDraftOptions): ApplyDraftResult
 }
@@ -97,9 +92,9 @@ function GeometryField({
       <span>{label}</span>
       <TextField
         aria-invalid={invalid}
-        max={maximum}
-        min={minimum}
         {...registration}
+        {...(maximum === undefined ? {} : { max: maximum })}
+        {...(minimum === undefined ? {} : { min: minimum })}
         onBlur={applyOnBlur}
         onKeyDown={applyOnEnter}
         step="1"
@@ -109,55 +104,12 @@ function GeometryField({
   )
 }
 
-function readSafeDraftNumber(
-  value: string,
-  fallback: number,
-  minimum: number,
-  maximum: number,
-) {
-  const parsed = Number(value)
-
-  if (!Number.isInteger(parsed) || parsed < minimum || parsed > maximum) {
-    return fallback
-  }
-
-  return parsed
-}
-
-function geometryInputMaximums(
-  note: Note,
-  draft: NoteGeometryDraft,
-): GeometryInputMaximums {
-  const width = readSafeDraftNumber(
-    draft.width,
-    note.geometry.width,
-    NOTE_WIDTH_MIN,
-    NOTE_WIDTH_MAX,
-  )
-  const height = readSafeDraftNumber(
-    draft.height,
-    note.geometry.height,
-    NOTE_HEIGHT_MIN,
-    NOTE_HEIGHT_MAX,
-  )
-  const x = readSafeDraftNumber(
-    draft.x,
-    Math.min(note.geometry.x, NOTE_CANVAS_SIZE - width),
-    1,
-    NOTE_CANVAS_SIZE - width,
-  )
-  const y = readSafeDraftNumber(
-    draft.y,
-    Math.min(note.geometry.y, NOTE_CANVAS_SIZE - height),
-    1,
-    NOTE_CANVAS_SIZE - height,
-  )
-
+function geometryInputMaximums(): GeometryInputMaximums {
   return {
-    height: Math.min(NOTE_HEIGHT_MAX, NOTE_CANVAS_SIZE - y),
-    width: Math.min(NOTE_WIDTH_MAX, NOTE_CANVAS_SIZE - x),
-    x: NOTE_CANVAS_SIZE - width,
-    y: NOTE_CANVAS_SIZE - height,
+    height: NOTE_HEIGHT_MAX,
+    width: NOTE_WIDTH_MAX,
+    x: undefined,
+    y: undefined,
   }
 }
 
@@ -195,7 +147,6 @@ export function NotePropertiesPanel() {
   const session = useNoteSession()
   const {
     clearErrors,
-    control,
     formState: { errors },
     getValues,
     handleSubmit,
@@ -212,17 +163,8 @@ export function NotePropertiesPanel() {
   const note = availableNotes(notesData).find(
     ({ id }) => id === propertiesNoteId,
   )
-  const watchedFields = useWatch({ control })
-  const draft: NoteGeometryDraft = {
-    height: watchedFields.height ?? "",
-    width: watchedFields.width ?? "",
-    x: watchedFields.x ?? "",
-    y: watchedFields.y ?? "",
-  }
   const title = note === undefined ? "메모 속성" : noteTitle(note)
-  const maximums = note === undefined
-    ? null
-    : geometryInputMaximums(note, draft)
+  const maximums = note === undefined ? null : geometryInputMaximums()
   const fieldValidationFailed = geometryFields.some(
     ({ field }) => errors[field] !== undefined,
   )
