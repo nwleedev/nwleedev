@@ -7,7 +7,7 @@ import {
 
 type SaveNoteContentDependencies = {
   drafts: NoteDraftRepository
-  notes: NoteRepository
+  notes: Pick<NoteRepository, "save">
   now(): string
 }
 

@@ -53,18 +53,52 @@ test.beforeEach(async ({ page }) => {
 })
 
 test("초기 화면을 hydration 오류 없이 연다", async ({ page }) => {
-  const consoleErrors: string[] = []
+  const consoleMessages: string[] = []
+  const pageErrors: string[] = []
 
   page.on("console", (message) => {
-    consoleErrors.push(`${message.type()}: ${message.text()}`)
+    if (message.type() === "error" || message.type() === "warning") {
+      consoleMessages.push(`${message.type()}: ${message.text()}`)
+    }
   })
+  page.on("pageerror", (error) => pageErrors.push(error.message))
 
   await page.reload()
   await expect(page.getByRole("main")).toBeVisible()
-  const hydrationErrors = consoleErrors.filter((message) =>
-    message.includes("error: A tree hydrated but some attributes"),
+  await expect(
+    page.getByRole("region", { name: "메모 작업 영역" }),
+  ).toBeVisible()
+  expect(consoleMessages).toEqual([])
+  const knownPrefetchErrors = pageErrors.filter((message) =>
+    /^\/localhost:4173\/\S+\?_rsc=\S+ due to access control checks\.$/u.test(
+      message,
+    ),
   )
-  expect(hydrationErrors).toEqual([])
+  expect(knownPrefetchErrors).toEqual(pageErrors)
+})
+
+test("해시로 연 메모의 자동 저장이 편집기 초점을 유지한다", async ({
+  page,
+}) => {
+  const initialContent = "해시로 열 메모"
+  const revisedContent = "자동 저장 뒤에도 이어서 편집할 메모"
+  const note = await createNoteThroughUi(page, initialContent)
+  const articleId = await note.getAttribute("id")
+  expect(articleId).not.toBeNull()
+
+  const encodedNoteId = articleId!.slice("note-".length, -"-board".length)
+  const noteId = decodeURIComponent(encodedNoteId)
+
+  await page.goto(`/#note-${encodeURIComponent(noteId)}`)
+  const linkedNote = page.getByRole("article", { exact: true, name: "메모" })
+  const editor = linkedNote.getByRole("textbox", { name: "메모 내용" })
+  await expect(linkedNote).toBeFocused()
+
+  await page.clock.install()
+  await editor.fill(revisedContent)
+  await page.clock.fastForward(800)
+  await expect(editor).toBeFocused()
+  await expect(editor).toHaveValue(revisedContent)
 })
 
 test("허용하지 않는 주소에서 다시 접속할 방법을 안내한다", async ({ page }) => {
@@ -533,5 +567,39 @@ test.describe("320px 메모 화면", () => {
     await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
       initialContent,
     )
+  })
+
+  test("상단 탐색의 내부 이동도 저장하지 않은 상세 입력을 확인한다", async ({
+    page,
+  }) => {
+    const initialContent = "상단 탐색 이동을 확인할 메모"
+    const revisedContent = "탐색 전에 확인할 변경사항"
+    const note = await createMobileNoteThroughUi(page, initialContent)
+
+    await note.getByRole("link", { name: "메모 열기" }).click()
+    const editor = page.getByRole("textbox", { name: "메모 내용" })
+    await editor.fill(revisedContent)
+    await page.getByRole("button", { name: "탐색" }).click()
+    await page.getByRole("link", { exact: true, name: "텍스트 분석" }).click()
+
+    const dialog = page.getByRole("dialog", { name: "저장하지 않은 변경사항" })
+    await expect(dialog).toBeVisible()
+    await expect(page).toHaveURL(/\/notes\//u)
+    await dialog.getByRole("button", { name: "계속 편집" }).click()
+    await expect(editor).toBeFocused()
+    await expect(editor).toHaveValue(revisedContent)
+
+    await page.getByRole("link", { exact: true, name: "개인 메모" }).click()
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole("button", { name: "계속 편집" }).click()
+    await expect(editor).toBeFocused()
+
+    await page.getByRole("button", { name: "탐색" }).click()
+    await page.getByRole("link", { exact: true, name: "텍스트 분석" }).click()
+    await page
+      .getByRole("dialog", { name: "저장하지 않은 변경사항" })
+      .getByRole("button", { name: "변경사항 버리기" })
+      .click()
+    await expect(page).toHaveURL("/analysis/")
   })
 })

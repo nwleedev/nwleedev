@@ -14,6 +14,7 @@ import {
 import { useForm } from "react-hook-form"
 
 import type { Note } from "@/entities/note"
+import { useNavigationGuard } from "@/features/navigation-guard"
 import { ActionToast } from "@/shared/ui/action-toast"
 import { Button } from "@/shared/ui/button"
 import { StatusNotice } from "@/shared/ui/status-notice"
@@ -120,6 +121,7 @@ function ReadyNoteDetail({
   saveDraft,
 }: ReadyNoteDetailProps) {
   const router = useRouter()
+  const { registerNavigationGuard, requestNavigation } = useNavigationGuard()
   const {
     formState: { isSubmitting },
     getValues,
@@ -136,6 +138,7 @@ function ReadyNoteDetail({
   const [confirmingNavigation, setConfirmingNavigation] = useState(false)
   const [discarding, setDiscarding] = useState(false)
   const discardedDraft = useRef(false)
+  const pendingNavigation = useRef<(() => void) | null>(null)
   const noteReference = useRef(note)
   const saveDraftReference = useRef(saveDraft)
   const editor = useRef<HTMLTextAreaElement>(null)
@@ -148,6 +151,18 @@ function ReadyNoteDetail({
   useEffect(() => {
     saveDraftReference.current = saveDraft
   }, [saveDraft])
+
+  useEffect(() => {
+    return registerNavigationGuard((continueNavigation) => {
+      if (getValues("content") === noteReference.current.content) {
+        return false
+      }
+
+      pendingNavigation.current = continueNavigation
+      setConfirmingNavigation(true)
+      return true
+    })
+  }, [getValues, registerNavigationGuard])
 
   useEffect(() => {
     function storeDraft() {
@@ -245,17 +260,18 @@ function ReadyNoteDetail({
   function requestBackNavigation(event: ReactMouseEvent<HTMLAnchorElement>) {
     const modifiedClick =
       event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
-    const changed = getValues("content") !== noteReference.current.content
 
-    if (modifiedClick || !changed) {
+    if (modifiedClick) {
       return
     }
 
-    event.preventDefault()
-    setConfirmingNavigation(true)
+    if (requestNavigation(() => router.push("/"))) {
+      event.preventDefault()
+    }
   }
 
   function continueEditing() {
+    pendingNavigation.current = null
     setConfirmingNavigation(false)
     requestAnimationFrame(() => editor.current?.focus())
   }
@@ -275,7 +291,13 @@ function ReadyNoteDetail({
 
     try {
       await saveDraft(note.id, noteReference.current.content)
-      router.push("/")
+      const continueNavigation = pendingNavigation.current
+      pendingNavigation.current = null
+      continueNavigation?.()
+
+      if (continueNavigation === null) {
+        router.push("/")
+      }
     } catch {
       discardedDraft.current = false
       setDiscarding(false)

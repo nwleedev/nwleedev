@@ -69,24 +69,24 @@ export function SavedTemplates({
   onSelect,
   selectedTemplateId,
 }: SavedTemplatesProps) {
-  const templates = useTemplateData()
+  const templateState = useTemplateData()
 
-  if (templates.status === "loading") {
+  if (templateState.status === "loading") {
     return <p className="text-sm text-soft-ink">템플릿을 불러오는 중입니다.</p>
   }
 
-  if (templates.status === "load-failure") {
+  if (templateState.status === "load-failure") {
     return (
       <StatusNotice kind="error">
         <p>저장된 템플릿을 불러오지 못했습니다.</p>
-        <Button onClick={templates.retry} tone="quiet">
+        <Button onClick={templateState.retry} tone="quiet">
           다시 시도
         </Button>
       </StatusNotice>
     )
   }
 
-  if (templates.templates.length === 0) {
+  if (templateState.templates.length === 0) {
     return <p className="text-sm text-soft-ink">저장된 템플릿이 없습니다.</p>
   }
 
@@ -94,7 +94,7 @@ export function SavedTemplates({
     <SavedTemplateList
       onSelect={onSelect}
       selectedTemplateId={selectedTemplateId}
-      templates={templates.templates}
+      templates={templateState.templates}
     />
   )
 }

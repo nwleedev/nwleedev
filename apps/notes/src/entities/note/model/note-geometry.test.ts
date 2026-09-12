@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest"
 
 import {
   findNewNoteGeometry,
-  fitNoteGeometryToCanvas,
   readNoteGeometryDraft,
+  validateAndClampNoteGeometry,
 } from "./note-geometry"
 
 describe("메모 속성 입력", () => {
@@ -55,7 +55,7 @@ describe("메모 속성 입력", () => {
 describe("기존 메모 크기 보정", () => {
   it("크기만 허용 범위로 맞추고 위치는 그대로 둔다", () => {
     expect(
-      fitNoteGeometryToCanvas({
+      validateAndClampNoteGeometry({
         height: 5000,
         width: 5000,
         x: 0,
@@ -73,7 +73,7 @@ describe("기존 메모 크기 보정", () => {
 
   it("유한하지 않은 좌표를 임의 값으로 바꾸지 않는다", () => {
     expect(() =>
-      fitNoteGeometryToCanvas({
+      validateAndClampNoteGeometry({
         height: 240,
         width: 320,
         x: Number.NaN,

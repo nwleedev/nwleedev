@@ -17,7 +17,7 @@ import {
   NOTE_HEIGHT_MIN,
   NOTE_WIDTH_MAX,
   NOTE_WIDTH_MIN,
-  fitNoteGeometryToCanvas,
+  validateAndClampNoteGeometry,
   type Note,
   type NoteGeometry,
 } from "@/entities/note"
@@ -162,7 +162,7 @@ function resizedGeometry(
     y = bottom - height
   }
 
-  return fitNoteGeometryToCanvas({ ...geometry, height, width, x, y })
+  return validateAndClampNoteGeometry({ ...geometry, height, width, x, y })
 }
 
 function geometryFromGesture(
@@ -174,7 +174,7 @@ function geometryFromGesture(
   const deltaY = Math.round((event.clientY - gesture.startY) / scale)
 
   if (gesture.action === "move") {
-    return fitNoteGeometryToCanvas({
+    return validateAndClampNoteGeometry({
       ...gesture.geometry,
       x: gesture.geometry.x + deltaX,
       y: gesture.geometry.y + deltaY,

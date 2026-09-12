@@ -6,7 +6,7 @@
 
 ## 기존 제한의 적용 지점
 
-`entities/note/model/note.ts`의 `NoteGeometrySchema`, `note-geometry.ts`의 초안 검사와 `fitNoteGeometryToCanvas`, `note-card.tsx`의 이동 및 크기 계산, `note-properties-panel.tsx`의 입력 최댓값이 모두 4096과 양수 좌표에 의존한다. `migrate-personal-notes-database.ts`도 같은 보정 함수를 호출한다. 이동 계산만 바꾸면 화면에 잠시 보인 위치가 저장에서 거부되거나 불러올 때 달라질 수 있다.
+`entities/note/model/note.ts`의 `NoteGeometrySchema`, `note-geometry.ts`의 초안 검사와 `validateAndClampNoteGeometry`, `note-card.tsx`의 이동 및 크기 계산, `note-properties-panel.tsx`의 입력 최댓값이 모두 4096과 양수 좌표에 의존한다. `migrate-personal-notes-database.ts`도 같은 보정 함수를 호출한다. 이동 계산만 바꾸면 화면에 잠시 보인 위치가 저장에서 거부되거나 불러올 때 달라질 수 있다.
 
 `notes-board.tsx`는 고정 크기 보드를 이동시키고, `notes-collection.tsx`는 화면 전체에 같은 배경을 그린다. 캔버스를 아래로 이동한 뒤 메모를 위로 끌면 화면에 빈 공간이 남아도 내부 Y가 1에서 멈추는 동작을 브라우저에서 확인했다.
 

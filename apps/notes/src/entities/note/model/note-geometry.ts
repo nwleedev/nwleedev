@@ -202,7 +202,7 @@ export function readNoteGeometryDraft(
   return { geometry: geometry.data, status: "valid" }
 }
 
-export function fitNoteGeometryToCanvas(
+export function validateAndClampNoteGeometry(
   geometry: NoteGeometry,
 ): NoteGeometry {
   const values = [

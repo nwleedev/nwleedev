@@ -36,7 +36,7 @@ export {
   NoteGeometryDraftSchema,
   createNoteGeometryDraft,
   findNewNoteGeometry,
-  fitNoteGeometryToCanvas,
+  validateAndClampNoteGeometry,
   readNoteGeometryDraft,
   type NoteGeometryDraft,
   type NoteGeometryDraftField,

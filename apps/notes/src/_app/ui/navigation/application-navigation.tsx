@@ -1,8 +1,10 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 
+import { useNavigationGuard } from "@/features/navigation-guard"
 import { joinClassNames } from "@/shared/lib/join-class-names"
 
 const destinations = [
@@ -84,11 +86,13 @@ type NavigationLinksProps = {
   expanded: boolean
   pathname: string
   placement: NavigationPlacement
-  onNavigate(): void
+  onClose(): void
+  onNavigate(href: string, event: { preventDefault(): void }): void
 }
 
 function NavigationLinks({
   expanded,
+  onClose,
   onNavigate,
   pathname,
   placement,
@@ -123,7 +127,8 @@ function NavigationLinks({
             className={linkClassName}
             href={destination.href}
             key={destination.href}
-            onClick={onNavigate}
+            onClick={onClose}
+            onNavigate={(event) => onNavigate(destination.href, event)}
             tabIndex={destination.tabIndex}
           >
             <span
@@ -149,11 +154,22 @@ export function ApplicationNavigation({
   pathname,
   placement,
 }: ApplicationNavigationProps) {
+  const router = useRouter()
+  const { requestNavigation } = useNavigationGuard()
   const normalizedPathname = normalizePathname(pathname)
   const [expanded, setExpanded] = useState(false)
 
   function closeDisclosure() {
     setExpanded(false)
+  }
+
+  function requestApplicationNavigation(
+    href: string,
+    event: { preventDefault(): void },
+  ) {
+    if (requestNavigation(() => router.push(href))) {
+      event.preventDefault()
+    }
   }
 
   if (placement === "top") {
@@ -163,6 +179,7 @@ export function ApplicationNavigation({
           <Link
             className="py-3 font-display text-sm font-semibold tracking-[-0.015em]"
             href="/"
+            onNavigate={(event) => requestApplicationNavigation("/", event)}
             tabIndex={2}
           >
             개인 메모
@@ -179,7 +196,8 @@ export function ApplicationNavigation({
           </button>
           <NavigationLinks
             expanded={expanded}
-            onNavigate={closeDisclosure}
+            onClose={closeDisclosure}
+            onNavigate={requestApplicationNavigation}
             pathname={normalizedPathname}
             placement={placement}
           />
@@ -194,6 +212,7 @@ export function ApplicationNavigation({
         <Link
           className="font-display text-sm font-semibold tracking-[-0.015em]"
           href="/"
+          onNavigate={(event) => requestApplicationNavigation("/", event)}
           tabIndex={2}
         >
           개인 메모
@@ -212,7 +231,8 @@ export function ApplicationNavigation({
         </button>
         <NavigationLinks
           expanded={expanded}
-          onNavigate={closeDisclosure}
+          onClose={closeDisclosure}
+          onNavigate={requestApplicationNavigation}
           pathname={normalizedPathname}
           placement={placement}
         />

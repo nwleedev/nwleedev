@@ -60,8 +60,8 @@ function InteractionPreferencesForm({
 }
 
 export function SettingsStartPage() {
-  const preferences = useInteractionPreferences()
-  const loadFailed = preferences.status === "load-failure"
+  const preferenceState = useInteractionPreferences()
+  const loadFailed = preferenceState.status === "load-failure"
   const loadNoticeKind = loadFailed ? "error" : "status"
   const loadStatusText = loadFailed
     ? "설정을 불러오지 못했습니다."
@@ -74,21 +74,23 @@ export function SettingsStartPage() {
     >
       <PageHeading density="compact" title="설정" />
       <section className="mt-5 border-y border-line py-6">
-        {"preferences" in preferences ? (
+        {"preferences" in preferenceState ? (
           <div>
             <InteractionPreferencesForm
-              preferences={preferences.preferences}
-              saveBatchCopyShortcut={preferences.setBatchCopyShortcutEnabled}
-              saving={preferences.status === "saving"}
+              preferences={preferenceState.preferences}
+              saveBatchCopyShortcut={
+                preferenceState.setBatchCopyShortcutEnabled
+              }
+              saving={preferenceState.status === "saving"}
             />
-            {preferences.status === "saving" ? (
+            {preferenceState.status === "saving" ? (
               <div className="mt-5">
                 <StatusNotice>
                   <p>설정 저장 중</p>
                 </StatusNotice>
               </div>
             ) : null}
-            {preferences.status === "save-failure" ? (
+            {preferenceState.status === "save-failure" ? (
               <div className="mt-5">
                 <StatusNotice kind="error">
                   <p>설정을 저장하지 못했습니다. 다시 변경하세요.</p>
@@ -100,7 +102,7 @@ export function SettingsStartPage() {
           <StatusNotice kind={loadNoticeKind}>
             <p>{loadStatusText}</p>
             {loadFailed ? (
-              <Button onClick={preferences.retry} tone="quiet">
+              <Button onClick={preferenceState.retry} tone="quiet">
                 다시 시도
               </Button>
             ) : null}

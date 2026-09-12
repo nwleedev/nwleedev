@@ -9,4 +9,6 @@ export {
 export {
   NoteSessionProvider,
   useNoteSession,
+  useNoteSessionCommands,
+  useNoteSessionState,
 } from "./model/note-session-provider"

@@ -3,9 +3,11 @@
 import { usePathname } from "next/navigation"
 import type { PropsWithChildren } from "react"
 
+import { NavigationGuardProvider } from "@/features/navigation-guard"
+
 import { ApplicationNavigation } from "./navigation"
 
-export function ApplicationFrame({ children }: PropsWithChildren) {
+function ApplicationFrameContent({ children }: PropsWithChildren) {
   const pathname = usePathname()
   const normalizedPathname =
     pathname === "/" ? pathname : pathname.replace(/\/$/u, "")
@@ -36,5 +38,13 @@ export function ApplicationFrame({ children }: PropsWithChildren) {
         <div className="min-h-0 min-w-0">{children}</div>
       </div>
     </>
+  )
+}
+
+export function ApplicationFrame({ children }: PropsWithChildren) {
+  return (
+    <NavigationGuardProvider>
+      <ApplicationFrameContent>{children}</ApplicationFrameContent>
+    </NavigationGuardProvider>
   )
 }

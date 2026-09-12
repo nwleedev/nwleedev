@@ -6,7 +6,7 @@ import { TextAnalysisProvider } from "@/_pages/analysis/composition"
 import {
   NotesDataProvider,
   NoteSessionProvider,
-  useNoteSession,
+  useNoteSessionCommands,
 } from "@/_pages/notes/composition"
 import {
   InteractionPreferencesProvider,
@@ -31,11 +31,11 @@ function ApplicationProviders({
   application,
   children,
 }: ApplicationProvidersProps) {
-  const noteSession = useNoteSession()
-  const preferences = useInteractionPreferences()
+  const { forgetBatchCopyItem } = useNoteSessionCommands()
+  const preferenceState = useInteractionPreferences()
   const batchCopyShortcutEnabled =
-    "preferences" in preferences
-      ? preferences.preferences.batchCopyShortcutEnabled
+    "preferences" in preferenceState
+      ? preferenceState.preferences.batchCopyShortcutEnabled
       : false
 
   return (
@@ -51,7 +51,7 @@ function ApplicationProviders({
           clipboard={application.notes.clipboard}
           createId={application.batchCopy.createId}
           now={application.batchCopy.now}
-          onItemRemoved={noteSession.forgetBatchCopyItem}
+          onItemRemoved={forgetBatchCopyItem}
           repository={application.batchCopy.repository}
           writer={application.batchCopy.writer}
         >

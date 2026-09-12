@@ -8,7 +8,7 @@ import {
   NOTE_DRAFT_STORE_NAME,
   NOTE_STORE_NAME,
   NoteRecordSchema,
-  fitNoteGeometryToCanvas,
+  validateAndClampNoteGeometry,
   normalizeNoteTabIndexes,
 } from "@/entities/note"
 import {
@@ -114,7 +114,7 @@ function migrateNoteRecords(records: unknown[]) {
       throw new Error("Note layer order could not be determined")
     }
 
-    const geometry = fitNoteGeometryToCanvas({
+    const geometry = validateAndClampNoteGeometry({
       ...note.geometry,
       zIndex,
     })

@@ -5,6 +5,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type PropsWithChildren,
 } from "react"
@@ -63,7 +64,18 @@ type NoteSessionContextValue = {
   toggleBatchCopyItem(itemId: string): void
 }
 
-const NoteSessionContext = createContext<NoteSessionContextValue | null>(null)
+type NoteSessionState = Pick<
+  NoteSessionContextValue,
+  "latestRemoval" | "workspace"
+>
+type NoteSessionCommands = Omit<
+  NoteSessionContextValue,
+  "latestRemoval" | "workspace"
+>
+
+const NoteSessionStateContext = createContext<NoteSessionState | null>(null)
+const NoteSessionCommandsContext =
+  createContext<NoteSessionCommands | null>(null)
 
 export function NoteSessionProvider({ children }: PropsWithChildren) {
   const [workspace, setWorkspace] = useState(createNoteWorkspaceState)
@@ -178,40 +190,80 @@ export function NoteSessionProvider({ children }: PropsWithChildren) {
     setWorkspace((current) => forgetBatchCopyItem(current, itemId))
   }, [])
 
+  const state = useMemo(
+    () => ({ latestRemoval, workspace }),
+    [latestRemoval, workspace],
+  )
+  const commands = useMemo<NoteSessionCommands>(
+    () => ({
+      activateBatchCopy,
+      activateProperties,
+      clearSelection,
+      clearSelections,
+      closeProperties,
+      closePanel,
+      confirmPropertiesTarget,
+      dismissRemovalNotice,
+      expireRemoval: expireRemovalFromHistory,
+      forgetBatchCopyItem: forgetBatchCopyItemFromWorkspace,
+      forgetNote: forgetRemovedNoteFromWorkspace,
+      forgetRemoval,
+      rememberRemoval,
+      restorePropertiesTarget,
+      select,
+      toggleBatchCopyItem,
+    }),
+    [
+      activateBatchCopy,
+      activateProperties,
+      clearSelection,
+      clearSelections,
+      closePanel,
+      closeProperties,
+      confirmPropertiesTarget,
+      dismissRemovalNotice,
+      expireRemovalFromHistory,
+      forgetBatchCopyItemFromWorkspace,
+      forgetRemoval,
+      forgetRemovedNoteFromWorkspace,
+      rememberRemoval,
+      restorePropertiesTarget,
+      select,
+      toggleBatchCopyItem,
+    ],
+  )
+
   return (
-    <NoteSessionContext
-      value={{
-        activateBatchCopy,
-        activateProperties,
-        clearSelection,
-        clearSelections,
-        closeProperties,
-        closePanel,
-        confirmPropertiesTarget,
-        dismissRemovalNotice,
-        expireRemoval: expireRemovalFromHistory,
-        forgetBatchCopyItem: forgetBatchCopyItemFromWorkspace,
-        forgetNote: forgetRemovedNoteFromWorkspace,
-        forgetRemoval,
-        latestRemoval,
-        rememberRemoval,
-        restorePropertiesTarget,
-        select,
-        toggleBatchCopyItem,
-        workspace,
-      }}
-    >
-      {children}
-    </NoteSessionContext>
+    <NoteSessionCommandsContext value={commands}>
+      <NoteSessionStateContext value={state}>{children}</NoteSessionStateContext>
+    </NoteSessionCommandsContext>
   )
 }
 
-export function useNoteSession() {
-  const context = useContext(NoteSessionContext)
+export function useNoteSessionState() {
+  const context = useContext(NoteSessionStateContext)
 
   if (context === null) {
-    throw new Error("useNoteSession must be used within NoteSessionProvider")
+    throw new Error(
+      "useNoteSessionState must be used within NoteSessionProvider",
+    )
   }
 
   return context
+}
+
+export function useNoteSessionCommands() {
+  const context = useContext(NoteSessionCommandsContext)
+
+  if (context === null) {
+    throw new Error(
+      "useNoteSessionCommands must be used within NoteSessionProvider",
+    )
+  }
+
+  return context
+}
+
+export function useNoteSession() {
+  return { ...useNoteSessionState(), ...useNoteSessionCommands() }
 }

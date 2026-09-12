@@ -13,12 +13,12 @@ import { TemplateInputForm } from "./template-input-form"
 
 export function TemplatesStartPage() {
   const sourceLines = useSelectedSourceLines()
-  const templates = useTemplateData()
+  const templateState = useTemplateData()
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null,
   )
-  const selectedTemplate = templates.status === "ready"
-    ? templates.templates.find(({ id }) => id === selectedTemplateId)
+  const selectedTemplate = templateState.status === "ready"
+    ? templateState.templates.find(({ id }) => id === selectedTemplateId)
     : undefined
 
   return (

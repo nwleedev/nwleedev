@@ -159,6 +159,7 @@ export function NotesCollection({
   const [creationPending, setCreationPending] = useState(false)
   const [linkedNoteId, setLinkedNoteId] = useState<string | null>(null)
   const [notice, setNotice] = useState<WorkspaceNotice | null>(null)
+  const handledHash = useRef<string | null>(null)
   const createLabel = creationPending ? "메모 만드는 중" : "새 메모"
   const empty = orderedNotes.length === 0
   const selectedNoteId = workspace.selectedNoteId
@@ -168,16 +169,32 @@ export function NotesCollection({
     let frame = 0
 
     function focusLinkedNote() {
+      const hash = window.location.hash
       const noteId = noteIdFromHash()
-      const noteExists = notes.some(({ id }) => id === noteId)
 
-      if (noteId === null || !noteExists) {
+      if (noteId === null) {
+        handledHash.current = null
         return
       }
 
+      if (handledHash.current === hash) {
+        return
+      }
+
+      const noteExists = notes.some(({ id }) => id === noteId)
+
+      if (!noteExists) {
+        return
+      }
+
+      handledHash.current = hash
       setLinkedNoteId(noteId)
       select(noteId)
-      frame = requestAnimationFrame(() => focusNote(noteId))
+      frame = requestAnimationFrame(() => {
+        if (window.location.hash === hash) {
+          focusNote(noteId)
+        }
+      })
     }
 
     focusLinkedNote()
