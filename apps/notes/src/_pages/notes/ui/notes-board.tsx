@@ -361,7 +361,7 @@ export function NotesBoard({
       </div>
       <div
         aria-label="캔버스 보기"
-        className="absolute bottom-3 left-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-2 rounded-panel border border-line bg-surface-raised p-2 shadow-floating"
+        className="absolute bottom-3 left-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-2 rounded-panel border border-line bg-surface-raised p-2 shadow-floating [&_button>svg]:size-5"
         role="group"
       >
         <IconButton
