@@ -189,4 +189,9 @@ test("메모 길게 누르기는 이동, 취소와 pointer capture 상실에서 
   await endTouch(session)
   await expectCopyCancelled(page)
   await expect(page.getByRole("article").filter({ hasText: content })).toBeVisible()
+
+  const nextTapPoint = await center(link)
+  await startTouch(session, nextTapPoint)
+  await endTouch(session)
+  await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)
 })

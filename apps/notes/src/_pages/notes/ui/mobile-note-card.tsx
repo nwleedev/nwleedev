@@ -104,6 +104,10 @@ export function MobileNoteCard({
   }
 
   function beginLongPress(event: ReactPointerEvent<HTMLAnchorElement>) {
+    if (event.isPrimary) {
+      suppressClick.current = false
+    }
+
     if (disabled || event.pointerType !== "touch" || !event.isPrimary) {
       return
     }
@@ -195,8 +199,8 @@ export function MobileNoteCard({
     }
   }
 
-  function cancelLongPress() {
-    cancelGesture(true)
+  function cancelLongPress(event: ReactPointerEvent<HTMLAnchorElement>) {
+    cancelGesture(event.type === "lostpointercapture")
   }
 
   function handleClick(event: ReactMouseEvent<HTMLAnchorElement>) {
@@ -205,7 +209,9 @@ export function MobileNoteCard({
       return
     }
 
-    if (suppressClick.current) {
+    if (event.detail === 0) {
+      suppressClick.current = false
+    } else if (suppressClick.current) {
       suppressClick.current = false
       event.preventDefault()
       return

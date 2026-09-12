@@ -258,9 +258,7 @@ export function NoteCard({
   const [contentPointerFocused, setContentPointerFocused] = useState(false)
   const gesture = useRef<GeometryGesture | null>(null)
   const contentPointerFocusPending = useRef(false)
-  const suppressClick = useRef(false)
   const suppressClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const article = useRef<HTMLElement>(null)
   const { getValues, register, reset } = useForm<NoteContentFields>({
     defaultValues: { content: initialContent },
   })
@@ -332,9 +330,7 @@ export function NoteCard({
       clearTimeout(suppressClickTimer.current)
     }
 
-    suppressClick.current = true
     suppressClickTimer.current = setTimeout(() => {
-      suppressClick.current = false
       suppressClickTimer.current = null
     }, 0)
   }
@@ -455,7 +451,7 @@ export function NoteCard({
   }
 
   function selectFromHeader(event: ReactMouseEvent<HTMLElement>) {
-    if (suppressClick.current) {
+    if (suppressClickTimer.current !== null) {
       return
     }
 
@@ -465,7 +461,7 @@ export function NoteCard({
   }
 
   function openPropertiesFromHeader(event: ReactMouseEvent<HTMLElement>) {
-    if (!suppressClick.current && !event.metaKey) {
+    if (suppressClickTimer.current === null && !event.metaKey) {
       onActivateProperties(note, "preserve")
     }
   }
@@ -614,7 +610,6 @@ export function NoteCard({
       id={articleId}
       onFocus={selectFromKeyboard}
       onKeyDown={openPropertiesFromKeyboard}
-      ref={article}
       style={cardStyle}
       tabIndex={note.tabIndex}
     >

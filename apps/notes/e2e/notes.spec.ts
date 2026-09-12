@@ -569,6 +569,83 @@ test.describe("320px 메모 화면", () => {
     )
   })
 
+  test("변경사항을 버리는 중에는 대화상자 닫기를 무시하고 원래 목적지로 이동한다", async ({
+    page,
+  }) => {
+    const initialContent = "버리기 진행을 확인할 메모"
+    const changedContent = "버리기 전에 작성한 변경사항"
+    const note = await createMobileNoteThroughUi(page, initialContent)
+
+    await note.getByRole("link", { name: "메모 열기" }).click()
+    const editor = page.getByRole("textbox", { name: "메모 내용" })
+    await editor.fill(changedContent)
+    await page.getByRole("link", { exact: true, name: "메모 목록" }).click()
+
+    await page.evaluate(() => {
+      type DelayedDraftWindow = typeof window & {
+        waitForDelayedDraftSave?: Promise<void>
+      }
+      const currentWindow = window as DelayedDraftWindow
+      const originalTransaction = IDBDatabase.prototype.transaction
+      let releaseCompletion: (() => void) | null = null
+
+      currentWindow.waitForDelayedDraftSave = new Promise<void>((resolve) => {
+        releaseCompletion = resolve
+      })
+      IDBDatabase.prototype.transaction = function transaction(
+        storeNames: string | string[],
+        mode?: IDBTransactionMode,
+      ) {
+        const transaction = originalTransaction.call(this, storeNames, mode)
+        const usesDraftStore = Array.isArray(storeNames)
+          ? storeNames.includes("noteDrafts")
+          : storeNames === "noteDrafts"
+
+        if (!usesDraftStore || mode !== "readwrite") {
+          return transaction
+        }
+
+        let completionHandler: ((event: Event) => unknown) | null = null
+        Object.defineProperty(transaction, "oncomplete", {
+          configurable: true,
+          get() {
+            return completionHandler
+          },
+          set(handler: ((event: Event) => unknown) | null) {
+            completionHandler = handler
+          },
+        })
+        transaction.addEventListener("complete", (event) => {
+          window.addEventListener(
+            "release-delayed-draft-save",
+            () => completionHandler?.call(transaction, event),
+            { once: true },
+          )
+          releaseCompletion?.()
+        })
+        return transaction
+      }
+    })
+
+    const dialog = page.getByRole("dialog", { name: "저장하지 않은 변경사항" })
+    await dialog.getByRole("button", { name: "변경사항 버리기" }).click()
+    await page.evaluate(() => {
+      type DelayedDraftWindow = typeof window & {
+        waitForDelayedDraftSave?: Promise<void>
+      }
+
+      return (window as DelayedDraftWindow).waitForDelayedDraftSave
+    })
+    await expect(dialog.getByRole("button", { name: "버리는 중" })).toBeDisabled()
+    await page.keyboard.press("Escape")
+    await expect(dialog).toBeVisible()
+    await expect(editor).toHaveValue(changedContent)
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event("release-delayed-draft-save"))
+    })
+    await expect(page).toHaveURL("/")
+  })
+
   test("상단 탐색의 내부 이동도 저장하지 않은 상세 입력을 확인한다", async ({
     page,
   }) => {

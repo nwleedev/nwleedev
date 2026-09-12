@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   useEffect,
+  useEffectEvent,
   useRef,
   useState,
   type ChangeEvent as ReactChangeEvent,
@@ -30,6 +31,10 @@ const backLinkClassName =
 type NoteContentFields = {
   content: string
 }
+
+type NavigationState =
+  | { phase: "editing" }
+  | { continueNavigation(): void; phase: "confirming" | "discarding" }
 
 type ReadyNoteDetailProps = {
   initialContent: string
@@ -74,7 +79,10 @@ function UnsavedChangesDialog({
 
   function continueFromCancel(event: SyntheticEvent<HTMLDialogElement>) {
     event.preventDefault()
-    onContinue()
+
+    if (!discarding) {
+      onContinue()
+    }
   }
 
   return (
@@ -135,12 +143,11 @@ function ReadyNoteDetail({
     kind: "error" | "status"
     message: string
   } | null>(null)
-  const [confirmingNavigation, setConfirmingNavigation] = useState(false)
-  const [discarding, setDiscarding] = useState(false)
+  const [navigation, setNavigation] = useState<NavigationState>({
+    phase: "editing",
+  })
   const discardedDraft = useRef(false)
-  const pendingNavigation = useRef<(() => void) | null>(null)
   const noteReference = useRef(note)
-  const saveDraftReference = useRef(saveDraft)
   const editor = useRef<HTMLTextAreaElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -148,9 +155,15 @@ function ReadyNoteDetail({
     noteReference.current = note
   }, [note])
 
-  useEffect(() => {
-    saveDraftReference.current = saveDraft
-  }, [saveDraft])
+  const saveDraftOnExit = useEffectEvent(() => {
+    if (discardedDraft.current) {
+      return
+    }
+
+    void saveDraft(noteReference.current.id, getValues("content")).catch(
+      () => undefined,
+    )
+  })
 
   useEffect(() => {
     return registerNavigationGuard((continueNavigation) => {
@@ -158,41 +171,34 @@ function ReadyNoteDetail({
         return false
       }
 
-      pendingNavigation.current = continueNavigation
-      setConfirmingNavigation(true)
+      setNavigation((current) =>
+        current.phase === "discarding"
+          ? current
+          : { continueNavigation, phase: "confirming" },
+      )
       return true
     })
   }, [getValues, registerNavigationGuard])
 
   useEffect(() => {
-    function storeDraft() {
-      if (discardedDraft.current) {
-        return
-      }
-
-      void saveDraftReference
-        .current(noteReference.current.id, getValues("content"))
-        .catch(() => undefined)
-    }
-
     function storeDraftWhenHidden() {
       if (document.visibilityState === "hidden") {
-        storeDraft()
+        saveDraftOnExit()
       }
     }
 
-    window.addEventListener("pagehide", storeDraft)
+    window.addEventListener("pagehide", saveDraftOnExit)
     document.addEventListener("visibilitychange", storeDraftWhenHidden)
 
     return () => {
-      window.removeEventListener("pagehide", storeDraft)
+      window.removeEventListener("pagehide", saveDraftOnExit)
       document.removeEventListener("visibilitychange", storeDraftWhenHidden)
 
       if (timer.current !== null) {
         clearTimeout(timer.current)
       }
 
-      storeDraft()
+      saveDraftOnExit()
     }
   }, [getValues])
 
@@ -271,15 +277,20 @@ function ReadyNoteDetail({
   }
 
   function continueEditing() {
-    pendingNavigation.current = null
-    setConfirmingNavigation(false)
+    if (navigation.phase !== "confirming") {
+      return
+    }
+
+    setNavigation({ phase: "editing" })
     requestAnimationFrame(() => editor.current?.focus())
   }
 
   async function discardChanges() {
-    if (discarding) {
+    if (navigation.phase !== "confirming") {
       return
     }
+
+    const continueNavigation = navigation.continueNavigation
 
     if (timer.current !== null) {
       clearTimeout(timer.current)
@@ -287,21 +298,15 @@ function ReadyNoteDetail({
     }
 
     discardedDraft.current = true
-    setDiscarding(true)
+    setNavigation({ continueNavigation, phase: "discarding" })
 
     try {
       await saveDraft(note.id, noteReference.current.content)
-      const continueNavigation = pendingNavigation.current
-      pendingNavigation.current = null
-      continueNavigation?.()
-
-      if (continueNavigation === null) {
-        router.push("/")
-      }
+      setNavigation({ phase: "editing" })
+      continueNavigation()
     } catch {
       discardedDraft.current = false
-      setDiscarding(false)
-      setConfirmingNavigation(false)
+      setNavigation({ phase: "editing" })
       setNotice({
         kind: "error",
         message: "변경사항을 버리지 못했습니다. 다시 시도하세요.",
@@ -311,6 +316,8 @@ function ReadyNoteDetail({
   }
 
   const contentRegistration = register("content")
+  const confirmingNavigation = navigation.phase !== "editing"
+  const discarding = navigation.phase === "discarding"
 
   function changeContent(event: ReactChangeEvent<HTMLTextAreaElement>) {
     void contentRegistration.onChange(event)

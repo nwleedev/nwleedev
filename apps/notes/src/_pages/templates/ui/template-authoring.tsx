@@ -70,11 +70,9 @@ export function TemplateAuthoring({ onSaved }: TemplateAuthoringProps) {
   const sourceLines = useSelectedSourceLines()
   const [seed] = useState(() => createAuthoringSeed(sourceLines.selection))
   const [draft, setDraft] = useState<TemplateDraft | null>(seed.draft)
-  const [manual, setManual] = useState(seed.draft === null)
 
   function startManual() {
     setDraft(createTemplateDraft(seed.manualText))
-    setManual(true)
   }
 
   if (draft === null) {
@@ -96,7 +94,7 @@ export function TemplateAuthoring({ onSaved }: TemplateAuthoringProps) {
     )
   }
 
-  const heading = manual ? "새 템플릿" : "제안 편집"
+  const heading = seed.draft === null ? "새 템플릿" : "제안 편집"
 
   return (
     <TemplateEditor

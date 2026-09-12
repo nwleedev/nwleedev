@@ -95,6 +95,13 @@ function TemplateValueFieldList({
 
 type OutputStatus = "idle" | "copied" | ClipboardWriteFailureReason
 
+type GeneratedOutput = {
+  copyOperation: string | null
+  id: string
+  status: OutputStatus
+  text: string
+}
+
 const outputCopyFailureMessages: Record<
   ClipboardWriteFailureReason,
   string
@@ -166,8 +173,7 @@ type TemplateInputFormProps = {
 
 export function TemplateInputForm({ template }: TemplateInputFormProps) {
   const templates = useTemplateData()
-  const [output, setOutput] = useState<string | null>(null)
-  const [status, setStatus] = useState<OutputStatus>("idle")
+  const [output, setOutput] = useState<GeneratedOutput | null>(null)
   const {
     formState: { errors },
     handleSubmit,
@@ -180,23 +186,44 @@ export function TemplateInputForm({ template }: TemplateInputFormProps) {
   )
 
   function generateText(fields: TemplateValueFields) {
-    setOutput(renderTemplate(template.segments, fields.values))
-    setStatus("idle")
+    setOutput({
+      copyOperation: null,
+      id: crypto.randomUUID(),
+      status: "idle",
+      text: renderTemplate(template.segments, fields.values),
+    })
   }
 
   async function copyOutput() {
-    if (output === null) {
+    const outputSnapshot = output
+
+    if (outputSnapshot === null) {
       return
     }
 
-    const result = await templates.copyText(output)
+    const operationId = crypto.randomUUID()
 
-    if (result.status === "copied") {
-      setStatus("copied")
-      return
-    }
+    setOutput((current) =>
+      current?.id === outputSnapshot.id
+        ? { ...current, copyOperation: operationId, status: "idle" }
+        : current,
+    )
 
-    setStatus(result.reason)
+    const result = await templates.copyText(outputSnapshot.text)
+
+    setOutput((current) => {
+      if (
+        current?.id !== outputSnapshot.id ||
+        current.copyOperation !== operationId
+      ) {
+        return current
+      }
+
+      return {
+        ...current,
+        status: result.status === "copied" ? "copied" : result.reason,
+      }
+    })
   }
 
   const submitValues = handleSubmit(generateText)
@@ -222,8 +249,8 @@ export function TemplateInputForm({ template }: TemplateInputFormProps) {
       {output === null ? null : (
         <GeneratedTemplateOutput
           onCopy={copyOutput}
-          output={output}
-          status={status}
+          output={output.text}
+          status={output.status}
         />
       )}
     </section>

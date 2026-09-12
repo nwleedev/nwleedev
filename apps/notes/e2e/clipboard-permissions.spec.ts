@@ -227,3 +227,50 @@ test("템플릿 Clipboard 쓰기 실패는 같은 생성문 재시도를 안내�
     ))
     .toBe(output)
 })
+
+test("이전 생성문의 복사 완료를 현재 생성문에 표시하지 않는다", async ({
+  page,
+}) => {
+  const { generatedText, output } = await createGeneratedTemplate(page)
+  const currentOutput = "안녕하세요, 하늘"
+
+  await page.evaluate(() => {
+    let complete: (() => void) | null = null
+
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText(text: string) {
+          sessionStorage.setItem("delayed-template-clipboard-value", text)
+          return new Promise<void>((resolve) => {
+            complete = resolve
+          })
+        },
+      },
+    })
+
+    window.addEventListener(
+      "release-template-copy",
+      () => complete?.(),
+      { once: true },
+    )
+  })
+
+  await generatedText.getByRole("button", { name: "복사" }).click()
+  await expect
+    .poll(() => page.evaluate(
+      () => sessionStorage.getItem("delayed-template-clipboard-value"),
+    ))
+    .toBe(output)
+
+  await page.getByRole("textbox", { name: "입력값 1" }).fill("하늘")
+  await page.getByRole("button", { name: "텍스트 생성" }).click()
+  await expect(generatedText).toContainText(currentOutput)
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("release-template-copy"))
+  })
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+  )
+  await expect(generatedText.getByRole("status")).toHaveCount(0)
+})
