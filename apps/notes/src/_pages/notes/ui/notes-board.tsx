@@ -144,10 +144,10 @@ export function NotesBoard({
   )
   const scaleText = `${Math.round(view.scale * 100).toLocaleString("ko-KR")}%`
   const boardStyle: CSSProperties = {
-    height: NOTE_CANVAS_SIZE,
-    transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
+    height: NOTE_CANVAS_SIZE * view.scale,
+    transform: `translate(${view.x}px, ${view.y}px)`,
     transformOrigin: "0 0",
-    width: NOTE_CANVAS_SIZE,
+    width: NOTE_CANVAS_SIZE * view.scale,
   }
 
   useEffect(() => {
@@ -186,7 +186,10 @@ export function NotesBoard({
   function adjustScale(change: number) {
     setView((current) => ({
       ...current,
-      scale: Math.min(2, Math.max(0.5, current.scale + change)),
+      scale:
+        change < 0
+          ? Math.max(Number.EPSILON, current.scale + change)
+          : Math.min(2, current.scale + change),
     }))
   }
 

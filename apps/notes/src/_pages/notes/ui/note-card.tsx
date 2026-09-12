@@ -184,6 +184,18 @@ function geometryFromGesture(
   return resizedGeometry(gesture.geometry, gesture.action, deltaX, deltaY)
 }
 
+function tryGeometryFromGesture(
+  event: ReactPointerEvent<HTMLElement>,
+  gesture: GeometryGesture,
+  scale: number,
+) {
+  try {
+    return geometryFromGesture(event, gesture, scale)
+  } catch {
+    return null
+  }
+}
+
 function ResizeHandle({
   direction,
   disabled,
@@ -245,6 +257,7 @@ export function NoteCard({
   const [geometryPending, setGeometryPending] = useState(false)
   const [contentPointerFocused, setContentPointerFocused] = useState(false)
   const gesture = useRef<GeometryGesture | null>(null)
+  const contentPointerFocusPending = useRef(false)
   const suppressClick = useRef(false)
   const suppressClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const article = useRef<HTMLElement>(null)
@@ -290,7 +303,7 @@ export function NoteCard({
     commandPressed ? "invisible" : undefined,
   )
   const cardClassName = joinClassNames(
-    "absolute flex flex-col overflow-visible rounded-note border border-note-line bg-note shadow-note outline-none transition-[border-color,box-shadow] duration-[var(--notes-motion-fast)] focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[0.2rem] focus-visible:outline-[var(--notes-focus-ring)]",
+    "absolute flex flex-col overflow-visible rounded-note border border-note-line bg-note shadow-note outline-transparent transition-[border-color,box-shadow] duration-[var(--notes-motion-fast)] focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[0.2rem] focus-visible:outline-[var(--notes-focus-ring)]",
     selectedVisible
       ? "after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-note after:border-2 after:border-selection after:content-['']"
       : undefined,
@@ -298,8 +311,10 @@ export function NoteCard({
   )
   const cardStyle: CSSProperties = {
     height: geometry.height,
-    left: geometry.x - renderOriginX,
-    top: geometry.y - renderOriginY,
+    left: (geometry.x - renderOriginX) * scale,
+    top: (geometry.y - renderOriginY) * scale,
+    transform: `scale(${scale})`,
+    transformOrigin: "0 0",
     width: geometry.width,
     zIndex: geometry.zIndex,
   }
@@ -362,7 +377,14 @@ export function NoteCard({
     }
 
     current.moved = true
-    setGeometryPreview(geometryFromGesture(event, current, scale))
+    const nextGeometry = tryGeometryFromGesture(event, current, scale)
+
+    if (nextGeometry === null) {
+      failGeometryGesture(event)
+      return
+    }
+
+    setGeometryPreview(nextGeometry)
   }
 
   async function persistGeometry(nextGeometry: NoteGeometry) {
@@ -386,20 +408,38 @@ export function NoteCard({
       return
     }
 
-    gesture.current = null
-
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
-    }
-
     if (!current.moved) {
+      gesture.current = null
+      releaseGeometryPointer(event)
       return
     }
 
+    const nextGeometry = tryGeometryFromGesture(event, current, scale)
+
+    if (nextGeometry === null) {
+      failGeometryGesture(event)
+      return
+    }
+
+    gesture.current = null
+    releaseGeometryPointer(event)
     suppressClickSequence()
-    const nextGeometry = geometryFromGesture(event, current, scale)
     setGeometryPreview(nextGeometry)
     void persistGeometry(nextGeometry)
+  }
+
+  function releaseGeometryPointer(event: ReactPointerEvent<HTMLElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+  }
+
+  function failGeometryGesture(event: ReactPointerEvent<HTMLElement>) {
+    gesture.current = null
+    setGeometryPreview(null)
+    releaseGeometryPointer(event)
+    suppressClickSequence()
+    onSaveFailure("메모 위치와 크기를 계산하지 못했습니다. 다시 시도하세요.")
   }
 
   function cancelGeometryGesture(event: ReactPointerEvent<HTMLElement>) {
@@ -509,6 +549,29 @@ export function NoteCard({
     void onCopy(noteSnapshot)
   }
 
+  function markContentPointerFocus(
+    event: ReactPointerEvent<HTMLTextAreaElement>,
+  ) {
+    const pointerFocus =
+      event.isPrimary &&
+      event.button === 0 &&
+      !event.metaKey &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.shiftKey
+
+    contentPointerFocusPending.current = pointerFocus
+    setContentPointerFocused(pointerFocus)
+  }
+
+  function settleContentFocus() {
+    if (!contentPointerFocusPending.current) {
+      setContentPointerFocused(false)
+    }
+
+    contentPointerFocusPending.current = false
+  }
+
   async function moveToFront(event: ReactMouseEvent<HTMLButtonElement>) {
     stopHeaderAction(event)
 
@@ -609,13 +672,14 @@ export function NoteCard({
       <textarea
         aria-label="메모 내용"
         className={joinClassNames(
-          "min-h-0 flex-1 resize-none overflow-auto border-0 bg-transparent px-4 py-3 text-[0.98rem] leading-7 text-ink outline-none placeholder:text-soft-ink focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[-0.2rem] focus-visible:outline-[var(--notes-focus-ring)]",
+          "min-h-0 flex-1 resize-none overflow-auto border-0 bg-transparent px-4 py-3 text-[0.98rem] leading-7 text-ink outline-transparent placeholder:text-soft-ink focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[-0.2rem] focus-visible:outline-[var(--notes-focus-ring)]",
           contentPointerFocused ? "focus-visible:outline-none" : undefined,
         )}
         id={contentId}
         onClick={runContentShortcut}
         onMouseDown={prepareContentShortcut}
-        onPointerDown={() => setContentPointerFocused(true)}
+        onFocus={settleContentFocus}
+        onPointerDown={markContentPointerFocus}
         placeholder="메모를 입력하세요"
         {...contentRegistration}
       />
