@@ -21,3 +21,17 @@
 완료했다. `copy-note.model.test.ts`는 실제 `copyNote` 명령과 원문 revision을 갱신하는 운영 함수를 사용해 편집 뒤 복사, 반복 복사와 실패 뒤 재시도를 생성한다.
 
 클립보드 쓰기 실패는 사용 기록을 추가하지 않고, 클립보드가 성공한 뒤 사용 기록만 실패하면 복사한 원문을 유지하는지 비교한다. 일괄 복사 목록의 항목이나 횟수는 이 검사에 넣지 않았다. 실제 Clipboard 권한과 집계 화면은 단계 4에서 확인한다.
+
+## 단계 4: 실제 저장소와 메모 화면 연결
+
+완료했다. `note-storage.model.indexeddb.test.ts`는 실제 IndexedDB 저장소 구현을 사용해 원문과 정리한 복구 초안을 새 연결에서 다시 읽고, 두 메모를 한 번에 저장한 뒤 하나를 삭제 및 복원해도 새 연결에서 두 메모를 다시 읽는지 확인한다. 각 사례는 이름 있는 IndexedDB 데이터베이스를 시작과 종료에 삭제하고, 열린 연결을 종료한다.
+
+`notes-model.spec.ts`는 데스크톱에서 생성, 자동 저장, 새로고침, 삭제와 취소 복원을 하나의 순서로 확인한다. fast-check가 만든 원문 후보 세 개는 각각 새 BrowserContext에서 생성, 자동 저장과 새로고침을 실행한다. 실패하면 fast-check가 입력을 축소한다. 320px BrowserContext에서는 모바일 상세 화면의 명시적 저장 뒤 목록 새로고침에서도 원문이 남는지 확인한다.
+
+이번 단계에서는 `pnpm --filter notes-app test:browser`의 12개 파일, 48개 검사, `pnpm --filter notes-app exec playwright test e2e/notes-model.spec.ts`의 9개 검사와 `pnpm notes:test:e2e`의 운영 빌드 및 96개 Playwright 검사를 통과했다. `pnpm --filter notes-app test:model`, `pnpm notes:typecheck`, `pnpm notes:lint`도 통과했다.
+
+## 남은 판정과 실행 환경
+
+단계 2는 삭제 뒤 남은 메모의 겹침 순서를 바꾼 다음 복원할 때의 `zIndex` 규칙이 결정되지 않아 진행 중이다. 원래 `zIndex`를 보존할지, 복원 시 모든 활성 메모의 겹침 순서를 다시 배정할지 결정이 필요하다.
+
+CI 재현은 Git remote와 CI 서비스가 정해지지 않아 시작하지 않았다. 로컬 실행 기록을 특정 서비스의 workflow나 원격 저장소 설정으로 바꾸지 않았다.
