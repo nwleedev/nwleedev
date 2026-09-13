@@ -5,6 +5,7 @@ import {
   createMobileNoteThroughUi,
   createNoteThroughUi,
 } from "./support/create-note-through-ui"
+import { readStoredNote } from "./support/read-stored-note"
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/")
@@ -37,6 +38,53 @@ test("메모 작성, 자동 저장, 새로고침과 삭제 복원을 같은 순�
   await expect(
     page.getByRole("textbox", { name: "메모 내용" }),
   ).toHaveValue(revisedContent)
+})
+
+test("800ms 타이머와 blur 및 내부 이동이 최신 원문을 저장한다", async ({
+  browser,
+}) => {
+  const context = await browser.newContext()
+
+  try {
+    const page = await context.newPage()
+    await page.clock.install()
+    await page.goto("/")
+    const initialContent = "자동 저장 기준 원문"
+    const note = await createNoteThroughUi(page, initialContent)
+    const articleId = await note.getAttribute("id")
+    expect(articleId).not.toBeNull()
+    const noteId = decodeURIComponent(
+      articleId!.slice("note-".length, -"-board".length),
+    )
+    const editor = note.getByRole("textbox", { name: "메모 내용" })
+
+    await expect
+      .poll(async () => (await readStoredNote(page, noteId))?.content)
+      .toBe(initialContent)
+
+    await editor.fill("타이머로 저장할 원문")
+    await page.clock.fastForward(700)
+    expect((await readStoredNote(page, noteId))?.content).toBe(initialContent)
+    await page.clock.fastForward(100)
+    await expect
+      .poll(async () => (await readStoredNote(page, noteId))?.content)
+      .toBe("타이머로 저장할 원문")
+
+    await editor.fill("blur로 저장할 원문")
+    await editor.press("Tab")
+    await expect
+      .poll(async () => (await readStoredNote(page, noteId))?.content)
+      .toBe("blur로 저장할 원문")
+
+    await editor.fill("내부 이동 전에 저장할 원문")
+    await page.getByRole("link", { name: "사용 빈도" }).click()
+    await expect(page.getByRole("heading", { name: "사용 빈도" })).toBeVisible()
+    await expect
+      .poll(async () => (await readStoredNote(page, noteId))?.content)
+      .toBe("내부 이동 전에 저장할 원문")
+  } finally {
+    await context.close()
+  }
 })
 
 test("삭제 뒤 순서를 바꾸고 복원한 메모를 새로고침 뒤에도 유지한다", async ({

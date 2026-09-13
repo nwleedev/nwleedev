@@ -1323,8 +1323,8 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 
 - 작업 위치: `apps/notes/src/_pages/notes/model/note-content.model.test.ts`, `note-content-save-state.test.ts`, `save-note-content.test.ts`, `notes-data-provider.browser.test.tsx`와 `apps/notes/e2e/notes-model.spec.ts`.
 - 필수 증거: Clock 선설치, 이탈 및 blur 전 실제 저장 조회, A 저장 중 입력 B 보존, 중복 요청 거부와 실패 후 재시도. 타이머 저장 누락 및 최신 입력 손실을 생성 탐색에서 찾고 순서 축소, 요청 및 시각 로그와 재현을 완료한다.
-- 상태: 행동 생성 부분 확인, 오류 탐지 부분 확인, 순서 축소 미입증, 로그 미완료, 고정 순서의 입력 재현만 확인. 실제 타이머 저장 입증이 남아 있다.
-- [ ] 기능 로컬 완료
+- 상태: 행동 생성 완료, 오류 탐지 완료, 순서 축소 완료, 로그 기록 완료, 재현 완료. 실제 자동 저장 hook과 Provider에서 입력, 799ms 및 1ms와 800ms 진행, `blur`, hidden, `pagehide`와 저장 조회를 생성했다. 타이머 저장 누락을 세 행동까지 축소하고 seed 및 replayPath와 직접 행동으로 다시 실행했다. 실제 애플리케이션에서는 Clock을 앱 타이머보다 먼저 설치해 800ms 전후 IndexedDB 값, `blur`와 내부 이동 저장을 Chromium, Firefox와 WebKit에서 확인했다. 기존 저장 중 재입력과 실패 후 재시도 검사를 유지했다. 세부 수치와 Clock의 799ms 실행 제한은 [데스크톱 자동 저장 실행 결과](model-based-testing-execution.md#데스크톱-자동-저장-실행-결과)에 기록했다.
+- [x] 기능 로컬 완료
 
 ### 모바일 명시적 저장과 이탈
 
