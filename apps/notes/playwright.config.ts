@@ -10,6 +10,7 @@ export default defineConfig({
   },
   fullyParallel: true,
   outputDir: "../../temps/notes-e2e-results-default",
+  workers: 3,
   projects: [
     {
       name: "chromium",

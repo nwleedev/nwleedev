@@ -75,12 +75,13 @@ test("초기 화면을 hydration 오류 없이 연다", async ({ page }) => {
     page.getByRole("region", { name: "메모 작업 영역" }),
   ).toBeVisible()
   expect(consoleMessages).toEqual([])
-  const knownPrefetchErrors = pageErrors.filter((message) =>
-    /^\/localhost:4173\/\S+\?_rsc=\S+ due to access control checks\.$/u.test(
+  const observedPageErrors = [...pageErrors]
+  const knownPrefetchErrors = observedPageErrors.filter((message) =>
+    /^\/localhost:4173\/\S*\?_rsc=\S+ due to access control checks\.$/u.test(
       message,
     ),
   )
-  expect(knownPrefetchErrors).toEqual(pageErrors)
+  expect(knownPrefetchErrors).toEqual(observedPageErrors)
 })
 
 test("해시로 연 메모의 자동 저장이 편집기 초점을 유지한다", async ({

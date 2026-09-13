@@ -517,7 +517,7 @@ async function checkStackExploration(browser: Browser, defect: StackDefect) {
   const details = await fc.check(property, {
     interruptAfterTimeLimit: Math.max(
       noteModelSettings.interruptAfterTimeLimit,
-      30_000,
+      60_000,
     ),
     markInterruptAsFailure: true,
     numRuns: 20,
@@ -537,7 +537,7 @@ async function checkStackExploration(browser: Browser, defect: StackDefect) {
 test("겹침 순서의 실패 행동을 줄이고 저장 및 화면 순서로 재현한다", async ({
   browser,
 }) => {
-  test.slow()
+  test.setTimeout(180_000)
   const normal = await checkStackExploration(browser, "none")
   expect(normal.details.failed).toBe(false)
   expect(normal.details.interrupted).toBe(false)

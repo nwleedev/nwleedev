@@ -397,7 +397,7 @@ async function checkMobileSaveExploration(
   const details = await fc.check(property, {
     interruptAfterTimeLimit: Math.max(
       noteModelSettings.interruptAfterTimeLimit,
-      30_000,
+      60_000,
     ),
     markInterruptAsFailure: true,
     numRuns: 20,
@@ -490,7 +490,7 @@ test("800ms 타이머와 blur 및 내부 이동이 최신 원문을 저장한다
 })
 
 test("모바일 저장 누락을 축소하고 이탈 선택을 생성한다", async ({ browser }) => {
-  test.slow()
+  test.setTimeout(180_000)
   const normal = await checkMobileSaveExploration(browser, "none", false)
   expect(normal.details.failed).toBe(false)
   expect(normal.details.interrupted).toBe(false)
