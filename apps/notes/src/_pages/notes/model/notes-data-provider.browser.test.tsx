@@ -9,9 +9,13 @@ import type { Note, NoteRepository } from "@/entities/note"
 import type { NoteDraftRepository } from "@/entities/note"
 import type { IndividualCopyUsageWriter } from "@/entities/usage"
 import {
+  createExplorationActionCounts,
   createExplorationReport,
   ExplorationInvariantError,
+  recordExplorationActionCheck,
+  recordExplorationActionExecution,
   type ExplorationActionCounts,
+  type ExplorationPhase,
 } from "@/shared/lib/note-model-exploration"
 import {
   noteModelProfile,
@@ -165,30 +169,10 @@ type CreationModel = {
   created: number
 }
 
-type ExplorationPhase = "exploration" | "shrinking"
-
 type CreationReal = {
   create(): Promise<void>
   inspect(): Promise<void>
   reload(): Promise<void>
-}
-
-function createActionCounts(): ExplorationActionCounts {
-  return {
-    exploration: { attempted: 0, executed: 0, rejected: 0 },
-    shrinking: { attempted: 0, executed: 0, rejected: 0 },
-  }
-}
-
-function recordCheck(
-  counts: ExplorationActionCounts,
-  phase: ExplorationPhase,
-  accepted: boolean,
-) {
-  counts[phase].attempted += 1
-  if (!accepted) {
-    counts[phase].rejected += 1
-  }
 }
 
 class CreateNoteCommand implements fc.AsyncCommand<CreationModel, CreationReal> {
@@ -198,12 +182,12 @@ class CreateNoteCommand implements fc.AsyncCommand<CreationModel, CreationReal> 
   ) {}
 
   check() {
-    recordCheck(this.counts, this.phase(), true)
+    recordExplorationActionCheck(this.counts, this.phase(), true)
     return true
   }
 
   async run(model: CreationModel, real: CreationReal) {
-    this.counts[this.phase()].executed += 1
+    recordExplorationActionExecution(this.counts, this.phase())
     await real.create()
     model.created += 1
   }
@@ -220,12 +204,12 @@ class InspectCreatedNotesCommand implements fc.AsyncCommand<CreationModel, Creat
   ) {}
 
   check() {
-    recordCheck(this.counts, this.phase(), true)
+    recordExplorationActionCheck(this.counts, this.phase(), true)
     return true
   }
 
   async run(_model: CreationModel, real: CreationReal) {
-    this.counts[this.phase()].executed += 1
+    recordExplorationActionExecution(this.counts, this.phase())
     await real.inspect()
   }
 
@@ -242,12 +226,12 @@ class ReloadCreatedNotesCommand implements fc.AsyncCommand<CreationModel, Creati
 
   check(model: Readonly<CreationModel>) {
     const accepted = model.created > 1
-    recordCheck(this.counts, this.phase(), accepted)
+    recordExplorationActionCheck(this.counts, this.phase(), accepted)
     return accepted
   }
 
   async run(model: CreationModel, real: CreationReal) {
-    this.counts[this.phase()].executed += 1
+    recordExplorationActionExecution(this.counts, this.phase())
     await real.reload()
     await real.inspect()
 
@@ -353,7 +337,7 @@ async function executeCreationCommands(
 }
 
 async function checkCreationExploration(defect: CreationDefect) {
-  const counts = createActionCounts()
+  const counts = createExplorationActionCounts()
   let phase: ExplorationPhase = "exploration"
   const commands = [
     fc.constant(new CreateNoteCommand(counts, () => phase)),
@@ -678,7 +662,7 @@ describe("NotesDataProvider", () => {
     expect(replay.failed).toBe(true)
     expect(replay.errorInstance).toBeInstanceOf(ExplorationInvariantError)
 
-    const directCounts = createActionCounts()
+    const directCounts = createExplorationActionCounts()
     const directPhase = () => "exploration" as const
     const directCommands = [
       new CreateNoteCommand(directCounts, directPhase),

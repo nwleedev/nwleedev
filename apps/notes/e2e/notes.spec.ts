@@ -48,6 +48,59 @@ async function readTopControlTabIndex(locator: Locator) {
   return value
 }
 
+type StoredNoteObservation = {
+  content: string
+  contentRevision: number
+  geometryX: number
+  revision: number
+}
+
+async function readStoredNote(
+  page: Page,
+  noteId: string,
+): Promise<StoredNoteObservation | null> {
+  return page.evaluate(
+    ({ databaseName, id, storeName }) =>
+      new Promise<StoredNoteObservation | null>((resolve, reject) => {
+        const openRequest = indexedDB.open(databaseName)
+        openRequest.onerror = () => reject(openRequest.error)
+        openRequest.onsuccess = () => {
+          const database = openRequest.result
+          const request = database
+            .transaction(storeName, "readonly")
+            .objectStore(storeName)
+            .get(id)
+          request.onerror = () => {
+            database.close()
+            reject(request.error)
+          }
+          request.onsuccess = () => {
+            const note = request.result as
+              | {
+                  content: string
+                  contentRevision: number
+                  geometry: { x: number }
+                  revision: number
+                }
+              | undefined
+            database.close()
+            resolve(
+              note === undefined
+                ? null
+                : {
+                    content: note.content,
+                    contentRevision: note.contentRevision,
+                    geometryX: note.geometry.x,
+                    revision: note.revision,
+                  },
+            )
+          }
+        }
+      }),
+    { databaseName: "personal-notes", id: noteId, storeName: "notes" },
+  )
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/")
 })
@@ -142,6 +195,62 @@ test("항상 편집할 수 있는 메모 원문을 저장하고 불필요한 조
   await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
     revisedContent,
   )
+})
+
+test("선택한 본문을 교체하고 위치 변경과 원문 revision을 구분한다", async ({
+  page,
+}) => {
+  const initialContent = "교체할 원래 메모"
+  const note = await createNoteThroughUi(page, initialContent)
+  const articleId = await note.getAttribute("id")
+  expect(articleId).not.toBeNull()
+  const noteId = decodeURIComponent(
+    articleId!.slice("note-".length, -"-board".length),
+  )
+  const editor = note.getByRole("textbox", { name: "메모 내용" })
+
+  await expect.poll(async () => (await readStoredNote(page, noteId))?.content).toBe(
+    initialContent,
+  )
+  const beforeEdit = await readStoredNote(page, noteId)
+  expect(beforeEdit).not.toBeNull()
+
+  await editor.focus()
+  await editor.evaluate((element) => {
+    const textarea = element as HTMLTextAreaElement
+    textarea.setSelectionRange(0, textarea.value.length)
+  })
+  await editor.pressSequentially("  선택 교체 ")
+  await editor.press("Enter")
+  await editor.pressSequentially("https://example.com?q=메모  ")
+  const revisedContent = "  선택 교체 \nhttps://example.com?q=메모  "
+  await expect(editor).toHaveValue(revisedContent)
+  await expect(note.getByRole("link")).toHaveCount(0)
+  await editor.press("Tab")
+
+  await expect.poll(async () => (await readStoredNote(page, noteId))?.content).toBe(
+    revisedContent,
+  )
+  const afterEdit = await readStoredNote(page, noteId)
+  expect(afterEdit).toMatchObject({
+    content: revisedContent,
+    contentRevision: beforeEdit!.contentRevision + 1,
+    revision: beforeEdit!.revision + 1,
+  })
+
+  const properties = await openPropertiesWithKeyboard(note)
+  const xField = properties.getByRole("spinbutton", { name: "X" })
+  await xField.fill(String(afterEdit!.geometryX + 7))
+  await xField.press("Enter")
+  await expect
+    .poll(async () => (await readStoredNote(page, noteId))?.geometryX)
+    .toBe(afterEdit!.geometryX + 7)
+  const afterMove = await readStoredNote(page, noteId)
+  expect(afterMove).toMatchObject({
+    content: revisedContent,
+    contentRevision: afterEdit!.contentRevision,
+    revision: afterEdit!.revision + 1,
+  })
 })
 
 test("저장된 Tab 순서로 메모를 선택하고 Enter에서만 속성을 편집한다", async ({

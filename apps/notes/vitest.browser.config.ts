@@ -1,18 +1,11 @@
-import { execFileSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 
 import { playwright } from "@vitest/browser-playwright"
 import { defineConfig } from "vitest/config"
 
-const gitRevision = execFileSync("git", ["rev-parse", "--short", "HEAD"], {
-  encoding: "utf8",
-}).trim()
-const workingTree = execFileSync(
-  "git",
-  ["status", "--porcelain", "--untracked-files=no"],
-  { encoding: "utf8" },
-).trim()
-const appRevision = workingTree === "" ? gitRevision : `${gitRevision}+working-tree`
+import { readAppRevision } from "./vitest.revision.js"
+
+const appRevision = readAppRevision()
 
 export default defineConfig({
   define: {

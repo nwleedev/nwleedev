@@ -3,7 +3,19 @@ import assert from "node:assert/strict"
 import * as fc from "fast-check"
 import { describe, expect, it } from "vitest"
 
-import { noteModelSettings } from "@/shared/lib/note-model-settings"
+import {
+  createExplorationActionCounts,
+  createExplorationReport,
+  ExplorationInvariantError,
+  recordExplorationActionCheck,
+  recordExplorationActionExecution,
+  type ExplorationActionCounts,
+  type ExplorationPhase,
+} from "@/shared/lib/note-model-exploration"
+import {
+  noteModelProfile,
+  noteModelSettings,
+} from "@/shared/lib/note-model-settings"
 
 import {
   NOTE_HEIGHT_MAX,
@@ -24,6 +36,8 @@ import {
   type NoteRemovalHistory,
   type RemovedNoteSnapshot,
 } from "./note-removal-history"
+
+declare const __NOTES_GIT_REVISION__: string
 
 const initialNotes: readonly Note[] = [
   {
@@ -572,5 +586,408 @@ describe("메모 생명 주기 모델", () => {
         "change-restored-z-index",
       ),
     )
+  })
+})
+
+type ContentRevisionDefect =
+  | "content-revision-on-geometry"
+  | "none"
+  | "trim-content"
+
+type ContentRevisionModel = {
+  content: string
+  contentRevision: number
+  geometryX: number
+  revision: number
+}
+
+type ContentRevisionReal = {
+  defect: ContentRevisionDefect
+  note: Note
+}
+
+const contentRevisionInitialNote: Note = {
+  content: "원래 메모",
+  contentRevision: 2,
+  createdAt: "2026-09-01T00:00:00.000Z",
+  geometry: { height: 240, width: 320, x: 32, y: 32, zIndex: 1 },
+  id: "content-note",
+  revision: 4,
+  tabIndex: 1000,
+  updatedAt: "2026-09-01T00:00:00.000Z",
+}
+
+function createContentRevisionState(defect: ContentRevisionDefect) {
+  return {
+    model: {
+      content: contentRevisionInitialNote.content,
+      contentRevision: contentRevisionInitialNote.contentRevision,
+      geometryX: contentRevisionInitialNote.geometry.x,
+      revision: contentRevisionInitialNote.revision,
+    },
+    real: {
+      defect,
+      note: { ...contentRevisionInitialNote, geometry: { ...contentRevisionInitialNote.geometry } },
+    },
+  }
+}
+
+function contentRevisionObservation(model: ContentRevisionModel) {
+  return {
+    content: model.content,
+    contentRevision: model.contentRevision,
+    geometryX: model.geometryX,
+    revision: model.revision,
+  }
+}
+
+function realContentRevisionObservation(real: ContentRevisionReal) {
+  return {
+    content: real.note.content,
+    contentRevision: real.note.contentRevision,
+    geometryX: real.note.geometry.x,
+    revision: real.note.revision,
+  }
+}
+
+function assertContentRevisionState(
+  model: ContentRevisionModel,
+  real: ContentRevisionReal,
+) {
+  const expected = contentRevisionObservation(model)
+  const observed = realContentRevisionObservation(real)
+
+  try {
+    assert.deepEqual(observed, expected)
+  } catch {
+    throw new ExplorationInvariantError(
+      "content-revision-changes-only-for-content",
+      expected,
+      observed,
+    )
+  }
+}
+
+function applyModelContent(model: ContentRevisionModel, content: string) {
+  if (content === model.content) {
+    return
+  }
+
+  model.content = content
+  model.contentRevision += 1
+  model.revision += 1
+}
+
+function applyModelGeometryX(model: ContentRevisionModel, geometryX: number) {
+  if (geometryX === model.geometryX) {
+    return
+  }
+
+  model.geometryX = geometryX
+  model.revision += 1
+}
+
+abstract class ContentRevisionCommand
+  implements fc.Command<ContentRevisionModel, ContentRevisionReal>
+{
+  constructor(
+    private readonly counts: ExplorationActionCounts,
+    private readonly phase: () => ExplorationPhase,
+  ) {}
+
+  check() {
+    recordExplorationActionCheck(this.counts, this.phase(), true)
+    return true
+  }
+
+  protected recordExecution() {
+    recordExplorationActionExecution(this.counts, this.phase())
+  }
+
+  abstract run(model: ContentRevisionModel, real: ContentRevisionReal): void
+  abstract toString(): string
+}
+
+class EditContentRevisionCommand extends ContentRevisionCommand {
+  constructor(
+    counts: ExplorationActionCounts,
+    phase: () => ExplorationPhase,
+    private readonly label: string,
+    private readonly content: string,
+  ) {
+    super(counts, phase)
+  }
+
+  run(model: ContentRevisionModel, real: ContentRevisionReal) {
+    this.recordExecution()
+    applyModelContent(model, this.content)
+    real.note = reviseNote(real.note, {
+      content: real.defect === "trim-content" ? this.content.trim() : this.content,
+      updatedAt: operationTimestamp,
+    })
+    assertContentRevisionState(model, real)
+  }
+
+  toString() {
+    return this.label
+  }
+}
+
+class MoveContentRevisionCommand extends ContentRevisionCommand {
+  constructor(
+    counts: ExplorationActionCounts,
+    phase: () => ExplorationPhase,
+    private readonly geometryX: number,
+  ) {
+    super(counts, phase)
+  }
+
+  run(model: ContentRevisionModel, real: ContentRevisionReal) {
+    this.recordExecution()
+    const changed = model.geometryX !== this.geometryX
+    applyModelGeometryX(model, this.geometryX)
+    real.note = reviseNote(real.note, {
+      geometry: { ...real.note.geometry, x: this.geometryX },
+      updatedAt: operationTimestamp,
+    })
+    if (real.defect === "content-revision-on-geometry" && changed) {
+      real.note = {
+        ...real.note,
+        contentRevision: real.note.contentRevision + 1,
+      }
+    }
+    assertContentRevisionState(model, real)
+  }
+
+  toString() {
+    return `move-x(${this.geometryX})`
+  }
+}
+
+class InspectContentRevisionCommand extends ContentRevisionCommand {
+  run(model: ContentRevisionModel, real: ContentRevisionReal) {
+    this.recordExecution()
+    assertContentRevisionState(model, real)
+  }
+
+  toString() {
+    return "inspect"
+  }
+}
+
+function executeContentRevisionCommands(
+  commands: Iterable<fc.Command<ContentRevisionModel, ContentRevisionReal>>,
+  defect: ContentRevisionDefect,
+) {
+  fc.modelRun(() => createContentRevisionState(defect), commands)
+}
+
+function checkContentRevisionExploration(
+  defect: ContentRevisionDefect,
+  seed: number,
+) {
+  const counts = createExplorationActionCounts()
+  let phase: ExplorationPhase = "exploration"
+  const currentPhase = () => phase
+  const commands = [
+    fc.constant(
+      new EditContentRevisionCommand(counts, currentPhase, "edit-blank", " "),
+    ),
+    fc.constant(
+      new EditContentRevisionCommand(
+        counts,
+        currentPhase,
+        "edit-lines",
+        "첫 줄\n둘째 줄",
+      ),
+    ),
+    fc.constant(
+      new EditContentRevisionCommand(
+        counts,
+        currentPhase,
+        "edit-unicode",
+        "한글 😀 café",
+      ),
+    ),
+    fc.constant(
+      new EditContentRevisionCommand(
+        counts,
+        currentPhase,
+        "paste-url",
+        "https://example.com?q=메모",
+      ),
+    ),
+    fc.constant(
+      new EditContentRevisionCommand(
+        counts,
+        currentPhase,
+        "restore-original",
+        contentRevisionInitialNote.content,
+      ),
+    ),
+    fc
+      .integer({ min: 30, max: 36 })
+      .map(
+        (geometryX) =>
+          new MoveContentRevisionCommand(counts, currentPhase, geometryX),
+      ),
+    fc.constant(new InspectContentRevisionCommand(counts, currentPhase)),
+  ]
+  const property = fc.property(
+    fc.commands(commands, { maxCommands: 12 }),
+    (generatedCommands) => {
+      try {
+        executeContentRevisionCommands(generatedCommands, defect)
+      } catch (error) {
+        phase = "shrinking"
+        throw error
+      }
+    },
+  )
+  const startedAt = performance.now()
+  const details = fc.check(property, {
+    interruptAfterTimeLimit: noteModelSettings.interruptAfterTimeLimit,
+    markInterruptAsFailure: true,
+    numRuns: noteModelSettings.numRuns,
+    seed,
+    verbose: true,
+  })
+
+  return {
+    commands,
+    counts,
+    details,
+    durationMs: Math.round(performance.now() - startedAt),
+  }
+}
+
+function contentRevisionReport(
+  result: ReturnType<typeof checkContentRevisionExploration>,
+  modelRevision: string,
+) {
+  return createExplorationReport(result.details, {
+    actionCounts: result.counts,
+    appRevision: __NOTES_GIT_REVISION__,
+    classification: "controlled-defect",
+    durationMs: result.durationMs,
+    environment: "vitest-node",
+    feature: "note-content-revision",
+    initialState: contentRevisionObservation(
+      createContentRevisionState("none").model,
+    ),
+    layer: "note-domain",
+    modelRevision,
+    profile: noteModelProfile,
+    toolVersions: { fastCheck: fc.__version, vitest: "4.1.11" },
+  })
+}
+
+describe("메모 본문과 원문 revision 모델", () => {
+  it("본문과 위치 변경을 생성하고 정상 revision 규칙을 유지한다", () => {
+    const normal = checkContentRevisionExploration("none", 1)
+
+    expect(normal.details.failed).toBe(false)
+    expect(normal.details.interrupted).toBe(false)
+    expect(normal.details.numRuns).toBe(noteModelSettings.numRuns)
+    expect(normal.counts.exploration.executed).toBeGreaterThan(0)
+    process.stdout.write(
+      `${JSON.stringify({
+        actionCounts: normal.counts,
+        appRevision: __NOTES_GIT_REVISION__,
+        classification: "normal",
+        durationMs: normal.durationMs,
+        environment: "vitest-node",
+        feature: "note-content-revision",
+        layer: "note-domain",
+        modelRevision: "content-revision-v1",
+        profile: noteModelProfile,
+        runs: normal.details.numRuns,
+        seed: normal.details.seed,
+        termination: "completed",
+        toolVersions: { fastCheck: fc.__version, vitest: "4.1.11" },
+      })}\n`,
+    )
+  })
+
+  it("공백 손실과 위치 변경 revision 결함을 축소하고 재현한다", () => {
+    const trimmed = checkContentRevisionExploration("trim-content", 2)
+    const geometry = checkContentRevisionExploration(
+      "content-revision-on-geometry",
+      2,
+    )
+
+    expect(trimmed.details.failed).toBe(true)
+    expect(geometry.details.failed).toBe(true)
+    expect(trimmed.details.interrupted).toBe(false)
+    expect(geometry.details.interrupted).toBe(false)
+
+    const trimmedReport = contentRevisionReport(trimmed, "content-revision-v1")
+    const geometryReport = contentRevisionReport(geometry, "content-revision-v1")
+    expect(trimmedReport.originalActions.length).toBeGreaterThan(
+      trimmedReport.minimalActions.length,
+    )
+    expect(geometryReport.originalActions.length).toBeGreaterThan(
+      geometryReport.minimalActions.length,
+    )
+    expect(trimmedReport.invariant).toBe(
+      "content-revision-changes-only-for-content",
+    )
+    expect(geometryReport.invariant).toBe(
+      "content-revision-changes-only-for-content",
+    )
+
+    for (const [result, report, defect] of [
+      [trimmed, trimmedReport, "trim-content"],
+      [geometry, geometryReport, "content-revision-on-geometry"],
+    ] as const) {
+      const replay = fc.check(
+        fc.property(
+          fc.commands(result.commands, {
+            maxCommands: 12,
+            replayPath: report.replayPath ?? undefined,
+          }),
+          (generatedCommands) =>
+            executeContentRevisionCommands(generatedCommands, defect),
+        ),
+        {
+          endOnFailure: true,
+          numRuns: 1,
+          path: report.path,
+          seed: report.seed,
+        },
+      )
+      expect(replay.failed).toBe(true)
+      expect(replay.errorInstance).toBeInstanceOf(ExplorationInvariantError)
+    }
+
+    const directCounts = createExplorationActionCounts()
+    const directPhase = () => "exploration" as const
+    const spacedEdit = new EditContentRevisionCommand(
+      directCounts,
+      directPhase,
+      "edit-blank",
+      " ",
+    )
+    const geometryMove = new MoveContentRevisionCommand(
+      directCounts,
+      directPhase,
+      30,
+    )
+
+    expect(() =>
+      executeContentRevisionCommands([spacedEdit], "trim-content"),
+    ).toThrowError(ExplorationInvariantError)
+    expect(() =>
+      executeContentRevisionCommands(
+        [geometryMove],
+        "content-revision-on-geometry",
+      ),
+    ).toThrowError(ExplorationInvariantError)
+    expect(() =>
+      executeContentRevisionCommands([spacedEdit, geometryMove], "none"),
+    ).not.toThrow()
+
+    process.stdout.write(`${JSON.stringify(trimmedReport)}\n`)
+    process.stdout.write(`${JSON.stringify(geometryReport)}\n`)
   })
 })

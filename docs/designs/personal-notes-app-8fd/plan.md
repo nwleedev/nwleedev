@@ -1314,8 +1314,8 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 
 - 작업 위치: `apps/notes/src/entities/note/model/note.test.ts`, `note-lifecycle.model.test.ts`와 `apps/notes/e2e/notes.spec.ts`.
 - 필수 증거: 본문 변경만 content revision을 바꿈, 원문을 trim하거나 위치 변경으로 revision을 올리는 결함 탐지, 행동 순서 축소와 원문 및 revision 로그, 두 방식의 재현. URL은 일반 텍스트이며 실제 외부 앱 붙여넣기는 수동 증거와 구분한다.
-- 상태: 행동 생성 부분 확인, 오류 탐지 미입증, 순서 축소 미입증, 로그 미완료, 재현 미입증.
-- [ ] 기능 로컬 완료
+- 상태: 행동 생성 완료, 오류 탐지 완료, 순서 축소 완료, 로그 기록 완료, 재현 완료. `reviseNote`를 실행하는 명령 모델에서 공백 보존 실패와 위치 변경의 잘못된 content revision 증가를 탐지하고 각각 한 행동까지 축소했다. seed 및 replayPath와 직접 행동으로 다시 실행했다. 실제 애플리케이션에서는 textarea 선택 교체, 줄바꿈과 URL 모양 원문, IndexedDB 원문 및 revision과 위치 변경 뒤의 revision 보존을 Chromium, Firefox와 WebKit에서 확인했다. 세부 수치와 자동화하지 않은 외부 애플리케이션 붙여넣기 제한은 [본문 편집과 원문 revision 실행 결과](model-based-testing-execution.md#본문-편집과-원문-revision-실행-결과)에 기록했다.
+- [x] 기능 로컬 완료
 
 ### 데스크톱 자동 저장
 

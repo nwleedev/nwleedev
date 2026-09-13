@@ -13,6 +13,33 @@ export type ExplorationActionCounts = {
   }
 }
 
+export type ExplorationPhase = keyof ExplorationActionCounts
+
+export function createExplorationActionCounts(): ExplorationActionCounts {
+  return {
+    exploration: { attempted: 0, executed: 0, rejected: 0 },
+    shrinking: { attempted: 0, executed: 0, rejected: 0 },
+  }
+}
+
+export function recordExplorationActionCheck(
+  counts: ExplorationActionCounts,
+  phase: ExplorationPhase,
+  accepted: boolean,
+) {
+  counts[phase].attempted += 1
+  if (!accepted) {
+    counts[phase].rejected += 1
+  }
+}
+
+export function recordExplorationActionExecution(
+  counts: ExplorationActionCounts,
+  phase: ExplorationPhase,
+) {
+  counts[phase].executed += 1
+}
+
 type ExplorationReportOptions = {
   actionCounts: ExplorationActionCounts
   appRevision: string
