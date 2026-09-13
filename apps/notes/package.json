@@ -21,6 +21,7 @@
     "test": "vitest run --passWithNoTests",
     "test:browser": "vitest run --config vitest.browser.config.ts",
     "test:e2e": "pnpm build && playwright test",
+    "test:model": "vitest run src/_pages/notes/model/note-content.model.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -43,6 +44,7 @@
     "eslint-config-next": "16.3.3",
     "eslint-import-resolver-typescript": "4.4.5",
     "eslint-plugin-playwright": "2.11.0",
+    "fast-check": "4.10.0",
     "postcss": "8.5.26",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",

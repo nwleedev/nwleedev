@@ -1269,6 +1269,14 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 
 [기존 테스트의 목적](references/existing-test-purposes.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md)을 적용한다. 모델의 기대 결과는 요구사항과 승인된 결정에서 정하고 기존 검증문은 현재 확인하는 사례를 찾는 자료로 사용한다. 템플릿과 분석의 생성형 검사 확대는 이번 메모 작업 이후로 남기며 일괄 복사는 계속 보류한다.
 
+### 진행 상태
+
+- [x] 단계 1: 편집, 저장과 복구의 로컬 PoC
+- [ ] 단계 2: 생성, 배치, 삭제와 복원
+- [ ] 단계 3: 개별 복사와 사용 기록
+- [ ] 단계 4: 실제 저장소와 메모 화면 연결
+- [ ] CI 재현
+
 ### 메모 기능별 적용 방법
 
 - 편집과 저장: 입력 원문과 마지막 저장 원문을 구분한다. 자동 저장, 저장 중 재입력, 실패 후 재시도와 모바일의 명시적 저장을 확인한다.
@@ -1298,7 +1306,7 @@ flowchart TB
 
 Domain Adapter는 운영 `saveNoteContent`, 저장 상태 함수, 초안 판정, 메모 revision 및 순서 함수와 삭제 이력 함수를 호출한다. 입력 공급이나 메모리 저장소 조작은 테스트 환경의 준비 행동으로 구분한다. 이 준비 코드만 정상 작동한 것을 메모 작성 UI나 provider 연결의 성공으로 계산하지 않는다. 생성 및 삭제처럼 provider 내부에서 처리하는 실제 명령은 브라우저 단계에서 운영 provider 또는 화면을 통해 실행하며 별도 테스트 구현으로 복제하지 않는다.
 
-### 단계 1. 편집, 저장과 복구의 로컬 PoC
+### 단계 1. 편집, 저장과 복구의 로컬 PoC 완료
 
 U5의 저장 규칙과 현재 Vitest 환경을 사용한다. `apps/notes/src/_pages/notes/model/note-content.model.test.ts`를 추가하고 `note-content-save-state.test.ts`, `save-note-content.test.ts`와 `note-draft.test.ts`는 유지한다. 초안 판정은 `entities/note`의 운영 함수를 사용한다. 도메인 실행 대상은 실제 저장 명령이고 저장소만 결과와 완료 시점을 제어할 수 있는 대역으로 연결한다.
 
@@ -1367,7 +1375,7 @@ U3의 IndexedDB, U5의 메모 화면, U6의 개별 복사와 U8의 집계 화면
 
 `apps/notes/package.json`에 `test:model`을 추가해 위 메모 도메인 모델 파일을 명시적으로 수집한다. `--passWithNoTests`는 사용하지 않으며 기존 일반 검사에서도 함께 실행한다. 브라우저 전용 파일은 기존 Browser Mode와 Playwright 설정에서 따로 수집한다. 테스트가 없는 실행을 통과로 처리하지 않는다.
 
-테스트 전용 `apps/notes/test-support/note-model-settings.ts`에 `local-fast`, `pr`, `main`, `nightly`의 실행 횟수 및 행동 수와 시간 상한을 둔다. 도메인과 브라우저의 실행 비용을 각각 측정해 값을 정하고, 첫 측정 전 수치를 성능 약속으로 고정하지 않는다. 운영 코드와 분리해 서로 다른 계층의 테스트가 페이지 모듈을 역으로 참조하지 않게 한다.
+테스트 전용 `apps/notes/src/shared/lib/note-model-settings/note-model-settings.ts`에 `local-fast`, `pr`, `main`, `nightly`의 실행 횟수 및 행동 수와 시간 상한을 둔다. 도메인과 브라우저의 실행 비용을 각각 측정해 값을 정하고, 첫 측정 전 수치를 성능 약속으로 고정하지 않는다. shared 공개 진입점을 통해 설정만 읽게 하여 페이지와 entity 테스트가 서로의 내부 모듈을 참조하지 않게 한다.
 
 현재 Git remote와 CI 실행 설정이 없어 CI 서비스와 실행할 원격 저장소는 미정이다. 로컬 단계는 계속할 수 있지만 특정 서비스의 workflow, 원격 저장소 생성과 push는 이 정보가 확인되기 전까지 진행하지 않는다. CI 연결 후 같은 잠금 파일과 도구 버전으로 PR, main 및 야간 실행과 실패 기록을 연결하고 로컬과 동일한 실패 및 정상 재현 로그를 확인한다.
 
