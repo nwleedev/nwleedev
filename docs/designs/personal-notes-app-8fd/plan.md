@@ -1357,10 +1357,10 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 
 [겹침 순서 조사](references/note-feature-exploration-research.md#겹침-순서)에 따라 앞뒤 이동, 반복과 중복 번호 초기 자료를 생성한다. 모델은 필요한 ID 상대 순서만 표현하고 운영 정렬 알고리즘을 복제하지 않는다.
 
-- 작업 위치: `apps/notes/src/entities/note/model/note-order.test.ts`, 생명 주기 모델, `note-storage.model.indexeddb.test.ts`와 겹친 메모의 E2E.
+- 작업 위치: `apps/notes/src/entities/note/model/note-order.test.ts`, 생명 주기 모델, `note-storage.model.indexeddb.test.ts`, `apps/notes/e2e/notes-order-model.spec.ts`와 겹친 메모의 E2E.
 - 필수 증거: 명시적 이동 뒤 `1..N`, 다른 메모 상대 순서, Tab 순서와 content revision 유지, 한 transaction 저장 및 새 연결 조회. 이동 무시와 부분 저장 탐지, 필요한 메모를 남긴 축소, ID별 번호 로그와 실제 겹친 지점의 입력 재현.
-- 상태: 행동 생성 부분 확인, 오류 탐지 미입증, 순서 축소 미입증, 로그 미완료, 재현 미입증. 고정 순서의 저장 숫자 검사는 유지한다.
-- [ ] 기능 로컬 완료
+- 상태: 행동 생성 완료, 오류 탐지 완료, 순서 축소 완료, 로그 기록 완료, 재현 완료. 실제 카드 세 개에서 맨 앞 및 맨 뒤 이동, 중복 `zIndex`, 새로고침과 저장 및 화면 조회를 생성했다. 버튼 click 전달을 막은 이동 무시와 한 메모만 이전 번호로 저장한 부분 저장을 같은 관찰식으로 탐지했다. 두 결함 모두 기준값 확인 네 번을 제거해 이동과 조회만 남겼고 seed 및 path와 직접 행동으로 다시 실행했다. 중복 `zIndex=2` 세 개를 명시적으로 이동한 뒤 IndexedDB와 화면의 `1..3`, 다른 ID 상대 순서, Tab 순서와 content revision을 세 브라우저에서 확인했다. 세부 수치와 전체 revision을 검사하지 않은 이유는 [겹침 순서 실행 결과](model-based-testing-execution.md#겹침-순서-실행-결과)에 기록했다.
+- [x] 기능 로컬 완료
 
 ### 삭제와 취소 및 만료
 

@@ -12,6 +12,7 @@ export type StoredNoteObservation = {
   }
   geometryX: number
   revision: number
+  tabIndex: number
 }
 
 export type StoredNoteDraftObservation = {
@@ -64,6 +65,7 @@ export async function readStoredNote(
                     zIndex: number
                   }
                   revision: number
+                  tabIndex: number
                 }
               | undefined
             database.close()
@@ -76,6 +78,7 @@ export async function readStoredNote(
                     geometry: note.geometry,
                     geometryX: note.geometry.x,
                     revision: note.revision,
+                    tabIndex: note.tabIndex,
                   },
             )
           }
