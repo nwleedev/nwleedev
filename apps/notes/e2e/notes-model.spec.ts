@@ -39,6 +39,32 @@ test("메모 작성, 자동 저장, 새로고침과 삭제 복원을 같은 순�
   ).toHaveValue(revisedContent)
 })
 
+test("삭제 뒤 순서를 바꾸고 복원한 메모를 새로고침 뒤에도 유지한다", async ({
+  page,
+}) => {
+  const first = await createNoteThroughUi(page, "첫 번째 순서 메모")
+  const second = await createNoteThroughUi(page, "두 번째 순서 메모")
+  await createNoteThroughUi(page, "세 번째 순서 메모")
+
+  await second.getByRole("button", { name: "메모 삭제" }).click()
+  const removalNotice = page.getByRole("status").filter({
+    hasText: "메모를 제거했습니다.",
+  })
+  await expect(removalNotice).toBeVisible()
+  await first.getByRole("button", { name: "메모를 맨 앞으로" }).click()
+  await removalNotice.getByRole("button", { name: "취소" }).click()
+
+  await expect(page.getByRole("article", { exact: true, name: "메모" })).toHaveCount(3)
+
+  await page.reload()
+  const editors = await page.getByRole("textbox", { name: "메모 내용" }).all()
+  const contents = await Promise.all(editors.map((editor) => editor.inputValue()))
+
+  expect(contents).toEqual(
+    expect.arrayContaining(["첫 번째 순서 메모", "두 번째 순서 메모", "세 번째 순서 메모"]),
+  )
+})
+
 test("생성한 원문은 후보별 새 브라우저 문맥에서 자동 저장 뒤 복원된다", async ({
   browser,
 }) => {

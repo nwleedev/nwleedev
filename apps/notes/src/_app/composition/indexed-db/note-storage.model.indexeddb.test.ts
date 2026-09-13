@@ -4,6 +4,7 @@ import {
   IndexedDbNoteDraftRepository,
   IndexedDbNoteRepository,
   reviseNote,
+  sendNoteToFront,
   type Note,
 } from "@/entities/note"
 
@@ -34,6 +35,15 @@ function deleteDatabase() {
     request.onblocked = () =>
       reject(new Error("Database deletion was blocked"))
   })
+}
+
+function noteById(notes: readonly Note[], id: string) {
+  const note = notes.find((current) => current.id === id)
+  if (note === undefined) {
+    throw new Error("Expected a stored note")
+  }
+
+  return note
 }
 
 describe("메모 저장소 모델", () => {
@@ -88,7 +98,7 @@ describe("메모 저장소 모델", () => {
     ).toBeNull()
   })
 
-  it("여러 메모의 배치 저장 뒤 삭제와 복원을 새 연결에서 다시 읽는다", async () => {
+  it("삭제 직후 부재와 복원한 중복 겹침 순서를 새 연결에서 읽는다", async () => {
     const firstConnection = createConnection()
     const notes = new IndexedDbNoteRepository(firstConnection)
     const secondNote: Note = {
@@ -98,14 +108,63 @@ describe("메모 저장소 모델", () => {
       id: "note-storage-model-two",
       tabIndex: 1001,
     }
-    await notes.saveAll([note, secondNote])
+    const thirdNote: Note = {
+      ...note,
+      content: "세 번째 메모",
+      geometry: { ...note.geometry, x: 736, zIndex: 3 },
+      id: "note-storage-model-three",
+      tabIndex: 1002,
+    }
+    await notes.saveAll([note, secondNote, thirdNote])
     await notes.remove({ id: secondNote.id, revision: secondNote.revision })
+    const afterRemoval = await notes.getAll()
+    expect(afterRemoval).toHaveLength(2)
+    expect(noteById(afterRemoval, note.id)).toEqual(note)
+    expect(noteById(afterRemoval, thirdNote.id)).toEqual(thirdNote)
+    expect(afterRemoval.some((current) => current.id === secondNote.id)).toBe(false)
+
+    const afterMove = sendNoteToFront(
+      [note, thirdNote],
+      note.id,
+      "2026-09-01T00:00:01.000Z",
+    )
+    await notes.saveAll(afterMove)
     await notes.save(secondNote)
     firstConnection.close()
 
     const restoredConnection = createConnection()
     const restoredNotes = new IndexedDbNoteRepository(restoredConnection)
+    const restored = await restoredNotes.getAll()
 
-    await expect(restoredNotes.getAll()).resolves.toEqual([note, secondNote])
+    expect(noteById(restored, note.id)).toMatchObject({
+      geometry: { ...note.geometry, zIndex: 2 },
+    })
+    expect(noteById(restored, secondNote.id)).toMatchObject({
+      geometry: secondNote.geometry,
+    })
+    expect(noteById(restored, thirdNote.id)).toMatchObject({
+      geometry: { ...thirdNote.geometry, zIndex: 1 },
+    })
+
+    const afterSecondMove = sendNoteToFront(
+      restored,
+      secondNote.id,
+      "2026-09-01T00:00:02.000Z",
+    )
+    await restoredNotes.saveAll(afterSecondMove)
+    restoredConnection.close()
+
+    const finalConnection = createConnection()
+    const finalNotes = new IndexedDbNoteRepository(finalConnection)
+    const final = await finalNotes.getAll()
+    expect(noteById(final, note.id)).toMatchObject({
+      geometry: { ...note.geometry, zIndex: 2 },
+    })
+    expect(noteById(final, secondNote.id)).toMatchObject({
+      geometry: { ...secondNote.geometry, zIndex: 3 },
+    })
+    expect(noteById(final, thirdNote.id)).toMatchObject({
+      geometry: { ...thirdNote.geometry, zIndex: 1 },
+    })
   })
 })
