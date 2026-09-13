@@ -1348,10 +1348,10 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 
 [위치 및 크기 조사](references/note-feature-exploration-research.md#위치와-크기-및-속성-적용)에 따라 속성 입력과 실제 drag 및 resize를 생성한다. 음수와 4096 밖 좌표는 정상이며 크기 범위와 수치 정밀도 검사는 별도로 유지한다.
 
-- 작업 위치: `apps/notes/src/entities/note/model/note-geometry.test.ts`, 생명 주기 모델, 실제 저장소 검사와 `apps/notes/e2e/notes.spec.ts`.
+- 작업 위치: `apps/notes/src/entities/note/model/note-geometry.test.ts`, 생명 주기 모델, 실제 저장소 검사, `apps/notes/e2e/notes.spec.ts`와 `notes-geometry-model.spec.ts`.
 - 필수 증거: 요청 geometry 적용, 반대편 변과 content revision 보존, 잘못된 입력의 거부 및 수정 안내, 취소 및 중복 종료. 적용 무시 또는 허용 좌표 보정의 탐지, pointer 및 배율 조건을 보존한 축소, geometry 로그와 폼 및 gesture 재현.
-- 상태: 행동 생성 부분 확인, 오류 탐지 미입증, 순서 축소 미입증, 로그 미완료, 재현 미입증. 기존 순수 수치 및 실제 조작 검사는 유지한다.
-- [ ] 기능 로컬 완료
+- 상태: 행동 생성 완료, 오류 탐지 완료, 순서 축소 완료, 로그 기록 완료, 재현 완료. 1280 x 900 실제 화면에서 속성 입력, 헤더 이동, 남동쪽 크기 조절, pointer capture 상실에 따른 취소와 저장 조회를 생성했다. pointer 종료 차단에 따른 적용 무시를 기준값 확인, 이동과 저장 조회에서 이동과 저장 조회만 남도록 축소했으며 seed 및 path와 직접 행동으로 다시 실행했다. 세 브라우저에서 잘못된 너비 안내 및 수정, X `5000`, 취소와 크기 조절을 IndexedDB 전체 geometry 및 revision과 비교했다. 기존 음수 좌표 검사도 유지한다. 세부 수치와 통제 결함 적용 조건은 [위치와 크기 및 속성 적용 실행 결과](model-based-testing-execution.md#위치와-크기-및-속성-적용-실행-결과)에 기록했다.
+- [x] 기능 로컬 완료
 
 ### 겹침 순서
 
