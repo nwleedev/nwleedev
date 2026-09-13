@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url"
 import { playwright } from "@vitest/browser-playwright"
 import { defineConfig } from "vitest/config"
 
-import { readAppRevision } from "./vitest.revision.js"
+import { readAppRevision } from "./test-app-revision.js"
 
 const appRevision = readAppRevision()
 

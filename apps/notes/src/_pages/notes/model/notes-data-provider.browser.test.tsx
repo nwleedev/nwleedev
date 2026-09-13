@@ -182,12 +182,21 @@ class CreateNoteCommand implements fc.AsyncCommand<CreationModel, CreationReal> 
   ) {}
 
   check() {
-    recordExplorationActionCheck(this.counts, this.phase(), true)
+    recordExplorationActionCheck(
+      this.counts,
+      this.phase(),
+      this.toString(),
+      true,
+    )
     return true
   }
 
   async run(model: CreationModel, real: CreationReal) {
-    recordExplorationActionExecution(this.counts, this.phase())
+    recordExplorationActionExecution(
+      this.counts,
+      this.phase(),
+      this.toString(),
+    )
     await real.create()
     model.created += 1
   }
@@ -204,12 +213,21 @@ class InspectCreatedNotesCommand implements fc.AsyncCommand<CreationModel, Creat
   ) {}
 
   check() {
-    recordExplorationActionCheck(this.counts, this.phase(), true)
+    recordExplorationActionCheck(
+      this.counts,
+      this.phase(),
+      this.toString(),
+      true,
+    )
     return true
   }
 
   async run(_model: CreationModel, real: CreationReal) {
-    recordExplorationActionExecution(this.counts, this.phase())
+    recordExplorationActionExecution(
+      this.counts,
+      this.phase(),
+      this.toString(),
+    )
     await real.inspect()
   }
 
@@ -226,12 +244,21 @@ class ReloadCreatedNotesCommand implements fc.AsyncCommand<CreationModel, Creati
 
   check(model: Readonly<CreationModel>) {
     const accepted = model.created > 1
-    recordExplorationActionCheck(this.counts, this.phase(), accepted)
+    recordExplorationActionCheck(
+      this.counts,
+      this.phase(),
+      this.toString(),
+      accepted,
+    )
     return accepted
   }
 
   async run(model: CreationModel, real: CreationReal) {
-    recordExplorationActionExecution(this.counts, this.phase())
+    recordExplorationActionExecution(
+      this.counts,
+      this.phase(),
+      this.toString(),
+    )
     await real.reload()
     await real.inspect()
 
@@ -395,13 +422,22 @@ abstract class AutosaveCommand implements fc.AsyncCommand<AutosaveModel, Autosav
     protected readonly phase: () => ExplorationPhase,
   ) {}
 
-  check(_model: Readonly<AutosaveModel>) {
-    recordExplorationActionCheck(this.counts, this.phase(), true)
+  check() {
+    recordExplorationActionCheck(
+      this.counts,
+      this.phase(),
+      this.toString(),
+      true,
+    )
     return true
   }
 
   protected recordExecution() {
-    recordExplorationActionExecution(this.counts, this.phase())
+    recordExplorationActionExecution(
+      this.counts,
+      this.phase(),
+      this.toString(),
+    )
   }
 
   abstract run(model: AutosaveModel, real: AutosaveReal): Promise<void>
@@ -491,7 +527,12 @@ class InspectAutosaveCommand extends AutosaveCommand {
 
   check(model: Readonly<AutosaveModel>) {
     const accepted = model.observationPending
-    recordExplorationActionCheck(this.counts, this.phase(), accepted)
+    recordExplorationActionCheck(
+      this.counts,
+      this.phase(),
+      this.toString(),
+      accepted,
+    )
     return accepted
   }
 

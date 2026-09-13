@@ -3,8 +3,24 @@ import type { Page } from "@playwright/test"
 export type StoredNoteObservation = {
   content: string
   contentRevision: number
+  geometry: {
+    height: number
+    width: number
+    x: number
+    y: number
+    zIndex: number
+  }
   geometryX: number
   revision: number
+}
+
+export function noteIdFromHref(href: string | null) {
+  const match = href?.match(/^\/notes\/([^/]+)\/$/u)
+  if (match?.[1] === undefined) {
+    throw new Error("Expected a mobile note link")
+  }
+
+  return decodeURIComponent(match[1])
 }
 
 export async function readStoredNote(
@@ -31,7 +47,13 @@ export async function readStoredNote(
               | {
                   content: string
                   contentRevision: number
-                  geometry: { x: number }
+                  geometry: {
+                    height: number
+                    width: number
+                    x: number
+                    y: number
+                    zIndex: number
+                  }
                   revision: number
                 }
               | undefined
@@ -42,6 +64,7 @@ export async function readStoredNote(
                 : {
                     content: note.content,
                     contentRevision: note.contentRevision,
+                    geometry: note.geometry,
                     geometryX: note.geometry.x,
                     revision: note.revision,
                   },

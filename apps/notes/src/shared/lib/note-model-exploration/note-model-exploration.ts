@@ -1,43 +1,66 @@
 import type * as fc from "fast-check"
 
+type ExplorationActionCount = {
+  attempted: number
+  executed: number
+  rejected: number
+}
+
+type ExplorationPhaseCounts = ExplorationActionCount & {
+  byAction: Record<string, ExplorationActionCount>
+}
+
 export type ExplorationActionCounts = {
-  exploration: {
-    attempted: number
-    executed: number
-    rejected: number
-  }
-  shrinking: {
-    attempted: number
-    executed: number
-    rejected: number
-  }
+  exploration: ExplorationPhaseCounts
+  shrinking: ExplorationPhaseCounts
 }
 
 export type ExplorationPhase = keyof ExplorationActionCounts
 
 export function createExplorationActionCounts(): ExplorationActionCounts {
   return {
-    exploration: { attempted: 0, executed: 0, rejected: 0 },
-    shrinking: { attempted: 0, executed: 0, rejected: 0 },
+    exploration: { attempted: 0, byAction: {}, executed: 0, rejected: 0 },
+    shrinking: { attempted: 0, byAction: {}, executed: 0, rejected: 0 },
   }
+}
+
+function actionCount(
+  counts: ExplorationActionCounts,
+  phase: ExplorationPhase,
+  action: string,
+) {
+  const existing = counts[phase].byAction[action]
+  if (existing !== undefined) {
+    return existing
+  }
+
+  const created = { attempted: 0, executed: 0, rejected: 0 }
+  counts[phase].byAction[action] = created
+  return created
 }
 
 export function recordExplorationActionCheck(
   counts: ExplorationActionCounts,
   phase: ExplorationPhase,
+  action: string,
   accepted: boolean,
 ) {
   counts[phase].attempted += 1
+  const actionCounts = actionCount(counts, phase, action)
+  actionCounts.attempted += 1
   if (!accepted) {
     counts[phase].rejected += 1
+    actionCounts.rejected += 1
   }
 }
 
 export function recordExplorationActionExecution(
   counts: ExplorationActionCounts,
   phase: ExplorationPhase,
+  action: string,
 ) {
   counts[phase].executed += 1
+  actionCount(counts, phase, action).executed += 1
 }
 
 type ExplorationReportOptions = {
@@ -107,8 +130,8 @@ export function createExplorationReport<Sequence extends PrintableSequence>(
 
   return {
     actionCounts: {
-      exploration: { ...options.actionCounts.exploration },
-      shrinking: { ...options.actionCounts.shrinking },
+      exploration: structuredClone(options.actionCounts.exploration),
+      shrinking: structuredClone(options.actionCounts.shrinking),
     },
     appRevision: options.appRevision,
     classification: options.classification,

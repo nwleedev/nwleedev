@@ -696,12 +696,21 @@ abstract class ContentRevisionCommand
   ) {}
 
   check() {
-    recordExplorationActionCheck(this.counts, this.phase(), true)
+    recordExplorationActionCheck(
+      this.counts,
+      this.phase(),
+      this.toString(),
+      true,
+    )
     return true
   }
 
   protected recordExecution() {
-    recordExplorationActionExecution(this.counts, this.phase())
+    recordExplorationActionExecution(
+      this.counts,
+      this.phase(),
+      this.toString(),
+    )
   }
 
   abstract run(model: ContentRevisionModel, real: ContentRevisionReal): void

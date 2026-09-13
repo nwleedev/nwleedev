@@ -8,7 +8,10 @@ import {
   preparePointerCaptureRelease,
   releasePointerCapture,
 } from "./support/pointer-capture"
-import { readStoredNote } from "./support/read-stored-note"
+import {
+  noteIdFromHref,
+  readStoredNote,
+} from "./support/read-stored-note"
 
 async function visibleBox(locator: Locator) {
   await expect(locator).toBeVisible()
@@ -576,6 +579,11 @@ test.describe("320px 메모 화면", () => {
     const initialContent = "작은 화면에서 편집할 메모"
     const revisedContent = `${initialContent}\n두 번째 줄\n세 번째 줄\n네 번째 줄\n다섯 번째 줄\n여섯 번째 줄\n일곱 번째 줄`
     const note = await createMobileNoteThroughUi(page, initialContent)
+    const noteId = noteIdFromHref(
+      await note.getByRole("link", { name: "메모 열기" }).getAttribute("href"),
+    )
+    const storedBeforeResize = await readStoredNote(page, noteId)
+    expect(storedBeforeResize).not.toBeNull()
 
     await expect(note.getByText("내용 더 있음")).toHaveCount(0)
     await note.getByRole("link", { name: "메모 열기" }).click()
@@ -592,6 +600,9 @@ test.describe("320px 메모 화면", () => {
     await page.setViewportSize({ height: 800, width: 1280 })
     await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
       revisedContent,
+    )
+    expect((await readStoredNote(page, noteId))?.geometry).toEqual(
+      storedBeforeResize!.geometry,
     )
   })
 

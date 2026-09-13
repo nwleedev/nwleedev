@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url"
 
 import { defineConfig } from "vitest/config"
 
-import { readAppRevision } from "./vitest.revision.js"
+import { readAppRevision } from "./test-app-revision.js"
 
 const appRevision = readAppRevision()
 
