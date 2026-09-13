@@ -18,7 +18,6 @@ import {
   createNoteContentSaveState,
   failNoteContentSave,
   type NoteContentSaveRequest,
-  type NoteContentSaveState,
 } from "./note-content-save-state"
 import { saveNoteContent } from "./save-note-content"
 
@@ -33,36 +32,47 @@ const initialNote: Note = {
   updatedAt: "2026-09-01T00:00:00.000Z",
 }
 
-type Failure = "draft" | "note" | null
+type Failure = "draft-remove" | "draft-save" | "note-save" | null
+type Defect =
+  | "discard-draft-after-note-failure"
+  | "keep-previous-note"
+  | "keep-previous-note-after-first-save"
+  | null
 
-type Model = {
+type ContentSnapshot = {
   content: string
   contentRevision: number
+}
+
+type DraftSnapshot = ContentSnapshot
+
+type Model = {
   currentInput: string
-  draft: string | null
-  failure: Failure
-  pending: NoteContentSaveRequest | null
-  status: NoteContentSaveState["status"]
+  draft: DraftSnapshot | null
+  nextFailure: Failure
+  pending: ContentSnapshot | null
+  saved: ContentSnapshot
 }
 
 type Real = ReturnType<typeof createReal>
 
-function createReal() {
+function createReal(defect: Defect = null) {
   let draft: NoteDraft | null = null
   let nextFailure: Failure = null
   let note = initialNote
+  let successfulSaves = 0
 
   const drafts: NoteDraftRepository = {
     get: async () => draft,
     remove: async () => {
-      if (nextFailure === "draft") {
+      if (nextFailure === "draft-remove") {
         nextFailure = null
         throw new Error("draft storage failed")
       }
       draft = null
     },
     save: async (nextDraft) => {
-      if (nextFailure === "draft") {
+      if (nextFailure === "draft-save") {
         nextFailure = null
         throw new Error("draft storage failed")
       }
@@ -72,10 +82,21 @@ function createReal() {
   }
   const notes: Pick<NoteRepository, "save"> = {
     save: async (nextNote) => {
-      if (nextFailure === "note") {
+      if (nextFailure === "note-save") {
         nextFailure = null
+        if (defect === "discard-draft-after-note-failure") {
+          draft = null
+        }
         throw new Error("note storage failed")
       }
+      if (
+        defect === "keep-previous-note" ||
+        (defect === "keep-previous-note-after-first-save" &&
+          successfulSaves > 0)
+      ) {
+        return note
+      }
+      successfulSaves += 1
       note = nextNote
       return nextNote
     },
@@ -98,6 +119,7 @@ function createReal() {
     get note() {
       return note
     },
+    recordCommand() {},
     set failure(value: Failure) {
       nextFailure = value
     },
@@ -105,20 +127,66 @@ function createReal() {
   }
 }
 
-function assertState(model: Model, real: Real) {
+function snapshotDraft(draft: NoteDraft | null): DraftSnapshot | null {
+  if (draft === null) {
+    return null
+  }
+
+  return {
+    content: draft.content,
+    contentRevision: draft.note.contentRevision,
+  }
+}
+
+function snapshotRequest(
+  request: NoteContentSaveRequest | null,
+): ContentSnapshot | null {
+  if (request === null) {
+    return null
+  }
+
+  return {
+    content: request.content,
+    contentRevision: request.note.contentRevision,
+  }
+}
+
+function canRecover(draft: DraftSnapshot | null, saved: ContentSnapshot) {
+  return (
+    draft !== null &&
+    draft.contentRevision === saved.contentRevision &&
+    draft.content !== saved.content
+  )
+}
+
+function expectedRequest(model: Model): ContentSnapshot | null {
+  if (model.pending !== null) {
+    return null
+  }
+
+  if (model.currentInput === model.saved.content && model.draft === null) {
+    return null
+  }
+
+  return {
+    content: model.currentInput,
+    contentRevision: model.saved.contentRevision,
+  }
+}
+
+function assertObservation(model: Model, real: Real) {
   assert.deepEqual(
     {
       content: real.note.content,
       contentRevision: real.note.contentRevision,
     },
-    {
-    content: model.content,
-    contentRevision: model.contentRevision,
-    },
+    model.saved,
   )
-  assert.equal(real.state.status, model.status)
-  assert.equal(real.state.pendingContent, model.pending?.content ?? null)
-  assert.equal(real.draft?.content ?? null, model.draft)
+  assert.deepEqual(snapshotDraft(real.draft), model.draft)
+  assert.equal(
+    real.draft === null ? false : isRecoverableNoteDraft(real.draft, real.note),
+    canRecover(model.draft, model.saved),
+  )
 }
 
 class EditCommand implements fc.AsyncCommand<Model, Real> {
@@ -126,7 +194,8 @@ class EditCommand implements fc.AsyncCommand<Model, Real> {
 
   check = () => true
 
-  async run(model: Model) {
+  async run(model: Model, real: Real) {
+    real.recordCommand()
     model.currentInput = this.content
   }
 
@@ -136,57 +205,92 @@ class EditCommand implements fc.AsyncCommand<Model, Real> {
 class FailNextSaveCommand implements fc.AsyncCommand<Model, Real> {
   constructor(readonly failure: Exclude<Failure, null>) {}
 
-  check = (model: Readonly<Model>) => model.pending === null
+  check = () => true
 
   async run(model: Model, real: Real) {
-    model.failure = this.failure
+    real.recordCommand()
+    model.nextFailure = this.failure
     real.failure = this.failure
   }
 
-  toString = () => `fail-next-${this.failure}-save`
+  toString = () => `fail-next-${this.failure}`
 }
 
 class RequestSaveCommand implements fc.AsyncCommand<Model, Real> {
   check = (model: Readonly<Model>) => model.pending === null
 
   async run(model: Model, real: Real) {
+    real.recordCommand()
+    const expected = expectedRequest(model)
     const result = real.begin(model.currentInput)
+
+    assert.deepEqual(snapshotRequest(result.request), expected)
     real.state = result.state
-    model.status = result.state.status
-    model.pending = result.request
-    assertState(model, real)
+    model.pending = expected
+    assertObservation(model, real)
   }
 
   toString = () => "request-save"
+}
+
+class RequestWhileSavingCommand implements fc.AsyncCommand<Model, Real> {
+  check = (model: Readonly<Model>) => model.pending !== null
+
+  async run(model: Model, real: Real) {
+    real.recordCommand()
+    const result = real.begin(model.currentInput)
+
+    assert.equal(result.request, null)
+    real.state = result.state
+    assertObservation(model, real)
+  }
+
+  toString = () => "request-save-while-saving"
 }
 
 class CompleteSaveCommand implements fc.AsyncCommand<Model, Real> {
   check = (model: Readonly<Model>) => model.pending !== null
 
   async run(model: Model, real: Real) {
+    real.recordCommand()
     const pending = model.pending
     if (pending === null) {
       throw new Error("A pending save is required")
     }
 
-    const result = await real.complete(pending)
+    const changed = pending.content !== model.saved.content
+    const failure = model.nextFailure
+    model.nextFailure = null
     model.pending = null
 
-    if (result.status === "failure") {
-      real.state = failNoteContentSave(real.state)
-      model.status = "failure"
-      model.draft = result.reason === "note-storage" ? pending.content : null
-    } else {
-      real.state = completeNoteContentSave(real.state, result.note)
-      model.status = "idle"
+    if (failure === "draft-save") {
       model.draft = null
-      if (result.status === "saved") {
-        model.content = pending.content
-        model.contentRevision += 1
+    } else if (failure === "note-save") {
+      model.draft = pending
+    } else {
+      if (changed) {
+        model.saved = {
+          content: pending.content,
+          contentRevision: pending.contentRevision + 1,
+        }
       }
+      model.draft = failure === "draft-remove" ? pending : null
     }
 
-    assertState(model, real)
+    const request: NoteContentSaveRequest = {
+      content: pending.content,
+      note: {
+        ...real.note,
+        contentRevision: pending.contentRevision,
+      },
+    }
+    const result = await real.complete(request)
+    real.state =
+      result.status === "failure"
+        ? failNoteContentSave(real.state)
+        : completeNoteContentSave(real.state, result.note)
+
+    assertObservation(model, real)
   }
 
   toString = () => "complete-save"
@@ -196,15 +300,8 @@ class InspectRecoveryCommand implements fc.AsyncCommand<Model, Real> {
   check = () => true
 
   async run(model: Model, real: Real) {
-    if (real.draft === null) {
-      assert.equal(model.draft, null)
-      return
-    }
-
-    assert.equal(
-      isRecoverableNoteDraft(real.draft, real.note),
-      model.draft !== null,
-    )
+    real.recordCommand()
+    assertObservation(model, real)
   }
 
   toString = () => "inspect-recovery"
@@ -213,36 +310,56 @@ class InspectRecoveryCommand implements fc.AsyncCommand<Model, Real> {
 const commands = [
   fc.string({ maxLength: 24 }).map((content) => new EditCommand(content)),
   fc.constant(new RequestSaveCommand()),
+  fc.constant(new RequestWhileSavingCommand()),
   fc.constant(new CompleteSaveCommand()),
   fc.constant(new InspectRecoveryCommand()),
-  fc.constant(new FailNextSaveCommand("draft")),
-  fc.constant(new FailNextSaveCommand("note")),
+  fc.constant(new FailNextSaveCommand("draft-save")),
+  fc.constant(new FailNextSaveCommand("note-save")),
 ]
 
-function createState() {
+function createState(defect: Defect = null) {
   return {
     model: {
-      content: initialNote.content,
-      contentRevision: initialNote.contentRevision,
       currentInput: initialNote.content,
       draft: null,
-      failure: null,
+      nextFailure: null,
       pending: null,
-      status: "idle" as const,
+      saved: {
+        content: initialNote.content,
+        contentRevision: initialNote.contentRevision,
+      },
     },
-    real: createReal(),
+    real: createReal(defect),
   }
 }
 
-function run(commandsToRun: Iterable<fc.AsyncCommand<Model, Real>>) {
-  return fc.asyncModelRun(
-    createState,
+async function runCommands(
+  commandsToRun: Iterable<fc.AsyncCommand<Model, Real>>,
+  defect: Defect = null,
+) {
+  let executedCommands = 0
+
+  await fc.asyncModelRun(
+    () => {
+      const state = createState(defect)
+      const record = state.real.recordCommand.bind(state.real)
+      state.real.recordCommand = () => {
+        executedCommands += 1
+        record()
+      }
+      return state
+    },
     commandsToRun,
   )
+
+  return executedCommands
 }
 
-async function runSequence(commandsToRun: readonly fc.AsyncCommand<Model, Real>[]) {
-  const { model, real } = createState()
+async function runSequence(
+  commandsToRun: readonly fc.AsyncCommand<Model, Real>[],
+  defect: Defect = null,
+) {
+  const { model, real } = createState(defect)
 
   for (const command of commandsToRun) {
     assert.equal(command.check(model), true)
@@ -250,34 +367,108 @@ async function runSequence(commandsToRun: readonly fc.AsyncCommand<Model, Real>[
   }
 }
 
+function saveSequence(content: string) {
+  return [
+    new EditCommand(content),
+    new RequestSaveCommand(),
+    new CompleteSaveCommand(),
+  ] as const
+}
+
 describe("메모 저장 모델", () => {
   it("저장과 초안 복구의 행동 순서를 실제 명령으로 탐색한다", async () => {
-    await expect(
-      fc.assert(
-        fc.asyncProperty(
-          fc.commands(commands, { maxCommands: noteModelSettings.maxCommands }),
-          run,
-        ),
-        {
-          interruptAfterTimeLimit: noteModelSettings.interruptAfterTimeLimit,
-          numRuns: noteModelSettings.numRuns,
+    let executedCommands = 0
+    const details = await fc.check(
+      fc.asyncProperty(
+        fc.commands(commands, { maxCommands: noteModelSettings.maxCommands }),
+        async (commandsToRun) => {
+          executedCommands += await runCommands(commandsToRun)
         },
       ),
-    ).resolves.toBeUndefined()
+      {
+        interruptAfterTimeLimit: noteModelSettings.interruptAfterTimeLimit,
+        markInterruptAsFailure: true,
+        numRuns: noteModelSettings.numRuns,
+      },
+    )
+
+    assert.equal(details.failed, false)
+    assert.equal(details.interrupted, false)
+    assert.equal(details.numRuns, noteModelSettings.numRuns)
+    assert.ok(details.numSkips >= 0)
+    assert.ok(executedCommands > 0)
+    process.stdout.write(
+      `note-content-model profile=local-fast generated=${details.numRuns} executed=${executedCommands} skipped=${details.numSkips}\n`,
+    )
   })
 
-  it("저장 중 새 입력, 메모 저장 실패와 재시도를 구분한다", async () => {
+  it("저장 중 새 입력, 저장 실패와 초안 정리를 구분한다", async () => {
     await expect(runSequence([
       new EditCommand("A"),
       new RequestSaveCommand(),
       new EditCommand("B"),
+      new RequestWhileSavingCommand(),
       new CompleteSaveCommand(),
-      new FailNextSaveCommand("note"),
+      new FailNextSaveCommand("note-save"),
       new RequestSaveCommand(),
       new CompleteSaveCommand(),
       new InspectRecoveryCommand(),
       new RequestSaveCommand(),
       new CompleteSaveCommand(),
+      new EditCommand("C"),
+      new FailNextSaveCommand("draft-remove"),
+      new RequestSaveCommand(),
+      new CompleteSaveCommand(),
+      new InspectRecoveryCommand(),
     ])).resolves.toBeUndefined()
+  })
+
+  it("저장을 빠뜨리는 결함을 축소, seed 재실행과 직접 입력으로 검출한다", async () => {
+    const property = fc.asyncProperty(
+      fc.string({ minLength: 1, maxLength: 24 }),
+      (content) => runSequence(saveSequence(content), "keep-previous-note"),
+    )
+    const details = await fc.check(property, {
+      interruptAfterTimeLimit: noteModelSettings.interruptAfterTimeLimit,
+      markInterruptAsFailure: true,
+      numRuns: noteModelSettings.numRuns,
+      seed: 20_260_913,
+    })
+
+    assert.equal(details.failed, true)
+    assert.equal(details.interrupted, false)
+    assert.ok(details.counterexample !== null)
+    assert.ok(details.counterexamplePath !== null)
+
+    const replay = await fc.check(property, {
+      endOnFailure: true,
+      path: details.counterexamplePath ?? undefined,
+      seed: details.seed,
+    })
+    assert.equal(replay.failed, true)
+
+    const [content] = details.counterexample
+    process.stdout.write(
+      `note-content-model defect=keep-previous-note seed=${details.seed} path=${details.counterexamplePath} shrinks=${details.numShrinks} input=${JSON.stringify(content)}\n`,
+    )
+    await expect(
+      runSequence(saveSequence(content), "keep-previous-note"),
+    ).rejects.toThrow()
+  })
+
+  it("메모 저장 실패 뒤 초안을 버리는 결함을 검출한다", async () => {
+    await expect(runSequence([
+      new EditCommand("복구할 원문"),
+      new FailNextSaveCommand("note-save"),
+      new RequestSaveCommand(),
+      new CompleteSaveCommand(),
+    ], "discard-draft-after-note-failure")).rejects.toThrow()
+  })
+
+  it("새 입력을 이전 저장값으로 되돌리는 결함을 검출한다", async () => {
+    await expect(runSequence([
+      ...saveSequence("A"),
+      ...saveSequence("B"),
+    ], "keep-previous-note-after-first-save")).rejects.toThrow()
   })
 })
