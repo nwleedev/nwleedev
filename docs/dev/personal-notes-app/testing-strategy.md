@@ -47,7 +47,7 @@ UI 자동화는 role, 접근 가능한 이름, 사용자가 입력한 값, 상�
 
 [기존 테스트의 목적 조사](../../designs/personal-notes-app-8fd/references/existing-test-purposes.md)를 먼저 읽고 추가할 탐색이 어떤 기존 규칙을 확장하는지 정한다. provider의 브라우저 검사에도 대역이 사용되므로 실행 도구 이름만으로 실제 저장소나 Worker의 검증 범위를 판단하지 않는다. 첫 대상과 실행 순서는 U12에서 관리하며 일괄 복사 목록은 요구사항 확인 전까지 보류한다.
 
-[모델 기반 탐색 요구사항](../../designs/personal-notes-app-8fd/requirements.md#모델-기반-탐색-테스트)에 따라 순수 규칙의 예제 테스트에 행동 순서 탐색을 추가한다. 도입 규칙은 현재 적용하되 fast-check 실행은 아직 구성되지 않았다. 설치와 첫 실행의 완료 여부는 [U12 계획](../../designs/personal-notes-app-8fd/plan.md#u12-모델-기반-탐색과-실패-재현)의 증거로 판정한다.
+[모델 기반 탐색 요구사항](../../designs/personal-notes-app-8fd/requirements.md#모델-기반-탐색-테스트)에 따라 순수 규칙의 예제 테스트에 행동 순서 탐색을 추가한다. fast-check와 `test:model`은 구성되어 있으며 기존 실행 증거는 [단일 실행 기록](../../designs/personal-notes-app-8fd/model-based-testing-execution.md)에 있다. 기능별 생성부터 재현까지의 완료 여부는 [U12 계획](../../designs/personal-notes-app-8fd/plan.md#u12-모델-기반-탐색과-실패-재현)의 증거로 판정한다.
 
 생성할 행동과 결과 판정은 요구사항에 연결하고, 실제 구현의 자료구조와 알고리즘을 정답 모델로 복제하지 않는다. 정상 행동의 실행 조건이 비정상 시도까지 걸러내지 않는지 실제 실행 기록을 확인한다. 기대 결과 미정, 구현 위반과 환경 실패는 각각 구분한다.
 
