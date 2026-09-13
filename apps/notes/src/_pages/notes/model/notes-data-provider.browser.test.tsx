@@ -1,12 +1,22 @@
 import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import { useForm } from "react-hook-form"
+import * as fc from "fast-check"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { page, userEvent } from "vitest/browser"
 
 import type { Note, NoteRepository } from "@/entities/note"
 import type { NoteDraftRepository } from "@/entities/note"
 import type { IndividualCopyUsageWriter } from "@/entities/usage"
+import {
+  createExplorationReport,
+  ExplorationInvariantError,
+  type ExplorationActionCounts,
+} from "@/shared/lib/note-model-exploration"
+import {
+  noteModelProfile,
+  noteModelSettings,
+} from "@/shared/lib/note-model-settings"
 
 import type {
   NoteStorageEvent,
@@ -33,6 +43,8 @@ const drafts: NoteDraftRepository = {
   remove: async () => undefined,
   save: async (draft) => draft,
 }
+
+declare const __NOTES_GIT_REVISION__: string
 
 type AutosaveEditorProps = {
   initialContent: string
@@ -118,14 +130,19 @@ function NotesDataProbe() {
     )
   }
 
-  if (notesData.status === "empty") {
-    return <p>메모가 없습니다.</p>
-  }
-
   const firstNote = notesData.notes[0]
 
   return (
     <>
+      <button
+        onClick={() => {
+          void notesData.createNote()
+        }}
+        type="button"
+      >
+        새 메모
+      </button>
+      {notesData.status === "empty" ? <p>메모가 없습니다.</p> : null}
       {notesData.notes.map((note) => (
         <article key={note.id}>{note.content}</article>
       ))}
@@ -140,6 +157,236 @@ function NotesDataProbe() {
       ) : null}
     </>
   )
+}
+
+type CreationDefect = "drop-second-save" | "none"
+
+type CreationModel = {
+  created: number
+}
+
+type ExplorationPhase = "exploration" | "shrinking"
+
+type CreationReal = {
+  create(): Promise<void>
+  inspect(): Promise<void>
+  reload(): Promise<void>
+}
+
+function createActionCounts(): ExplorationActionCounts {
+  return {
+    exploration: { attempted: 0, executed: 0, rejected: 0 },
+    shrinking: { attempted: 0, executed: 0, rejected: 0 },
+  }
+}
+
+function recordCheck(
+  counts: ExplorationActionCounts,
+  phase: ExplorationPhase,
+  accepted: boolean,
+) {
+  counts[phase].attempted += 1
+  if (!accepted) {
+    counts[phase].rejected += 1
+  }
+}
+
+class CreateNoteCommand implements fc.AsyncCommand<CreationModel, CreationReal> {
+  constructor(
+    private readonly counts: ExplorationActionCounts,
+    private readonly phase: () => ExplorationPhase,
+  ) {}
+
+  check() {
+    recordCheck(this.counts, this.phase(), true)
+    return true
+  }
+
+  async run(model: CreationModel, real: CreationReal) {
+    this.counts[this.phase()].executed += 1
+    await real.create()
+    model.created += 1
+  }
+
+  toString() {
+    return "create"
+  }
+}
+
+class InspectCreatedNotesCommand implements fc.AsyncCommand<CreationModel, CreationReal> {
+  constructor(
+    private readonly counts: ExplorationActionCounts,
+    private readonly phase: () => ExplorationPhase,
+  ) {}
+
+  check() {
+    recordCheck(this.counts, this.phase(), true)
+    return true
+  }
+
+  async run(_model: CreationModel, real: CreationReal) {
+    this.counts[this.phase()].executed += 1
+    await real.inspect()
+  }
+
+  toString() {
+    return "inspect"
+  }
+}
+
+class ReloadCreatedNotesCommand implements fc.AsyncCommand<CreationModel, CreationReal> {
+  constructor(
+    private readonly counts: ExplorationActionCounts,
+    private readonly phase: () => ExplorationPhase,
+  ) {}
+
+  check(model: Readonly<CreationModel>) {
+    const accepted = model.created > 1
+    recordCheck(this.counts, this.phase(), accepted)
+    return accepted
+  }
+
+  async run(model: CreationModel, real: CreationReal) {
+    this.counts[this.phase()].executed += 1
+    await real.reload()
+    await real.inspect()
+
+    const visibleNotes = await page.getByRole("article").all()
+    if (visibleNotes.length !== model.created) {
+      throw new ExplorationInvariantError(
+        "created-notes-survive-reload",
+        { count: model.created },
+        { count: visibleNotes.length },
+      )
+    }
+  }
+
+  toString() {
+    return "reload"
+  }
+}
+
+function createCreationRepository(defect: CreationDefect) {
+  const stored: Note[] = []
+  let saveCount = 0
+
+  const repository: NoteRepository = {
+    getAll: async () => stored.map((note) => ({ ...note })),
+    remove: async () => undefined,
+    async save(note) {
+      saveCount += 1
+      if (defect !== "drop-second-save" || saveCount !== 2) {
+        stored.push(note)
+      }
+      return note
+    },
+    saveAll: async (notes) => notes,
+  }
+
+  return repository
+}
+
+async function executeCreationCommands(
+  commands: Iterable<fc.AsyncCommand<CreationModel, CreationReal>>,
+  defect: CreationDefect,
+) {
+  const container = document.createElement("div")
+  document.body.append(container)
+  const repository = createCreationRepository(defect)
+  const storage = createStorageMonitor()
+  let idSequence = 0
+  let candidateRoot = createRoot(container)
+
+  async function renderCandidate() {
+    await act(async () => {
+      candidateRoot.render(
+        <NotesDataProvider
+          batchCopyShortcutEnabled
+          clipboard={clipboard}
+          createId={() => `created-note-${++idSequence}`}
+          drafts={drafts}
+          now={() => timestamp}
+          repository={repository}
+          storageMonitor={storage.monitor}
+          usage={usage}
+        >
+          <NotesDataProbe />
+        </NotesDataProvider>,
+      )
+    })
+    await expect
+      .element(page.getByRole("button", { name: "새 메모" }))
+      .toBeEnabled()
+  }
+
+  const real: CreationReal = {
+    async create() {
+      const before = await page.getByRole("article").all()
+      await act(async () => {
+        await userEvent.click(page.getByRole("button", { name: "새 메모" }))
+      })
+      const after = await page.getByRole("article").all()
+      expect(after).toHaveLength(before.length + 1)
+    },
+    async inspect() {
+      await expect
+        .element(page.getByRole("button", { name: "새 메모" }))
+        .toBeEnabled()
+    },
+    async reload() {
+      await act(async () => candidateRoot.unmount())
+      candidateRoot = createRoot(container)
+      await renderCandidate()
+    },
+  }
+
+  try {
+    await renderCandidate()
+    await fc.asyncModelRun(
+      () => ({ model: { created: 0 }, real }),
+      commands,
+    )
+  } finally {
+    await act(async () => candidateRoot.unmount())
+    container.remove()
+  }
+}
+
+async function checkCreationExploration(defect: CreationDefect) {
+  const counts = createActionCounts()
+  let phase: ExplorationPhase = "exploration"
+  const commands = [
+    fc.constant(new CreateNoteCommand(counts, () => phase)),
+    fc.constant(new InspectCreatedNotesCommand(counts, () => phase)),
+    fc.constant(new ReloadCreatedNotesCommand(counts, () => phase)),
+  ]
+  const property = fc.asyncProperty(
+    fc.commands(commands, { maxCommands: 10 }),
+    async (generatedCommands) => {
+      try {
+        await executeCreationCommands(generatedCommands, defect)
+      } catch (error) {
+        phase = "shrinking"
+        throw error
+      }
+    },
+  )
+  const startedAt = performance.now()
+  const details = await fc.check(property, {
+    endOnFailure: false,
+    interruptAfterTimeLimit: noteModelSettings.interruptAfterTimeLimit,
+    markInterruptAsFailure: true,
+    numRuns: Math.min(noteModelSettings.numRuns, 20),
+    seed: 1,
+    verbose: true,
+  })
+
+  return {
+    commands,
+    counts,
+    details,
+    durationMs: Math.round(performance.now() - startedAt),
+  }
 }
 
 function createDeferred<T>() {
@@ -377,5 +624,74 @@ describe("NotesDataProvider", () => {
     await expect
       .element(page.getByRole("article").first())
       .toHaveTextContent("저장 중에 완성한 메모")
+  })
+
+  it("shrinks a generated creation sequence and replays a dropped save", async () => {
+    const normal = await checkCreationExploration("none")
+    expect(normal.details.failed).toBe(false)
+    expect(normal.details.interrupted).toBe(false)
+
+    const faulty = await checkCreationExploration("drop-second-save")
+    expect(faulty.details.failed).toBe(true)
+    expect(faulty.details.interrupted).toBe(false)
+
+    const report = createExplorationReport(faulty.details, {
+      actionCounts: faulty.counts,
+      appRevision: __NOTES_GIT_REVISION__,
+      classification: "controlled-defect",
+      durationMs: faulty.durationMs,
+      environment: "vitest-browser",
+      feature: "note-creation",
+      initialState: { notes: [] },
+      layer: "notes-data-provider",
+      modelRevision: "creation-v1",
+      profile: noteModelProfile,
+      toolVersions: { fastCheck: fc.__version, vitest: "4.1.11" },
+    })
+
+    expect(report.invariant).toBe("created-notes-survive-reload")
+    expect(report.originalActions.length).toBeGreaterThan(
+      report.minimalActions.length,
+    )
+    expect(report.minimalActions).toEqual(["create", "create", "reload"])
+    expect(report.replayPath).not.toBeNull()
+    expect(report.actionCounts.exploration.executed).toBeGreaterThan(0)
+    expect(report.actionCounts.shrinking.executed).toBeGreaterThan(0)
+
+    const replay = await fc.check(
+      fc.asyncProperty(
+        fc.commands(faulty.commands, {
+          maxCommands: 10,
+          replayPath: report.replayPath ?? undefined,
+        }),
+        async (commands) => {
+          await executeCreationCommands(commands, "drop-second-save")
+        },
+      ),
+      {
+        endOnFailure: true,
+        numRuns: 1,
+        path: report.path,
+        seed: report.seed,
+      },
+    )
+    expect(replay.failed).toBe(true)
+    expect(replay.errorInstance).toBeInstanceOf(ExplorationInvariantError)
+
+    const directCounts = createActionCounts()
+    const directPhase = () => "exploration" as const
+    const directCommands = [
+      new CreateNoteCommand(directCounts, directPhase),
+      new CreateNoteCommand(directCounts, directPhase),
+      new ReloadCreatedNotesCommand(directCounts, directPhase),
+    ]
+    await expect(
+      executeCreationCommands(directCommands, "drop-second-save"),
+    ).rejects.toMatchObject({ invariant: report.invariant })
+    await expect(
+      executeCreationCommands(directCommands, "none"),
+    ).resolves.toBeUndefined()
+
+    console.info(JSON.stringify(report))
   })
 })

@@ -65,6 +65,21 @@ test("삭제 뒤 순서를 바꾸고 복원한 메모를 새로고침 뒤에도 
   )
 })
 
+test("연속 생성한 메모의 정확한 개수와 원문을 새로고침 뒤 유지한다", async ({
+  page,
+}) => {
+  await createNoteThroughUi(page, "첫 번째 생성 메모")
+  await createNoteThroughUi(page, "두 번째 생성 메모")
+
+  await page.reload()
+  const notes = page.getByRole("article", { exact: true, name: "메모" })
+  await expect(notes).toHaveCount(2)
+  const editors = await page.getByRole("textbox", { name: "메모 내용" }).all()
+  const contents = await Promise.all(editors.map((editor) => editor.inputValue()))
+
+  expect(contents).toEqual(["첫 번째 생성 메모", "두 번째 생성 메모"])
+})
+
 test("생성한 원문은 후보별 새 브라우저 문맥에서 자동 저장 뒤 복원된다", async ({
   browser,
 }) => {

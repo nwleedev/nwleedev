@@ -1305,8 +1305,8 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 
 - 작업 위치: `apps/notes/src/_pages/notes/model/notes-data-provider.browser.test.tsx`, `apps/notes/e2e/notes-model.spec.ts`와 실제 IndexedDB 검사.
 - 필수 증거: 일반 생성에서 저장 누락 또는 ID 재사용 탐지, 불필요한 행동 축소, 생성 전후 자료 로그, 실제 생성 제어의 재현과 새로고침 뒤 정확한 목록.
-- 상태: 행동 생성 미입증, 오류 탐지 미입증, 순서 축소 미입증, 로그 미완료, 재현 미입증. 실제 생성의 기존 고정 E2E는 유지한다.
-- [ ] 기능 로컬 완료
+- 상태: 행동 생성 완료, 오류 탐지 완료, 순서 축소 완료, 로그 기록 완료, 재현 완료. 실제 `NotesDataProvider`에서 생성, 관찰과 재마운트를 조합하고 두 번째 저장 누락을 탐지했다. 불필요한 관찰을 제거한 세 행동으로 축소했으며 seed 및 replayPath와 직접 행동으로 다시 실행했다. 실제 애플리케이션에서는 두 메모의 정확한 개수와 원문을 새로고침 뒤 Chromium, Firefox와 WebKit에서 확인했다. 세부 수치와 실행 제한은 [생성 기능 실행 결과](model-based-testing-execution.md#생성-기능-실행-결과)에 기록했다.
+- [x] 기능 로컬 완료
 
 ### 본문 편집과 원문 revision
 
