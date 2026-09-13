@@ -643,56 +643,6 @@ test("삭제 뒤 순서를 바꾸고 복원한 메모를 새로고침 뒤에도 
   )
 })
 
-test("연속 생성한 메모의 정확한 개수와 원문을 새로고침 뒤 유지한다", async ({
-  page,
-}) => {
-  await createNoteThroughUi(page, "첫 번째 생성 메모")
-  await createNoteThroughUi(page, "두 번째 생성 메모")
-
-  await page.reload()
-  const notes = page.getByRole("article", { exact: true, name: "메모" })
-  await expect(notes).toHaveCount(2)
-  const editors = await page.getByRole("textbox", { name: "메모 내용" }).all()
-  const contents = await Promise.all(editors.map((editor) => editor.inputValue()))
-
-  expect(contents).toEqual(["첫 번째 생성 메모", "두 번째 생성 메모"])
-})
-
-test("생성한 원문은 후보별 새 브라우저 문맥에서 자동 저장 뒤 복원된다", async ({
-  browser,
-}) => {
-  await fc.assert(
-    fc.asyncProperty(
-      fc.string({ minLength: 1, maxLength: 32, unit: "grapheme-ascii" }),
-      fc.string({ minLength: 1, maxLength: 32, unit: "grapheme-ascii" }),
-      async (initialContent, revisedContent) => {
-        const context = await browser.newContext()
-
-        try {
-          const page = await context.newPage()
-          await page.goto("/")
-          await page.clock.install()
-          const note = await createNoteThroughUi(page, initialContent)
-          const editor = note.getByRole("textbox", { name: "메모 내용" })
-
-          await editor.fill(revisedContent)
-          await page.clock.fastForward(800)
-          await page.reload()
-
-          await expect(
-            page
-              .getByRole("article", { exact: true, name: "메모" })
-              .getByRole("textbox", { name: "메모 내용" }),
-          ).toHaveValue(revisedContent)
-        } finally {
-          await context.close()
-        }
-      },
-    ),
-    { numRuns: 3 },
-  )
-})
-
 test("320px 화면에서는 명시적 저장 뒤 새로고침해도 원문을 유지한다", async ({
   browser,
 }) => {

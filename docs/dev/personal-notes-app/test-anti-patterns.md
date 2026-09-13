@@ -13,7 +13,7 @@
 
 ## 모든 테스트에 적용할 판정 질문
 
-검증문마다 다음 질문에 답할 수 있어야 한다. 하나라도 답할 수 없으면 검증 대상을 바꾸거나 테스트를 제거한다.
+검증문마다 다음 질문에 답할 수 있어야 한다. 답할 수 없으면 검증 대상을 다시 정한다. 기존 테스트 삭제는 보호하던 동작과 대체 검증을 확인하고 변경 승인을 받은 경우에만 진행한다.
 
 - 이 검증문은 사용자가 보는 결과, 저장 불변 조건, 외부 interface의 동작 또는 순수 알고리즘 반환값 가운데 무엇을 증명하는가
 - 요구사항이나 결정 기록의 어느 문장이 그 결과를 필요로 하는가
@@ -259,29 +259,35 @@ expect(notice).toHaveTextContent(/누적 완료/)
 
 ### 막으려는 실패
 
-`toBeTruthy`, 존재 여부 한 번, 오류가 없었다는 사실과 coverage 수치만으로는 올바른 결과를 확인할 수 없다. 테스트가 실행 코드의 알고리즘을 같은 방식으로 다시 구현하면 둘이 같은 오류를 내면서 통과할 수 있다.
+검사할 결과를 테스트가 직접 만들어 놓고 읽으면 실제 입력 연결이 없어도 통과한다. 고정값 자체가 아니라 값의 출처와 실제 실행 여부를 판정한다. 같은 알고리즘으로 계산한 예상값, 대역이 돌려준 성공값과 테스트 실행기의 성공 여부는 사용자 과업의 결과를 대신하지 못한다.
+
+[Kubeflow Pipelines의 변경 이슈](https://github.com/kubeflow/pipelines/issues/13228)는 구성요소 내부 접근을 사용자 중심 검사로 바꾸는 이유를 명시한다. 고정 변경 [e27593f의 UploadPipelineDialog 검사](https://github.com/kubeflow/pipelines/commit/e27593f828a3189a48e50b5b4190cb8d31ed142e)는 내부 `setState`로 URL 입력 모드를 만든 뒤 스냅샷을 찍던 검사를, 실제 모드 선택 후 입력창을 확인하도록 바꿨다. 아래는 그 차이만 줄인 설명용 발췌다. 이 저장소에 Testing Library나 Enzyme을 설치하라는 예제가 아니며 저장소에서 실행한 테스트도 아니다.
 
 ```ts
-const expected = input.trim().replaceAll(/\s+/g, ' ').toLowerCase()
-
-expect(normalizeLine(input)).toBe(expected)
-expect(result).toBeTruthy()
+act(() => {
+  wrapper.instance().setState({ importMethod: ImportMethod.URL })
+})
+expect(wrapper.renderResult().asFragment()).toMatchSnapshot()
 ```
 
 ```ts
-expect(normalizeLine('  A\u030A   B  ')).toEqual({
-  original: '  A\u030A   B  ',
-  normalized: 'å b',
-})
-expect(classifyLineRelation('memo', 'memory')).toMatchObject({
-  relation: 'surface',
-  score: expect.any(Number),
-})
+await user.click(screen.getByLabelText('Import by URL'))
+expect(screen.queryByTestId('upload-pipeline-dropzone')).not.toBeInTheDocument()
+expect(screen.getByRole('textbox', { name: /URL/i })).toBeInTheDocument()
 ```
 
-예상값은 요구사항의 사례와 독립적으로 선택한 경계값에서 가져온다. 성공, 실패, 빈 입력, 중복, 오래된 Worker 응답과 transaction 중단처럼 결과가 달라지는 대표 분기를 포함한다. coverage는 누락 후보를 찾는 자료일 뿐 완료 조건으로 사용하지 않는다.
+변경 후에는 모드 선택 연결이 끊기면 입력창 관찰이 실패한다. `Import by URL`이라는 고정 문자열은 선택할 제어를 식별하므로 문제의 원인이 아니다. 이 사례는 화면 모드 전환만 입증하며 실제 파일 업로드 완료까지 입증하지 않는다. [Testing Library 원칙](https://testing-library.com/docs/guiding-principles/)과 [Playwright 사용자 동작 지침](https://playwright.dev/docs/best-practices/)도 같은 판단을 뒷받침한다. 현재 메모 앱에는 Playwright Test 1.62.1의 실제 UI 입력과 결과 관찰로 적용한다.
 
-`expect-expect`는 검증문이 전혀 없는 테스트를 찾고 Playwright의 `no-unnecessary-assertions`는 절대로 실패할 수 없는 일부 locator 검증문을 찾는다. `no-restricted-matchers`로 `toBeTruthy`와 `toBeDefined`를 제한할 수 있지만, boolean 또는 optional 값 자체가 승인된 출력인 테스트도 있으므로 전역 금지는 하지 않는다. 실행 로직 복제, 잘못된 fixture와 빠진 실패 분기는 ESLint가 판정할 수 없으며 요구사항별 검토가 필요하다.
+메모 테스트의 예상값은 다음처럼 구분한다.
+
+- 사용자가 입력한 공백과 줄바꿈을 포함한 원문은 테스트에서 정하고, 편집 후 저장소와 다시 연 화면에서 같은 문자열을 확인한다. 관찰한 원문을 그대로 예상값에 복사하지 않는다.
+- 800ms 저장, 5초 취소, 허용 너비처럼 요구사항이 정한 값은 고정 사례로 검사한다. 운영 상수를 import해 테스트 시각과 예상값까지 함께 바꾸면 잘못된 상수 변경을 놓치므로 요구사항의 수치를 독립적으로 둔다.
+- ID는 생성 결과에서 받아 동일 대상을 추적할 수 있다. 특정 난수 ID, 실행기의 `failed` 값이나 축소 결과가 정확히 몇 명령인지 고정하는 것은 메모의 정확성 증거가 아니다.
+- 승인된 원문 변환 규칙은 직접 계산한 대표 예상값과 독립적인 성질 검사를 함께 사용한다. 운영 변환 함수로 예상값을 만들지 않는다. 변환해야 할 입력을 그대로 반환하는 구현과 올바르게 변환하는 구현을 구별할 사례를 포함한다.
+
+반복 입력과 순서 조합은 생성형 검사로 보완하되 고정 사례를 무작위 값으로 일괄 교체하지 않는다. 축소된 실패 순서를 회귀 사례로 고정하는 것도 허용한다. 문자열 리터럴, `toEqual`, boolean 반환값 검사를 일괄 금지하지 않으며 순수 규칙의 반환값은 그 규칙의 유효한 관찰 대상이다.
+
+`expect-expect`는 검증문 부재를 찾지만 예상값의 근거를 알지 못한다. 이 문제를 정확히 판정하는 lint 설정은 확인하지 못했으므로 문자열 금지 규칙을 추가하지 않는다. 작성 및 인수 방법은 [실제 과업에서 테스트를 작성하는 순서](testing-strategy.md#사용자-과업에서-테스트를-작성하는-순서)와 [작성 중단과 인수 판정](testing-strategy.md#작성-중단과-인수-판정)을 따른다. 해당 절의 정상 및 결함 실행은 검증문이 의도한 오동작을 구별하는지 확인하며, coverage나 변이 점수로 이를 대신하지 않는다.
 
 ## 가능한 제어의 개수로 상태 전이와 저장을 대신하지 않는다
 

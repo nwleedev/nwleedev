@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test"
+import * as fc from "fast-check"
 
 import {
   createMobileNoteThroughUi,
@@ -54,6 +55,99 @@ async function readTopControlTabIndex(locator: Locator) {
   return value
 }
 
+type NoteCreationModel = {
+  contents: string[]
+}
+
+type NoteCreationReal = {
+  page: Page
+}
+
+async function expectVisibleNoteContents(page: Page, expected: string[]) {
+  const editors = page.getByRole("textbox", { name: "메모 내용" })
+  await expect(editors).toHaveCount(expected.length)
+  const contents = await Promise.all(
+    (await editors.all()).map((editor) => editor.inputValue()),
+  )
+  expect(contents).toEqual(expected)
+}
+
+class CreateNoteThroughUiCommand
+  implements fc.AsyncCommand<NoteCreationModel, NoteCreationReal>
+{
+  constructor(private readonly content: string) {}
+
+  check() {
+    return true
+  }
+
+  async run(model: NoteCreationModel, { page }: NoteCreationReal) {
+    await createNoteThroughUi(page, this.content)
+    model.contents.push(this.content)
+    await expectVisibleNoteContents(page, model.contents)
+  }
+
+  toString() {
+    return `create(${JSON.stringify(this.content)})`
+  }
+}
+
+class FailNoteCreationThroughUiCommand
+  implements fc.AsyncCommand<NoteCreationModel, NoteCreationReal>
+{
+  check() {
+    return true
+  }
+
+  async run(model: NoteCreationModel, { page }: NoteCreationReal) {
+    await page.getByRole("button", { name: "새 메모" }).click()
+    await expect(
+      page
+        .getByRole("region", { name: "메모 작업 영역" })
+        .getByRole("alert"),
+    ).toContainText("메모를 만들지 못했습니다. 다시 시도하세요.")
+    await expect(
+      page.getByRole("textbox", { name: "메모 내용" }),
+    ).toHaveCount(model.contents.length)
+    await expect(page.getByRole("button", { name: "새 메모" })).toBeEnabled()
+  }
+
+  toString() {
+    return "fail-create"
+  }
+}
+
+class ReloadNotesThroughUiCommand
+  implements fc.AsyncCommand<NoteCreationModel, NoteCreationReal>
+{
+  check(model: Readonly<NoteCreationModel>) {
+    return model.contents.length > 0
+  }
+
+  async run(model: NoteCreationModel, { page }: NoteCreationReal) {
+    await page.reload()
+    await expectVisibleNoteContents(page, model.contents)
+  }
+
+  toString() {
+    return "reload"
+  }
+}
+
+const noteCreationContent = fc.string({
+  maxLength: 32,
+  minLength: 1,
+  unit: "grapheme-ascii",
+})
+
+const noteCreationCommands = fc.commands(
+  [
+    noteCreationContent.map((content) => new CreateNoteThroughUiCommand(content)),
+    fc.constant(new ReloadNotesThroughUiCommand()),
+  ],
+  { maxCommands: 4 },
+)
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/")
 })
@@ -82,6 +176,86 @@ test("초기 화면을 hydration 오류 없이 연다", async ({ page }) => {
     ),
   )
   expect(knownPrefetchErrors).toEqual(observedPageErrors)
+})
+
+test("사용자의 메모 생성과 다시 열기 행동을 조합한다", async ({ browser }) => {
+  await fc.assert(
+    fc.asyncProperty(
+      noteCreationContent,
+      noteCreationContent,
+      noteCreationCommands,
+      async (firstContent, secondContent, generatedCommands) => {
+        const context = await browser.newContext()
+
+        try {
+          const page = await context.newPage()
+          await page.goto("/")
+          const model: NoteCreationModel = { contents: [] }
+          await fc.asyncModelRun(
+            () => ({
+              model,
+              real: { page },
+            }),
+            [
+              new CreateNoteThroughUiCommand(firstContent),
+              new CreateNoteThroughUiCommand(secondContent),
+              ...generatedCommands,
+            ],
+          )
+          await expect(
+            page.getByRole("textbox", { name: "메모 내용" }),
+          ).toHaveCount(model.contents.length)
+        } finally {
+          await context.close()
+        }
+      },
+    ),
+    { numRuns: 3 },
+  )
+})
+
+test("메모 생성 실패를 알리고 다음 생성 시도를 저장한다", async ({
+  browser,
+}) => {
+  const context = await browser.newContext()
+  await context.addInitScript(() => {
+    const originalPut = IDBObjectStore.prototype.put
+    let failurePending = true
+
+    IDBObjectStore.prototype.put = function (value, key) {
+      if (failurePending && this.name === "notes") {
+        failurePending = false
+        this.transaction.abort()
+        throw new DOMException("Unable to save the note", "AbortError")
+      }
+
+      return key === undefined
+        ? originalPut.call(this, value)
+        : originalPut.call(this, value, key)
+    }
+  })
+
+  try {
+    const page = await context.newPage()
+    await page.goto("/")
+    const model: NoteCreationModel = { contents: [] }
+    await fc.asyncModelRun(
+      () => ({
+        model,
+        real: { page },
+      }),
+      [
+        new FailNoteCreationThroughUiCommand(),
+        new CreateNoteThroughUiCommand("다시 시도해 저장한 메모"),
+        new ReloadNotesThroughUiCommand(),
+      ],
+    )
+    await expect(
+      page.getByRole("textbox", { name: "메모 내용" }),
+    ).toHaveValue("다시 시도해 저장한 메모")
+  } finally {
+    await context.close()
+  }
 })
 
 test("해시로 연 메모의 자동 저장이 편집기 초점을 유지한다", async ({
