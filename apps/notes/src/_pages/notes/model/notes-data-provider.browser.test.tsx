@@ -422,7 +422,8 @@ abstract class AutosaveCommand implements fc.AsyncCommand<AutosaveModel, Autosav
     protected readonly phase: () => ExplorationPhase,
   ) {}
 
-  check() {
+  check(model: Readonly<AutosaveModel>) {
+    void model
     recordExplorationActionCheck(
       this.counts,
       this.phase(),

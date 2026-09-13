@@ -11,6 +11,8 @@ import {
 import {
   noteIdFromHref,
   readStoredNote,
+  readStoredNoteDraft,
+  writeStoredNoteDraft,
 } from "./support/read-stored-note"
 
 async function visibleBox(locator: Locator) {
@@ -572,6 +574,125 @@ test("연속 삭제 알림이 사라진 뒤 이전 삭제를 다시 알리지 �
 
 test.describe("320px 메모 화면", () => {
   test.use({ hasTouch: true, viewport: { height: 720, width: 320 } })
+
+  test("복구한 초안을 저장하고 제거 실패를 다음 저장에서 정리한다", async ({
+    page,
+  }) => {
+    const storedContent = "초안의 기준이 되는 메모"
+    const recoveredContent = "복구해서 저장할 메모 초안"
+    const savedContent = `${recoveredContent} 저장본`
+    const staleContent = "이전 revision에서 남은 초안"
+    const note = await createMobileNoteThroughUi(page, storedContent)
+    const noteId = noteIdFromHref(
+      await note.getByRole("link", { name: "메모 열기" }).getAttribute("href"),
+    )
+    await page.reload()
+    const initialStoredNote = await readStoredNote(page, noteId)
+    expect(initialStoredNote).not.toBeNull()
+
+    const recoverableDraft = {
+      content: recoveredContent,
+      note: {
+        contentRevision: initialStoredNote!.contentRevision,
+        id: noteId,
+      },
+      updatedAt: "2026-09-13T12:00:00.000Z",
+    }
+    await writeStoredNoteDraft(page, recoverableDraft)
+    expect(await readStoredNoteDraft(page, noteId)).toEqual(recoverableDraft)
+
+    const detailPage = await page.context().newPage()
+    await detailPage.goto(`/notes/${encodeURIComponent(noteId)}/`)
+    const editor = detailPage.getByRole("textbox", { name: "메모 내용" })
+    await expect(editor).toHaveValue(recoveredContent)
+    await editor.fill(savedContent)
+
+    await detailPage.evaluate(() => {
+      type DraftRemovalFailureWindow = typeof window & {
+        restoreDraftRemoval?: () => void
+      }
+      const originalDelete = IDBObjectStore.prototype.delete
+      const originalTransaction = IDBDatabase.prototype.transaction
+      let noteStored = false
+      const restore = () => {
+        IDBObjectStore.prototype.delete = originalDelete
+        IDBDatabase.prototype.transaction = originalTransaction
+      }
+      const currentWindow = window as DraftRemovalFailureWindow
+      currentWindow.restoreDraftRemoval = restore
+      IDBDatabase.prototype.transaction = function observeNoteSave(
+        storeNames: string | string[],
+        mode?: IDBTransactionMode,
+      ) {
+        const usesNoteStore = Array.isArray(storeNames)
+          ? storeNames.includes("notes")
+          : storeNames === "notes"
+        if (usesNoteStore && mode === "readwrite") {
+          noteStored = true
+        }
+
+        return originalTransaction.call(this, storeNames, mode)
+      }
+      IDBObjectStore.prototype.delete = function deleteWithControlledFailure(
+        query: IDBValidKey | IDBKeyRange,
+      ) {
+        if (this.name === "noteDrafts" && noteStored) {
+          throw new Error("Controlled draft removal failure")
+        }
+
+        return originalDelete.call(this, query)
+      }
+    })
+    await detailPage.getByRole("button", { exact: true, name: "저장" }).click()
+    await expect.poll(
+      () => readStoredNote(detailPage, noteId),
+    ).toMatchObject({
+      content: savedContent,
+      contentRevision: initialStoredNote!.contentRevision + 1,
+    })
+    const savedAfterRemovalFailure = await readStoredNote(detailPage, noteId)
+    expect(savedAfterRemovalFailure).not.toBeNull()
+    const draftAfterRemovalFailure = await readStoredNoteDraft(
+      detailPage,
+      noteId,
+    )
+    expect(draftAfterRemovalFailure).not.toBeNull()
+    expect(draftAfterRemovalFailure).toMatchObject({
+      content: savedContent,
+      note: recoverableDraft.note,
+    })
+
+    await detailPage.evaluate(() => {
+      type DraftRemovalFailureWindow = typeof window & {
+        restoreDraftRemoval?: () => void
+      }
+      const currentWindow = window as DraftRemovalFailureWindow
+      currentWindow.restoreDraftRemoval?.()
+      delete currentWindow.restoreDraftRemoval
+    })
+    await detailPage.getByRole("button", { exact: true, name: "저장" }).click()
+    await expect.poll(
+      () => readStoredNoteDraft(detailPage, noteId),
+    ).toBeNull()
+    expect(await readStoredNote(detailPage, noteId)).toMatchObject({
+      content: savedContent,
+      contentRevision: savedAfterRemovalFailure!.contentRevision,
+      revision: savedAfterRemovalFailure!.revision,
+    })
+
+    const staleDraft = {
+      content: staleContent,
+      note: {
+        contentRevision: savedAfterRemovalFailure!.contentRevision - 1,
+        id: noteId,
+      },
+      updatedAt: "2026-09-13T12:00:01.000Z",
+    }
+    await writeStoredNoteDraft(detailPage, staleDraft)
+    expect(await readStoredNoteDraft(detailPage, noteId)).toEqual(staleDraft)
+    await detailPage.reload()
+    await expect(editor).toHaveValue(savedContent)
+  })
 
   test("짧게 눌러 상세 화면에서 저장하고 제한된 높이의 목록으로 돌아온다", async ({
     page,

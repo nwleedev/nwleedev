@@ -10,7 +10,19 @@ import {
   type NoteDraftRepository,
   type NoteRepository,
 } from "@/entities/note"
-import { noteModelSettings } from "@/shared/lib/note-model-settings"
+import {
+  createExplorationActionCounts,
+  createExplorationReport,
+  ExplorationInvariantError,
+  recordExplorationActionCheck,
+  recordExplorationActionExecution,
+  type ExplorationActionCounts,
+  type ExplorationPhase,
+} from "@/shared/lib/note-model-exploration"
+import {
+  noteModelProfile,
+  noteModelSettings,
+} from "@/shared/lib/note-model-settings"
 
 import {
   beginNoteContentSave,
@@ -37,7 +49,10 @@ type Defect =
   | "discard-draft-after-note-failure"
   | "keep-previous-note"
   | "keep-previous-note-after-first-save"
+  | "skip-draft-cleanup-retry"
   | null
+
+declare const __NOTES_GIT_REVISION__: string
 
 type ContentSnapshot = {
   content: string
@@ -113,6 +128,18 @@ function createReal(defect: Defect = null) {
         request.content,
       )
     },
+    accept(result: Awaited<ReturnType<typeof saveNoteContent>>) {
+      this.state =
+        result.status === "failure"
+          ? failNoteContentSave(this.state)
+          : completeNoteContentSave(
+              this.state,
+              result.note,
+              defect === "skip-draft-cleanup-retry"
+                ? false
+                : result.draftCleanupRequired,
+            )
+    },
     get draft() {
       return draft
     },
@@ -182,7 +209,16 @@ function assertObservation(model: Model, real: Real) {
     },
     model.saved,
   )
-  assert.deepEqual(snapshotDraft(real.draft), model.draft)
+  const observedDraft = snapshotDraft(real.draft)
+  try {
+    assert.deepEqual(observedDraft, model.draft)
+  } catch {
+    throw new ExplorationInvariantError(
+      "draft-state-matches-save-outcome",
+      model.draft,
+      observedDraft,
+    )
+  }
   assert.equal(
     real.draft === null ? false : isRecoverableNoteDraft(real.draft, real.note),
     canRecover(model.draft, model.saved),
@@ -224,7 +260,16 @@ class RequestSaveCommand implements fc.AsyncCommand<Model, Real> {
     const expected = expectedRequest(model)
     const result = real.begin(model.currentInput)
 
-    assert.deepEqual(snapshotRequest(result.request), expected)
+    const observed = snapshotRequest(result.request)
+    try {
+      assert.deepEqual(observed, expected)
+    } catch {
+      throw new ExplorationInvariantError(
+        "draft-cleanup-retried-on-next-save",
+        expected,
+        observed,
+      )
+    }
     real.state = result.state
     model.pending = expected
     assertObservation(model, real)
@@ -285,14 +330,7 @@ class CompleteSaveCommand implements fc.AsyncCommand<Model, Real> {
       },
     }
     const result = await real.complete(request)
-    real.state =
-      result.status === "failure"
-        ? failNoteContentSave(real.state)
-        : completeNoteContentSave(
-            real.state,
-            result.note,
-            result.draftCleanupRequired,
-          )
+    real.accept(result)
 
     assertObservation(model, real)
   }
@@ -321,6 +359,52 @@ const commands = [
   fc.constant(new FailNextSaveCommand("draft-remove")),
   fc.constant(new FailNextSaveCommand("note-save")),
 ]
+
+class RecordedCommand implements fc.AsyncCommand<Model, Real> {
+  constructor(
+    private readonly command: fc.AsyncCommand<Model, Real>,
+    private readonly counts: ExplorationActionCounts,
+    private readonly phase: () => ExplorationPhase,
+  ) {}
+
+  check(model: Readonly<Model>) {
+    const accepted = this.command.check(model)
+    recordExplorationActionCheck(
+      this.counts,
+      this.phase(),
+      this.actionName(),
+      accepted,
+    )
+    return accepted
+  }
+
+  async run(model: Model, real: Real) {
+    recordExplorationActionExecution(
+      this.counts,
+      this.phase(),
+      this.actionName(),
+    )
+    await this.command.run(model, real)
+  }
+
+  toString() {
+    return this.command.toString()
+  }
+
+  private actionName() {
+    return this.toString().replace(/\(.*$/u, "")
+  }
+}
+
+function recordedCommands(
+  candidates: readonly fc.Arbitrary<fc.AsyncCommand<Model, Real>>[],
+  counts: ExplorationActionCounts,
+  phase: () => ExplorationPhase,
+) {
+  return candidates.map((candidate) =>
+    candidate.map((command) => new RecordedCommand(command, counts, phase)),
+  )
+}
 
 function createState(defect: Defect = null) {
   return {
@@ -380,20 +464,73 @@ function saveSequence(content: string) {
   ] as const
 }
 
+async function checkDraftSaveExploration(
+  defect: Defect,
+  failure: "draft-remove" | "note-save",
+  seed: number,
+) {
+  const counts = createExplorationActionCounts()
+  let phase: ExplorationPhase = "exploration"
+  const currentPhase = () => phase
+  const candidates = recordedCommands(
+    [
+      fc.constant(new EditCommand("A")),
+      fc.constant(new EditCommand("B")),
+      fc.constant(new FailNextSaveCommand(failure)),
+      fc.constant(new RequestSaveCommand()),
+      fc.constant(new CompleteSaveCommand()),
+      fc.constant(new InspectRecoveryCommand()),
+    ],
+    counts,
+    currentPhase,
+  )
+  const property = fc.asyncProperty(
+    fc.commands(candidates, { maxCommands: 12 }),
+    async (generatedCommands) => {
+      try {
+        await runCommands(generatedCommands, defect)
+      } catch (error) {
+        phase = "shrinking"
+        throw error
+      }
+    },
+  )
+  const startedAt = performance.now()
+  const details = await fc.check(property, {
+    interruptAfterTimeLimit: noteModelSettings.interruptAfterTimeLimit,
+    markInterruptAsFailure: true,
+    numRuns: noteModelSettings.numRuns,
+    seed,
+    verbose: true,
+  })
+
+  return {
+    candidates,
+    counts,
+    details,
+    durationMs: Math.round(performance.now() - startedAt),
+  }
+}
+
 describe("메모 저장 모델", () => {
   it("저장과 초안 복구의 행동 순서를 실제 명령으로 탐색한다", async () => {
-    let executedCommands = 0
+    const counts = createExplorationActionCounts()
+    const phase = () => "exploration" as const
+    const startedAt = performance.now()
     const details = await fc.check(
       fc.asyncProperty(
-        fc.commands(commands, { maxCommands: noteModelSettings.maxCommands }),
+        fc.commands(recordedCommands(commands, counts, phase), {
+          maxCommands: noteModelSettings.maxCommands,
+        }),
         async (commandsToRun) => {
-          executedCommands += await runCommands(commandsToRun)
+          await runCommands(commandsToRun)
         },
       ),
       {
         interruptAfterTimeLimit: noteModelSettings.interruptAfterTimeLimit,
         markInterruptAsFailure: true,
         numRuns: noteModelSettings.numRuns,
+        seed: 12,
       },
     )
 
@@ -401,10 +538,106 @@ describe("메모 저장 모델", () => {
     assert.equal(details.interrupted, false)
     assert.equal(details.numRuns, noteModelSettings.numRuns)
     assert.ok(details.numSkips >= 0)
-    assert.ok(executedCommands > 0)
+    assert.ok(counts.exploration.executed > 0)
     process.stdout.write(
-      `note-content-model profile=local-fast generated=${details.numRuns} executed=${executedCommands} skipped=${details.numSkips}\n`,
+      `${JSON.stringify({
+        actionCounts: counts,
+        appRevision: __NOTES_GIT_REVISION__,
+        classification: "normal",
+        durationMs: Math.round(performance.now() - startedAt),
+        environment: "vitest-node",
+        feature: "note-draft-recovery",
+        layer: "note-content-save-command",
+        modelRevision: "draft-recovery-v1",
+        profile: noteModelProfile,
+        runs: details.numRuns,
+        seed: details.seed,
+        termination: "completed",
+        toolVersions: { fastCheck: fc.__version, vitest: "4.1.11" },
+      })}\n`,
     )
+  })
+
+  it("초안 제거 재시도 누락을 축소하고 같은 순서로 재현한다", async () => {
+    const normal = await checkDraftSaveExploration(null, "draft-remove", 7)
+    assert.equal(normal.details.failed, false)
+    assert.equal(normal.details.interrupted, false)
+
+    const faulty = await checkDraftSaveExploration(
+      "skip-draft-cleanup-retry",
+      "draft-remove",
+      8,
+    )
+    assert.equal(faulty.details.failed, true)
+    assert.equal(faulty.details.interrupted, false)
+
+    const report = createExplorationReport(faulty.details, {
+      actionCounts: faulty.counts,
+      appRevision: __NOTES_GIT_REVISION__,
+      classification: "controlled-defect",
+      durationMs: faulty.durationMs,
+      environment: "vitest-node",
+      feature: "note-draft-recovery",
+      initialState: {
+        draft: null,
+        note: {
+          content: initialNote.content,
+          contentRevision: initialNote.contentRevision,
+          id: initialNote.id,
+        },
+      },
+      layer: "note-content-save-command",
+      modelRevision: "draft-recovery-v1",
+      profile: noteModelProfile,
+      toolVersions: { fastCheck: fc.__version, vitest: "4.1.11" },
+    })
+
+    assert.equal(report.invariant, "draft-cleanup-retried-on-next-save")
+    assert.ok(report.originalActions.length > report.minimalActions.length)
+    assert.deepEqual(report.minimalActions, [
+      "fail-next-draft-remove",
+      "edit(\"A\")",
+      "request-save",
+      "complete-save",
+      "request-save",
+    ])
+    assert.notEqual(report.replayPath, null)
+
+    const replay = await fc.check(
+      fc.asyncProperty(
+        fc.commands(faulty.candidates, {
+          maxCommands: 12,
+          replayPath: report.replayPath ?? undefined,
+        }),
+        async (generatedCommands) => {
+          await runCommands(generatedCommands, "skip-draft-cleanup-retry")
+        },
+      ),
+      {
+        endOnFailure: true,
+        numRuns: 1,
+        path: report.path,
+        seed: report.seed,
+      },
+    )
+    assert.equal(replay.failed, true)
+    assert.equal(
+      replay.errorInstance instanceof ExplorationInvariantError,
+      true,
+    )
+
+    const direct = [
+      new FailNextSaveCommand("draft-remove"),
+      new EditCommand("A"),
+      new RequestSaveCommand(),
+      new CompleteSaveCommand(),
+      new RequestSaveCommand(),
+    ]
+    await expect(
+      runSequence(direct, "skip-draft-cleanup-retry"),
+    ).rejects.toMatchObject({ invariant: report.invariant })
+    await expect(runSequence(direct)).resolves.toBeUndefined()
+    process.stdout.write(`${JSON.stringify(report)}\n`)
   })
 
   it("저장 중 새 입력, 저장 실패와 초안 정리를 구분한다", async () => {
@@ -461,13 +694,83 @@ describe("메모 저장 모델", () => {
     ).rejects.toThrow()
   })
 
-  it("메모 저장 실패 뒤 초안을 버리는 결함을 검출한다", async () => {
-    await expect(runSequence([
-      new EditCommand("복구할 원문"),
+  it("메모 저장 실패 뒤의 초안 손실을 축소하고 재현한다", async () => {
+    const faulty = await checkDraftSaveExploration(
+      "discard-draft-after-note-failure",
+      "note-save",
+      10,
+    )
+    assert.equal(faulty.details.failed, true)
+    assert.equal(faulty.details.interrupted, false)
+
+    const report = createExplorationReport(faulty.details, {
+      actionCounts: faulty.counts,
+      appRevision: __NOTES_GIT_REVISION__,
+      classification: "controlled-defect",
+      durationMs: faulty.durationMs,
+      environment: "vitest-node",
+      feature: "note-draft-recovery",
+      initialState: {
+        draft: null,
+        note: {
+          content: initialNote.content,
+          contentRevision: initialNote.contentRevision,
+          id: initialNote.id,
+        },
+      },
+      layer: "note-content-save-command",
+      modelRevision: "draft-recovery-v1",
+      profile: noteModelProfile,
+      toolVersions: { fastCheck: fc.__version, vitest: "4.1.11" },
+    })
+
+    assert.equal(report.invariant, "draft-state-matches-save-outcome")
+    assert.ok(report.originalActions.length > report.minimalActions.length)
+    assert.deepEqual(report.minimalActions, [
+      "fail-next-note-save",
+      "edit(\"A\")",
+      "request-save",
+      "complete-save",
+    ])
+    assert.notEqual(report.replayPath, null)
+
+    const replay = await fc.check(
+      fc.asyncProperty(
+        fc.commands(faulty.candidates, {
+          maxCommands: 12,
+          replayPath: report.replayPath ?? undefined,
+        }),
+        async (generatedCommands) => {
+          await runCommands(
+            generatedCommands,
+            "discard-draft-after-note-failure",
+          )
+        },
+      ),
+      {
+        endOnFailure: true,
+        numRuns: 1,
+        path: report.path,
+        seed: report.seed,
+      },
+    )
+    assert.equal(replay.failed, true)
+    assert.equal(
+      replay.errorInstance instanceof ExplorationInvariantError,
+      true,
+    )
+
+    const direct = [
       new FailNextSaveCommand("note-save"),
+      new EditCommand("A"),
       new RequestSaveCommand(),
       new CompleteSaveCommand(),
-    ], "discard-draft-after-note-failure")).rejects.toThrow()
+    ]
+    await expect(
+      runSequence(direct, "discard-draft-after-note-failure"),
+    ).rejects.toMatchObject({ invariant: report.invariant })
+    await expect(runSequence(direct)).resolves.toBeUndefined()
+    process.stdout.write(`${JSON.stringify(report)}\n`)
   })
 
   it("새 입력을 이전 저장값으로 되돌리는 결함을 검출한다", async () => {
