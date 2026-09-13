@@ -43,6 +43,16 @@ UI 자동화는 role, 접근 가능한 이름, 사용자가 입력한 값, 상�
 
 [Testing Library Guiding Principles](https://testing-library.com/docs/guiding-principles/)는 DOM node와 사용자가 쓰는 방식에 가까운 test를 권한다. [Playwright Best Practices](https://playwright.dev/docs/best-practices)는 사용자에게 보이는 동작과 접근 가능한 locator를 우선하고 구현 세부를 피하도록 안내한다.
 
+## 모델 기반 탐색 적용
+
+[모델 기반 탐색 요구사항](../../designs/personal-notes-app-8fd/requirements.md#모델-기반-탐색-테스트)에 따라 순수 규칙의 예제 테스트에 행동 순서 탐색을 추가한다. 도입 규칙은 현재 적용하되 fast-check 실행은 아직 구성되지 않았다. 설치와 첫 실행의 완료 여부는 [U12 계획](../../designs/personal-notes-app-8fd/plan.md#u12-모델-기반-탐색과-실패-재현)의 증거로 판정한다.
+
+생성할 행동과 결과 판정은 요구사항에 연결하고, 실제 구현의 자료구조와 알고리즘을 정답 모델로 복제하지 않는다. 정상 행동의 실행 조건이 비정상 시도까지 걸러내지 않는지 실제 실행 기록을 확인한다. 기대 결과 미정, 구현 위반과 환경 실패는 각각 구분한다.
+
+매 생성 사례와 축소 후보는 독립된 초기 상태에서 실행한다. 브라우저 모델 실행에서는 바깥 Playwright 테스트 하나의 격리만으로 후보들이 분리된다고 가정하지 않는다. seed와 재실행 정보뿐 아니라 버전과 초기 자료를 기록하고, 장기 회귀에 필요한 실제 행동 및 입력도 보존한다. 구체적인 제약은 [재현 및 실행 격리 조사](../../designs/personal-notes-app-8fd/references/model-based-testing-research.md#실패-축소와-재실행)를 따른다.
+
+모델 실행의 성공은 실제 IndexedDB transaction, Clipboard 권한과 브라우저 조작의 성공을 대신하지 않는다. 검토자는 생성 후보 수가 아닌 실제 실행 수, 통제된 결함 탐지, 축소 뒤 같은 위반의 재현과 정상 구현에서의 통과를 완료 근거로 확인한다.
+
 ## 리뷰 방법
 
 구현자는 각 변경의 계획 단위 또는 변경 설명에 선택한 검증 방식과 그 이유를 남긴다. 검토자는 다음 순서로 판정한다.
