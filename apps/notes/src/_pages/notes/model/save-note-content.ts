@@ -17,7 +17,11 @@ export type SaveNoteContentFailureReason =
   | "note-storage"
 
 export type SaveNoteContentResult =
-  | { note: Note; status: "saved" | "unchanged" }
+  | {
+      draftCleanupRequired: boolean
+      note: Note
+      status: "saved" | "unchanged"
+    }
   | {
       reason: SaveNoteContentFailureReason
       status: "failure"
@@ -36,7 +40,7 @@ export async function saveNoteContent(
   if (content === note.content) {
     try {
       await dependencies.drafts.remove(draftReference)
-      return { note, status: "unchanged" }
+      return { draftCleanupRequired: false, note, status: "unchanged" }
     } catch {
       return { reason: "draft-storage", status: "failure" }
     }
@@ -67,8 +71,8 @@ export async function saveNoteContent(
   try {
     await dependencies.drafts.remove(draftReference)
   } catch {
-    return { note: savedNote, status: "saved" }
+    return { draftCleanupRequired: true, note: savedNote, status: "saved" }
   }
 
-  return { note: savedNote, status: "saved" }
+  return { draftCleanupRequired: false, note: savedNote, status: "saved" }
 }

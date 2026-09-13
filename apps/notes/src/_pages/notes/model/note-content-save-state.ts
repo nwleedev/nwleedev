@@ -61,10 +61,11 @@ export function beginNoteContentSave(
 export function completeNoteContentSave(
   state: NoteContentSaveState,
   note: Note,
+  draftCleanupRequired: boolean,
 ): NoteContentSaveState {
   return {
     ...state,
-    draftCleanupRequired: false,
+    draftCleanupRequired,
     note,
     pendingContent: null,
     status: "idle",

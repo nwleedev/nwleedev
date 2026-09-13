@@ -107,6 +107,7 @@ export function useNoteContentAutosave({
         const completed = completeNoteContentSave(
           stateReference.current,
           result.note,
+          result.draftCleanupRequired,
         )
         noteReference.current = result.note
         publish(completed)

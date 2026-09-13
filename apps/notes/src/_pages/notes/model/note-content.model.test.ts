@@ -288,7 +288,11 @@ class CompleteSaveCommand implements fc.AsyncCommand<Model, Real> {
     real.state =
       result.status === "failure"
         ? failNoteContentSave(real.state)
-        : completeNoteContentSave(real.state, result.note)
+        : completeNoteContentSave(
+            real.state,
+            result.note,
+            result.draftCleanupRequired,
+          )
 
     assertObservation(model, real)
   }
@@ -314,6 +318,7 @@ const commands = [
   fc.constant(new CompleteSaveCommand()),
   fc.constant(new InspectRecoveryCommand()),
   fc.constant(new FailNextSaveCommand("draft-save")),
+  fc.constant(new FailNextSaveCommand("draft-remove")),
   fc.constant(new FailNextSaveCommand("note-save")),
 ]
 
