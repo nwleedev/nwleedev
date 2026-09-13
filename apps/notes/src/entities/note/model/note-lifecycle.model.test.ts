@@ -5,8 +5,15 @@ import { describe, expect, it } from "vitest"
 
 import { noteModelSettings } from "@/shared/lib/note-model-settings"
 
-import type { Note } from "./note"
-import { reviseNote } from "./note"
+import {
+  NOTE_HEIGHT_MAX,
+  NOTE_HEIGHT_MIN,
+  NOTE_WIDTH_MAX,
+  NOTE_WIDTH_MIN,
+  reviseNote,
+  type Note,
+  type NoteGeometry,
+} from "./note"
 import { findNewNoteGeometry } from "./note-geometry"
 import { sendNoteToBack, sendNoteToFront } from "./note-order"
 import {
@@ -15,6 +22,7 @@ import {
   rememberRemovedNote,
   restoreMostRecentlyRemovedNote,
   type NoteRemovalHistory,
+  type RemovedNoteSnapshot,
 } from "./note-removal-history"
 
 const initialNotes: readonly Note[] = [
@@ -50,50 +58,165 @@ const initialNotes: readonly Note[] = [
   },
 ]
 
+type Defect = "change-restored-z-index" | null
+
 type Model = {
-  notes: Array<Pick<Note, "contentRevision" | "id" | "tabIndex">>
-  removed: Array<Pick<Note, "contentRevision" | "id" | "tabIndex">>
+  notes: Note[]
+  removed: RemovedNoteSnapshot[]
 }
 
 type Real = {
+  defect: Defect
   history: NoteRemovalHistory
   notes: Note[]
+  recordCommand: () => void
 }
 
-function timestamp() {
-  return "2026-09-01T00:00:10.000Z"
+const operationTimestamp = "2026-09-01T00:00:10.000Z"
+
+function cloneNotes(notes: readonly Note[]) {
+  return notes.map((note) => ({ ...note, geometry: { ...note.geometry } }))
 }
 
-function createState() {
-  return {
-    model: {
-      notes: initialNotes.map(({ contentRevision, id, tabIndex }) => ({
-        contentRevision,
-        id,
-        tabIndex,
-      })),
-      removed: [],
-    },
-    real: { history: createNoteRemovalHistory(), notes: [...initialNotes] },
+function initialNoteAt(index: number) {
+  return noteAt(initialNotes, index)
+}
+
+function noteAt(notes: readonly Note[], index: number) {
+  const note = notes[index]
+  if (note === undefined) {
+    throw new Error("Expected a note")
   }
+
+  return note
+}
+
+function latestRemoval(history: NoteRemovalHistory) {
+  const snapshot = history.entries.at(-1)
+  if (snapshot === undefined) {
+    throw new Error("Expected a removed note")
+  }
+
+  return snapshot
+}
+
+function restoreRequired(history: NoteRemovalHistory) {
+  const restored = restoreMostRecentlyRemovedNote(history)
+  if (restored === null) {
+    throw new Error("Expected a restored note")
+  }
+
+  return restored
+}
+
+function createState(defect: Defect = null) {
+  return {
+    model: { notes: cloneNotes(initialNotes), removed: [] },
+    real: {
+      defect,
+      history: createNoteRemovalHistory(),
+      notes: cloneNotes(initialNotes),
+      recordCommand() {},
+    },
+  }
+}
+
+function orderById(notes: readonly Note[]) {
+  return [...notes].sort((left, right) => left.id.localeCompare(right.id))
+}
+
+function noteObservation(note: Note) {
+  return {
+    content: note.content,
+    contentRevision: note.contentRevision,
+    createdAt: note.createdAt,
+    geometry: note.geometry,
+    id: note.id,
+    tabIndex: note.tabIndex,
+  }
+}
+
+function removalObservation(snapshot: RemovedNoteSnapshot) {
+  return { note: noteObservation(snapshot.note), removedAt: snapshot.removedAt }
+}
+
+function orderForStack(notes: readonly Note[]) {
+  return [...notes].sort((left, right) => {
+    const zIndexOrder = left.geometry.zIndex - right.geometry.zIndex
+    if (zIndexOrder !== 0) {
+      return zIndexOrder
+    }
+
+    const createdAtOrder = left.createdAt.localeCompare(right.createdAt)
+    return createdAtOrder === 0 ? left.id.localeCompare(right.id) : createdAtOrder
+  })
+}
+
+function hasSameGeometry(left: NoteGeometry, right: NoteGeometry) {
+  return (
+    left.height === right.height &&
+    left.width === right.width &&
+    left.x === right.x &&
+    left.y === right.y &&
+    left.zIndex === right.zIndex
+  )
+}
+
+function reviseModelGeometry(note: Note, geometry: NoteGeometry) {
+  if (hasSameGeometry(note.geometry, geometry)) {
+    return note
+  }
+
+  return {
+    ...note,
+    geometry,
+    revision: note.revision + 1,
+    updatedAt: operationTimestamp,
+  }
+}
+
+function moveModelNoteToStackEdge(
+  notes: readonly Note[],
+  noteId: string,
+  edge: "back" | "front",
+) {
+  const ordered = orderForStack(notes)
+  const targetIndex = ordered.findIndex((note) => note.id === noteId)
+
+  if (targetIndex < 0) {
+    return [...notes]
+  }
+
+  const [target] = ordered.splice(targetIndex, 1)
+  if (target === undefined) {
+    throw new Error("Expected a note to move")
+  }
+
+  if (edge === "front") {
+    ordered.push(target)
+  } else {
+    ordered.unshift(target)
+  }
+
+  return ordered.map((note, index) =>
+    reviseModelGeometry(note, { ...note.geometry, zIndex: index + 1 }),
+  )
 }
 
 function assertState(model: Model, real: Real) {
   assert.deepEqual(
-    real.notes
-      .map(({ contentRevision, id, tabIndex }) => ({
-        contentRevision,
-        id,
-        tabIndex,
-      }))
-      .sort((left, right) => left.id.localeCompare(right.id)),
-    [...model.notes].sort((left, right) => left.id.localeCompare(right.id)),
+    orderById(real.notes).map(noteObservation),
+    orderById(model.notes).map(noteObservation),
   )
-  const zIndexes = real.notes.map(({ geometry }) => geometry.zIndex)
-  assert.equal(zIndexes.every((value) => value > 0), true)
   assert.deepEqual(
-    real.history.entries.map(({ note }) => note.id),
-    model.removed.map(({ id }) => id),
+    real.history.entries.map(removalObservation),
+    model.removed.map(removalObservation),
+  )
+  assert.equal(
+    real.notes.every(({ geometry }) =>
+      Number.isSafeInteger(geometry.zIndex) && geometry.zIndex > 0,
+    ),
+    true,
   )
 }
 
@@ -103,15 +226,14 @@ class MoveToFrontCommand implements fc.Command<Model, Real> {
   check = (model: Readonly<Model>) => model.notes.length > 0
 
   run(model: Model, real: Real) {
+    real.recordCommand()
     const note = model.notes[this.position % model.notes.length]
     if (note === undefined) {
       throw new Error("Expected a note to move")
     }
-    real.notes = sendNoteToFront(real.notes, note.id, timestamp())
-    assert.equal(
-      real.notes.find(({ id }) => id === note.id)?.geometry.zIndex,
-      real.notes.length,
-    )
+
+    model.notes = moveModelNoteToStackEdge(model.notes, note.id, "front")
+    real.notes = sendNoteToFront(real.notes, note.id, operationTimestamp)
     assertState(model, real)
   }
 
@@ -124,40 +246,58 @@ class MoveToBackCommand implements fc.Command<Model, Real> {
   check = (model: Readonly<Model>) => model.notes.length > 0
 
   run(model: Model, real: Real) {
+    real.recordCommand()
     const note = model.notes[this.position % model.notes.length]
     if (note === undefined) {
       throw new Error("Expected a note to move")
     }
-    real.notes = sendNoteToBack(real.notes, note.id, timestamp())
-    assert.equal(real.notes.find(({ id }) => id === note.id)?.geometry.zIndex, 1)
+
+    model.notes = moveModelNoteToStackEdge(model.notes, note.id, "back")
+    real.notes = sendNoteToBack(real.notes, note.id, operationTimestamp)
     assertState(model, real)
   }
 
   toString = () => `move-to-back(${this.position})`
 }
 
-class MoveGeometryCommand implements fc.Command<Model, Real> {
-  constructor(readonly position: number, readonly x: number, readonly y: number) {}
+class UpdateGeometryCommand implements fc.Command<Model, Real> {
+  constructor(
+    readonly position: number,
+    readonly x: number,
+    readonly y: number,
+    readonly width: number,
+    readonly height: number,
+  ) {}
 
   check = (model: Readonly<Model>) => model.notes.length > 0
 
   run(model: Model, real: Real) {
-    const note = real.notes[this.position % real.notes.length]
+    real.recordCommand()
+    const note = model.notes[this.position % model.notes.length]
     if (note === undefined) {
       throw new Error("Expected a note to move")
     }
+
+    const geometry = {
+      ...note.geometry,
+      height: this.height,
+      width: this.width,
+      x: this.x,
+      y: this.y,
+    }
+    model.notes = model.notes.map((current) =>
+      current.id === note.id ? reviseModelGeometry(current, geometry) : current,
+    )
     real.notes = real.notes.map((current) =>
       current.id === note.id
-        ? reviseNote(current, {
-            geometry: { ...current.geometry, x: this.x, y: this.y },
-            updatedAt: timestamp(),
-          })
+        ? reviseNote(current, { geometry, updatedAt: operationTimestamp })
         : current,
     )
     assertState(model, real)
   }
 
-  toString = () => `move-geometry(${this.position}, ${this.x}, ${this.y})`
+  toString = () =>
+    `update-geometry(${this.position}, ${this.x}, ${this.y}, ${this.width}, ${this.height})`
 }
 
 class RemoveCommand implements fc.Command<Model, Real> {
@@ -166,16 +306,17 @@ class RemoveCommand implements fc.Command<Model, Real> {
   check = (model: Readonly<Model>) => model.notes.length > 0
 
   run(model: Model, real: Real) {
+    real.recordCommand()
     const index = this.position % model.notes.length
-    const modelNote = model.notes[index]
-    const note = real.notes.find(({ id }) => id === modelNote?.id)
-    if (modelNote === undefined || note === undefined) {
+    const note = model.notes[index]
+    if (note === undefined) {
       throw new Error("Expected a note to remove")
     }
+
     model.notes.splice(index, 1)
-    model.removed.push(modelNote)
-    real.notes = real.notes.filter(({ id }) => id !== note.id)
-    real.history = rememberRemovedNote(real.history, note, timestamp())
+    model.removed.push({ note, removedAt: operationTimestamp })
+    real.notes = real.notes.filter((current) => current.id !== note.id)
+    real.history = rememberRemovedNote(real.history, note, operationTimestamp)
     assertState(model, real)
   }
 
@@ -186,57 +327,250 @@ class RestoreCommand implements fc.Command<Model, Real> {
   check = (model: Readonly<Model>) => model.removed.length > 0
 
   run(model: Model, real: Real) {
+    real.recordCommand()
     const expected = model.removed.pop()
     const restored = restoreMostRecentlyRemovedNote(real.history)
     if (expected === undefined || restored === null) {
       throw new Error("Expected a note to restore")
     }
-    model.notes.push(expected)
+
+    model.notes.push(expected.note)
     real.history = restored.history
-    real.notes.push(restored.note)
+    real.notes.push(
+      real.defect === "change-restored-z-index"
+        ? {
+            ...restored.note,
+            geometry: {
+              ...restored.note.geometry,
+              zIndex: restored.note.geometry.zIndex + 1,
+            },
+          }
+        : restored.note,
+    )
     assertState(model, real)
   }
 
   toString = () => "restore-most-recent"
 }
 
+class ExpireLatestRemovalCommand implements fc.Command<Model, Real> {
+  check = (model: Readonly<Model>) => model.removed.length > 0
+
+  run(model: Model, real: Real) {
+    real.recordCommand()
+    const snapshot = model.removed.at(-1)
+    const realSnapshot = real.history.entries.at(-1)
+    if (snapshot === undefined || realSnapshot === undefined) {
+      throw new Error("Expected a removed note to expire")
+    }
+
+    model.removed = []
+    real.history = expireNoteRemoval(
+      real.history,
+      realSnapshot,
+      Date.parse(snapshot.removedAt) + 5_000,
+    )
+    assertState(model, real)
+  }
+
+  toString = () => "expire-latest-removal"
+}
+
+class RestoreWithoutHistoryCommand implements fc.Command<Model, Real> {
+  check = (model: Readonly<Model>) => model.removed.length === 0
+
+  run(model: Model, real: Real) {
+    real.recordCommand()
+    assert.equal(restoreMostRecentlyRemovedNote(real.history), null)
+    assertState(model, real)
+  }
+
+  toString = () => "restore-without-history"
+}
+
 const commands = [
   fc.nat().map((position) => new MoveToFrontCommand(position)),
   fc.nat().map((position) => new MoveToBackCommand(position)),
   fc
-    .tuple(fc.nat(), fc.integer(), fc.integer())
-    .map(([position, x, y]) => new MoveGeometryCommand(position, x, y)),
+    .tuple(
+      fc.nat(),
+      fc.integer({ min: -10_000, max: 10_000 }),
+      fc.integer({ min: -10_000, max: 10_000 }),
+      fc.integer({ min: NOTE_WIDTH_MIN, max: NOTE_WIDTH_MAX }),
+      fc.integer({ min: NOTE_HEIGHT_MIN, max: NOTE_HEIGHT_MAX }),
+    )
+    .map(([position, x, y, width, height]) =>
+      new UpdateGeometryCommand(position, x, y, width, height),
+    ),
   fc.nat().map((position) => new RemoveCommand(position)),
   fc.constant(new RestoreCommand()),
+  fc.constant(new ExpireLatestRemovalCommand()),
+  fc.constant(new RestoreWithoutHistoryCommand()),
 ]
+
+function runCommands(
+  commandsToRun: Iterable<fc.Command<Model, Real>>,
+  defect: Defect = null,
+) {
+  let executedCommands = 0
+
+  fc.modelRun(() => {
+    const state = createState(defect)
+    const record = state.real.recordCommand.bind(state.real)
+    state.real.recordCommand = () => {
+      executedCommands += 1
+      record()
+    }
+    return state
+  }, commandsToRun)
+
+  return executedCommands
+}
+
+function runSequence(
+  commandsToRun: readonly fc.Command<Model, Real>[],
+  defect: Defect = null,
+) {
+  const { model, real } = createState(defect)
+
+  for (const command of commandsToRun) {
+    assert.equal(command.check(model), true)
+    command.run(model, real)
+  }
+}
 
 describe("메모 생명 주기 모델", () => {
   it("배치, 삭제와 복원의 행동 순서를 실제 도메인 규칙으로 탐색한다", () => {
-    fc.assert(
+    let executedCommands = 0
+    const details = fc.check(
       fc.property(
         fc.commands(commands, { maxCommands: noteModelSettings.maxCommands }),
-        (commandsToRun) => fc.modelRun(createState, commandsToRun),
+        (commandsToRun) => {
+          executedCommands += runCommands(commandsToRun)
+        },
       ),
       {
         interruptAfterTimeLimit: noteModelSettings.interruptAfterTimeLimit,
+        markInterruptAsFailure: true,
         numRuns: noteModelSettings.numRuns,
       },
     )
-    expect(true).toBe(true)
+
+    assert.equal(details.failed, false)
+    assert.equal(details.interrupted, false)
+    assert.equal(details.numRuns, noteModelSettings.numRuns)
+    assert.ok(details.numSkips >= 0)
+    assert.ok(executedCommands > 0)
+    process.stdout.write(
+      `note-lifecycle-model profile=local-fast generated=${details.numRuns} executed=${executedCommands} skipped=${details.numSkips}\n`,
+    )
+  })
+
+  it("삭제 뒤 순서를 바꾸고 복원해도 삭제 전 겹침 값을 보존한다", () => {
+    const notes = cloneNotes(initialNotes)
+    const first = noteAt(notes, 0)
+    const removed = noteAt(notes, 1)
+    const third = noteAt(notes, 2)
+
+    const history = rememberRemovedNote(
+      createNoteRemovalHistory(),
+      removed,
+      operationTimestamp,
+    )
+    const afterMove = sendNoteToFront(
+      [first, third],
+      "note-1",
+      operationTimestamp,
+    )
+    const restored = restoreRequired(history)
+
+    expect(afterMove.map(({ id, geometry }) => [id, geometry.zIndex])).toEqual([
+      ["note-3", 1],
+      ["note-1", 2],
+    ])
+    expect(restored.note.geometry.zIndex).toBe(2)
+
+    const duplicateStack = [...afterMove, restored.note]
+    const afterSecondMove = sendNoteToFront(
+      duplicateStack,
+      "note-2",
+      operationTimestamp,
+    )
+
+    expect(duplicateStack.map(({ id, geometry }) => [id, geometry.zIndex])).toEqual([
+      ["note-3", 1],
+      ["note-1", 2],
+      ["note-2", 2],
+    ])
+    expect(
+      afterSecondMove.map(({ id, geometry }) => [id, geometry.zIndex]),
+    ).toEqual([
+      ["note-3", 1],
+      ["note-1", 2],
+      ["note-2", 3],
+    ])
   })
 
   it("새 메모의 기본 위치와 만료된 삭제 이력을 구분한다", () => {
     const geometry = findNewNoteGeometry(initialNotes.map(({ geometry }) => geometry))
     const history = rememberRemovedNote(
       createNoteRemovalHistory(),
-      initialNotes[0],
+      initialNoteAt(0),
       "2026-09-01T00:00:00.000Z",
     )
-    const snapshot = history.entries[0]
+    const snapshot = latestRemoval(history)
 
     expect(geometry).toMatchObject({ height: 240, width: 320, zIndex: 4 })
     expect(expireNoteRemoval(history, snapshot, 1_788_307_205_000).entries).toEqual(
       [],
+    )
+  })
+
+  it("복원한 겹침 값을 바꾸는 결함을 축소와 seed 재실행으로 검출한다", () => {
+    const property = fc.property(
+      fc.tuple(fc.nat(), fc.nat()),
+      ([removePosition, movePosition]) =>
+        runSequence(
+          [
+            new RemoveCommand(removePosition),
+            new MoveToFrontCommand(movePosition),
+            new RestoreCommand(),
+          ],
+          "change-restored-z-index",
+        ),
+    )
+    const details = fc.check(property, {
+      interruptAfterTimeLimit: noteModelSettings.interruptAfterTimeLimit,
+      markInterruptAsFailure: true,
+      numRuns: noteModelSettings.numRuns,
+      seed: 20_260_913,
+    })
+
+    assert.equal(details.failed, true)
+    assert.equal(details.interrupted, false)
+    assert.ok(details.counterexample !== null)
+    assert.ok(details.counterexamplePath !== null)
+
+    const replay = fc.check(property, {
+      endOnFailure: true,
+      path: details.counterexamplePath ?? undefined,
+      seed: details.seed,
+    })
+    assert.equal(replay.failed, true)
+
+    const [positions] = details.counterexample
+    process.stdout.write(
+      `note-lifecycle-model defect=change-restored-z-index seed=${details.seed} path=${details.counterexamplePath} shrinks=${details.numShrinks} input=${JSON.stringify(positions)}\n`,
+    )
+    assert.throws(() =>
+      runSequence(
+        [
+          new RemoveCommand(positions[0]),
+          new MoveToFrontCommand(positions[1]),
+          new RestoreCommand(),
+        ],
+        "change-restored-z-index",
+      ),
     )
   })
 })
