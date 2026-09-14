@@ -108,6 +108,16 @@ PR #10759는 인라인 이미지 앞의 마지막 글자를 Delete 또는 Backsp
 
 소개와 목록, 일반 사례는 미리 생성한 콘텐츠로 제공하고 실제 애플리케이션은 서브도메인에서 연결하는 구조가 요구사항에 맞는다. 구체적인 프레임워크 선택은 별도 결정이다.
 
+### JSON 문구 관리와 FSD 구성
+
+언어별 JSON을 한 곳에 모으는 방식은 [문구 관리와 언어 요구사항](../requirements.md#문구-관리와-언어)에 맞는다. FSD 적용과 실제 저장 위치는 [FSD 구조와 문구 저장 위치](../decisions/terms-storage.md)에서 정한다. 다음은 2026-09-14에 확인한 공식 문서 근거다.
+
+- FSD의 Layers 문서는 Shared에 슬라이스를 두지 않고 세그먼트를 직접 둔다고 설명한다. `i18n`은 번역 설정과 전체 번역 문자열을 위한 세그먼트의 예시이며, 추가 세그먼트도 허용한다. [FSD Layers](https://feature-sliced.design/docs/reference/layers)
+- Slices and segments 문서는 “You can also create custom segments.”라고 명시하고, 특히 Shared와 App에서 사용자 정의 세그먼트를 사용할 수 있다고 설명한다. 따라서 `shared/terms`는 FSD가 지정한 필수 이름이 아니라 이 사이트의 문구 관리 목적에 맞춘 이름이다. [FSD Slices and segments](https://feature-sliced.design/docs/reference/slices-segments)
+- next-intl은 “agnostic to how you store messages”라고 설명하고, 설정에서 JSON을 불러오는 예를 제공한다. 예제의 `messages` 폴더명과 라이브러리에 전달하는 `messages` 설정 항목은 구별해야 한다. 이 사례는 저장 위치를 직접 지정할 수 있다는 근거이며, next-intl 채택 결정은 아니다. [next-intl Messages](https://next-intl.dev/docs/usage/configuration#messages)
+
+세 자료를 비교하면 FSD의 레이어 구성과 문구 저장 폴더의 이름을 따로 결정할 수 있다. 번역 설정의 실제 위치와 API 사용법은 이후 선택할 기술에 맞춰 확인해야 한다.
+
 ### 현재 저장소에서 확인되는 범위
 
 작업을 시작한 `main`의 `811f9f3`에는 `.gitignore`, `AGENTS.md`, `docs/designs/README.md`, `docs/dev/README.md`만 추적되어 있었다. 따라서 이 브랜치에서 재사용할 라우터, CSS 변수, 글꼴, 이미지 처리, 웹 이력서와 구성 요소 구현은 확인되지 않았다. 다른 작업 브랜치나 운영 사이트에도 구현이 없다는 뜻은 아니다.
@@ -140,7 +150,7 @@ PR #10759는 인라인 이미지 앞의 마지막 글자를 Delete 또는 Backsp
 
 문서화와 사례 후보 비교는 가능하지만, 실제 출시 콘텐츠와 디자인 값을 확정하려면 [아직 정하지 않은 사항](../requirements.md#아직-정하지-않은-사항)에 대한 판단이 필요하다.
 
-- 기본 언어와 영어 제공 여부는 소개 문구의 길이, 한글 글꼴과 메뉴 폭에 영향을 준다.
+- 한국어와 영어 제공은 확정됐으며, 기본 언어와 언어별 주소 구성은 아직 정하지 않았다. 두 언어의 문구 길이를 고려해 글꼴과 메뉴 폭을 정해야 한다.
 - 실제 사용 가능한 프로젝트와 주소, 소스 제공 범위는 홈의 선별 목록과 상세 링크를 결정한다.
 - 회사 UI 이미지의 사용 범위와 추가 성과 근거는 사례에 넣을 그림과 수치 설명의 깊이를 결정한다.
 - 글꼴과 강조색, 테마, 본문 폭과 간격은 실제 프로젝트 항목과 긴 사례 본문을 배치해 본 뒤 정해야 한다.
