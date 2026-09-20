@@ -1,0 +1,44 @@
+---
+import type { HomeTerms } from "@/shared/terms";
+import { ExternalTextLink, SectionHeader } from "@/shared/ui";
+
+type OpenSourceTerms = HomeTerms["openSource"];
+
+interface Props {
+  openSource: OpenSourceTerms;
+}
+
+const { openSource } = Astro.props;
+---
+
+<section aria-labelledby={openSource.id} class="mx-auto max-w-page px-(--page-gutter) py-22 md:py-26">
+  <SectionHeader
+    id={openSource.id}
+    index={openSource.index}
+    title={openSource.title}
+    introduction={openSource.introduction}
+  />
+  <div class="mt-14 border-b border-border-default">
+    {openSource.contributions.map((contribution) => (
+      <article class="@container border-t border-border-default py-10 md:py-12">
+        <div class="grid gap-6 @min-[36rem]:grid-cols-[minmax(10rem,0.7fr)_minmax(0,1.5fr)] @min-[36rem]:gap-10">
+          <header>
+            <p class="text-sm font-semibold text-brand-strong">{contribution.release}</p>
+            <h3 class="mt-2 text-item font-semibold tracking-[-0.02em] text-text-primary">
+              {contribution.project}
+            </h3>
+          </header>
+          <div>
+            <p class="max-w-copy text-base leading-7 text-text-primary">{contribution.summary}</p>
+            <p class="mt-3 max-w-copy text-sm leading-6 text-text-secondary">{contribution.verification}</p>
+            <ul class="mt-6 flex flex-wrap gap-x-6 gap-y-3">
+              {contribution.links.map((link) => (
+                <li><ExternalTextLink link={link} /></li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </article>
+    ))}
+  </div>
+</section>

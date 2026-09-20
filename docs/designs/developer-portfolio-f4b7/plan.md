@@ -174,7 +174,9 @@ JSON을 모든 하위 컴포넌트에서 직접 가져오지 않는다. 언어 �
 
 ### 5. Open Source, Independent Work, Background와 Contact 구현
 
-상태: 시작 전.
+상태: 완료.
+
+완료 내용: Open Source는 PR과 공식 릴리스를 함께 확인하는 행, Independent Work는 회사 경력과 분리된 비대칭 목록, Background는 압축된 정의 목록, Contact는 목적을 설명하는 링크 목록으로 구현했다. GitHub 원문에서 두 PR의 병합 상태와 두 릴리스 주소를 다시 확인했다. `pnpm check`와 `pnpm build`가 통과했고 생성된 HTML에서 다섯 영역 id, 오픈소스 링크 이름 및 URL을 드러내지 않는 Résumé 링크 이름을 확인했다.
 
 적용 요구사항: 「Open Source」, 「Independent Work」, 「Background와 Contact」.
 

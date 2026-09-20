@@ -1,9 +1,14 @@
 ---
 import { getTerms, type Locale } from "@/shared/terms";
 import { BaseLayout } from "@/shared/ui";
+import BackgroundSection from "./BackgroundSection.astro";
+import ContactSection from "./ContactSection.astro";
 import ExperienceSection from "./ExperienceSection.astro";
 import IdentityBlock from "./IdentityBlock.astro";
+import IndependentWorkSection from "./IndependentWorkSection.astro";
+import OpenSourceSection from "./OpenSourceSection.astro";
 import PageHeader from "./PageHeader.astro";
+import PageFooter from "./PageFooter.astro";
 
 interface Props {
   locale: Locale;
@@ -33,5 +38,10 @@ const terms = resumeUrl ? getTerms(locale, { resumeUrl }) : getTerms(locale);
   <main id="main-content">
     <IdentityBlock identity={terms.identity} />
     <ExperienceSection experience={terms.experience} />
+    <OpenSourceSection openSource={terms.openSource} />
+    <IndependentWorkSection independentWork={terms.independentWork} />
+    <BackgroundSection background={terms.background} />
+    <ContactSection contact={terms.contact} />
   </main>
+  <PageFooter text={terms.footer.text} topLabel={terms.footer.topLabel} />
 </BaseLayout>

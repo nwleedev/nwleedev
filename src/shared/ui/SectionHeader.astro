@@ -3,7 +3,7 @@ interface Props {
   id: string;
   index: string;
   title: string;
-  introduction: string;
+  introduction?: string;
 }
 
 const { id, index, title, introduction } = Astro.props;
@@ -17,8 +17,10 @@ const { id, index, title, introduction } = Astro.props;
     <h2 id={id} class="text-section font-bold tracking-[-0.025em] text-text-primary">
       {title}
     </h2>
-    <p class="mt-4 max-w-copy text-base leading-7 text-text-secondary">
-      {introduction}
-    </p>
+    {introduction && (
+      <p class="mt-4 max-w-copy text-base leading-7 text-text-secondary">
+        {introduction}
+      </p>
+    )}
   </div>
 </header>

@@ -139,5 +139,6 @@ export type HomeTerms = {
   };
   footer: {
     text: string;
+    topLabel: string;
   };
 };

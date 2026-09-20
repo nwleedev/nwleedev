@@ -129,7 +129,7 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     isArrayOf(field(background, "items"), isBackgroundItem) &&
     isSection(contact, "introduction") &&
     isArrayOf(field(contact, "links"), isExternalLink) &&
-    isString(field(footer, "text"))
+    hasStrings(footer, ["text", "topLabel"])
   );
 }
 

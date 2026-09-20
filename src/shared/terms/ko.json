@@ -83,7 +83,7 @@
           {
             "kind": "evidence",
             "title": "Reliability & Delivery",
-            "summary": "배포 전에 실제 사용 흐름을 반복해서 확인할 수 있는 E2E 체계를 만들고 인증 상태 문제를 발견했습니다.",
+            "summary": "배포 전에 사용자가 거치는 순서를 반복해서 확인할 수 있는 E2E 체계를 만들고 인증 상태 문제를 발견했습니다.",
             "detail": "브라우저의 인증 정보와 만료된 서버 세션이 어긋나는 상황을 실제 사용 순서로 재현했습니다.",
             "evidence": "70개 이상의 실행 가능한 E2E 시나리오",
             "metadata": {
@@ -196,6 +196,7 @@
     ]
   },
   "footer": {
-    "text": "이노원, Frontend Engineer"
+    "text": "이노원, Frontend Engineer",
+    "topLabel": "맨 위로"
   }
 }

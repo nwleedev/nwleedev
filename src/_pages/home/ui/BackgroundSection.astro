@@ -1,0 +1,25 @@
+---
+import type { HomeTerms } from "@/shared/terms";
+import { SectionHeader } from "@/shared/ui";
+
+type BackgroundTerms = HomeTerms["background"];
+
+interface Props {
+  background: BackgroundTerms;
+}
+
+const { background } = Astro.props;
+---
+
+<section aria-labelledby={background.id} class="mx-auto max-w-page px-(--page-gutter) py-22 md:py-26">
+  <SectionHeader id={background.id} index={background.index} title={background.title} />
+  <dl class="mt-14 border-b border-border-default">
+    {background.items.map((item) => (
+      <div class="grid gap-2 border-t border-border-default py-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-baseline sm:gap-8">
+        <dt class="font-semibold text-text-primary">{item.title}</dt>
+        <dd class="text-text-secondary">{item.detail}</dd>
+        <dd class="text-sm font-medium tabular-nums text-text-muted">{item.period}</dd>
+      </div>
+    ))}
+  </dl>
+</section>

@@ -1,0 +1,15 @@
+---
+interface Props {
+  text: string;
+  topLabel: string;
+}
+
+const { text, topLabel } = Astro.props;
+---
+
+<footer class="border-t border-border-default bg-surface-subtle">
+  <div class="mx-auto flex max-w-page flex-wrap justify-between gap-3 px-(--page-gutter) py-6 text-sm font-medium text-text-muted">
+    <p>{text}</p>
+    <a href="#main-content">{topLabel}</a>
+  </div>
+</footer>

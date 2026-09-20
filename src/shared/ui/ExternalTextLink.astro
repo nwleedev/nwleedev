@@ -1,0 +1,18 @@
+---
+import type { ExternalLink } from "@/shared/terms";
+
+interface Props {
+  link: ExternalLink;
+}
+
+const { link } = Astro.props;
+---
+
+<a
+  href={link.href}
+  class="group inline-flex min-h-6 items-baseline gap-2 font-semibold text-text-primary decoration-brand-base"
+  aria-label={`${link.label}: ${link.context}`}
+>
+  <span class="group-hover:text-brand-hover">{link.label}</span>
+  <span aria-hidden="true" class="text-brand-strong">↗</span>
+</a>
