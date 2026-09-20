@@ -1,26 +1,15 @@
 {
-  "name": "nwlee-developer-portfolio",
-  "version": "0.1.0",
+  "name": "nwleedev-workspace",
   "private": true,
-  "type": "module",
   "packageManager": "pnpm@11.25.0",
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=22.12.0",
+    "pnpm": "11.25.0"
   },
   "scripts": {
-    "dev": "astro dev",
-    "check": "astro check",
-    "build": "astro build",
-    "preview": "astro preview"
-  },
-  "dependencies": {
-    "astro": "7.3.3",
-    "phosphor-astro": "2.1.0"
-  },
-  "devDependencies": {
-    "@astrojs/check": "0.9.10",
-    "@tailwindcss/vite": "4.3.3",
-    "tailwindcss": "4.3.3",
-    "typescript": "6.0.3"
+    "entry:build": "pnpm --filter entry build",
+    "entry:check": "pnpm --filter entry check",
+    "entry:dev": "pnpm --filter entry dev",
+    "entry:preview": "pnpm --filter entry preview"
   }
 }

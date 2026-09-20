@@ -2,7 +2,7 @@
 
 결론은 Astro의 정적 렌더링을 기본으로 유지하고, FSD의 참조 방향과 Tailwind CSS 디자인 토큰을 함께 적용하는 것이다. UI 재사용은 모든 마크업을 공통 컴포넌트로 바꾸는 방식이 아니라, 같은 의미와 접근성 규칙이 반복될 때 Astro 컴포넌트로 추출한다.
 
-상태는 `current`다. 이 문서는 개발자 소개 사이트를 구현하거나 검토하는 사람에게 적용한다. `AGENTS.md`는 FSD 준수, 순환 참조 금지, 말단 UI 재사용, 구체적인 타입, 정적으로 식별할 수 있는 Tailwind CSS 클래스와 디자인 토큰을 요구한다. `docs/designs/developer-portfolio-f4b7/decisions/terms-storage.md`는 문구 저장 방식을, `docs/designs/developer-portfolio-f4b7/requirements.md`는 단일 칼럼과 시각 규칙을 정한다.
+상태는 `current`다. 이 문서는 `apps/entry`의 개발자 소개 사이트를 구현하거나 검토하는 사람에게 적용한다. 아래의 파일 위치는 이 패키지를 기준으로 한다. `AGENTS.md`는 FSD 준수, 순환 참조 금지, 말단 UI 재사용, 구체적인 타입, 정적으로 식별할 수 있는 Tailwind CSS 클래스와 디자인 토큰을 요구한다. `docs/designs/developer-portfolio-f4b7/decisions/terms-storage.md`는 문구 저장 방식을, `docs/designs/developer-portfolio-f4b7/requirements.md`는 단일 칼럼과 시각 규칙을 정한다.
 
 현재 패키지와 잠금 파일에는 Astro 7.3.3, Tailwind CSS 및 `@tailwindcss/vite` 4.3.3, TypeScript 6.0.3이 있다. 외부 동작의 최초 조사일은 2026-09-20이다. 이 문서는 의존성 변경을 승인하지 않는다. 예시는 원칙을 설명하며 현재 코드가 이미 새 단일 칼럼 요구를 충족한다는 증거는 아니다.
 
@@ -413,11 +413,11 @@ type Contribution = {
 };
 ```
 
-외부 라이브러리의 타입이 `unknown`을 반환하면 사용 지점에서 검사해 구체적인 내부 타입으로 바꾼다. HTML 속성을 전달하는 컴포넌트는 임의 `Record` 대신 Astro가 제공하는 `HTMLAttributes<"a">` 같은 타입을 사용한다. `package.json`의 `pnpm check`로 Astro 타입을 검사하고 `pnpm build`로 정적 HTML을 생성한다. 타입만으로 빈 문단과 번역 누락을 판별할 수 없으므로 기존 JSON 검사도 함께 유지한다.
+외부 라이브러리의 타입이 `unknown`을 반환하면 사용 지점에서 검사해 구체적인 내부 타입으로 바꾼다. HTML 속성을 전달하는 컴포넌트는 임의 `Record` 대신 Astro가 제공하는 `HTMLAttributes<"a">` 같은 타입을 사용한다. 저장소 최상위에서 `pnpm entry:check`로 Astro 타입을 검사하고 `pnpm entry:build`로 정적 HTML을 생성한다. 타입만으로 빈 문단과 번역 누락을 판별할 수 없으므로 기존 JSON 검사도 함께 유지한다.
 
 ## 최종 확인
 
-구현 담당자는 등록된 `pnpm check`와 `pnpm build`를 실행하고 성공 여부와 오류를 남긴다. 브라우저 검토에서는 개발자 이름, 경력과 연락처가 JavaScript 없이 보이는지, 320px와 200% 글자 확대에서 정보가 사라지지 않는지, 링크와 포커스 표시를 키보드로 사용할 수 있는지 확인한다.
+구현 담당자는 저장소 최상위에서 `pnpm entry:check`와 `pnpm entry:build`를 실행하고 성공 여부와 오류를 남긴다. 브라우저 검토에서는 개발자 이름, 경력과 연락처가 JavaScript 없이 보이는지, 320px와 200% 글자 확대에서 정보가 사라지지 않는지, 링크와 포커스 표시를 키보드로 사용할 수 있는지 확인한다.
 
 최종 검토 담당자는 다음을 확인한다.
 

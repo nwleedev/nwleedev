@@ -6,7 +6,9 @@ settings:
 
 importers:
 
-  .:
+  .: {}
+
+  apps/entry:
     dependencies:
       astro:
         specifier: 7.3.3
