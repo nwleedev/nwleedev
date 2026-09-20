@@ -10,4 +10,6 @@ export type {
   Locale,
   Metadata,
   OpenSourceContribution,
+  ProfileIconName,
+  ProfileLink,
 } from "./types";

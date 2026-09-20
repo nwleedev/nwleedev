@@ -15,20 +15,15 @@
       { "locale": "en", "label": "EN", "href": "/en/" }
     ]
   },
-  "menu": {
-    "title": "Links",
-    "openLabel": "Menu",
-    "closeLabel": "Close"
-  },
   "identity": {
     "name": "Nowon Lee",
     "role": "Frontend Engineer",
     "lead": "I trace service issues to their causes, improve data flow and asynchronous state, and verify behavior after deployment.",
     "supporting": "I have solved problems involving real-time data, long-running tasks, operational dashboards, and service quality in TypeScript and React web services.",
     "links": [
-      { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "Code and open source contributions" },
-      { "label": "Blog", "href": "https://blog.nwlee.com", "context": "Technical notes and problem-solving process" },
-      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "Professional profile" }
+      { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "Code and open source contributions", "icon": "github" },
+      { "label": "Blog", "href": "https://blog.nwlee.com", "context": "Technical notes and problem-solving process", "icon": "article" },
+      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "Professional profile", "icon": "linkedin" }
     ]
   },
   "experience": {

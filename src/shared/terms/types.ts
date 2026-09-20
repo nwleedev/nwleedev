@@ -12,6 +12,16 @@ export type ExternalLink = {
   context: string;
 };
 
+export type ProfileIconName =
+  | "article"
+  | "file-pdf"
+  | "github"
+  | "linkedin";
+
+export type ProfileLink = ExternalLink & {
+  icon: ProfileIconName;
+};
+
 export type Metadata = {
   period: string;
   technologies: readonly string[];
@@ -66,17 +76,12 @@ export type HomeTerms = {
     label: string;
     links: readonly LanguageLink[];
   };
-  menu: {
-    title: string;
-    openLabel: string;
-    closeLabel: string;
-  };
   identity: {
     name: string;
     role: string;
     lead: string;
     supporting: string;
-    links: readonly ExternalLink[];
+    links: readonly ProfileLink[];
   };
   experience: {
     id: string;

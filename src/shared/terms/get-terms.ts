@@ -1,6 +1,13 @@
 import en from "./en.json";
 import ko from "./ko.json";
-import type { ExternalLink, HomeTerms, LanguageLink, Locale } from "./types";
+import type {
+  ExternalLink,
+  HomeTerms,
+  LanguageLink,
+  Locale,
+  ProfileIconName,
+  ProfileLink,
+} from "./types";
 
 function field(value: unknown, key: string): unknown {
   if (typeof value !== "object" || value === null) {
@@ -41,12 +48,50 @@ function isExternalLink(value: unknown): value is ExternalLink {
   return hasStrings(value, ["label", "href", "context"]);
 }
 
+function isProfileIconName(value: unknown): value is ProfileIconName {
+  return (
+    value === "article" ||
+    value === "file-pdf" ||
+    value === "github" ||
+    value === "linkedin"
+  );
+}
+
+function isProfileLink(value: unknown): value is ProfileLink {
+  return isExternalLink(value) && isProfileIconName(field(value, "icon"));
+}
+
 function isLocale(value: unknown): value is Locale {
   return value === "ko" || value === "en";
 }
 
 function isLanguageLink(value: unknown): value is LanguageLink {
   return hasStrings(value, ["label", "href"]) && isLocale(field(value, "locale"));
+}
+
+function isLanguageLinks(value: unknown): value is LanguageLink[] {
+  return (
+    Array.isArray(value) &&
+    value.length === 2 &&
+    value.every(isLanguageLink) &&
+    value.some((link) => link.locale === "ko") &&
+    value.some((link) => link.locale === "en")
+  );
+}
+
+function isIdentityProfileLinks(value: unknown): value is ProfileLink[] {
+  const requiredIcons: readonly ProfileIconName[] = [
+    "github",
+    "article",
+    "linkedin",
+  ];
+
+  return (
+    Array.isArray(value) &&
+    value.length === requiredIcons.length &&
+    value.every(isProfileLink) &&
+    requiredIcons.every((icon) => value.some((link) => link.icon === icon))
+  );
 }
 
 function isMetadata(value: unknown): boolean {
@@ -93,7 +138,6 @@ function isHomeTerms(value: unknown): value is HomeTerms {
   const meta = field(value, "meta");
   const linkLabels = field(value, "linkLabels");
   const language = field(value, "language");
-  const menu = field(value, "menu");
   const identity = field(value, "identity");
   const experience = field(value, "experience");
   const openSource = field(value, "openSource");
@@ -107,10 +151,9 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     isString(field(value, "skipLink")) &&
     hasStrings(linkLabels, ["resume", "resumeContext"]) &&
     isString(field(language, "label")) &&
-    isArrayOf(field(language, "links"), isLanguageLink) &&
-    hasStrings(menu, ["title", "openLabel", "closeLabel"]) &&
+    isLanguageLinks(field(language, "links")) &&
     hasStrings(identity, ["name", "role", "lead", "supporting"]) &&
-    isArrayOf(field(identity, "links"), isExternalLink) &&
+    isIdentityProfileLinks(field(identity, "links")) &&
     hasStrings(experience, ["id", "title"]) &&
     isArrayOf(field(experience, "companies"), isCompanyExperience) &&
     hasStrings(openSource, ["id", "title"]) &&
@@ -145,10 +188,11 @@ type RuntimeTerms = {
 export function getTerms(locale: Locale, runtimeTerms: RuntimeTerms): HomeTerms {
   const terms = termsByLocale[locale];
 
-  const resumeLink: ExternalLink = {
+  const resumeLink: ProfileLink = {
     label: terms.linkLabels.resume,
     href: runtimeTerms.resumeUrl,
     context: terms.linkLabels.resumeContext,
+    icon: "file-pdf",
   };
 
   return {

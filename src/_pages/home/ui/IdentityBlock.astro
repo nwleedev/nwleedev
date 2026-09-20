@@ -1,19 +1,18 @@
 ---
 import type { HomeTerms, Locale } from "@/shared/terms";
-import ProfileNavigation from "./ProfileNavigation.astro";
+import LanguageSwitch from "./LanguageSwitch.astro";
+import MobileProfileLinks from "./MobileProfileLinks.astro";
 
 type IdentityTerms = HomeTerms["identity"];
 type LanguageTerms = HomeTerms["language"];
-type MenuTerms = HomeTerms["menu"];
 
 interface Props {
   identity: IdentityTerms;
   language: LanguageTerms;
   locale: Locale;
-  menu: MenuTerms;
 }
 
-const { identity, language, locale, menu } = Astro.props;
+const { identity, language, locale } = Astro.props;
 ---
 
 <section aria-labelledby="identity-title" class="pb-16 pt-16">
@@ -21,12 +20,7 @@ const { identity, language, locale, menu } = Astro.props;
     <h1 id="identity-title" class="text-display font-semibold text-text-primary">
       {identity.name}
     </h1>
-    <ProfileNavigation
-      links={identity.links}
-      language={language}
-      locale={locale}
-      menu={menu}
-    />
+    <LanguageSwitch language={language} locale={locale} />
   </div>
   <p class="mt-1 text-sm font-semibold text-brand-strong">{identity.role}</p>
   <p class="mt-8 text-lead font-normal text-text-primary">
@@ -48,42 +42,5 @@ const { identity, language, locale, menu } = Astro.props;
       </li>
     ))}
   </ul>
-
-  <noscript>
-    <div class="mt-7 sm:hidden">
-      <ul class="flex flex-col gap-2">
-        {identity.links.map((link) => (
-          <li>
-            <a
-              href={link.href}
-              class="inline-flex min-h-11 items-center font-semibold text-brand-strong decoration-brand-base"
-              aria-label={`${link.label}: ${link.context}`}
-            >
-              {link.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-      <nav aria-label={language.label} class="mt-6">
-        <ul class="flex gap-4 text-sm font-semibold text-text-muted">
-          {language.links.map((link) => (
-            <li>
-              <a
-                class:list={[
-                  "inline-flex min-h-11 items-center",
-                  link.locale === locale && "text-brand-strong no-underline",
-                ]}
-                href={link.href}
-                aria-current={link.locale === locale ? "page" : undefined}
-                lang={link.locale}
-                hreflang={link.locale}
-              >
-                {link.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </div>
-  </noscript>
+  <MobileProfileLinks links={identity.links} />
 </section>

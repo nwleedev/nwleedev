@@ -15,20 +15,15 @@
       { "locale": "en", "label": "EN", "href": "/en/" }
     ]
   },
-  "menu": {
-    "title": "Links",
-    "openLabel": "메뉴",
-    "closeLabel": "닫기"
-  },
   "identity": {
     "name": "이노원",
     "role": "Frontend Engineer",
     "lead": "서비스에서 발생하는 문제의 원인을 찾고, 데이터 흐름과 비동기 상태를 개선하며 배포 후 실제 동작까지 확인합니다.",
     "supporting": "TypeScript와 React 기반 웹 서비스에서 실시간 데이터, 장시간 작업, 운영 대시보드와 서비스 품질 문제를 해결해 왔습니다.",
     "links": [
-      { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "코드와 오픈소스 기여" },
-      { "label": "Blog", "href": "https://blog.nwlee.com", "context": "문제 해결 과정과 기술 기록" },
-      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "경력 프로필" }
+      { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "코드와 오픈소스 기여", "icon": "github" },
+      { "label": "Blog", "href": "https://blog.nwlee.com", "context": "문제 해결 과정과 기술 기록", "icon": "article" },
+      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "경력 프로필", "icon": "linkedin" }
     ]
   },
   "experience": {
