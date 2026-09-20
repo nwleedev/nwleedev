@@ -84,7 +84,9 @@
 
 ### 2. Astro와 Tailwind CSS 프로젝트 초기 설정
 
-상태: 시작 전.
+상태: 완료.
+
+완료 내용: Astro 7.3.3, Tailwind CSS 및 `@tailwindcss/vite` 4.3.3, `@astrojs/check` 0.9.10과 TypeScript 6.0.3을 설치했다. `pnpm-workspace.yaml`에는 Astro가 사용하는 esbuild 0.28.2의 설치 스크립트만 허용했다. 빈 `main`을 정적 HTML로 빌드했으며 `pnpm check`, `pnpm build`와 전체 의존성 보안 검사가 통과했다.
 
 적용 요구사항: 「디자인 체계와 제작 순서」, 「구현 전에 정할 사항」.
 
@@ -93,6 +95,7 @@ Astro 7로 정적 HTML을 만들고 Tailwind CSS 4를 Vite 플러그인으로 �
 - 추가할 파일:
   - `package.json`: 실행 의존성은 `astro`, 개발 의존성은 `@astrojs/check`, `@tailwindcss/vite`, `tailwindcss`와 `typescript`로 제한한다. `dev`, `check`, `build`와 `preview` script를 정의하고 각 script는 Astro CLI 명령 하나만 실행한다.
   - `pnpm-lock.yaml`: 설치로 결정된 직접 및 전이 의존성 버전을 고정한다.
+  - `pnpm-workspace.yaml`: 설치 스크립트 실행이 필요한 전이 의존성을 확인한 뒤 패키지 이름별로 허용한다.
   - `astro.config.mjs`: `@tailwindcss/vite`만 Vite plugin으로 연결하고 output은 정적 기본값을 유지한다.
   - `tsconfig.json`: `astro/tsconfigs/strictest`를 확장하고 `@/*`가 `src/*`를 가리키게 한다.
   - `src/pages/index.astro`: `@/_pages/home`에서 `HomePage`를 가져와 `<HomePage locale="ko" />`만 렌더링한다.
