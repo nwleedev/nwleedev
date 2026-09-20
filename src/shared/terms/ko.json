@@ -29,7 +29,6 @@
   "experience": {
     "id": "experience",
     "title": "Experience",
-    "introduction": "회사별 역할보다 그 안에서 내린 기술적 판단과 확인된 변화를 중심으로 정리했습니다.",
     "companies": [
       {
         "company": "인공지능팩토리",
@@ -128,7 +127,6 @@
   "openSource": {
     "id": "open-source",
     "title": "Open Source",
-    "introduction": "외부 프로젝트에서 병합되고 공식 릴리스에 포함된 수정입니다.",
     "contributions": [
       {
         "project": "React Router",

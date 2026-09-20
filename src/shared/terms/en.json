@@ -29,7 +29,6 @@
   "experience": {
     "id": "experience",
     "title": "Experience",
-    "introduction": "The focus is on engineering decisions and verified changes rather than job descriptions.",
     "companies": [
       {
         "company": "AI Factory",
@@ -128,7 +127,6 @@
   "openSource": {
     "id": "open-source",
     "title": "Open Source",
-    "introduction": "Changes merged into external projects and included in official releases.",
     "contributions": [
       {
         "project": "React Router",

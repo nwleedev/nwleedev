@@ -113,9 +113,9 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     isArrayOf(field(language, "links"), isLanguageLink) &&
     hasStrings(identity, ["name", "role", "lead", "supporting"]) &&
     isArrayOf(field(identity, "links"), isExternalLink) &&
-    isSection(experience, "introduction") &&
+    hasStrings(experience, ["id", "title"]) &&
     isArrayOf(field(experience, "companies"), isCompanyExperience) &&
-    isSection(openSource, "introduction") &&
+    hasStrings(openSource, ["id", "title"]) &&
     isArrayOf(field(openSource, "contributions"), isOpenSourceContribution) &&
     isSection(independentWork, "introduction") &&
     isArrayOf(field(independentWork, "items"), isIndependentWork) &&

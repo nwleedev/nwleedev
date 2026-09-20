@@ -76,13 +76,11 @@ export type HomeTerms = {
   experience: {
     id: string;
     title: string;
-    introduction: string;
     companies: readonly CompanyExperience[];
   };
   openSource: {
     id: string;
     title: string;
-    introduction: string;
     contributions: readonly OpenSourceContribution[];
   };
   independentWork: {

@@ -13,12 +13,8 @@ const { experience } = Astro.props;
 ---
 
 <section aria-labelledby={experience.id} class="pb-16 md:pb-24">
-  <SectionHeader
-    id={experience.id}
-    title={experience.title}
-    introduction={experience.introduction}
-  />
-  <div class="mt-10">
+  <SectionHeader id={experience.id} title={experience.title} />
+  <div class="mt-8">
     {experience.companies.map((company) => (
       <CompanyExperience company={company} />
     ))}
