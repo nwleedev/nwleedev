@@ -18,7 +18,7 @@
 
 [W3C의 HTML dialog 기법 H102](https://www.w3.org/WAI/WCAG21/Techniques/html/H102)은 표준 `dialog`가 포커스 이동, 내부 포커스 제한과 호출 버튼으로의 복귀를 브라우저 동작으로 제공한다고 설명한다. 따라서 `div`에 dialog 역할과 포커스 제한 코드를 직접 붙이는 방식보다 표준 요소를 사용한다. 메뉴 버튼에는 `aria-controls`와 상태에 맞는 `aria-expanded`를 제공하고, 닫기 버튼에는 `autofocus`를 사용한다.
 
-메뉴를 여는 조작은 24px의 세 줄 아이콘만 화면에 표시하는 기본 `button`으로 만든다. [WAI-ARIA의 이름과 설명 지침](https://www.w3.org/WAI/ARIA/apg/practices/names-and-descriptions/)은 텍스트가 없는 아이콘 버튼에도 기능을 알리는 짧은 접근 가능한 이름이 필요하다고 설명한다. 따라서 SVG는 보조 기술에서 제외하고 버튼에 현재 언어의 `aria-label`을 제공한다. 버튼의 배경, 테두리와 패딩은 제거하지만, [WCAG 2.2의 Target Size 설명](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)에 따라 보이는 아이콘과 별개로 44px 정사각형 조작 영역을 유지한다. 전역 `:focus-visible` 외곽선은 테두리가 아니라 현재 키보드 위치를 알려 주는 상태 표현이므로 제거하지 않는다.
+메뉴를 여는 조작은 24px의 세 줄 아이콘만 화면에 표시하는 기본 `button`으로 만든다. [WAI-ARIA의 이름과 설명 지침](https://www.w3.org/WAI/ARIA/apg/practices/names-and-descriptions/)은 텍스트가 없는 아이콘 버튼에도 기능을 알리는 짧은 접근 가능한 이름이 필요하다고 설명한다. 따라서 SVG는 보조 기술에서 제외하고 버튼에 현재 언어의 `aria-label`을 제공한다. 닫기 조작도 같은 원칙으로 24px의 X 아이콘을 표시하고 버튼에는 `닫기` 또는 `Close`라는 접근 가능한 이름을 제공한다. 버튼의 배경, 테두리와 패딩은 제거하지만, [WCAG 2.2의 Target Size 설명](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)에 따라 보이는 아이콘과 별개로 44px 정사각형 조작 영역을 유지한다. 전역 `:focus-visible` 외곽선은 테두리가 아니라 현재 키보드 위치를 알려 주는 상태 표현이므로 제거하지 않는다.
 
 Astro에서는 Drawer를 여는 동작에만 일반 `<script>`를 사용한다. [Astro의 client-side scripts 문서](https://docs.astro.build/en/guides/client-side-scripts/)에 따르면 일반 script는 TypeScript 변환, 번들링과 페이지 안의 중복 제거를 적용받는다. `is:inline`과 UI 프레임워크 Client Island는 필요하지 않다. 스크립트는 Custom Element 내부에서 자신의 버튼과 dialog만 찾고, 화면이 데스크톱 너비로 바뀌면 열린 dialog를 닫는다.
 
@@ -34,10 +34,12 @@ Brittany Chiang의 홈페이지를 같은 폭으로 확인했을 때 외부 프�
 
 ## Flex 배치
 
-[MDN의 Flex 정렬 설명](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Aligning_items)과 [`gap` 설명](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/gap)에 따라 시각 순서와 DOM 순서를 같게 유지하고 `flex-direction`과 `gap`으로 간격을 정한다.
+[MDN의 Flex 정렬 설명](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Flexible_box_layout/Aligning_items), [`align-items` 설명](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/align-items)과 [`gap` 설명](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/gap)에 따라 시각 순서와 DOM 순서를 같게 유지하고 `flex-direction`, `align-items`와 `gap`으로 배치한다. `align-items: center`는 가로 Flex 행에서 교차축인 세로 방향의 중앙을 맞추므로 이름과 오른쪽 조작 요소, Drawer 제목과 닫기 버튼에 적용한다.
 
+- Identity 머리글: 이름과 데스크톱 언어 선택 또는 모바일 메뉴 버튼을 `flex-direction: row`, `align-items: center`, `justify-content: space-between`으로 배치한다. `position: absolute`와 패딩 보정은 사용하지 않는다.
 - 데스크톱 외부 링크: `flex-direction: row`, 줄바꿈 허용, 가로 24px 및 세로 12px 간격.
 - 데스크톱 언어 선택: 화면 오른쪽 상단의 `flex-direction: row`, 16px 간격.
+- Drawer 머리글: Links 제목과 닫기 아이콘 버튼을 `flex-direction: row`, `align-items: center`, `justify-content: space-between`으로 배치한다. 머리글 아래 구분선은 행 바깥 여백을 만들지 않으며 아이콘 위치를 버튼 padding으로 보정하지 않는다.
 - 모바일 Drawer 외부 링크: `flex-direction: column`, 8px 간격. 각 링크는 최소 44px 높이를 사용한다.
 - 모바일 Drawer 언어 선택: 외부 링크 아래 구분선 다음의 `flex-direction: row`, 16px 간격.
 
