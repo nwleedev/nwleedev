@@ -66,7 +66,9 @@
 
 ### 1. 한국어 콘텐츠와 외부 링크 확정
 
-상태: 진행 중.
+상태: 완료.
+
+완료 내용: 한국어 문구와 수치 조건을 이력서 및 포트폴리오와 대조했다. Email, GitHub, Blog, LinkedIn, React Router 및 Outline 주소를 확인했고, Résumé 주소는 추적 파일에 저장하지 않고 빌드 환경에서 주입하도록 정했다. 화면에는 URL 대신 링크의 목적을 나타내는 이름을 사용한다.
 
 적용 요구사항: 「Identity」, 「Experience」, 「Open Source」, 「Independent Work」, 「Background와 Contact」, 「글과 언어 관리」.
 

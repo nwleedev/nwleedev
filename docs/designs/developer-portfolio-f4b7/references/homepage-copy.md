@@ -12,7 +12,12 @@ Frontend Engineer
 
 TypeScript와 React 기반 웹 서비스에서 실시간 데이터, 장시간 작업, 운영 대시보드와 서비스 품질 문제를 해결해 왔습니다.
 
-링크: GitHub, Blog, LinkedIn, Résumé
+링크:
+
+- GitHub: `https://github.com/nwleedev`
+- Blog: `https://blog.nwlee.com`
+- LinkedIn: `https://www.linkedin.com/in/nowon-lee/`
+- Résumé: 빌드 환경에서 주입하는 주소를 `Résumé`라는 이름으로 표시
 
 ### Experience
 
@@ -84,7 +89,10 @@ React Router v7.13.1
 
 선택적 URL parameter가 `/` 구분자 없는 주소까지 잘못 매칭되는 문제를 수정하고 기존 dot-suffix 동작을 보존하는 회귀 검사를 추가했습니다.
 
-링크: PR #14689, Release v7.13.1
+링크:
+
+- PR #14689: `https://github.com/remix-run/react-router/pull/14689`
+- Release v7.13.1: `https://github.com/remix-run/react-router/releases/tag/react-router@7.13.1`
 
 #### Outline
 
@@ -92,7 +100,10 @@ Outline v1.2.0
 
 인라인 이미지 앞의 마지막 글자를 Delete 또는 Backspace로 지울 수 없는 편집기 문제를 수정하고 표 안팎의 삭제 동작을 확인했습니다.
 
-링크: PR #10759, Release v1.2.0
+링크:
+
+- PR #10759: `https://github.com/outline/outline/pull/10759`
+- Release v1.2.0: `https://github.com/outline/outline/releases/tag/v1.2.0`
 
 ### Independent Work
 
@@ -120,7 +131,11 @@ Web Worker, IndexedDB, Offline, GitHub Actions
 
 ### Contact
 
-Email, GitHub, Blog, LinkedIn, Résumé
+- Email: `mailto:nw.lee@outlook.com`
+- GitHub: `https://github.com/nwleedev`
+- Blog: `https://blog.nwlee.com`
+- LinkedIn: `https://www.linkedin.com/in/nowon-lee/`
+- Résumé: 빌드 환경에서 주입하는 주소를 `Résumé`라는 이름으로 표시
 
 ## 문구의 근거와 게재 판단
 
@@ -130,4 +145,4 @@ Identity는 [개발자 소개에서 앞세울 가치](../decisions/developer-pos
 
 오픈소스 기여는 실제 PR과 공식 릴리스 링크가 준비된 경우에만 게재한다. Independent Work의 이용 및 소스 링크도 외부에서 열 수 있는 주소를 확인한 뒤 추가한다.
 
-Offline Translation Web App의 `30초 이내 배포`는 비교 조건을 추가로 확인해야 하므로 현재 방문자용 문구에서 제외했다. 실제 Email, GitHub, Blog, LinkedIn과 Résumé 주소도 게재 전에 확인한다.
+Offline Translation Web App의 `30초 이내 배포`는 비교 조건을 추가로 확인해야 하므로 현재 방문자용 문구에서 제외했다. Email, GitHub, Blog와 LinkedIn은 이력서와 포트폴리오의 링크를 대조했다. Résumé 주소는 저장소가 추적하는 파일에 기록하지 않고 빌드 환경에서 주입한다.
