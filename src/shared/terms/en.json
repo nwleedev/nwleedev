@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Nowon Lee — Frontend Engineer",
-    "description": "Technical profile of frontend engineer Nowon Lee, focused on tracing service issues, improving data flow and asynchronous state, and verifying production behavior"
+    "description": "Technical profile of frontend engineer Nowon Lee, focused on information accuracy, task visibility, interface responsiveness, and service reliability"
   },
   "skipLink": "Skip to main content",
   "linkLabels": {
@@ -18,8 +18,8 @@
   "identity": {
     "name": "Nowon Lee",
     "role": "Frontend Engineer",
-    "lead": "I trace service issues to their causes, improve data flow and asynchronous state, and verify behavior after deployment.",
-    "supporting": "I have solved problems involving real-time data, long-running tasks, operational dashboards, and service quality in TypeScript and React web services.",
+    "lead": "I trace service issues to their causes so users can trust the information they see and keep track of work in progress.",
+    "supporting": "Across TypeScript and React services, I have improved real-time information, long-running tasks, operational dashboards, and authentication, then verified behavior after deployment.",
     "links": [
       { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "Code and open source contributions", "icon": "github" },
       { "label": "Blog", "href": "https://blog.nwlee.com", "context": "Technical notes and problem-solving process", "icon": "article" },
@@ -34,13 +34,13 @@
         "company": "AI Factory",
         "period": "2025 — Present",
         "role": "Frontend Engineer",
-        "summary": "I worked on real-time data processing, long-running asynchronous tasks, operational dashboards, and quality assurance for public-sector web service projects.",
+        "summary": "For public-sector web services, I improved operational information accuracy, visibility into long-running tasks, responsiveness on data-heavy screens, and release reliability.",
         "contributions": [
           {
-            "title": "Correcting operational metrics and query intervals",
+            "title": "Improving dashboard accuracy and transfer efficiency",
             "paragraphs": [
-              "I analyzed missing values, incorrect usage ratios, and gaps in time-series data on a resource-monitoring dashboard, then handled the query and transformation changes through verification and deployment. I aligned metric names and labels with their definitions and actual responses, corrected the usage-ratio calculation, and separated time series that had been combined under the same label.",
-              "Instead of requesting the full time range for every update, I changed the query to request only data after the previous request time. Data transferred per 10-minute interval fell from 96.5 MB to 41 KB. I compared the updated dashboard with actual responses to verify that the corrected metrics were displayed properly."
+              "I corrected missing values, incorrect usage ratios, and omitted time series so operators could rely on the PC status shown in the dashboard. I aligned metric names and labels with actual responses, corrected usage-ratio calculations, and separated time series that shared the same label.",
+              "I changed queries to fetch only values after the previous request time, reducing data transferred over 10 minutes from 96.5 MB to 41 KB. I compared the deployed dashboard with actual responses to verify the displayed values."
             ],
             "metadata": {
               "period": "Verified in production",
@@ -48,11 +48,10 @@
             }
           },
           {
-            "title": "Status checks and waiting guidance for long-running document generation",
+            "title": "Improving wait experience and status accuracy for 5–10 minute document generation",
             "paragraphs": [
-              "For document generation that takes 5–10 minutes, I translated the requirements into screens and interactions and handled implementation and deployment. The interface shows progress and elapsed time, explains the consequences of navigating away or cancelling, and continues checking status when the user chooses not to cancel.",
-              "When SSE reports the start or completion of a step, the client requests the server status again and updates the UI from that response. If another event arrives during a request, the client finishes the current request before checking again. It also checks server status after a connection error. An event alone never determines success or failure.",
-              "Recorded status API requests remain at 10 or fewer per task. This is compared with an estimated 100–200 requests for polling the same task every three seconds; it does not mean document generation became faster. After deployment, I verified that generation, cancellation, and the displayed progress matched the actual processing state."
+              "Users can see the current stage and elapsed time during 5–10 minute document generation and decide whether to leave or cancel with the relevant status in view. If they continue, status tracking remains active so they can keep following progress.",
+              "The client confirms server status after SSE events, so the UI reflects actual processing even when events arrive during a request or the connection fails. Status checks stayed at 10 or fewer per task, compared with an estimated 100–200 checks at three-second intervals. After deployment, I verified that the server-side generation and cancellation states matched the displayed progress."
             ],
             "metadata": {
               "period": "For 5–10 minute tasks",
@@ -60,11 +59,10 @@
             }
           },
           {
-            "title": "Separating response processing and merging real-time data",
+            "title": "Eliminating 3–4 second UI freezes and keeping real-time charts continuous",
             "paragraphs": [
-              "I resolved 3–4 second UI freezes that occurred while requesting and transforming API responses of about 5 MB. Instead of changing the response size or format, I moved the API request and transformation into a SharedWorker and left the main thread to update the UI with the transformed data.",
-              "I prepared a reusable request method for the run-history and detail screens that needed the same processing, then verified after deployment that the UI freeze was resolved.",
-              "For a real-time chart, I merged REST history loaded after refresh and streamed values into the same cache queue and normalized their time units. Incomplete JSON fragments are retained and combined with the next chunk before processing."
+              "I restored interaction on run-history and detail screens that froze for 3–4 seconds while processing API responses of about 5 MB. I applied a shared approach that moved API requests and transformation into a SharedWorker, then verified after deployment that the freezes were resolved.",
+              "I merged historical values loaded after refresh with new streamed values on the same time basis, keeping the chart continuous without duplicates. I recombined split JSON fragments with the next chunk so real-time updates could continue."
             ],
             "metadata": {
               "period": "Response size and format retained",
@@ -72,10 +70,10 @@
             }
           },
           {
-            "title": "E2E coverage of real user flows and authentication recovery",
+            "title": "Validating 70+ key flows with consistent authentication recovery",
             "paragraphs": [
-              "I created more than 70 executable E2E scenarios to repeat the actual flows of authenticated users. During this work, I reproduced a mismatch between credentials retained in the browser and an expired server session.",
-              "I applied the same recovery rule to authentication checks before protected screens and to authentication failures while a screen was in use. I handled root-cause analysis, the shared recovery design and implementation, and deployment to the QA environment."
+              "I made more than 70 key authenticated-user flows repeatably testable before release. This coverage surfaced a mismatch between credentials retained in the browser and an expired server session.",
+              "I applied one recovery behavior both before entering protected screens and when authentication failed during use, giving users a consistent response. I handled root-cause analysis and deployment of the shared recovery behavior to the QA environment."
             ],
             "metadata": {
               "period": "Pre-deployment verification",
@@ -88,12 +86,12 @@
         "company": "Crust Universe / Quarkonix",
         "period": "2022 — 2024",
         "role": "Frontend Engineer",
-        "summary": "I traced errors and performance regressions in React and TypeScript services and improved data updates, loading performance, and real-time connections.",
+        "summary": "I improved immediate feedback after user actions, initial load times, and real-time information updates, then documented the loading approach for reuse across frontend projects.",
         "contributions": [
           {
-            "title": "Keeping refreshed data and UI state consistent",
+            "title": "Keeping immediate UI feedback aligned with server values",
             "paragraphs": [
-              "I applied optimistic updates in an environment that periodically refetched data. This resolved discrepancies between the UI after a user action and the server value while reducing duplicate requests."
+              "I used optimistic updates on periodically refreshed screens so user changes appeared immediately while reducing mismatches after refetches and duplicate requests."
             ],
             "metadata": {
               "period": "Production service",
@@ -101,9 +99,9 @@
             }
           },
           {
-            "title": "Improving loading and documenting the setup",
+            "title": "Shortening initial load and sharing a reusable setup",
             "paragraphs": [
-              "I improved service loading performance with Vite configuration and React lazy loading. I documented the steps so the same approach could be applied to other frontend projects."
+              "I shortened initial load with Vite configuration and React lazy loading, then documented the setup for reuse across other frontend projects."
             ],
             "metadata": {
               "period": "Service delivery",
@@ -111,9 +109,9 @@
             }
           },
           {
-            "title": "Finding the cause of interrupted real-time connections",
+            "title": "Restoring real-time information updates",
             "paragraphs": [
-              "Intermittent WebSocket disconnections prevented real-time data from updating. I used Chrome DevTools to identify the cause of the disconnections and resolved the data-update problem."
+              "I used Chrome DevTools to find and fix intermittent WebSocket disconnections that stopped real-time information from updating."
             ],
             "metadata": {
               "period": "Production service",
@@ -157,13 +155,13 @@
       {
         "title": "AI Agent Workflow",
         "period": "2026 — Present",
-        "summary": "I designed repository rules and skills to keep requirements, research, decisions, and implementation distinct, including a Korean wording check before text is stored. I have applied the workflow across multiple repositories.",
+        "summary": "I created repository rules and skills that separate requirements, research, decisions, and implementation so the reasons and criteria behind changes remain traceable. I paired them with a pre-save check for ambiguous Korean copy and applied the workflow across multiple repositories.",
         "technologies": ["Node.js", "Repository Rules", "Text Validation"]
       },
       {
         "title": "Offline Translation Web App",
         "period": "2025",
-        "summary": "After users save the required language models, the browser can translate between Korean and English or Korean and Japanese without a network connection. I implemented the workflow with browser caching, Web Workers, and IndexedDB, and automated deployment with GitHub Actions.",
+        "summary": "With language models saved ahead of time, users can translate between Korean and English or Korean and Japanese without a network connection and keep interacting with the page while the model runs. I used browser caching, Web Workers, and IndexedDB to keep the required files and processing in the browser, and automated repeated deployment steps with GitHub Actions.",
         "technologies": ["Web Worker", "IndexedDB", "Offline", "GitHub Actions"]
       }
     ]
