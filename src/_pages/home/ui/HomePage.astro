@@ -41,7 +41,11 @@ const terms = getTerms(locale, { resumeUrl: parsedResumeUrl.href });
   >
     {terms.skipLink}
   </a>
-  <main id="main-content" tabindex="-1">
+  <main
+    id="main-content"
+    class="mx-auto max-w-page px-(--page-gutter)"
+    tabindex="-1"
+  >
     <IdentityBlock
       identity={terms.identity}
       language={terms.language}

@@ -12,13 +12,13 @@ interface Props {
 const { experience } = Astro.props;
 ---
 
-<section aria-labelledby={experience.id} class="mx-auto max-w-page px-(--page-gutter) py-22 md:py-26">
+<section aria-labelledby={experience.id} class="py-18 md:py-22">
   <SectionHeader
     id={experience.id}
     title={experience.title}
     introduction={experience.introduction}
   />
-  <div class="mt-14">
+  <div class="mt-10">
     {experience.companies.map((company) => (
       <CompanyExperience company={company} />
     ))}

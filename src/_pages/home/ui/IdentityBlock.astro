@@ -13,51 +13,45 @@ interface Props {
 const { identity, language, locale } = Astro.props;
 ---
 
-<section aria-labelledby="identity-title" class="mx-auto max-w-page px-(--page-gutter) pb-26 pt-16 md:pb-30 md:pt-24">
-  <div class="grid gap-10 md:grid-cols-12 md:gap-8">
-    <p class="text-sm font-semibold uppercase tracking-[0.16em] text-brand-strong md:col-span-2">
-      {identity.role}
-    </p>
-    <div class="md:col-span-9 md:col-start-4">
-      <h1 id="identity-title" class="max-w-lead text-display font-bold tracking-[-0.045em] text-text-primary">
-        {identity.name}
-      </h1>
-      <p class="mt-8 max-w-lead text-lead font-medium text-text-primary">
-        {identity.lead}
-      </p>
-      <p class="mt-5 max-w-copy text-base leading-7 text-text-secondary">
-        {identity.supporting}
-      </p>
-      <ul class="mt-8 flex flex-wrap gap-x-6 gap-y-3">
-        {identity.links.map((link) => (
-          <li>
-            <a
-              href={link.href}
-              class="inline-flex min-h-6 items-center font-semibold text-brand-strong decoration-brand-base hover:text-brand-hover"
-              aria-label={`${link.label}: ${link.context}`}
-            >
-              {link.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-      <nav aria-label={language.label} class="mt-6">
-        <ul class="flex gap-4 text-sm font-semibold text-text-muted">
-          {language.links.map((link) => (
-            <li>
-              <a
-                class:list={[link.locale === locale && "text-brand-strong no-underline"]}
-                href={link.href}
-                aria-current={link.locale === locale ? "page" : undefined}
-                lang={link.locale}
-                hreflang={link.locale}
-              >
-                {link.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </div>
-  </div>
+<section aria-labelledby="identity-title" class="pb-22 pt-14 md:pb-26 md:pt-20">
+  <h1 id="identity-title" class="text-display font-semibold text-text-primary">
+    {identity.name}
+  </h1>
+  <p class="mt-1 text-sm font-semibold text-brand-strong">{identity.role}</p>
+  <p class="mt-8 text-lead font-normal text-text-primary">
+    {identity.lead}
+  </p>
+  <p class="mt-4 text-base leading-7 text-text-secondary">
+    {identity.supporting}
+  </p>
+  <ul class="mt-7 flex flex-wrap gap-x-6 gap-y-3">
+    {identity.links.map((link) => (
+      <li>
+        <a
+          href={link.href}
+          class="inline-flex min-h-6 items-center font-semibold text-brand-strong decoration-brand-base hover:text-brand-hover"
+          aria-label={`${link.label}: ${link.context}`}
+        >
+          {link.label}
+        </a>
+      </li>
+    ))}
+  </ul>
+  <nav aria-label={language.label} class="mt-6">
+    <ul class="flex gap-4 text-sm font-semibold text-text-muted">
+      {language.links.map((link) => (
+        <li>
+          <a
+            class:list={[link.locale === locale && "text-brand-strong no-underline"]}
+            href={link.href}
+            aria-current={link.locale === locale ? "page" : undefined}
+            lang={link.locale}
+            hreflang={link.locale}
+          >
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
 </section>

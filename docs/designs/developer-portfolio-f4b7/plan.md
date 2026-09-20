@@ -27,11 +27,11 @@ Pretendard 1.3.9 자체 제공과 라이선스, 기존 색상 역할, 외부 링
 
 아래 1~4를 순서대로 진행한다. 각 단위를 마칠 때 상태, 실제 변경 파일과 다음 시작 위치를 이 플랜에 갱신한다. 마지막 단위에서 한 번의 통합 검토로 빌드와 화면을 확인한다. 중간 단위에서는 변경한 파일과 내용을 기록하되 별도의 리뷰를 반복하지 않는다.
 
-현재 상태: 구현 단위 1 완료, 단위 2~4 대기. 다음 시작 위치는 `src/shared/styles/global.css`와 `IdentityBlock.astro`다.
+현재 상태: 구현 단위 1~2 완료, 단위 3~4 대기. 다음 시작 위치는 `OpenSourceSection.astro`다.
 
 ### 1. 기여 본문과 언어 선택 구조 교체
 
-상태: 완료. `types.ts`, `get-terms.ts`, 두 언어 JSON과 관련 UI 호출부를 본문형 기여 및 Identity 아래 언어 링크로 교체했다. `PageHeader`, `MetricStatement`와 `SystemFigure`는 호출부 및 export와 함께 제거했다. `pnpm check`와 `pnpm build`가 통과했고 두 정적 주소가 생성됐다.
+상태: 완료. `types.ts`, `get-terms.ts`, 두 언어 JSON과 이를 읽던 UI 호출부를 본문형 기여 및 Identity 아래 언어 링크로 교체했다. `PageHeader`, `MetricStatement`와 `SystemFigure`는 호출부 및 export와 함께 제거했다. `pnpm check`와 `pnpm build`가 통과했고 두 정적 주소가 생성됐다.
 
 적용 요구사항: 「Experience」, 「글과 언어 관리」, 「개발자 소개와 편집 기준」. [한국어 문구](references/homepage-copy.md)를 현재 JSON에 덧붙이지 않고 본문 중심 구조로 옮긴다.
 
@@ -52,7 +52,7 @@ Pretendard 1.3.9 자체 제공과 라이선스, 기존 색상 역할, 외부 링
 
 ### 2. 페이지 전체를 한 칼럼으로 재배치
 
-상태: 대기. 단위 1 완료 후 시작한다.
+상태: 완료. `global.css`의 본문 폭과 글자 토큰을 시작값으로 맞췄고 `HomePage`가 본문 폭과 좌우 여백을 한 번만 관리한다. `IdentityBlock`, `SectionHeader`, `CompanyExperience`와 `ExperienceSection`의 12열 배치, 별도 본문 폭과 칼럼 위치 지정을 제거했다. `pnpm check`와 `pnpm build`가 통과했다.
 
 적용 요구사항: 「한 페이지의 정보 순서」, 「편집형 시각 규칙」, 「글꼴과 글자 체계」, 「여백과 반응형 배치」.
 
