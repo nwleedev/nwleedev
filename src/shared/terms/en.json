@@ -185,7 +185,6 @@
   "contact": {
     "id": "contact",
     "title": "Contact",
-    "introduction": "For hiring or collaboration, contact me by email or through one of the profiles below.",
     "links": [
       { "label": "Email", "href": "mailto:nw.lee@outlook.com", "context": "Send an email" },
       { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "Code and open source contributions" },

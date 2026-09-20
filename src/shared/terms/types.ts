@@ -101,7 +101,6 @@ export type HomeTerms = {
   contact: {
     id: string;
     title: string;
-    introduction: string;
     links: readonly ExternalLink[];
   };
   footer: {

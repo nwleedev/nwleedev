@@ -89,10 +89,6 @@ function isBackgroundItem(value: unknown): boolean {
   return hasStrings(value, ["title", "detail", "period"]);
 }
 
-function isSection(value: unknown, itemKey: string): boolean {
-  return hasStrings(value, ["id", "title", itemKey]);
-}
-
 function isHomeTerms(value: unknown): value is HomeTerms {
   const meta = field(value, "meta");
   const linkLabels = field(value, "linkLabels");
@@ -123,7 +119,7 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     isArrayOf(field(independentWork, "items"), isIndependentWork) &&
     hasStrings(background, ["id", "title"]) &&
     isArrayOf(field(background, "items"), isBackgroundItem) &&
-    isSection(contact, "introduction") &&
+    hasStrings(contact, ["id", "title"]) &&
     isArrayOf(field(contact, "links"), isExternalLink) &&
     hasStrings(footer, ["text", "topLabel"])
   );

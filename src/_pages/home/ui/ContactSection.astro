@@ -12,14 +12,10 @@ const { contact } = Astro.props;
 ---
 
 <section aria-labelledby={contact.id} class="pb-16 md:pb-24">
-  <SectionHeader
-    id={contact.id}
-    title={contact.title}
-    introduction={contact.introduction}
-  />
-  <ul class="mt-10">
+  <SectionHeader id={contact.id} title={contact.title} />
+  <ul class="mt-8">
     {contact.links.map((link) => (
-      <li class="border-t border-border-default py-5">
+      <li class="border-t border-border-default py-5 first:border-t-0 first:pt-0">
         <ExternalTextLink link={link} />
         <p class="mt-1 text-sm leading-6 text-text-muted">{link.context}</p>
       </li>

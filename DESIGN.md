@@ -37,7 +37,7 @@ Pretendard 1.3.9의 `PretendardVariable.woff2`를 `public/fonts`에서 자체 �
 
 ## 구성 요소와 탐색
 
-Shared UI는 `BaseLayout`, `SectionHeader`, `MetadataLine`과 `ExternalTextLink`를 유지한다. `SectionHeader`에서 장식용 번호와 열 구분을 제거한다. Experience, Open Source와 Independent Work는 제목 다음에 영역 편집 방식을 설명하는 문구를 표시하지 않으며, 첫 항목 위 구분선 없이 32px 뒤에 내용을 시작한다. 항목 사이의 일반 구분선은 유지하지만 다음 영역의 강한 위쪽 구분선과 겹치는 목록 끝 선은 표시하지 않는다. `ContributionBlock`은 제목, 본문 문단과 기술 정보를 렌더링하고 수치 또는 인용문 종류에 따른 배치 분기를 없앤다. `MetricStatement`, `SystemFigure`와 `PageHeader`는 제거한다.
+Shared UI는 `BaseLayout`, `SectionHeader`, `MetadataLine`과 `ExternalTextLink`를 유지한다. `SectionHeader`는 영역 제목과 위쪽 구분선만 표시한다. Experience, Open Source, Independent Work와 Contact는 제목 다음에 영역 편집 방식이나 링크 목록을 예고하는 문구를 표시하지 않으며, 첫 항목 위 구분선 없이 32px 뒤에 내용을 시작한다. 항목 사이의 일반 구분선은 유지하지만 다음 영역의 강한 위쪽 구분선과 겹치는 목록 끝 선은 표시하지 않는다. `ContributionBlock`은 제목, 본문 문단과 기술 정보를 렌더링하고 수치 또는 인용문 종류에 따른 배치 분기를 없앤다. `MetricStatement`, `SystemFigure`와 `PageHeader`는 제거한다.
 
 Identity의 첫 행은 이름과 반응형 조작 요소를 `align-items: center`, `justify-content: space-between`으로 배치한다. 40rem 이상에서는 오른쪽 조작 요소로 KO와 EN을 가로로 표시하고, GitHub, Blog, LinkedIn과 Résumé는 소개 아래의 가로 Flex 목록에 유지한다. 40rem 미만에서는 오른쪽 조작 요소를 메뉴 아이콘으로 바꾸며 외부 링크와 언어 선택을 본문에 중복 표시하지 않고 오른쪽 Drawer에 넣는다. 외부 링크는 세로 Flex, 언어 선택은 그 아래 구분선 다음의 가로 Flex로 배치한다. 현재 언어는 글자와 `aria-current="page"`로 함께 표시한다. 이름과 조작 요소의 위치에는 `position: absolute`나 padding 보정을 사용하지 않는다.
 
