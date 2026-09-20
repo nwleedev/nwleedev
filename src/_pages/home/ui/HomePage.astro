@@ -1,6 +1,9 @@
 ---
 import { getTerms, type Locale } from "@/shared/terms";
 import { BaseLayout } from "@/shared/ui";
+import ExperienceSection from "./ExperienceSection.astro";
+import IdentityBlock from "./IdentityBlock.astro";
+import PageHeader from "./PageHeader.astro";
 
 interface Props {
   locale: Locale;
@@ -22,5 +25,13 @@ const terms = resumeUrl ? getTerms(locale, { resumeUrl }) : getTerms(locale);
   >
     {terms.skipLink}
   </a>
-  <main id="main-content"></main>
+  <PageHeader
+    name={terms.identity.name}
+    label={terms.navigation.label}
+    items={terms.navigation.items}
+  />
+  <main id="main-content">
+    <IdentityBlock identity={terms.identity} />
+    <ExperienceSection experience={terms.experience} />
+  </main>
 </BaseLayout>

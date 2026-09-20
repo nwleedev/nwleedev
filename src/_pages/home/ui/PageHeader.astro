@@ -1,0 +1,28 @@
+---
+import type { NavigationItem } from "@/shared/terms";
+
+interface Props {
+  name: string;
+  label: string;
+  items: readonly NavigationItem[];
+}
+
+const { name, label, items } = Astro.props;
+---
+
+<header class="border-b border-border-default">
+  <div class="mx-auto flex max-w-page flex-wrap items-center justify-between gap-x-8 gap-y-3 px-(--page-gutter) py-5">
+    <a href="#main-content" class="min-h-6 font-semibold tracking-[-0.02em] text-text-primary no-underline">
+      {name}
+    </a>
+    <nav aria-label={label}>
+      <ul class="flex flex-wrap justify-end gap-x-5 gap-y-2 text-sm font-semibold text-text-secondary">
+        {items.map((item) => (
+          <li>
+            <a class="inline-flex min-h-6 items-center" href={item.href}>{item.label}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  </div>
+</header>

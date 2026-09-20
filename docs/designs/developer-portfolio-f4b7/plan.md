@@ -143,7 +143,9 @@ JSON을 모든 하위 컴포넌트에서 직접 가져오지 않는다. 언어 �
 
 ### 4. Identity, Header와 Experience 구현
 
-상태: 시작 전.
+상태: 완료.
+
+완료 내용: 비고정 Header, 하나의 `h1`을 사용하는 Identity와 회사별 Experience를 정적 Astro 컴포넌트로 구현했다. 수치 기여, 구조 설명 및 확인 자료를 판별 union에 따라 나누고 실제 설명에 필요한 도식 하나만 추가했다. `pnpm check`와 `pnpm build`가 통과했으며 생성된 HTML에서 소개, 회사와 주요 기여, 영역 id 및 목적을 나타내는 Résumé 링크 이름을 확인했다.
 
 적용 요구사항: 「한 페이지의 정보 순서」, 「Identity」, 「Experience」, 「조작과 움직임」.
 

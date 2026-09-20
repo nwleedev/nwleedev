@@ -1,0 +1,43 @@
+---
+import type { HomeTerms } from "@/shared/terms";
+
+type IdentityTerms = HomeTerms["identity"];
+
+interface Props {
+  identity: IdentityTerms;
+}
+
+const { identity } = Astro.props;
+---
+
+<section aria-labelledby="identity-title" class="mx-auto max-w-page px-(--page-gutter) pb-26 pt-16 md:pb-30 md:pt-24">
+  <div class="grid gap-10 md:grid-cols-12 md:gap-8">
+    <p class="text-sm font-semibold uppercase tracking-[0.16em] text-brand-strong md:col-span-2">
+      {identity.role}
+    </p>
+    <div class="md:col-span-9 md:col-start-4">
+      <h1 id="identity-title" class="max-w-lead text-display font-bold tracking-[-0.045em] text-text-primary">
+        {identity.name}
+      </h1>
+      <p class="mt-8 max-w-lead text-lead font-medium text-text-primary">
+        {identity.lead}
+      </p>
+      <p class="mt-5 max-w-copy text-base leading-7 text-text-secondary">
+        {identity.supporting}
+      </p>
+      <ul class="mt-8 flex flex-wrap gap-x-6 gap-y-3">
+        {identity.links.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              class="inline-flex min-h-6 items-center font-semibold text-brand-strong decoration-brand-base hover:text-brand-hover"
+              aria-label={`${link.label}: ${link.context}`}
+            >
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</section>

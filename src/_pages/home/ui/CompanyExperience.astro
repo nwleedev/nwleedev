@@ -1,0 +1,28 @@
+---
+import type { CompanyExperience as CompanyExperienceTerms } from "@/shared/terms";
+import ContributionBlock from "./ContributionBlock.astro";
+
+interface Props {
+  company: CompanyExperienceTerms;
+}
+
+const { company } = Astro.props;
+---
+
+<article class="grid gap-8 border-t border-border-default py-12 md:grid-cols-12 md:gap-8 md:py-16">
+  <header class="md:col-span-3">
+    <p class="text-sm font-semibold text-brand-strong">{company.period}</p>
+    <h3 class="mt-3 text-item font-semibold tracking-[-0.02em] text-text-primary">
+      {company.company}
+    </h3>
+    <p class="mt-1 text-sm font-medium text-text-muted">{company.role}</p>
+  </header>
+  <div class="md:col-span-8 md:col-start-5">
+    <p class="max-w-copy text-base leading-7 text-text-secondary">{company.summary}</p>
+    <div class="mt-10">
+      {company.contributions.map((contribution) => (
+        <ContributionBlock contribution={contribution} />
+      ))}
+    </div>
+  </div>
+</article>

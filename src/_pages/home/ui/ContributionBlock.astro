@@ -1,0 +1,60 @@
+---
+import type { Contribution } from "@/shared/terms";
+import { MetadataLine, MetricStatement } from "@/shared/ui";
+import SystemFigure from "./SystemFigure.astro";
+
+interface Props {
+  contribution: Contribution;
+}
+
+const { contribution } = Astro.props;
+---
+
+<article class="@container border-t border-border-default py-8 first:border-t-0 first:pt-0 md:py-10">
+  {contribution.kind === "metric" ? (
+    <div class="grid gap-7 @min-[42rem]:grid-cols-[minmax(0,1fr)_minmax(15rem,0.72fr)] @min-[42rem]:gap-10">
+      <div>
+        <h4 class="text-item font-semibold tracking-[-0.02em] text-text-primary">
+          {contribution.title}
+        </h4>
+        <p class="mt-4 max-w-copy text-base leading-7 text-text-primary">{contribution.summary}</p>
+        <p class="mt-3 max-w-copy text-sm leading-6 text-text-secondary">{contribution.detail}</p>
+      </div>
+      <MetricStatement
+        label={contribution.metricLabel}
+        before={contribution.before}
+        after={contribution.after}
+      />
+    </div>
+  ) : contribution.kind === "structure" ? (
+    <div class="grid gap-6">
+      <div>
+        <h4 class="text-item font-semibold tracking-[-0.02em] text-text-primary">
+          {contribution.title}
+        </h4>
+        <p class="mt-4 max-w-copy text-base leading-7 text-text-primary">{contribution.summary}</p>
+        <p class="mt-3 max-w-copy text-sm leading-6 text-text-secondary">{contribution.detail}</p>
+      </div>
+      <SystemFigure label={contribution.figure.label} steps={contribution.figure.steps} />
+    </div>
+  ) : (
+    <div class="grid gap-6 @min-[42rem]:grid-cols-[minmax(0,1fr)_minmax(14rem,0.65fr)] @min-[42rem]:gap-10">
+      <div>
+        <h4 class="text-item font-semibold tracking-[-0.02em] text-text-primary">
+          {contribution.title}
+        </h4>
+        <p class="mt-4 max-w-copy text-base leading-7 text-text-primary">{contribution.summary}</p>
+        <p class="mt-3 max-w-copy text-sm leading-6 text-text-secondary">{contribution.detail}</p>
+      </div>
+      <p class="border-s-2 border-brand-base ps-5 text-lg font-semibold leading-7 text-text-primary">
+        {contribution.evidence}
+      </p>
+    </div>
+  )}
+  <div class="mt-6">
+    <MetadataLine
+      period={contribution.metadata.period}
+      technologies={contribution.metadata.technologies}
+    />
+  </div>
+</article>

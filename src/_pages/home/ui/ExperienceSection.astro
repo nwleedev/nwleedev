@@ -1,0 +1,27 @@
+---
+import type { HomeTerms } from "@/shared/terms";
+import { SectionHeader } from "@/shared/ui";
+import CompanyExperience from "./CompanyExperience.astro";
+
+type ExperienceTerms = HomeTerms["experience"];
+
+interface Props {
+  experience: ExperienceTerms;
+}
+
+const { experience } = Astro.props;
+---
+
+<section aria-labelledby={experience.id} class="mx-auto max-w-page px-(--page-gutter) py-22 md:py-26">
+  <SectionHeader
+    id={experience.id}
+    index={experience.index}
+    title={experience.title}
+    introduction={experience.introduction}
+  />
+  <div class="mt-14">
+    {experience.companies.map((company) => (
+      <CompanyExperience company={company} />
+    ))}
+  </div>
+</section>
