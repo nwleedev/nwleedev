@@ -28,6 +28,8 @@ Frontend Engineer
 
 운영 대시보드의 데이터 조회와 변환 구조를 개선하고, 실제 응답을 기준으로 잘못 표시되던 지표를 교정했습니다.
 
+새 값을 가져올 때는 마지막 요청 시각 이후의 구간만 조회했습니다.
+
 10분 기준 데이터 전송량 `96.5 MB → 41 KB`
 
 Next.js, Prometheus, Recharts
@@ -36,6 +38,8 @@ Next.js, Prometheus, Recharts
 
 5~10분 동안 실행되는 문서 생성 작업의 상태 확인을 반복 조회에서 이벤트를 계기로 서버 상태를 다시 확인하는 방식으로 변경했습니다.
 
+이벤트 자체를 완료 상태로 판단하지 않고 서버 응답을 화면 상태의 기준으로 삼았습니다.
+
 상태 요청 `100~200회 → 10회 이하`
 
 React, SSE, Next.js
@@ -43,6 +47,8 @@ React, SSE, Next.js
 ##### Browser Runtime & Realtime Data
 
 대용량 응답 처리와 실시간 데이터 병합 중 발생하던 브라우저 문제를 해결했습니다.
+
+API 호출과 응답 변환을 SharedWorker로 옮겨 메인 스레드가 화면 갱신에 집중하도록 했습니다.
 
 약 5 MB 응답 처리 중 발생한 `3~4초 화면 정지 해결`
 
@@ -70,6 +76,8 @@ React와 TypeScript 기반 서비스에서 발생한 오류와 성능 저하의 
 
 ### Open Source
 
+외부 프로젝트에서 병합되고 공식 릴리스에 포함된 수정입니다.
+
 #### React Router
 
 React Router v7.13.1
@@ -90,7 +98,7 @@ Outline v1.2.0
 
 #### AI Agent Workflow
 
-요구사항, 조사, 결정과 구현을 구분해 작업하도록 저장소 규칙과 Skill을 구성하고 여러 저장소의 에이전트 설정에 적용했습니다.
+요구사항, 조사, 결정과 구현이 섞이지 않도록 저장소 규칙과 Skill을 구성하고, 한국어 문구를 저장하기 전에 검사하는 절차를 여러 저장소에 적용했습니다.
 
 2026 — Present
 
@@ -98,7 +106,7 @@ Node.js, Repository Rules, Text Validation
 
 #### Offline Translation Web App
 
-네트워크가 없는 환경에서도 앱과 번역 기능을 사용할 수 있도록 브라우저 캐시, Web Worker, IndexedDB와 배포 자동화를 구성했습니다.
+사용할 언어의 모델을 미리 저장하면 네트워크 연결 없이 한국어와 영어, 한국어와 일본어 사이를 번역할 수 있도록 브라우저 캐시, Web Worker와 IndexedDB를 구성했습니다. GitHub Actions로 배포를 자동화했습니다.
 
 2025
 
