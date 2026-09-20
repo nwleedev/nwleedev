@@ -14,10 +14,10 @@ interface Props {
 const { language, links, locale, menu } = Astro.props;
 ---
 
-<profile-navigation class="contents">
+<profile-navigation class="flex shrink-0 items-center">
   <button
     type="button"
-    class="drawer-trigger absolute end-0 top-16 size-11 items-center justify-center border-0 bg-transparent p-0 text-brand-strong hover:text-brand-hover"
+    class="drawer-trigger size-11 items-center justify-center border-0 bg-transparent p-0 text-brand-strong hover:text-brand-hover"
     aria-controls="profile-drawer"
     aria-expanded="false"
     aria-label={menu.openLabel}
@@ -37,21 +37,7 @@ const { language, links, locale, menu } = Astro.props;
     </svg>
   </button>
 
-  <ul class="mt-7 hidden flex-wrap gap-x-6 gap-y-3 sm:flex">
-    {links.map((link) => (
-      <li>
-        <a
-          href={link.href}
-          class="inline-flex min-h-6 items-center font-semibold text-brand-strong decoration-brand-base hover:text-brand-hover"
-          aria-label={`${link.label}: ${link.context}`}
-        >
-          {link.label}
-        </a>
-      </li>
-    ))}
-  </ul>
-
-  <nav aria-label={language.label} class="absolute end-0 top-16 hidden sm:block">
+  <nav aria-label={language.label} class="hidden sm:block">
     <ul class="flex gap-4 text-sm font-semibold text-text-muted">
       {language.links.map((link) => (
         <li>
@@ -78,17 +64,29 @@ const { language, links, locale, menu } = Astro.props;
     aria-labelledby="profile-drawer-title"
   >
     <div class="flex min-h-full flex-col px-6 pb-8 pt-5">
-      <header class="flex min-h-11 items-center justify-between gap-4 border-b border-border-default pb-4">
+      <header class="flex min-h-11 items-center justify-between gap-4 border-b border-border-default">
         <h2 id="profile-drawer-title" class="text-section font-semibold">
           {menu.title}
         </h2>
         <form method="dialog">
           <button
             type="submit"
-            class="inline-flex min-h-11 items-center font-semibold text-brand-strong underline decoration-brand-base hover:text-brand-hover"
+            class="inline-flex size-11 items-center justify-center border-0 bg-transparent p-0 text-brand-strong hover:text-brand-hover"
+            aria-label={menu.closeLabel}
             autofocus
           >
-            {menu.closeLabel}
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <path d="M6 6l12 12M18 6 6 18"></path>
+            </svg>
           </button>
         </form>
       </header>
@@ -130,43 +128,6 @@ const { language, links, locale, menu } = Astro.props;
     </div>
   </dialog>
 
-  <noscript>
-    <div class="mt-7 sm:hidden">
-      <ul class="flex flex-col gap-2">
-        {links.map((link) => (
-          <li>
-            <a
-              href={link.href}
-              class="inline-flex min-h-11 items-center font-semibold text-brand-strong decoration-brand-base"
-              aria-label={`${link.label}: ${link.context}`}
-            >
-              {link.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-      <nav aria-label={language.label} class="mt-6">
-        <ul class="flex gap-4 text-sm font-semibold text-text-muted">
-          {language.links.map((link) => (
-            <li>
-              <a
-                class:list={[
-                  "inline-flex min-h-11 items-center",
-                  link.locale === locale && "text-brand-strong no-underline",
-                ]}
-                href={link.href}
-                aria-current={link.locale === locale ? "page" : undefined}
-                lang={link.locale}
-                hreflang={link.locale}
-              >
-                {link.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </div>
-  </noscript>
 </profile-navigation>
 
 <script>

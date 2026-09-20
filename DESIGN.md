@@ -37,11 +37,11 @@ Pretendard 1.3.9의 `PretendardVariable.woff2`를 `public/fonts`에서 자체 �
 
 ## 구성 요소와 탐색
 
-Shared UI는 `BaseLayout`, `SectionHeader`, `MetadataLine`과 `ExternalTextLink`를 유지한다. `SectionHeader`에서 장식용 번호와 열 구분을 제거한다. Experience와 Open Source는 제목 다음의 편집 설명과 첫 항목 위 구분선을 표시하지 않으며 첫 항목을 32px 뒤에 시작한다. `ContributionBlock`은 제목, 본문 문단과 기술 정보를 렌더링하고 수치 또는 인용문 종류에 따른 배치 분기를 없앤다. `MetricStatement`, `SystemFigure`와 `PageHeader`는 제거한다.
+Shared UI는 `BaseLayout`, `SectionHeader`, `MetadataLine`과 `ExternalTextLink`를 유지한다. `SectionHeader`에서 장식용 번호와 열 구분을 제거한다. Experience, Open Source와 Independent Work는 제목 다음에 영역 편집 방식을 설명하는 문구를 표시하지 않으며, 첫 항목 위 구분선 없이 32px 뒤에 내용을 시작한다. 항목 사이의 일반 구분선은 유지하지만 다음 영역의 강한 위쪽 구분선과 겹치는 목록 끝 선은 표시하지 않는다. `ContributionBlock`은 제목, 본문 문단과 기술 정보를 렌더링하고 수치 또는 인용문 종류에 따른 배치 분기를 없앤다. `MetricStatement`, `SystemFigure`와 `PageHeader`는 제거한다.
 
-40rem 이상에서는 GitHub, Blog, LinkedIn과 Résumé를 Identity 소개 아래의 가로 Flex 목록에 유지하고 KO와 EN은 Identity 오른쪽 상단에 가로로 둔다. 40rem 미만에서는 외부 링크와 언어 선택을 본문에 중복 표시하지 않고 오른쪽 Drawer에 넣는다. 외부 링크는 세로 Flex, 언어 선택은 그 아래 구분선 다음의 가로 Flex로 배치한다. 현재 언어는 글자와 `aria-current="page"`로 함께 표시한다.
+Identity의 첫 행은 이름과 반응형 조작 요소를 `align-items: center`, `justify-content: space-between`으로 배치한다. 40rem 이상에서는 오른쪽 조작 요소로 KO와 EN을 가로로 표시하고, GitHub, Blog, LinkedIn과 Résumé는 소개 아래의 가로 Flex 목록에 유지한다. 40rem 미만에서는 오른쪽 조작 요소를 메뉴 아이콘으로 바꾸며 외부 링크와 언어 선택을 본문에 중복 표시하지 않고 오른쪽 Drawer에 넣는다. 외부 링크는 세로 Flex, 언어 선택은 그 아래 구분선 다음의 가로 Flex로 배치한다. 현재 언어는 글자와 `aria-current="page"`로 함께 표시한다. 이름과 조작 요소의 위치에는 `position: absolute`나 padding 보정을 사용하지 않는다.
 
-모바일 메뉴는 24px의 세 줄 아이콘만 보이는 44px 정사각형 버튼으로 연다. 버튼은 배경, 테두리와 패딩을 사용하지 않으며 현재 언어의 접근 가능한 이름, `aria-controls`와 `aria-expanded`를 제공한다. Drawer는 최대 22rem 너비의 표준 `dialog`를 화면 오른쪽에 붙이고, 링크 제목, 닫기 버튼, 세로 외부 링크와 언어 선택 순서로 구성한다. 둥근 모서리, 그림자, 중첩 메뉴, 검색과 별도 애니메이션은 추가하지 않는다.
+모바일 메뉴는 24px의 세 줄 아이콘만 보이는 44px 정사각형 버튼으로 연다. 버튼은 배경, 테두리와 패딩을 사용하지 않으며 현재 언어의 접근 가능한 이름, `aria-controls`와 `aria-expanded`를 제공한다. Drawer는 최대 22rem 너비의 표준 `dialog`를 화면 오른쪽에 붙이고, 링크 제목과 24px 닫기 아이콘을 같은 `align-items: center`, `justify-content: space-between` 행에 배치한다. 닫기 아이콘 버튼도 배경, 테두리와 패딩 없이 44px 조작 영역과 현재 언어의 접근 가능한 이름을 제공한다. 이어서 세로 외부 링크와 언어 선택을 표시한다. 둥근 모서리, 그림자, 중첩 메뉴, 검색과 별도 애니메이션은 추가하지 않는다.
 
 본문 바로가기, 기존 영역 id를 통한 직접 이동과 Footer의 맨 위 이동은 유지한다. 섹션 이동 메뉴를 다른 위치에 다시 만들지 않는다.
 

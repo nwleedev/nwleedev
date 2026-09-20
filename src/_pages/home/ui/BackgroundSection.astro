@@ -13,7 +13,7 @@ const { background } = Astro.props;
 
 <section aria-labelledby={background.id} class="pb-16 md:pb-24">
   <SectionHeader id={background.id} title={background.title} />
-  <dl class="mt-10 border-b border-border-default">
+  <dl class="mt-10">
     {background.items.map((item) => (
       <div class="border-t border-border-default py-6">
         <dt class="font-semibold text-text-primary">{item.title}</dt>

@@ -12,14 +12,10 @@ const { independentWork } = Astro.props;
 ---
 
 <section aria-labelledby={independentWork.id} class="pb-16 md:pb-24">
-  <SectionHeader
-    id={independentWork.id}
-    title={independentWork.title}
-    introduction={independentWork.introduction}
-  />
-  <ul class="mt-10 border-b border-border-default">
+  <SectionHeader id={independentWork.id} title={independentWork.title} />
+  <ul class="mt-8">
     {independentWork.items.map((item) => (
-      <li class="border-t border-border-default py-9 md:py-10">
+      <li class="border-t border-border-default py-9 first:border-t-0 first:pt-0 md:py-10 md:first:pt-0">
         <h3 class="text-item font-semibold text-text-primary">{item.title}</h3>
         <p class="mt-4 text-base leading-7 text-text-secondary">{item.summary}</p>
         <div class="mt-7">

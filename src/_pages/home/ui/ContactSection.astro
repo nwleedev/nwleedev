@@ -17,7 +17,7 @@ const { contact } = Astro.props;
     title={contact.title}
     introduction={contact.introduction}
   />
-  <ul class="mt-10 border-b border-border-default">
+  <ul class="mt-10">
     {contact.links.map((link) => (
       <li class="border-t border-border-default py-5">
         <ExternalTextLink link={link} />

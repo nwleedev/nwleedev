@@ -158,7 +158,6 @@
   "independentWork": {
     "id": "independent-work",
     "title": "Independent Work",
-    "introduction": "회사 프로젝트 밖에서 문제를 정의하고 구현한 작업입니다.",
     "items": [
       {
         "title": "AI Agent Workflow",

@@ -13,9 +13,9 @@ const { openSource } = Astro.props;
 
 <section aria-labelledby={openSource.id} class="pb-16 md:pb-24">
   <SectionHeader id={openSource.id} title={openSource.title} />
-  <div class="mt-8 border-b border-border-default">
+  <div class="mt-8">
     {openSource.contributions.map((contribution) => (
-      <article class="border-t border-border-default py-9 first:border-t-0 first:pt-0 md:py-10">
+      <article class="border-t border-border-default py-9 first:border-t-0 first:pt-0 md:py-10 md:first:pt-0">
         <p class="text-sm font-semibold text-brand-strong">{contribution.release}</p>
         <h3 class="mt-2 text-item font-semibold text-text-primary">
           {contribution.project}

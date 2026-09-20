@@ -16,10 +16,18 @@ interface Props {
 const { identity, language, locale, menu } = Astro.props;
 ---
 
-<section aria-labelledby="identity-title" class="relative pb-16 pt-16">
-  <h1 id="identity-title" class="text-display font-semibold text-text-primary">
-    {identity.name}
-  </h1>
+<section aria-labelledby="identity-title" class="pb-16 pt-16">
+  <div class="flex items-center justify-between gap-4">
+    <h1 id="identity-title" class="text-display font-semibold text-text-primary">
+      {identity.name}
+    </h1>
+    <ProfileNavigation
+      links={identity.links}
+      language={language}
+      locale={locale}
+      menu={menu}
+    />
+  </div>
   <p class="mt-1 text-sm font-semibold text-brand-strong">{identity.role}</p>
   <p class="mt-8 text-lead font-normal text-text-primary">
     {identity.lead}
@@ -27,10 +35,55 @@ const { identity, language, locale, menu } = Astro.props;
   <p class="mt-4 text-base leading-7 text-text-secondary">
     {identity.supporting}
   </p>
-  <ProfileNavigation
-    links={identity.links}
-    language={language}
-    locale={locale}
-    menu={menu}
-  />
+  <ul class="mt-7 hidden flex-wrap gap-x-6 gap-y-3 sm:flex">
+    {identity.links.map((link) => (
+      <li>
+        <a
+          href={link.href}
+          class="inline-flex min-h-6 items-center font-semibold text-brand-strong decoration-brand-base hover:text-brand-hover"
+          aria-label={`${link.label}: ${link.context}`}
+        >
+          {link.label}
+        </a>
+      </li>
+    ))}
+  </ul>
+
+  <noscript>
+    <div class="mt-7 sm:hidden">
+      <ul class="flex flex-col gap-2">
+        {identity.links.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              class="inline-flex min-h-11 items-center font-semibold text-brand-strong decoration-brand-base"
+              aria-label={`${link.label}: ${link.context}`}
+            >
+              {link.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <nav aria-label={language.label} class="mt-6">
+        <ul class="flex gap-4 text-sm font-semibold text-text-muted">
+          {language.links.map((link) => (
+            <li>
+              <a
+                class:list={[
+                  "inline-flex min-h-11 items-center",
+                  link.locale === locale && "text-brand-strong no-underline",
+                ]}
+                href={link.href}
+                aria-current={link.locale === locale ? "page" : undefined}
+                lang={link.locale}
+                hreflang={link.locale}
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+  </noscript>
 </section>

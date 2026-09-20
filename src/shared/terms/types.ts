@@ -91,7 +91,6 @@ export type HomeTerms = {
   independentWork: {
     id: string;
     title: string;
-    introduction: string;
     items: readonly IndependentWork[];
   };
   background: {

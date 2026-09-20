@@ -119,7 +119,7 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     isArrayOf(field(experience, "companies"), isCompanyExperience) &&
     hasStrings(openSource, ["id", "title"]) &&
     isArrayOf(field(openSource, "contributions"), isOpenSourceContribution) &&
-    isSection(independentWork, "introduction") &&
+    hasStrings(independentWork, ["id", "title"]) &&
     isArrayOf(field(independentWork, "items"), isIndependentWork) &&
     hasStrings(background, ["id", "title"]) &&
     isArrayOf(field(background, "items"), isBackgroundItem) &&

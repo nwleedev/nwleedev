@@ -158,7 +158,6 @@
   "independentWork": {
     "id": "independent-work",
     "title": "Independent Work",
-    "introduction": "Work I defined and implemented outside company projects.",
     "items": [
       {
         "title": "AI Agent Workflow",
