@@ -1,5 +1,6 @@
+import en from "./en.json";
 import ko from "./ko.json";
-import type { ExternalLink, HomeTerms, Locale } from "./types";
+import type { ExternalLink, HomeTerms, LanguageLink, Locale } from "./types";
 
 function field(value: unknown, key: string): unknown {
   if (typeof value !== "object" || value === null) {
@@ -30,6 +31,14 @@ function hasStrings(value: unknown, keys: readonly string[]): boolean {
 
 function isExternalLink(value: unknown): value is ExternalLink {
   return hasStrings(value, ["label", "href", "context"]);
+}
+
+function isLocale(value: unknown): value is Locale {
+  return value === "ko" || value === "en";
+}
+
+function isLanguageLink(value: unknown): value is LanguageLink {
+  return hasStrings(value, ["label", "href"]) && isLocale(field(value, "locale"));
 }
 
 function isMetadata(value: unknown): boolean {
@@ -114,9 +123,11 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     isString(field(value, "skipLink")) &&
     hasStrings(linkLabels, ["resume", "resumeContext"]) &&
     isString(field(navigation, "label")) &&
+    isString(field(navigation, "languageLabel")) &&
     isArrayOf(field(navigation, "items"), (item): item is { label: string; href: string } =>
       hasStrings(item, ["label", "href"]),
     ) &&
+    isArrayOf(field(navigation, "languages"), isLanguageLink) &&
     hasStrings(identity, ["name", "role", "lead", "supporting"]) &&
     isArrayOf(field(identity, "links"), isExternalLink) &&
     isSection(experience, "introduction") &&
@@ -143,6 +154,7 @@ function parseTerms(value: unknown, locale: Locale): HomeTerms {
 
 const termsByLocale = {
   ko: parseTerms(ko, "ko"),
+  en: parseTerms(en, "en"),
 } satisfies Record<Locale, HomeTerms>;
 
 type RuntimeTerms = {

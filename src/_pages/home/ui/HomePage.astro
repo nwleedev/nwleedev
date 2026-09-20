@@ -34,6 +34,9 @@ const terms = resumeUrl ? getTerms(locale, { resumeUrl }) : getTerms(locale);
     name={terms.identity.name}
     label={terms.navigation.label}
     items={terms.navigation.items}
+    locale={locale}
+    languageLabel={terms.navigation.languageLabel}
+    languages={terms.navigation.languages}
   />
   <main id="main-content" tabindex="-1">
     <IdentityBlock identity={terms.identity} />

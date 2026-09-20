@@ -7,6 +7,7 @@ export type {
   ExternalLink,
   HomeTerms,
   IndependentWork,
+  LanguageLink,
   Locale,
   Metadata,
   MetricContribution,

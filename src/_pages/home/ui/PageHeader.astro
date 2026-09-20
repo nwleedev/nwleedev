@@ -1,13 +1,16 @@
 ---
-import type { NavigationItem } from "@/shared/terms";
+import type { LanguageLink, Locale, NavigationItem } from "@/shared/terms";
 
 interface Props {
   name: string;
   label: string;
   items: readonly NavigationItem[];
+  locale: Locale;
+  languageLabel: string;
+  languages: readonly LanguageLink[];
 }
 
-const { name, label, items } = Astro.props;
+const { name, label, items, locale, languageLabel, languages } = Astro.props;
 ---
 
 <header class="border-b border-border-default">
@@ -15,14 +18,36 @@ const { name, label, items } = Astro.props;
     <a href="#main-content" class="min-h-6 font-semibold tracking-[-0.02em] text-text-primary no-underline">
       {name}
     </a>
-    <nav aria-label={label}>
-      <ul class="flex flex-wrap justify-end gap-x-5 gap-y-2 text-sm font-semibold text-text-secondary">
-        {items.map((item) => (
-          <li>
-            <a class="inline-flex min-h-6 items-center" href={item.href}>{item.label}</a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <div class="flex flex-wrap items-center justify-end gap-x-6 gap-y-3">
+      <nav aria-label={label}>
+        <ul class="flex flex-wrap justify-end gap-x-5 gap-y-2 text-sm font-semibold text-text-secondary">
+          {items.map((item) => (
+            <li>
+              <a class="inline-flex min-h-6 items-center" href={item.href}>{item.label}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      <nav aria-label={languageLabel}>
+        <ul class="flex gap-3 text-xs font-bold tracking-[0.08em] text-text-muted">
+          {languages.map((language) => (
+            <li>
+              <a
+                class:list={[
+                  "inline-flex min-h-6 items-center",
+                  language.locale === locale && "text-brand-strong no-underline",
+                ]}
+                href={language.href}
+                aria-current={language.locale === locale ? "page" : undefined}
+                lang={language.locale}
+                hreflang={language.locale}
+              >
+                {language.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </div>
   </div>
 </header>

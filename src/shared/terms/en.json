@@ -1,0 +1,207 @@
+{
+  "meta": {
+    "title": "Nowon Lee — Frontend Engineer",
+    "description": "Technical profile of frontend engineer Nowon Lee, focused on tracing service issues, improving data flow and asynchronous state, and verifying production behavior"
+  },
+  "skipLink": "Skip to main content",
+  "linkLabels": {
+    "resume": "Résumé",
+    "resumeContext": "Resume"
+  },
+  "navigation": {
+    "label": "Primary sections",
+    "items": [
+      { "label": "Experience", "href": "#experience" },
+      { "label": "Open Source", "href": "#open-source" },
+      { "label": "Independent Work", "href": "#independent-work" },
+      { "label": "Contact", "href": "#contact" }
+    ],
+    "languageLabel": "Language",
+    "languages": [
+      { "locale": "ko", "label": "KO", "href": "/" },
+      { "locale": "en", "label": "EN", "href": "/en/" }
+    ]
+  },
+  "identity": {
+    "name": "Nowon Lee",
+    "role": "Frontend Engineer",
+    "lead": "I trace service issues to their causes, improve data flow and asynchronous state, and verify behavior after deployment.",
+    "supporting": "I have solved problems involving real-time data, long-running tasks, operational dashboards, and service quality in TypeScript and React web services.",
+    "links": [
+      { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "Code and open source contributions" },
+      { "label": "Blog", "href": "https://blog.nwlee.com", "context": "Technical notes and problem-solving process" },
+      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "Professional profile" }
+    ]
+  },
+  "experience": {
+    "id": "experience",
+    "index": "01",
+    "title": "Experience",
+    "introduction": "The focus is on engineering decisions and verified changes rather than job descriptions.",
+    "companies": [
+      {
+        "company": "AI Factory",
+        "period": "2025 — Present",
+        "role": "Frontend Engineer",
+        "summary": "I worked on real-time data processing, long-running asynchronous tasks, operational dashboards, and quality assurance for public-sector web service projects.",
+        "contributions": [
+          {
+            "kind": "metric",
+            "title": "Data & Monitoring",
+            "summary": "I improved the dashboard's query and transformation structure and corrected metrics that did not match the actual API responses.",
+            "detail": "Each update requests only the interval after the previous request time.",
+            "metricLabel": "Data transferred per 10-minute interval",
+            "before": "96.5 MB",
+            "after": "41 KB",
+            "metadata": {
+              "period": "Verified in production",
+              "technologies": ["Next.js", "Prometheus", "Recharts"]
+            }
+          },
+          {
+            "kind": "metric",
+            "title": "Async State & Realtime",
+            "summary": "I changed status tracking for five-to-ten-minute document generation tasks from continuous polling to event-triggered server checks.",
+            "detail": "The event does not determine completion; the server response remains the source for UI state.",
+            "metricLabel": "Status requests per task",
+            "before": "100–200",
+            "after": "10 or fewer",
+            "metadata": {
+              "period": "For 5–10 minute tasks",
+              "technologies": ["React", "SSE", "Next.js"]
+            }
+          },
+          {
+            "kind": "structure",
+            "title": "Browser Runtime & Realtime Data",
+            "summary": "I eliminated three-to-four-second UI freezes during requests and transformations of responses around 5 MB.",
+            "detail": "API requests and response transformations run in a SharedWorker so the main thread can focus on rendering.",
+            "figure": {
+              "label": "Where large responses are processed",
+              "steps": ["API", "SharedWorker", "Main Thread"]
+            },
+            "metadata": {
+              "period": "Response size and format retained",
+              "technologies": ["SharedWorker", "REST", "Streaming"]
+            }
+          },
+          {
+            "kind": "evidence",
+            "title": "Reliability & Delivery",
+            "summary": "I built an E2E suite that repeatedly exercises user journeys before deployment and uncovered an authentication-state defect.",
+            "detail": "The suite reproduces the sequence where browser credentials remain after the server session expires.",
+            "evidence": "More than 70 executable E2E scenarios",
+            "metadata": {
+              "period": "Pre-deployment verification",
+              "technologies": ["Playwright", "Authentication", "QA"]
+            }
+          }
+        ]
+      },
+      {
+        "company": "Crust Universe / Quarkonix",
+        "period": "2022 — 2024",
+        "role": "Frontend Engineer",
+        "summary": "I traced errors and performance regressions in React and TypeScript services and improved data updates, loading performance, and real-time connections.",
+        "contributions": [
+          {
+            "kind": "evidence",
+            "title": "State Consistency",
+            "summary": "I applied optimistic updates alongside periodic refetching to reduce duplicate requests and resolve discrepancies between the UI and server values.",
+            "detail": "I verified the UI state when the refresh interval overlaps with a user change.",
+            "evidence": "One rule for user changes and server refreshes",
+            "metadata": {
+              "period": "Production service",
+              "technologies": ["React", "TypeScript", "Optimistic Update"]
+            }
+          },
+          {
+            "kind": "evidence",
+            "title": "Loading & Realtime",
+            "summary": "I configured Vite and React lazy loading and identified the cause of intermittent WebSocket disconnections.",
+            "detail": "I documented the loading improvements so they could be applied to other frontend projects.",
+            "evidence": "Reusable loading setup and restored real-time updates",
+            "metadata": {
+              "period": "Service delivery",
+              "technologies": ["Vite", "React", "WebSocket"]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "openSource": {
+    "id": "open-source",
+    "index": "02",
+    "title": "Open Source",
+    "introduction": "Changes merged into external projects and included in official releases.",
+    "contributions": [
+      {
+        "project": "React Router",
+        "release": "v7.13.1",
+        "summary": "Fixed optional URL parameters incorrectly matching paths that lacked a `/` separator.",
+        "verification": "Added regression coverage while preserving existing dot-suffix behavior.",
+        "links": [
+          { "label": "PR #14689", "href": "https://github.com/remix-run/react-router/pull/14689", "context": "Change and review history" },
+          { "label": "Release v7.13.1", "href": "https://github.com/remix-run/react-router/releases/tag/react-router@7.13.1", "context": "Official release" }
+        ]
+      },
+      {
+        "project": "Outline",
+        "release": "v1.2.0",
+        "summary": "Fixed an editor defect that prevented Delete or Backspace from removing the final character before an inline image.",
+        "verification": "Verified deletion inside and outside tables while preserving regular text deletion.",
+        "links": [
+          { "label": "PR #10759", "href": "https://github.com/outline/outline/pull/10759", "context": "Change and review history" },
+          { "label": "Release v1.2.0", "href": "https://github.com/outline/outline/releases/tag/v1.2.0", "context": "Official release" }
+        ]
+      }
+    ]
+  },
+  "independentWork": {
+    "id": "independent-work",
+    "index": "03",
+    "title": "Independent Work",
+    "introduction": "Work I defined and implemented outside company projects.",
+    "items": [
+      {
+        "title": "AI Agent Workflow",
+        "period": "2026 — Present",
+        "summary": "I designed repository rules and skills to keep requirements, research, decisions, and implementation distinct, including a Korean wording check before text is stored. I have applied the workflow across multiple repositories.",
+        "technologies": ["Node.js", "Repository Rules", "Text Validation"]
+      },
+      {
+        "title": "Offline Translation Web App",
+        "period": "2025",
+        "summary": "After users save the required language models, the browser can translate between Korean and English or Korean and Japanese without a network connection. I implemented the workflow with browser caching, Web Workers, and IndexedDB, and automated deployment with GitHub Actions.",
+        "technologies": ["Web Worker", "IndexedDB", "Offline", "GitHub Actions"]
+      }
+    ]
+  },
+  "background": {
+    "id": "background",
+    "index": "04",
+    "title": "Background",
+    "items": [
+      { "title": "Dankook University", "detail": "Applied Computer Engineering", "period": "2016 — 2022" },
+      { "title": "Engineer Information Processing", "detail": "Human Resources Development Service of Korea", "period": "2022" },
+      { "title": "TOEIC Speaking", "detail": "IH", "period": "2025" }
+    ]
+  },
+  "contact": {
+    "id": "contact",
+    "index": "05",
+    "title": "Contact",
+    "introduction": "For hiring or collaboration, contact me by email or through one of the profiles below.",
+    "links": [
+      { "label": "Email", "href": "mailto:nw.lee@outlook.com", "context": "Send an email" },
+      { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "Code and open source contributions" },
+      { "label": "Blog", "href": "https://blog.nwlee.com", "context": "Technical notes and problem-solving process" },
+      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "Professional profile" }
+    ]
+  },
+  "footer": {
+    "text": "Nowon Lee, Frontend Engineer",
+    "topLabel": "Back to top"
+  }
+}

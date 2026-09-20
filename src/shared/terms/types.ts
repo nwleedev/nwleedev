@@ -1,8 +1,12 @@
-export type Locale = "ko";
+export type Locale = "ko" | "en";
 
 export type NavigationItem = {
   label: string;
   href: string;
+};
+
+export type LanguageLink = NavigationItem & {
+  locale: Locale;
 };
 
 export type ExternalLink = {
@@ -95,6 +99,8 @@ export type HomeTerms = {
   navigation: {
     label: string;
     items: readonly NavigationItem[];
+    languageLabel: string;
+    languages: readonly LanguageLink[];
   };
   identity: {
     name: string;

@@ -15,6 +15,11 @@
       { "label": "Open Source", "href": "#open-source" },
       { "label": "Independent Work", "href": "#independent-work" },
       { "label": "Contact", "href": "#contact" }
+    ],
+    "languageLabel": "언어",
+    "languages": [
+      { "locale": "ko", "label": "KO", "href": "/" },
+      { "locale": "en", "label": "EN", "href": "/en/" }
     ]
   },
   "identity": {
