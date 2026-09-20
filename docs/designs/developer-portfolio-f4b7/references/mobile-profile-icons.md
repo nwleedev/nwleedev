@@ -16,7 +16,9 @@ Phosphor의 공식 코어 저장소는 환경별 포트 가운데 `phosphor-astr
 
 ## 모바일 배치
 
-아이콘 목록은 소개 문구 다음, 데스크톱 텍스트 링크와 같은 문서 위치에 둔다. `display: flex`, `flex-wrap: nowrap`, `align-items: center`와 `justify-content: space-between`을 사용해 네 링크를 한 행으로 유지한다. CSS `order`, 고정 전체 너비와 가로 스크롤은 사용하지 않는다.
+아이콘 목록은 소개 문구 다음, 데스크톱 텍스트 링크와 같은 문서 위치에 둔다. `display: flex`, `flex-wrap: nowrap`, `align-items: center`, `justify-content: flex-start`와 16px `gap`을 사용한다. 첫 링크를 본문 왼쪽 기준선에 맞추고 인접한 44px 조작 영역 사이에 같은 간격을 둔다. CSS `order`, 고정 전체 너비와 가로 스크롤은 사용하지 않는다.
+
+[CSS Box Alignment Module Level 3](https://www.w3.org/TR/css-align-3/#distribution-values)는 `space-between`이 첫 항목과 마지막 항목을 컨테이너 양 끝에 두고 남는 너비를 항목 사이에 분배한다고 정의한다. [MDN의 `justify-content` 설명](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/justify-content)은 Flex 행에서 이 속성이 주축의 남는 공간을 배분한다고 설명한다. 화면 폭에 따라 아이콘 사이가 벌어지지 않게 하려면 `space-between`을 사용하지 않아야 한다. [CSS Box Alignment의 gap 정의](https://www.w3.org/TR/css-align-3/#gap-shorthand)와 [MDN의 `gap` 설명](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/gap)에 따라 인접 항목 사이의 고정 간격은 컨테이너의 `gap`으로 지정한다. 16px은 이 사이트의 기본 여백 값에 포함되고, 네 개의 44px 조작 영역과 함께 224px을 차지하므로 기존 266px 확인 폭에서도 한 행을 유지한다.
 
 각 링크의 조작 영역은 44×44 CSS px로 고정하고 SVG만 `clamp(1.125rem, 7vw, 1.5rem)`으로 표시한다. 390px에서는 24px, 320px에서는 약 22px이며 더 좁은 화면에서는 18px까지 줄어든다. [WCAG 2.2 Target Size (Minimum)](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)은 독립된 조작 대상에 24×24 CSS px 또는 충분한 간격을 요구하고, [Target Size (Enhanced)](https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced.html)는 44×44 CSS px을 향상 기준으로 제시한다. 보이는 그림을 줄이더라도 조작 영역은 줄이지 않는다.
 
