@@ -27,7 +27,7 @@ Pretendard 1.3.9 자체 제공과 라이선스, 기존 색상 역할, 외부 링
 
 아래 1~4를 순서대로 진행한다. 각 단위를 마칠 때 상태, 실제 변경 파일과 다음 시작 위치를 이 플랜에 갱신한다. 마지막 단위에서 한 번의 통합 검토로 빌드와 화면을 확인한다. 중간 단위에서는 변경한 파일과 내용을 기록하되 별도의 리뷰를 반복하지 않는다.
 
-현재 상태: 구현 단위 1~2 완료, 단위 3~4 대기. 다음 시작 위치는 `OpenSourceSection.astro`다.
+현재 상태: 구현 단위 1~3 완료, 단위 4 대기. 다음 시작 위치는 두 언어의 생성 HTML 및 브라우저 확인이다.
 
 ### 1. 기여 본문과 언어 선택 구조 교체
 
@@ -69,7 +69,7 @@ Pretendard 1.3.9 자체 제공과 라이선스, 기존 색상 역할, 외부 링
 
 ### 3. 나머지 영역도 세로 본문으로 통합
 
-상태: 대기. 단위 2 완료 후 시작한다.
+상태: 완료. `OpenSourceSection`, `IndependentWorkSection`, `BackgroundSection`과 `ContactSection`에서 두 열 및 세 열 전환, container query, 카드 배경과 항목별 위치 이동을 제거했다. 모든 항목은 제목, 설명, 확인 정보와 링크 순서로 이어진다. `PageFooter`는 끝 정보와 맨 위 이동만 남겼다. `pnpm check`와 `pnpm build`가 통과했다.
 
 적용 요구사항: 「Open Source」, 「Independent Work」, 「Background와 Contact」, 「조작과 움직임」.
 

@@ -11,24 +11,21 @@ interface Props {
 const { independentWork } = Astro.props;
 ---
 
-<section aria-labelledby={independentWork.id} class="mx-auto max-w-page px-(--page-gutter) py-22 md:py-26">
+<section aria-labelledby={independentWork.id} class="py-18 md:py-22">
   <SectionHeader
     id={independentWork.id}
     title={independentWork.title}
     introduction={independentWork.introduction}
   />
-  <ol class="mt-14 grid gap-px bg-border-default md:grid-cols-2">
-    {independentWork.items.map((item, index) => (
-      <li class:list={["bg-surface-default p-7 md:p-10", index % 2 === 1 && "md:translate-y-10"]}>
-        <p class="text-sm font-semibold tabular-nums text-brand-strong">
-          {String(index + 1).padStart(2, "0")}
-        </p>
-        <h3 class="mt-8 text-item font-semibold tracking-[-0.02em] text-text-primary">{item.title}</h3>
-        <p class="mt-4 max-w-copy text-base leading-7 text-text-secondary">{item.summary}</p>
+  <ul class="mt-10 border-b border-border-default">
+    {independentWork.items.map((item) => (
+      <li class="border-t border-border-default py-9 md:py-10">
+        <h3 class="text-item font-semibold text-text-primary">{item.title}</h3>
+        <p class="mt-4 text-base leading-7 text-text-secondary">{item.summary}</p>
         <div class="mt-7">
           <MetadataLine period={item.period} technologies={item.technologies} />
         </div>
       </li>
     ))}
-  </ol>
+  </ul>
 </section>

@@ -11,20 +11,18 @@ interface Props {
 const { contact } = Astro.props;
 ---
 
-<section aria-labelledby={contact.id} class="bg-surface-subtle">
-  <div class="mx-auto max-w-page px-(--page-gutter) py-22 md:py-26">
-    <SectionHeader
-      id={contact.id}
-      title={contact.title}
-      introduction={contact.introduction}
-    />
-    <ul class="mt-14 grid gap-x-8 gap-y-5 sm:grid-cols-2 md:ms-[25%] md:grid-cols-3">
-      {contact.links.map((link) => (
-        <li class="border-t border-border-default pt-4 text-lg">
-          <ExternalTextLink link={link} />
-          <p class="mt-1 text-sm leading-6 text-text-muted">{link.context}</p>
-        </li>
-      ))}
-    </ul>
-  </div>
+<section aria-labelledby={contact.id} class="py-18 md:py-22">
+  <SectionHeader
+    id={contact.id}
+    title={contact.title}
+    introduction={contact.introduction}
+  />
+  <ul class="mt-10 border-b border-border-default">
+    {contact.links.map((link) => (
+      <li class="border-t border-border-default py-5">
+        <ExternalTextLink link={link} />
+        <p class="mt-1 text-sm leading-6 text-text-muted">{link.context}</p>
+      </li>
+    ))}
+  </ul>
 </section>
