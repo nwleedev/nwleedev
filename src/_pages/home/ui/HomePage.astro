@@ -1,9 +1,26 @@
 ---
+import { getTerms, type Locale } from "@/shared/terms";
+import { BaseLayout } from "@/shared/ui";
+
 interface Props {
-  locale: "ko";
+  locale: Locale;
 }
 
 const { locale } = Astro.props;
+const resumeUrl = import.meta.env.PUBLIC_RESUME_URL;
+const terms = resumeUrl ? getTerms(locale, { resumeUrl }) : getTerms(locale);
 ---
 
-<main lang={locale}></main>
+<BaseLayout
+  locale={locale}
+  title={terms.meta.title}
+  description={terms.meta.description}
+>
+  <a
+    href="#main-content"
+    class="fixed start-4 top-4 z-50 -translate-y-24 bg-text-primary px-4 py-2 text-surface-default focus:translate-y-0"
+  >
+    {terms.skipLink}
+  </a>
+  <main id="main-content"></main>
+</BaseLayout>

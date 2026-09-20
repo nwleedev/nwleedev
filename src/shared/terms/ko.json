@@ -1,0 +1,201 @@
+{
+  "meta": {
+    "title": "이노원 — Frontend Engineer",
+    "description": "서비스 문제의 원인을 찾고 서버 응답과 비동기 상태를 개선한 프론트엔드 엔지니어 이노원의 기술 프로필"
+  },
+  "skipLink": "본문으로 이동",
+  "linkLabels": {
+    "resume": "Résumé",
+    "resumeContext": "이력서"
+  },
+  "navigation": {
+    "label": "주요 영역",
+    "items": [
+      { "label": "Experience", "href": "#experience" },
+      { "label": "Open Source", "href": "#open-source" },
+      { "label": "Independent Work", "href": "#independent-work" },
+      { "label": "Contact", "href": "#contact" }
+    ]
+  },
+  "identity": {
+    "name": "이노원",
+    "role": "Frontend Engineer",
+    "lead": "서비스에서 발생하는 문제의 원인을 찾고, 데이터 흐름과 비동기 상태를 개선하며 배포 후 실제 동작까지 확인합니다.",
+    "supporting": "TypeScript와 React 기반 웹 서비스에서 실시간 데이터, 장시간 작업, 운영 대시보드와 서비스 품질 문제를 해결해 왔습니다.",
+    "links": [
+      { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "코드와 오픈소스 기여" },
+      { "label": "Blog", "href": "https://blog.nwlee.com", "context": "문제 해결 과정과 기술 기록" },
+      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "경력 프로필" }
+    ]
+  },
+  "experience": {
+    "id": "experience",
+    "index": "01",
+    "title": "Experience",
+    "introduction": "회사별 역할보다 그 안에서 내린 기술적 판단과 확인된 변화를 중심으로 정리했습니다.",
+    "companies": [
+      {
+        "company": "인공지능팩토리",
+        "period": "2025 — Present",
+        "role": "Frontend Engineer",
+        "summary": "공공기관 대상 웹 서비스 구축 프로젝트에서 실시간 데이터 처리, 장시간 비동기 작업, 운영 대시보드와 품질 검증을 담당했습니다.",
+        "contributions": [
+          {
+            "kind": "metric",
+            "title": "Data & Monitoring",
+            "summary": "운영 대시보드의 조회와 변환 구조를 개선하고 실제 응답을 기준으로 잘못 표시되던 지표를 교정했습니다.",
+            "detail": "새 값을 가져올 때는 마지막 요청 시각 이후의 구간만 조회했습니다.",
+            "metricLabel": "10분 기준 데이터 전송량",
+            "before": "96.5 MB",
+            "after": "41 KB",
+            "metadata": {
+              "period": "운영 환경 확인",
+              "technologies": ["Next.js", "Prometheus", "Recharts"]
+            }
+          },
+          {
+            "kind": "metric",
+            "title": "Async State & Realtime",
+            "summary": "5~10분 동안 실행되는 문서 생성 작업의 상태 확인을 반복 조회에서 이벤트를 계기로 서버 상태를 다시 확인하는 방식으로 변경했습니다.",
+            "detail": "이벤트 자체를 완료 상태로 판단하지 않고 서버 응답을 화면 상태의 기준으로 삼았습니다.",
+            "metricLabel": "작업 한 건의 상태 요청",
+            "before": "100~200회",
+            "after": "10회 이하",
+            "metadata": {
+              "period": "5~10분 작업 기준",
+              "technologies": ["React", "SSE", "Next.js"]
+            }
+          },
+          {
+            "kind": "structure",
+            "title": "Browser Runtime & Realtime Data",
+            "summary": "약 5 MB 응답의 호출과 변환 중 발생하던 3~4초 화면 정지를 해결했습니다.",
+            "detail": "API 호출과 응답 변환을 SharedWorker로 옮겨 메인 스레드가 화면 갱신에 집중하도록 했습니다.",
+            "figure": {
+              "label": "대용량 응답 처리 위치",
+              "steps": ["API", "SharedWorker", "Main Thread"]
+            },
+            "metadata": {
+              "period": "응답 크기와 형식 유지",
+              "technologies": ["SharedWorker", "REST", "Streaming"]
+            }
+          },
+          {
+            "kind": "evidence",
+            "title": "Reliability & Delivery",
+            "summary": "배포 전에 실제 사용 흐름을 반복해서 확인할 수 있는 E2E 체계를 만들고 인증 상태 문제를 발견했습니다.",
+            "detail": "브라우저의 인증 정보와 만료된 서버 세션이 어긋나는 상황을 실제 사용 순서로 재현했습니다.",
+            "evidence": "70개 이상의 실행 가능한 E2E 시나리오",
+            "metadata": {
+              "period": "배포 전 검증",
+              "technologies": ["Playwright", "Authentication", "QA"]
+            }
+          }
+        ]
+      },
+      {
+        "company": "크러스트유니버스 / Quarkonix",
+        "period": "2022 — 2024",
+        "role": "Frontend Engineer",
+        "summary": "React와 TypeScript 기반 서비스에서 발생한 오류와 성능 저하의 원인을 찾고 데이터 갱신, 로딩 성능과 실시간 연결을 개선했습니다.",
+        "contributions": [
+          {
+            "kind": "evidence",
+            "title": "State Consistency",
+            "summary": "주기적인 refetch 환경에 optimistic update를 적용해 중복 요청을 줄이고 사용자 화면과 서버 값이 달라지는 문제를 해결했습니다.",
+            "detail": "갱신 주기와 사용자 변경이 겹치는 조건에서 화면 상태를 확인했습니다.",
+            "evidence": "사용자 변경과 서버 갱신의 기준 통일",
+            "metadata": {
+              "period": "서비스 운영",
+              "technologies": ["React", "TypeScript", "Optimistic Update"]
+            }
+          },
+          {
+            "kind": "evidence",
+            "title": "Loading & Realtime",
+            "summary": "Vite 설정과 React lazy loading을 적용하고 간헐적인 WebSocket 연결 중단 원인을 확인했습니다.",
+            "detail": "다른 프론트엔드 프로젝트에도 적용할 수 있도록 로딩 개선 절차를 문서화했습니다.",
+            "evidence": "로딩 설정 재사용과 실시간 갱신 복구",
+            "metadata": {
+              "period": "서비스 배포",
+              "technologies": ["Vite", "React", "WebSocket"]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "openSource": {
+    "id": "open-source",
+    "index": "02",
+    "title": "Open Source",
+    "introduction": "외부 프로젝트에서 병합되고 공식 릴리스에 포함된 수정입니다.",
+    "contributions": [
+      {
+        "project": "React Router",
+        "release": "v7.13.1",
+        "summary": "선택적 URL parameter가 `/` 구분자 없는 주소까지 잘못 매칭되는 문제를 수정했습니다.",
+        "verification": "기존 dot-suffix 동작을 보존하는 회귀 검사를 추가했습니다.",
+        "links": [
+          { "label": "PR #14689", "href": "https://github.com/remix-run/react-router/pull/14689", "context": "수정과 검토 기록" },
+          { "label": "Release v7.13.1", "href": "https://github.com/remix-run/react-router/releases/tag/react-router@7.13.1", "context": "공식 릴리스" }
+        ]
+      },
+      {
+        "project": "Outline",
+        "release": "v1.2.0",
+        "summary": "인라인 이미지 앞의 마지막 글자를 Delete 또는 Backspace로 지울 수 없는 편집기 문제를 수정했습니다.",
+        "verification": "표 안팎의 삭제 동작과 일반 텍스트 삭제가 유지되는지 확인했습니다.",
+        "links": [
+          { "label": "PR #10759", "href": "https://github.com/outline/outline/pull/10759", "context": "수정과 검토 기록" },
+          { "label": "Release v1.2.0", "href": "https://github.com/outline/outline/releases/tag/v1.2.0", "context": "공식 릴리스" }
+        ]
+      }
+    ]
+  },
+  "independentWork": {
+    "id": "independent-work",
+    "index": "03",
+    "title": "Independent Work",
+    "introduction": "회사 프로젝트 밖에서 문제를 정의하고 구현한 작업입니다.",
+    "items": [
+      {
+        "title": "AI Agent Workflow",
+        "period": "2026 — Present",
+        "summary": "요구사항, 조사, 결정과 구현이 섞이지 않도록 저장소 규칙과 Skill을 구성하고, 한국어 문구를 저장하기 전에 검사하는 절차를 여러 저장소에 적용했습니다.",
+        "technologies": ["Node.js", "Repository Rules", "Text Validation"]
+      },
+      {
+        "title": "Offline Translation Web App",
+        "period": "2025",
+        "summary": "사용할 언어의 모델을 미리 저장하면 네트워크 연결 없이 한국어와 영어, 한국어와 일본어 사이를 번역할 수 있도록 브라우저 캐시, Web Worker와 IndexedDB를 구성했습니다. GitHub Actions로 배포를 자동화했습니다.",
+        "technologies": ["Web Worker", "IndexedDB", "Offline", "GitHub Actions"]
+      }
+    ]
+  },
+  "background": {
+    "id": "background",
+    "index": "04",
+    "title": "Background",
+    "items": [
+      { "title": "단국대학교", "detail": "응용컴퓨터공학과", "period": "2016 — 2022" },
+      { "title": "정보처리기사", "detail": "한국산업인력공단", "period": "2022" },
+      { "title": "TOEIC Speaking", "detail": "IH", "period": "2025" }
+    ]
+  },
+  "contact": {
+    "id": "contact",
+    "index": "05",
+    "title": "Contact",
+    "introduction": "협업과 채용에 관한 연락은 이메일 또는 아래 프로필에서 확인할 수 있습니다.",
+    "links": [
+      { "label": "Email", "href": "mailto:nw.lee@outlook.com", "context": "이메일 보내기" },
+      { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "코드와 오픈소스 기여" },
+      { "label": "Blog", "href": "https://blog.nwlee.com", "context": "문제 해결 과정과 기술 기록" },
+      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "경력 프로필" }
+    ]
+  },
+  "footer": {
+    "text": "이노원, Frontend Engineer"
+  }
+}

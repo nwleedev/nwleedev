@@ -113,12 +113,16 @@ Astro 7로 정적 HTML을 만들고 Tailwind CSS 4를 Vite 플러그인으로 �
 
 ### 3. 디자인 토큰, 문서 Layout과 한국어 문구 구성
 
-상태: 시작 전.
+상태: 완료.
+
+완료 내용: Pretendard 1.3.9 가변 글꼴과 SIL Open Font License 1.1을 자체 제공 자산으로 추가했다. 디자인 토큰과 기본 문서 스타일, Layout, 한국어 JSON, 판별 가능한 기여 타입과 빌드 시 JSON 구조 검사를 구성했다. Résumé 주소는 Git이 추적하지 않는 환경 변수에서 읽는다. `pnpm check`와 `pnpm build`가 통과했고 생성된 HTML의 `lang`, title과 description을 확인했다.
 
 적용 요구사항: 「글과 언어 관리」, 「편집형 시각 규칙」, 「글꼴과 글자 체계」, 「색상」, 「여백과 반응형 배치」.
 
 - 추가할 파일:
   - `DESIGN.md`: 실제 CSS 변수 이름, 글꼴 제공 방식, 글자 단계, 색상 역할, 여백, 1200px 최대 폭, 페이지 전환값, 컨테이너 비교값, 포커스와 움직임 규칙을 기록한다.
+  - `public/fonts/PretendardVariable.woff2`, `public/fonts/LICENSE-Pretendard.txt`: Pretendard 1.3.9 가변 글꼴과 배포에 필요한 라이선스를 함께 보관한다.
+  - `src/env.d.ts`: 빌드 환경에서 받아 브라우저 링크에 사용하는 주소의 타입을 선언한다.
   - `src/shared/styles/global.css`: `@import "tailwindcss"`, `@theme` 토큰, 기본 문서 스타일, `focus-visible`, `prefers-reduced-motion`과 앵커 이동 보정을 둔다.
   - `src/shared/ui/BaseLayout.astro`: `lang`, title, description과 기본 meta를 받고 `global.css`를 한 번 불러온다. `html`, `head`, `body`와 기본 slot만 담당한다.
   - `src/shared/ui/index.ts`: 이 작업 단위에서는 `BaseLayout`만 외부에 제공한다.
