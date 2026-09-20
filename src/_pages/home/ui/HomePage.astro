@@ -35,7 +35,7 @@ const terms = resumeUrl ? getTerms(locale, { resumeUrl }) : getTerms(locale);
     label={terms.navigation.label}
     items={terms.navigation.items}
   />
-  <main id="main-content">
+  <main id="main-content" tabindex="-1">
     <IdentityBlock identity={terms.identity} />
     <ExperienceSection experience={terms.experience} />
     <OpenSourceSection openSource={terms.openSource} />

@@ -13,7 +13,7 @@ const { label, steps } = Astro.props;
       <li class="flex items-center gap-2 text-sm font-semibold text-text-primary">
         <span>{step}</span>
         {index < steps.length - 1 && (
-          <span aria-hidden="true" class="text-brand-strong @min-[34rem]:ms-auto">→</span>
+          <span aria-hidden="true" class="rotate-90 text-brand-strong @min-[34rem]:ms-auto @min-[34rem]:rotate-0">→</span>
         )}
       </li>
     ))}
