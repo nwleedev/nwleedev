@@ -1,6 +1,6 @@
 # 첫 버전의 독립 작업 선정
 
-첫 버전에는 **AI Agent Workflow**와 **Offline Translation Web App**을 Independent Work로 소개한다. 회사 경력과 다른 형식으로 실제 작업의 목적, 확인된 결과와 기술 정보를 제공한다.
+첫 버전에는 **AI Agent Workflow**와 **Offline Translation Web App**을 Independent Work로 소개한다. 별도 제목과 설명으로 회사 경력과 구분하고 작업의 목적, 확인된 결과와 기술 정보를 제공한다. 두 작업은 같은 칼럼에서 세로로 이어지며 카드 격자나 어긋난 배치를 사용하지 않는다.
 
 이 결정은 [Independent Work](../requirements.md#independent-work)와 [한 페이지의 정보 순서](../requirements.md#한-페이지의-정보-순서)에 적용한다. 개인 메모 앱과 일기 관리 및 분석 팀 프로젝트는 첫 버전의 필수 소개 항목에서 제외한다.
 

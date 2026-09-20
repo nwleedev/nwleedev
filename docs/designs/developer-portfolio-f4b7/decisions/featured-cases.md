@@ -1,6 +1,6 @@
 # 홈페이지 Engineering Contribution 선정
 
-인공지능팩토리 경력에는 **Data & Monitoring, Async State & Realtime, Browser Runtime & Realtime Data, Reliability & Delivery** 네 기여를 소개한다. 각 기여는 문제 해결 절차 전체가 아니라 판단, 확인된 변화, 수치의 조건과 기술 맥락만 보여준다.
+인공지능팩토리 경력에는 **Data & Monitoring, Async State & Realtime, Browser Runtime & Realtime Data, Reliability & Delivery** 네 기여를 소개한다. 각 기여에는 담당한 문제, 구체적인 변경 방식과 확인 결과를 적는다. 결과 한 줄과 큰 숫자만으로 기여를 대신하지 않는다.
 
 이 결정은 [Experience 요구사항](../requirements.md#experience)과 [개발자 소개에서 앞세울 가치](developer-positioning.md)를 같은 페이지에서 뒷받침하기 위한 기준이다. 별도의 사례 목록과 상세 페이지는 만들지 않는다.
 
@@ -19,14 +19,10 @@
 
 ## 화면에 표시할 정보
 
-각 기여에는 제목, 한 문장 설명, 확인된 수치 또는 결과, 기술 정보와 필요한 경우에만 짧은 보충 설명을 둔다. 모든 항목을 같은 크기와 같은 카드 모양으로 만들지 않는다.
+각 기여에는 내용을 설명하는 제목, 본문 문단과 기술 정보를 둔다. 분량은 사실을 설명하는 데 필요한 만큼 정한다. [홈페이지 문구](../references/homepage-copy.md)의 보강안을 기준으로 하며 숫자와 조건도 같은 문단에서 읽게 한다.
 
-회사 화면은 사용하지 않는다. 기술 관계를 글보다 도식으로 보는 편이 분명할 때에만 다음과 같은 단순한 관계를 검토한다.
+기존 한 문장 요약은 기술 선택의 이유와 직접 수행한 변경을 충분히 설명하지 못했다. 기여 본문을 보강하되 코드, 상세 상태도와 시행착오 전체를 싣는 방식은 블로그와 중복되므로 선택하지 않는다. 현재 도식은 설명 문장으로 대체하고 회사 화면과 추정한 시스템 구성은 추가하지 않는다.
 
-- `Browser → Next.js API → Prometheus`
-- `Event → Server state check → UI update`
-- `API → SharedWorker → Main Thread`
+크러스트유니버스 및 Quarkonix 경력에도 optimistic update, Vite와 lazy loading, WebSocket 조사 방법을 적는다. 수치가 없다는 이유로 기여를 지우지 않으며 확인되지 않은 수치나 회사별 담당 구분은 만들지 않는다. 정확한 수정 원인이 없는 항목은 자료에 있는 도구와 행동까지만 설명한다.
 
-긴 상태도, 추정한 시스템 구성과 네 경험에 반복되는 도식은 추가하지 않는다. 상세한 해결 과정은 블로그에서 관리한다.
-
-크러스트유니버스 및 Quarkonix 경력은 상태 일관성, 로딩 성능과 WebSocket 연결 문제를 압축해서 제공한다. 확인된 수치가 없는 항목에는 성과 수치를 만들지 않는다.
+본문이 늘어나더라도 접이식 상세나 별도 페이지로 숨기지 않는다. 구현에서는 수치 및 도식별 타입을 본문 배열로 바꾸고, 두 언어의 수치 조건과 기여 사실을 함께 유지한다.

@@ -2,9 +2,9 @@
 
 결론은 Astro의 정적 렌더링을 기본으로 유지하고, FSD의 참조 방향과 Tailwind CSS 디자인 토큰을 함께 적용하는 것이다. UI 재사용은 모든 마크업을 공통 컴포넌트로 바꾸는 방식이 아니라, 같은 의미와 접근성 규칙이 반복될 때 Astro 컴포넌트로 추출한다.
 
-상태는 `current`다. 이 문서는 개발자 소개 사이트를 구현하거나 검토하는 사람에게 적용한다. `AGENTS.md`는 FSD 준수, 순환 참조 금지, 말단 UI 재사용, 구체적인 타입, 정적으로 식별할 수 있는 Tailwind CSS 클래스와 디자인 토큰을 요구한다. `docs/designs/developer-portfolio-f4b7/decisions/terms-storage.md`는 문구를 `src/shared/terms`에서 관리하도록 정했고, `docs/designs/developer-portfolio-f4b7/requirements.md`는 재사용할 색상, 글꼴, 여백과 Container Query 기준을 정했다.
+상태는 `current`다. 이 문서는 개발자 소개 사이트를 구현하거나 검토하는 사람에게 적용한다. `AGENTS.md`는 FSD 준수, 순환 참조 금지, 말단 UI 재사용, 구체적인 타입, 정적으로 식별할 수 있는 Tailwind CSS 클래스와 디자인 토큰을 요구한다. `docs/designs/developer-portfolio-f4b7/decisions/terms-storage.md`는 문구 저장 방식을, `docs/designs/developer-portfolio-f4b7/requirements.md`는 단일 칼럼과 시각 규칙을 정한다.
 
-아직 애플리케이션 소스, 패키지 명세와 잠금 파일이 없으므로 설치된 버전은 없다. 외부 동작을 조사한 기준은 2026-09-20 npm 배포본인 Astro 7.3.3, Tailwind CSS 4.3.3과 `@tailwindcss/vite` 4.3.3이다. 구현을 시작할 때 실제 설치 버전과 공식 변경 사항을 다시 확인한다. 이 문서는 의존성 설치를 승인하지 않는다.
+현재 패키지와 잠금 파일에는 Astro 7.3.3, Tailwind CSS 및 `@tailwindcss/vite` 4.3.3, TypeScript 6.0.3이 있다. 외부 동작의 최초 조사일은 2026-09-20이다. 이 문서는 의존성 변경을 승인하지 않는다. 예시는 원칙을 설명하며 현재 코드가 이미 새 단일 칼럼 요구를 충족한다는 증거는 아니다.
 
 ## 모듈 구성
 
@@ -78,14 +78,12 @@ Shared UI는 Home Page가 사용하는 문구나 항목을 알지 않는다. 호
 interface Props {
   id: string;
   title: string;
-  index?: string;
 }
 
-const { id, title, index } = Astro.props;
+const { id, title } = Astro.props;
 ---
 
 <header>
-  {index && <span aria-hidden="true">{index}</span>}
   <h2 id={id}>{title}</h2>
 </header>
 ```
@@ -203,10 +201,7 @@ import { ClientRouter } from "astro:transitions";
 ```
 
 ```astro
-<nav aria-label="주요 영역">
-  <a href="#experience">경력</a>
-  <a href="#open-source">오픈 소스</a>
-</nav>
+<a href="/en/" lang="en" hreflang="en">English</a>
 ```
 
 언어별 주소나 별도 페이지가 생기더라도 브라우저 기본 탐색이 요구사항을 충족하면 라우터를 추가하지 않는다. 페이지 전환 중 보존해야 할 상태와 전환 효과가 승인됐을 때만 다시 판단한다. 검토자는 `astro:transitions`, `ClientRouter`와 `astro:page-load` import를 확인한다. 이 금지 항목은 현재 요구사항에서는 문자열 검사로 찾을 수 있지만, 예외의 타당성은 브라우저 검토가 필요하다.
@@ -287,7 +282,7 @@ const toneClasses = {
 
 ```astro
 <a class="text-[#C62A44] hover:text-[#B4233C]">원문 보기</a>
-<strong class="text-[#C62A44]">41 KB</strong>
+<p class="text-[#71717A]">{period}</p>
 ```
 
 ```css
@@ -305,46 +300,40 @@ const toneClasses = {
 
 ```astro
 <a class="text-brand-strong hover:text-brand-hover">원문 보기</a>
-<strong class="text-brand-strong tabular-nums">41 KB</strong>
+<p class="text-text-muted">{period}</p>
 ```
 
-한 컴포넌트에서 한 번 쓰는 계산값까지 모두 토큰으로 만들지는 않는다. 같은 의미로 반복되는 값만 토큰으로 승격한다. 제안서가 정한 Contribution 42rem, Evidence Row 36rem과 System Figure 34rem은 전역 화면 폭 기준이 아니므로 `--breakpoint-*`에 넣지 않는다.
+한 컴포넌트에서 한 번 쓰는 계산값까지 모두 토큰으로 만들지는 않는다. 같은 의미로 반복되는 값만 토큰으로 승격한다. 폐기된 다중 칼럼 전환값을 `--breakpoint-*`나 Container Query로 다시 추가하지 않는다.
 
 검토자는 새 임의 색상, 글꼴, 반복 여백과 `clamp()`가 요구사항의 기존 값으로 표현 가능한지 확인한다. 색상 문자열 검색은 누락 후보를 찾을 수 있지만, 새 값의 의미와 승격 여부는 디자인 검토가 필요하다.
 
-### 컴포넌트 배치를 화면 폭 기준으로만 바꾸지 않는다
+### 배치가 바뀌지 않는 구성에 반응형 분기를 추가하지 않는다
 
-ContributionBlock과 EvidenceRow는 같은 화면에서도 놓인 영역의 폭이 다를 수 있다. 전역 `md:`와 `lg:`만 사용하면 너비가 제한된 열의 컴포넌트가 가로 배치를 유지해 글이 겹칠 수 있다.
+현재 요구사항은 모든 화면 폭에서 단일 칼럼이다. 이전처럼 본문 옆에 수치나 보조 정보를 배치하기 위한 전환은 필요하지 않다. 다음 예는 현재 요구에 어긋나는 다중 열 전환을 추가한다.
 
 ```astro
 <article class="grid gap-6 lg:grid-cols-[1fr_auto]">
   <div><slot /></div>
-  <MetricStatement value={metric} />
+  <aside>{metadata}</aside>
 </article>
 ```
 
 ```astro
-<article class="@container">
-  <div class="grid gap-6 @min-[42rem]:grid-cols-[1fr_auto]">
-    <div><slot /></div>
-    <MetricStatement value={metric} />
-  </div>
+<article class="grid gap-6">
+  <div><slot /></div>
+  <p class="text-sm text-text-muted">{metadata}</p>
 </article>
 ```
 
-Tailwind CSS 4는 부모의 실제 너비에 반응하는 `@container`와 일회성 `@min-[…]` variant를 제공한다. 근거는 [Responsive design 고정 리비전](https://github.com/tailwindlabs/tailwindcss.com/blob/7f92c2213315c195dae583d68752da4042da3ade/src/docs/responsive-design.mdx)이다. 페이지 전체 조립 변화에는 viewport breakpoint를 사용할 수 있다. 컴포넌트 내부에서 실제 사용 폭이 배치를 결정할 때 Container Query를 사용한다.
+Tailwind CSS 4는 부모의 실제 너비에 반응하는 `@container`와 일회성 `@min-[…]` variant를 제공한다. 근거는 [Responsive design 고정 리비전](https://github.com/tailwindlabs/tailwindcss.com/blob/7f92c2213315c195dae583d68752da4042da3ade/src/docs/responsive-design.mdx)이다. 기능을 제공한다는 이유만으로 사용하지 않는다. 이후 실제 배치 변화가 승인된 경우에만 viewport와 부모 가용 폭 가운데 어느 조건에 반응해야 하는지 판단한다.
 
-브라우저에서 320px, 390px, 768px, 1440px viewport만 확인하지 않는다. 같은 컴포넌트를 폭이 다른 부모에 놓고 한국어 줄바꿈, 순서, 넘침과 200% 글자 확대를 확인한다. 이를 정확하게 대신할 린트 규칙은 없다.
+브라우저에서 320px, 390px, 768px와 1440px의 한국어 및 영어 줄바꿈, 읽는 순서와 오버플로우를 확인한다. 200% 글자 확대도 별도로 확인한다. 이를 정확하게 대신할 린트 규칙은 없다.
 
 ### `@apply`로 Astro 컴포넌트와 별도의 UI 체계를 만들지 않는다
 
-마크업의 Tailwind 클래스 대부분을 `.metric`, `.section-title`, `.metadata-line` 같은 클래스로 다시 감싸면 스타일의 출처가 Astro 컴포넌트와 CSS 두 곳으로 나뉜다. Tailwind는 `@apply`를 서드파티 UI 덮어쓰기처럼 사용자 정의 CSS가 필요한 경우에 사용할 수 있다고 설명한다. 컴포넌트의 scoped style에서 사용자 정의 theme을 참조하려면 `@reference`도 필요하다. 근거는 [Functions and directives 고정 리비전](https://github.com/tailwindlabs/tailwindcss.com/blob/7f92c2213315c195dae583d68752da4042da3ade/src/docs/functions-and-directives.mdx)이다.
+마크업의 Tailwind 클래스 대부분을 `.section-title`, `.metadata-line` 같은 클래스로 다시 감싸면 스타일의 출처가 Astro 컴포넌트와 CSS 두 곳으로 나뉜다. Tailwind는 `@apply`를 서드파티 UI 덮어쓰기처럼 사용자 정의 CSS가 필요한 경우에 사용할 수 있다고 설명한다. 컴포넌트의 scoped style에서 사용자 정의 theme을 참조하려면 `@reference`도 필요하다. 근거는 [Functions and directives 고정 리비전](https://github.com/tailwindlabs/tailwindcss.com/blob/7f92c2213315c195dae583d68752da4042da3ade/src/docs/functions-and-directives.mdx)이다.
 
 ```css
-.metric {
-  @apply text-brand-strong text-4xl font-bold tabular-nums;
-}
-
 .metadata-line {
   @apply text-text-muted text-sm font-medium;
 }
@@ -355,18 +344,16 @@ Tailwind CSS 4는 부모의 실제 너비에 반응하는 `@container`와 일회
 ```astro
 ---
 interface Props {
-  before: string;
-  after: string;
-  label: string;
+  period: string;
+  technologies: readonly string[];
 }
 
-const { before, after, label } = Astro.props;
+const { period, technologies } = Astro.props;
 ---
 
-<p aria-label={`${label}: ${before}에서 ${after}로 변경`}>
-  <span class="text-text-muted tabular-nums">{before}</span>
-  <span aria-hidden="true">→</span>
-  <strong class="text-brand-strong text-4xl font-bold tabular-nums">{after}</strong>
+<p class="text-sm text-text-muted">
+  <span>{period}</span>
+  <span>{technologies.join(", ")}</span>
 </p>
 ```
 
@@ -376,7 +363,7 @@ const { before, after, label } = Astro.props;
 
 ### 시각적으로 비슷하다는 이유만으로 하나의 범용 컴포넌트로 합치지 않는다
 
-제안서의 `SectionHeader`, `MetricStatement`, `MetadataLine`과 `ExternalTextLink`는 여러 영역에서 같은 의미와 접근성 규칙을 반복하므로 Shared UI 후보다. 반면 `IdentityBlock`, `CompanyHeader`, `ContributionBlock`과 `IndependentWorkEntry`는 Home Page의 정보 구조를 표현한다. 이들을 `Card` 하나로 합치면 서로 다른 읽는 순서와 반응형 배치를 boolean prop 조합으로 처리하게 된다.
+`SectionHeader`, `MetadataLine`과 `ExternalTextLink`는 여러 영역에서 같은 의미와 접근성 규칙을 반복하므로 Shared UI로 유지한다. 반면 `IdentityBlock`, `CompanyExperience`와 `ContributionBlock`은 Home Page의 정보 구조를 표현한다. 이들을 `Card` 하나로 합치면 서로 다른 읽는 순서를 boolean prop 조합으로 처리하게 된다. 수치 강조가 사라진 뒤에는 `MetricStatement`를 재사용 후보로 남기지 않는다.
 
 ```astro
 <Card
@@ -398,7 +385,7 @@ const { before, after, label } = Astro.props;
 
 ### `any`, `object`와 열린 `Record`로 콘텐츠 모양을 숨기지 않는다
 
-Astro는 `Props` 인터페이스를 인식하고 `astro check`로 `.astro`와 `.ts` 파일을 함께 검사한다. 공식 근거는 [Astro TypeScript 문서](https://docs.astro.build/en/guides/typescript/)다. `object`와 `Record<string, any>`는 Contribution variant별 필수 필드를 확인하지 못하게 한다.
+Astro는 `Props` 인터페이스를 인식하고 `astro check`로 `.astro`와 `.ts` 파일을 함께 검사한다. 공식 근거는 [Astro TypeScript 문서](https://docs.astro.build/en/guides/typescript/)다. `object`와 `Record<string, any>`는 기여 본문의 필수 필드를 확인하지 못하게 한다.
 
 ```astro
 ---
@@ -411,45 +398,26 @@ const { contribution, metadata } = Astro.props;
 ---
 ```
 
-허용된 variant와 각 variant의 필수 값을 판별 가능한 union으로 작성한다.
+실제 콘텐츠의 필수 값을 구체적인 타입으로 작성한다. 표현이 하나라면 불필요한 variant를 만들지 않는다. 여러 표현이 실제로 필요한 경우에만 판별 가능한 union을 사용한다. 다음은 단일 칼럼 변경에 적용할 타입 예시다.
 
 ```ts
 type Metadata = {
   technologies: readonly string[];
-  period?: string;
-  status?: "completed" | "maintained";
+  period: string;
 };
 
-type Contribution =
-  | {
-      kind: "metric";
-      title: string;
-      summary: string;
-      before: string;
-      after: string;
-      metadata: Metadata;
-    }
-  | {
-      kind: "structure";
-      title: string;
-      summary: string;
-      figureDescription: string;
-      metadata: Metadata;
-    }
-  | {
-      kind: "evidence";
-      title: string;
-      summary: string;
-      evidenceUrl: URL;
-      metadata: Metadata;
-    };
+type Contribution = {
+  title: string;
+  paragraphs: readonly string[];
+  metadata: Metadata;
+};
 ```
 
-외부 라이브러리의 타입이 `unknown`을 반환하면 사용 지점에서 검사해 구체적인 내부 타입으로 바꾼다. HTML 속성을 전달하는 컴포넌트는 임의 `Record` 대신 Astro가 제공하는 `HTMLAttributes<"a">` 같은 타입을 사용한다. 구현 후 `astro check`를 실행해야 하지만 현재 패키지 명세와 저장소 명령이 없으므로 이 명령은 아직 실행 가능한 저장소 검사로 승인되지 않았다. 명령은 프로젝트 초기 설정에서 scripts에 등록한 뒤 사용한다.
+외부 라이브러리의 타입이 `unknown`을 반환하면 사용 지점에서 검사해 구체적인 내부 타입으로 바꾼다. HTML 속성을 전달하는 컴포넌트는 임의 `Record` 대신 Astro가 제공하는 `HTMLAttributes<"a">` 같은 타입을 사용한다. `package.json`의 `pnpm check`로 Astro 타입을 검사하고 `pnpm build`로 정적 HTML을 생성한다. 타입만으로 빈 문단과 번역 누락을 판별할 수 없으므로 기존 JSON 검사도 함께 유지한다.
 
 ## 최종 확인
 
-구현 담당자는 저장소에 등록될 build, typecheck와 정적 분석 명령을 한 번씩 실행하고 실행 기록을 남긴다. 브라우저 검토에서는 개발자 이름, 경력, 사례와 연락처가 JavaScript 없이 보이는지, 320px와 200% 확대에서 정보가 사라지지 않는지, Container Query 대상이 부모 폭에 맞게 바뀌는지, 링크와 포커스 표시를 키보드로 사용할 수 있는지 확인한다.
+구현 담당자는 등록된 `pnpm check`와 `pnpm build`를 실행하고 성공 여부와 오류를 남긴다. 브라우저 검토에서는 개발자 이름, 경력과 연락처가 JavaScript 없이 보이는지, 320px와 200% 글자 확대에서 정보가 사라지지 않는지, 링크와 포커스 표시를 키보드로 사용할 수 있는지 확인한다.
 
 최종 검토 담당자는 다음을 확인한다.
 
