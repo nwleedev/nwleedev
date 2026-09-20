@@ -1,14 +1,16 @@
 ---
 interface Props {
   label: string;
+  beforeLabel: string;
+  afterLabel: string;
   before: string;
   after: string;
 }
 
-const { label, before, after } = Astro.props;
+const { label, beforeLabel, afterLabel, before, after } = Astro.props;
 ---
 
-<p aria-label={`${label}: ${before}에서 ${after}로 변경`} class="grid gap-2">
+<p aria-label={`${label}, ${beforeLabel}: ${before}, ${afterLabel}: ${after}`} class="grid gap-2">
   <span class="text-sm font-semibold text-text-muted">{label}</span>
   <span class="flex flex-wrap items-baseline gap-x-3 gap-y-1 tabular-nums">
     <span class="text-lg font-medium text-text-secondary line-through decoration-border-strong">

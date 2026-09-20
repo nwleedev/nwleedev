@@ -51,6 +51,8 @@
             "summary": "I improved the dashboard's query and transformation structure and corrected metrics that did not match the actual API responses.",
             "detail": "Each update requests only the interval after the previous request time.",
             "metricLabel": "Data transferred per 10-minute interval",
+            "beforeLabel": "Before",
+            "afterLabel": "After",
             "before": "96.5 MB",
             "after": "41 KB",
             "metadata": {
@@ -64,6 +66,8 @@
             "summary": "I changed status tracking for five-to-ten-minute document generation tasks from continuous polling to event-triggered server checks.",
             "detail": "The event does not determine completion; the server response remains the source for UI state.",
             "metricLabel": "Status requests per task",
+            "beforeLabel": "Before",
+            "afterLabel": "After",
             "before": "100–200",
             "after": "10 or fewer",
             "metadata": {

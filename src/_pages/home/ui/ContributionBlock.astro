@@ -22,6 +22,8 @@ const { contribution } = Astro.props;
       </div>
       <MetricStatement
         label={contribution.metricLabel}
+        beforeLabel={contribution.beforeLabel}
+        afterLabel={contribution.afterLabel}
         before={contribution.before}
         after={contribution.after}
       />

@@ -26,6 +26,8 @@ export type MetricContribution = {
   summary: string;
   detail: string;
   metricLabel: string;
+  beforeLabel: string;
+  afterLabel: string;
   before: string;
   after: string;
   metadata: Metadata;

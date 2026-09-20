@@ -16,7 +16,18 @@ interface Props {
 
 const { locale } = Astro.props;
 const resumeUrl = import.meta.env.PUBLIC_RESUME_URL;
-const terms = resumeUrl ? getTerms(locale, { resumeUrl }) : getTerms(locale);
+
+if (!resumeUrl) {
+  throw new Error("PUBLIC_RESUME_URL is required to build the portfolio.");
+}
+
+const parsedResumeUrl = new URL(resumeUrl);
+
+if (parsedResumeUrl.protocol !== "https:") {
+  throw new Error("PUBLIC_RESUME_URL must use HTTPS.");
+}
+
+const terms = getTerms(locale, { resumeUrl: parsedResumeUrl.href });
 ---
 
 <BaseLayout

@@ -59,7 +59,13 @@ function isContribution(value: unknown): boolean {
   }
 
   if (kind === "metric") {
-    return hasStrings(value, ["metricLabel", "before", "after"]);
+    return hasStrings(value, [
+      "metricLabel",
+      "beforeLabel",
+      "afterLabel",
+      "before",
+      "after",
+    ]);
   }
 
   if (kind === "structure") {
@@ -158,15 +164,11 @@ const termsByLocale = {
 } satisfies Record<Locale, HomeTerms>;
 
 type RuntimeTerms = {
-  resumeUrl?: string;
+  resumeUrl: string;
 };
 
-export function getTerms(locale: Locale, runtimeTerms: RuntimeTerms = {}): HomeTerms {
+export function getTerms(locale: Locale, runtimeTerms: RuntimeTerms): HomeTerms {
   const terms = termsByLocale[locale];
-
-  if (!runtimeTerms.resumeUrl) {
-    return terms;
-  }
 
   const resumeLink: ExternalLink = {
     label: terms.linkLabels.resume,
