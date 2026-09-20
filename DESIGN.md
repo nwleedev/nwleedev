@@ -41,7 +41,7 @@ Shared UI는 `BaseLayout`, `SectionHeader`, `MetadataLine`과 `ExternalTextLink`
 
 Identity의 첫 행은 이름과 언어 링크를 `align-items: center`, `justify-content: space-between`으로 배치한다. 40rem 이상에서는 KO와 EN을 가로로 표시하고, GitHub, Blog, LinkedIn과 Résumé는 소개 아래의 가로 텍스트 목록에 유지한다. 현재 언어는 글자와 `aria-current="page"`로 함께 표시한다. 40rem 미만에서는 한국어 화면에 EN, 영어 화면에 KO 링크 하나만 이름 오른쪽에 표시한다. 이름과 언어 링크의 위치에는 `position: absolute`나 padding 보정을 사용하지 않는다.
 
-모바일 외부 링크는 소개 아래에서 GitHub, Article, LinkedIn과 File PDF 아이콘을 한 행으로 표시한다. `phosphor-astro` 2.1.0의 빌드 시점 SVG 컴포넌트를 사용하며 브라우저 script는 추가하지 않는다. 각 링크의 조작 영역은 44px이고 SVG는 `clamp(1.125rem, 7vw, 1.5rem)`으로 18~24px 사이에서 변한다. 아이콘은 보조 기술에서 제외하고 링크에는 기존 이름과 목적 설명을 합친 접근 가능한 이름을 제공한다. 메뉴 버튼, Drawer와 열기 및 닫기 상태는 사용하지 않는다.
+모바일 외부 링크는 소개 아래에서 GitHub, Article, LinkedIn과 File PDF 아이콘을 한 행으로 표시한다. 목록은 본문 왼쪽에서 시작하고 인접한 44px 조작 영역 사이에 16px `gap`을 둔다. 남는 가로 너비를 아이콘 사이에 분배하지 않는다. `phosphor-astro` 2.1.0의 빌드 시점 SVG 컴포넌트를 사용하며 브라우저 script는 추가하지 않는다. SVG는 `clamp(1.125rem, 7vw, 1.5rem)`으로 18~24px 사이에서 변한다. 아이콘은 보조 기술에서 제외하고 링크에는 기존 이름과 목적 설명을 합친 접근 가능한 이름을 제공한다. 메뉴 버튼, Drawer와 열기 및 닫기 상태는 사용하지 않는다.
 
 Background는 제목에서 32px 뒤에 첫 항목을 시작한다. 첫 항목 위에는 구분선과 위쪽 padding을 두지 않고 두 번째 이후 항목의 일반 구분선은 유지한다.
 

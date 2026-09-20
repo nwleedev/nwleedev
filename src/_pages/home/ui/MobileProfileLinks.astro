@@ -13,7 +13,7 @@ const { links } = Astro.props;
 const iconClass = "size-[clamp(1.125rem,7vw,1.5rem)]";
 ---
 
-<ul class="mt-7 flex flex-nowrap items-center justify-between sm:hidden">
+<ul class="mt-7 flex flex-nowrap items-center justify-start gap-4 sm:hidden">
   {links.map((link) => (
     <li class="shrink-0">
       <a
