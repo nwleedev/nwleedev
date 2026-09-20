@@ -97,6 +97,7 @@ function isHomeTerms(value: unknown): value is HomeTerms {
   const meta = field(value, "meta");
   const linkLabels = field(value, "linkLabels");
   const language = field(value, "language");
+  const menu = field(value, "menu");
   const identity = field(value, "identity");
   const experience = field(value, "experience");
   const openSource = field(value, "openSource");
@@ -111,6 +112,7 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     hasStrings(linkLabels, ["resume", "resumeContext"]) &&
     isString(field(language, "label")) &&
     isArrayOf(field(language, "links"), isLanguageLink) &&
+    hasStrings(menu, ["title", "openLabel", "closeLabel"]) &&
     hasStrings(identity, ["name", "role", "lead", "supporting"]) &&
     isArrayOf(field(identity, "links"), isExternalLink) &&
     hasStrings(experience, ["id", "title"]) &&

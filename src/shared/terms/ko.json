@@ -15,6 +15,11 @@
       { "locale": "en", "label": "EN", "href": "/en/" }
     ]
   },
+  "menu": {
+    "title": "Links",
+    "openLabel": "메뉴",
+    "closeLabel": "닫기"
+  },
   "identity": {
     "name": "이노원",
     "role": "Frontend Engineer",

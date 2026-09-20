@@ -125,19 +125,19 @@ Pretendard 1.3.9 자체 제공과 라이선스, 기존 색상 역할, 외부 링
 
 ### 6. 데스크톱 링크 및 언어 선택과 모바일 Drawer 구성
 
-상태: 구현 전.
+상태: 완료. `ProfileNavigation.astro`가 같은 자료로 데스크톱 링크와 오른쪽 상단 언어 선택, 장식 없는 모바일 메뉴 아이콘 버튼과 Drawer를 렌더링한다. 표준 dialog와 Astro 일반 script가 열림 상태, 배경 스크롤과 화면 폭 전환을 처리하며, `noscript` fallback을 Identity 본문 아래에 제공한다.
 
 적용 요구사항: 「한 페이지의 정보 순서」, 「Identity」, 「글과 언어 관리」, 「여백과 반응형 배치」, 「조작과 움직임」과 「접근성」.
 
 - 추가: `ProfileNavigation.astro`를 Home Page 전용 컴포넌트로 만든다. 데스크톱 외부 링크, 데스크톱 언어 선택, 모바일 메뉴 버튼과 Drawer가 같은 링크 및 언어 자료를 사용하게 한다.
 - 수정: `IdentityBlock.astro`는 소개 문구 아래에서 `ProfileNavigation`을 렌더링한다. 데스크톱 외부 링크는 기존 가로 Flex 및 줄바꿈 배치를 유지하고, 언어 선택은 Identity 오른쪽 상단의 가로 Flex로 옮긴다.
-- 추가: 모바일 메뉴 버튼은 오른쪽 상단에 두고 `aria-controls`와 `aria-expanded`를 제공한다. Drawer는 `dialog.showModal()`로 열며 닫기 버튼, 세로 외부 링크, 구분선과 가로 언어 선택 순서로 구성한다.
+- 추가: 모바일 메뉴 버튼은 오른쪽 상단에 24px 선형 아이콘으로 표시하고 배경, 테두리와 패딩을 제거한다. 44px 조작 영역, `aria-label`, `aria-controls`, `aria-expanded`와 키보드 포커스 표시는 유지한다. Drawer는 `dialog.showModal()`로 열며 닫기 버튼, 세로 외부 링크, 구분선과 가로 언어 선택 순서로 구성한다.
 - 추가: `menu.title`, `menu.openLabel`과 `menu.closeLabel`을 두 언어 JSON과 `HomeTerms`에 추가하고 `get-terms.ts`에서 검사한다.
 - 추가: Astro가 처리하는 일반 script에서 하나의 Custom Element 인스턴스 안의 버튼과 dialog만 찾는다. `is:inline`, 전역 `querySelector`, Client Island와 새 의존성을 사용하지 않는다.
 - 추가: dialog가 열리면 문서 배경 스크롤을 막고 닫히면 복구한다. 표준 Escape 닫기와 호출 버튼으로의 포커스 복귀를 유지하며, 40rem 이상으로 화면이 바뀌면 열린 dialog를 닫는다.
 - 추가: JavaScript를 사용할 수 없는 모바일 환경에서는 같은 링크와 언어 선택을 Identity 본문 아래에 표시한다.
 
-확인: 데스크톱에서는 링크 목록과 오른쪽 상단 KO 및 EN을 확인한다. 320px과 390px에서는 본문의 중복 링크가 보이지 않고 메뉴 버튼으로 Drawer를 열 수 있어야 한다. 외부 링크 다음에 언어 선택이 나타나며, 닫기 버튼, Escape, Tab 순환, 포커스 복귀와 배경 스크롤 방지를 키보드 및 브라우저에서 확인한다.
+확인: 데스크톱에서는 링크 목록과 오른쪽 상단 KO 및 EN을 확인한다. 320px과 390px에서는 본문의 중복 링크가 보이지 않고 장식 없는 메뉴 아이콘 버튼으로 Drawer를 열 수 있어야 한다. 외부 링크 다음에 언어 선택이 나타나며, 닫기 버튼, Escape, Tab 순환, 포커스 복귀와 배경 스크롤 방지를 키보드 및 브라우저에서 확인한다.
 
 ### 7. 추가 요구사항 통합 확인과 문서 일치
 

@@ -66,6 +66,11 @@ export type HomeTerms = {
     label: string;
     links: readonly LanguageLink[];
   };
+  menu: {
+    title: string;
+    openLabel: string;
+    closeLabel: string;
+  };
   identity: {
     name: string;
     role: string;

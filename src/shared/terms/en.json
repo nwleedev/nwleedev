@@ -15,6 +15,11 @@
       { "locale": "en", "label": "EN", "href": "/en/" }
     ]
   },
+  "menu": {
+    "title": "Links",
+    "openLabel": "Menu",
+    "closeLabel": "Close"
+  },
   "identity": {
     "name": "Nowon Lee",
     "role": "Frontend Engineer",
