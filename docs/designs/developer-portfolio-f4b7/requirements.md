@@ -110,7 +110,7 @@ React Router와 Outline 기여를 회사 경력과 구분된 외부 확인 자�
 
 Background에는 학력, 정보처리기사와 TOEIC Speaking 정보를 압축해서 제공한다. 교육 과정과 단기 활동은 이력서에 남기고 첫 버전 홈페이지에는 넣지 않는다.
 
-Contact는 Email, GitHub, Blog, LinkedIn과 Résumé를 나열하는 연락처 안내로 구성한다. 전화번호와 연락 양식은 넣지 않는다.
+Contact는 별도 안내 문구 없이 Email, GitHub, Blog, LinkedIn과 Résumé를 나열한다. 제목 다음의 첫 링크 앞에 구분선을 넣지 않고 32px 뒤에 내용을 시작한다. 삭제한 문구와 선의 여백은 남기지 않는다. 전화번호와 연락 양식은 넣지 않는다.
 
 ## 글과 언어 관리
 
