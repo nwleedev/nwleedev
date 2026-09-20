@@ -1,12 +1,9 @@
 export type Locale = "ko" | "en";
 
-export type NavigationItem = {
+export type LanguageLink = {
+  locale: Locale;
   label: string;
   href: string;
-};
-
-export type LanguageLink = NavigationItem & {
-  locale: Locale;
 };
 
 export type ExternalLink = {
@@ -20,44 +17,11 @@ export type Metadata = {
   technologies: readonly string[];
 };
 
-export type MetricContribution = {
-  kind: "metric";
+export type Contribution = {
   title: string;
-  summary: string;
-  detail: string;
-  metricLabel: string;
-  beforeLabel: string;
-  afterLabel: string;
-  before: string;
-  after: string;
+  paragraphs: readonly string[];
   metadata: Metadata;
 };
-
-export type StructureContribution = {
-  kind: "structure";
-  title: string;
-  summary: string;
-  detail: string;
-  figure: {
-    label: string;
-    steps: readonly string[];
-  };
-  metadata: Metadata;
-};
-
-export type EvidenceContribution = {
-  kind: "evidence";
-  title: string;
-  summary: string;
-  detail: string;
-  evidence: string;
-  metadata: Metadata;
-};
-
-export type Contribution =
-  | MetricContribution
-  | StructureContribution
-  | EvidenceContribution;
 
 export type CompanyExperience = {
   company: string;
@@ -98,11 +62,9 @@ export type HomeTerms = {
     resume: string;
     resumeContext: string;
   };
-  navigation: {
+  language: {
     label: string;
-    items: readonly NavigationItem[];
-    languageLabel: string;
-    languages: readonly LanguageLink[];
+    links: readonly LanguageLink[];
   };
   identity: {
     name: string;
@@ -113,34 +75,29 @@ export type HomeTerms = {
   };
   experience: {
     id: string;
-    index: string;
     title: string;
     introduction: string;
     companies: readonly CompanyExperience[];
   };
   openSource: {
     id: string;
-    index: string;
     title: string;
     introduction: string;
     contributions: readonly OpenSourceContribution[];
   };
   independentWork: {
     id: string;
-    index: string;
     title: string;
     introduction: string;
     items: readonly IndependentWork[];
   };
   background: {
     id: string;
-    index: string;
     title: string;
     items: readonly BackgroundItem[];
   };
   contact: {
     id: string;
-    index: string;
     title: string;
     introduction: string;
     links: readonly ExternalLink[];

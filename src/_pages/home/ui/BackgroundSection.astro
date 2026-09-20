@@ -12,7 +12,7 @@ const { background } = Astro.props;
 ---
 
 <section aria-labelledby={background.id} class="mx-auto max-w-page px-(--page-gutter) py-22 md:py-26">
-  <SectionHeader id={background.id} index={background.index} title={background.title} />
+  <SectionHeader id={background.id} title={background.title} />
   <dl class="mt-14 border-b border-border-default">
     {background.items.map((item) => (
       <div class="grid gap-2 border-t border-border-default py-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-baseline sm:gap-8">

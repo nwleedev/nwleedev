@@ -1,13 +1,16 @@
 ---
-import type { HomeTerms } from "@/shared/terms";
+import type { HomeTerms, Locale } from "@/shared/terms";
 
 type IdentityTerms = HomeTerms["identity"];
+type LanguageTerms = HomeTerms["language"];
 
 interface Props {
   identity: IdentityTerms;
+  language: LanguageTerms;
+  locale: Locale;
 }
 
-const { identity } = Astro.props;
+const { identity, language, locale } = Astro.props;
 ---
 
 <section aria-labelledby="identity-title" class="mx-auto max-w-page px-(--page-gutter) pb-26 pt-16 md:pb-30 md:pt-24">
@@ -38,6 +41,23 @@ const { identity } = Astro.props;
           </li>
         ))}
       </ul>
+      <nav aria-label={language.label} class="mt-6">
+        <ul class="flex gap-4 text-sm font-semibold text-text-muted">
+          {language.links.map((link) => (
+            <li>
+              <a
+                class:list={[link.locale === locale && "text-brand-strong no-underline"]}
+                href={link.href}
+                aria-current={link.locale === locale ? "page" : undefined}
+                lang={link.locale}
+                hreflang={link.locale}
+              >
+                {link.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
     </div>
   </div>
 </section>

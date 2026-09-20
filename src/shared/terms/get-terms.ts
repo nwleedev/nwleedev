@@ -18,6 +18,14 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(isString);
 }
 
+function isNonEmptyStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((item) => isString(item) && item.trim().length > 0)
+  );
+}
+
 function isArrayOf(
   value: unknown,
   predicate: (item: unknown) => boolean,
@@ -49,38 +57,11 @@ function isMetadata(value: unknown): boolean {
 }
 
 function isContribution(value: unknown): boolean {
-  const kind = field(value, "kind");
-  const hasCommonFields =
-    hasStrings(value, ["title", "summary", "detail"]) &&
-    isMetadata(field(value, "metadata"));
-
-  if (!hasCommonFields) {
-    return false;
-  }
-
-  if (kind === "metric") {
-    return hasStrings(value, [
-      "metricLabel",
-      "beforeLabel",
-      "afterLabel",
-      "before",
-      "after",
-    ]);
-  }
-
-  if (kind === "structure") {
-    const figure = field(value, "figure");
-    return (
-      isString(field(figure, "label")) &&
-      isStringArray(field(figure, "steps"))
-    );
-  }
-
-  if (kind === "evidence") {
-    return isString(field(value, "evidence"));
-  }
-
-  return false;
+  return (
+    isString(field(value, "title")) &&
+    isNonEmptyStringArray(field(value, "paragraphs")) &&
+    isMetadata(field(value, "metadata"))
+  );
 }
 
 function isCompanyExperience(value: unknown): boolean {
@@ -109,13 +90,13 @@ function isBackgroundItem(value: unknown): boolean {
 }
 
 function isSection(value: unknown, itemKey: string): boolean {
-  return hasStrings(value, ["id", "index", "title", itemKey]);
+  return hasStrings(value, ["id", "title", itemKey]);
 }
 
 function isHomeTerms(value: unknown): value is HomeTerms {
   const meta = field(value, "meta");
   const linkLabels = field(value, "linkLabels");
-  const navigation = field(value, "navigation");
+  const language = field(value, "language");
   const identity = field(value, "identity");
   const experience = field(value, "experience");
   const openSource = field(value, "openSource");
@@ -128,12 +109,8 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     hasStrings(meta, ["title", "description"]) &&
     isString(field(value, "skipLink")) &&
     hasStrings(linkLabels, ["resume", "resumeContext"]) &&
-    isString(field(navigation, "label")) &&
-    isString(field(navigation, "languageLabel")) &&
-    isArrayOf(field(navigation, "items"), (item): item is { label: string; href: string } =>
-      hasStrings(item, ["label", "href"]),
-    ) &&
-    isArrayOf(field(navigation, "languages"), isLanguageLink) &&
+    isString(field(language, "label")) &&
+    isArrayOf(field(language, "links"), isLanguageLink) &&
     hasStrings(identity, ["name", "role", "lead", "supporting"]) &&
     isArrayOf(field(identity, "links"), isExternalLink) &&
     isSection(experience, "introduction") &&
@@ -142,7 +119,7 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     isArrayOf(field(openSource, "contributions"), isOpenSourceContribution) &&
     isSection(independentWork, "introduction") &&
     isArrayOf(field(independentWork, "items"), isIndependentWork) &&
-    hasStrings(background, ["id", "index", "title"]) &&
+    hasStrings(background, ["id", "title"]) &&
     isArrayOf(field(background, "items"), isBackgroundItem) &&
     isSection(contact, "introduction") &&
     isArrayOf(field(contact, "links"), isExternalLink) &&

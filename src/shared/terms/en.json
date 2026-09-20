@@ -8,16 +8,9 @@
     "resume": "Résumé",
     "resumeContext": "Resume"
   },
-  "navigation": {
-    "label": "Primary sections",
-    "items": [
-      { "label": "Experience", "href": "#experience" },
-      { "label": "Open Source", "href": "#open-source" },
-      { "label": "Independent Work", "href": "#independent-work" },
-      { "label": "Contact", "href": "#contact" }
-    ],
-    "languageLabel": "Language",
-    "languages": [
+  "language": {
+    "label": "Language",
+    "links": [
       { "locale": "ko", "label": "KO", "href": "/" },
       { "locale": "en", "label": "EN", "href": "/en/" }
     ]
@@ -35,7 +28,6 @@
   },
   "experience": {
     "id": "experience",
-    "index": "01",
     "title": "Experience",
     "introduction": "The focus is on engineering decisions and verified changes rather than job descriptions.",
     "companies": [
@@ -46,55 +38,46 @@
         "summary": "I worked on real-time data processing, long-running asynchronous tasks, operational dashboards, and quality assurance for public-sector web service projects.",
         "contributions": [
           {
-            "kind": "metric",
-            "title": "Data & Monitoring",
-            "summary": "I improved the dashboard's query and transformation structure and corrected metrics that did not match the actual API responses.",
-            "detail": "Each update requests only the interval after the previous request time.",
-            "metricLabel": "Data transferred per 10-minute interval",
-            "beforeLabel": "Before",
-            "afterLabel": "After",
-            "before": "96.5 MB",
-            "after": "41 KB",
+            "title": "Correcting operational metrics and query intervals",
+            "paragraphs": [
+              "I analyzed missing values, incorrect usage ratios, and gaps in time-series data on a resource-monitoring dashboard, then handled the query and transformation changes through verification and deployment. I aligned metric names and labels with their definitions and actual responses, corrected the usage-ratio calculation, and separated time series that had been combined under the same label.",
+              "Instead of requesting the full time range for every update, I changed the query to request only data after the previous request time. Data transferred per 10-minute interval fell from 96.5 MB to 41 KB. I compared the updated dashboard with actual responses to verify that the corrected metrics were displayed properly."
+            ],
             "metadata": {
               "period": "Verified in production",
               "technologies": ["Next.js", "Prometheus", "Recharts"]
             }
           },
           {
-            "kind": "metric",
-            "title": "Async State & Realtime",
-            "summary": "I changed status tracking for five-to-ten-minute document generation tasks from continuous polling to event-triggered server checks.",
-            "detail": "The event does not determine completion; the server response remains the source for UI state.",
-            "metricLabel": "Status requests per task",
-            "beforeLabel": "Before",
-            "afterLabel": "After",
-            "before": "100–200",
-            "after": "10 or fewer",
+            "title": "Status checks and waiting guidance for long-running document generation",
+            "paragraphs": [
+              "For document generation that takes 5–10 minutes, I translated the requirements into screens and interactions and handled implementation and deployment. The interface shows progress and elapsed time, explains the consequences of navigating away or cancelling, and continues checking status when the user chooses not to cancel.",
+              "When SSE reports the start or completion of a step, the client requests the server status again and updates the UI from that response. If another event arrives during a request, the client finishes the current request before checking again. It also checks server status after a connection error. An event alone never determines success or failure.",
+              "Recorded status API requests remain at 10 or fewer per task. This is compared with an estimated 100–200 requests for polling the same task every three seconds; it does not mean document generation became faster. After deployment, I verified that generation, cancellation, and the displayed progress matched the actual processing state."
+            ],
             "metadata": {
               "period": "For 5–10 minute tasks",
               "technologies": ["React", "SSE", "Next.js"]
             }
           },
           {
-            "kind": "structure",
-            "title": "Browser Runtime & Realtime Data",
-            "summary": "I eliminated three-to-four-second UI freezes during requests and transformations of responses around 5 MB.",
-            "detail": "API requests and response transformations run in a SharedWorker so the main thread can focus on rendering.",
-            "figure": {
-              "label": "Where large responses are processed",
-              "steps": ["API", "SharedWorker", "Main Thread"]
-            },
+            "title": "Separating response processing and merging real-time data",
+            "paragraphs": [
+              "I resolved 3–4 second UI freezes that occurred while requesting and transforming API responses of about 5 MB. Instead of changing the response size or format, I moved the API request and transformation into a SharedWorker and left the main thread to update the UI with the transformed data.",
+              "I prepared a reusable request method for the run-history and detail screens that needed the same processing, then verified after deployment that the UI freeze was resolved.",
+              "For a real-time chart, I merged REST history loaded after refresh and streamed values into the same cache queue and normalized their time units. Incomplete JSON fragments are retained and combined with the next chunk before processing."
+            ],
             "metadata": {
               "period": "Response size and format retained",
               "technologies": ["SharedWorker", "REST", "Streaming"]
             }
           },
           {
-            "kind": "evidence",
-            "title": "Reliability & Delivery",
-            "summary": "I built an E2E suite that repeatedly exercises user journeys before deployment and uncovered an authentication-state defect.",
-            "detail": "The suite reproduces the sequence where browser credentials remain after the server session expires.",
-            "evidence": "More than 70 executable E2E scenarios",
+            "title": "E2E coverage of real user flows and authentication recovery",
+            "paragraphs": [
+              "I created more than 70 executable E2E scenarios to repeat the actual flows of authenticated users. During this work, I reproduced a mismatch between credentials retained in the browser and an expired server session.",
+              "I applied the same recovery rule to authentication checks before protected screens and to authentication failures while a screen was in use. I handled root-cause analysis, the shared recovery design and implementation, and deployment to the QA environment."
+            ],
             "metadata": {
               "period": "Pre-deployment verification",
               "technologies": ["Playwright", "Authentication", "QA"]
@@ -109,25 +92,33 @@
         "summary": "I traced errors and performance regressions in React and TypeScript services and improved data updates, loading performance, and real-time connections.",
         "contributions": [
           {
-            "kind": "evidence",
-            "title": "State Consistency",
-            "summary": "I applied optimistic updates alongside periodic refetching to reduce duplicate requests and resolve discrepancies between the UI and server values.",
-            "detail": "I verified the UI state when the refresh interval overlaps with a user change.",
-            "evidence": "One rule for user changes and server refreshes",
+            "title": "Keeping refreshed data and UI state consistent",
+            "paragraphs": [
+              "I applied optimistic updates in an environment that periodically refetched data. This resolved discrepancies between the UI after a user action and the server value while reducing duplicate requests."
+            ],
             "metadata": {
               "period": "Production service",
               "technologies": ["React", "TypeScript", "Optimistic Update"]
             }
           },
           {
-            "kind": "evidence",
-            "title": "Loading & Realtime",
-            "summary": "I configured Vite and React lazy loading and identified the cause of intermittent WebSocket disconnections.",
-            "detail": "I documented the loading improvements so they could be applied to other frontend projects.",
-            "evidence": "Reusable loading setup and restored real-time updates",
+            "title": "Improving loading and documenting the setup",
+            "paragraphs": [
+              "I improved service loading performance with Vite configuration and React lazy loading. I documented the steps so the same approach could be applied to other frontend projects."
+            ],
             "metadata": {
               "period": "Service delivery",
-              "technologies": ["Vite", "React", "WebSocket"]
+              "technologies": ["Vite", "React", "Lazy Loading"]
+            }
+          },
+          {
+            "title": "Finding the cause of interrupted real-time connections",
+            "paragraphs": [
+              "Intermittent WebSocket disconnections prevented real-time data from updating. I used Chrome DevTools to identify the cause of the disconnections and resolved the data-update problem."
+            ],
+            "metadata": {
+              "period": "Production service",
+              "technologies": ["WebSocket", "Chrome DevTools"]
             }
           }
         ]
@@ -136,7 +127,6 @@
   },
   "openSource": {
     "id": "open-source",
-    "index": "02",
     "title": "Open Source",
     "introduction": "Changes merged into external projects and included in official releases.",
     "contributions": [
@@ -164,7 +154,6 @@
   },
   "independentWork": {
     "id": "independent-work",
-    "index": "03",
     "title": "Independent Work",
     "introduction": "Work I defined and implemented outside company projects.",
     "items": [
@@ -184,7 +173,6 @@
   },
   "background": {
     "id": "background",
-    "index": "04",
     "title": "Background",
     "items": [
       { "title": "Dankook University", "detail": "Applied Computer Engineering", "period": "2016 — 2022" },
@@ -194,7 +182,6 @@
   },
   "contact": {
     "id": "contact",
-    "index": "05",
     "title": "Contact",
     "introduction": "For hiring or collaboration, contact me by email or through one of the profiles below.",
     "links": [
