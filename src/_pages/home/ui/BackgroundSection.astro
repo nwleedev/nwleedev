@@ -11,7 +11,7 @@ interface Props {
 const { background } = Astro.props;
 ---
 
-<section aria-labelledby={background.id} class="py-18 md:py-22">
+<section aria-labelledby={background.id} class="pb-16 md:pb-24">
   <SectionHeader id={background.id} title={background.title} />
   <dl class="mt-10 border-b border-border-default">
     {background.items.map((item) => (

@@ -33,11 +33,6 @@
   --text-lead: 1rem;
   --text-lead--line-height: 1.75;
 
-  --spacing-18: 4.5rem;
-  --spacing-22: 5.5rem;
-  --spacing-26: 6.5rem;
-  --spacing-30: 7.5rem;
-
   --container-page: 42rem;
 }
 
@@ -55,7 +50,6 @@ html {
 }
 
 body {
-  min-width: 20rem;
   margin: 0;
   background: var(--color-surface-default);
   font-size: 1rem;

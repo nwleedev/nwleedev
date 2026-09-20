@@ -13,7 +13,7 @@ interface Props {
 const { identity, language, locale } = Astro.props;
 ---
 
-<section aria-labelledby="identity-title" class="pb-22 pt-14 md:pb-26 md:pt-20">
+<section aria-labelledby="identity-title" class="pb-16 pt-16">
   <h1 id="identity-title" class="text-display font-semibold text-text-primary">
     {identity.name}
   </h1>
@@ -42,7 +42,10 @@ const { identity, language, locale } = Astro.props;
       {language.links.map((link) => (
         <li>
           <a
-            class:list={[link.locale === locale && "text-brand-strong no-underline"]}
+            class:list={[
+              "inline-flex min-h-6 items-center",
+              link.locale === locale && "text-brand-strong no-underline",
+            ]}
             href={link.href}
             aria-current={link.locale === locale ? "page" : undefined}
             lang={link.locale}
