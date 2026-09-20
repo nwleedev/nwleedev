@@ -1,0 +1,46 @@
+---
+import type { HomeTerms, Locale } from "@/shared/terms";
+import LanguageSwitch from "./LanguageSwitch.astro";
+import MobileProfileLinks from "./MobileProfileLinks.astro";
+
+type IdentityTerms = HomeTerms["identity"];
+type LanguageTerms = HomeTerms["language"];
+
+interface Props {
+  identity: IdentityTerms;
+  language: LanguageTerms;
+  locale: Locale;
+}
+
+const { identity, language, locale } = Astro.props;
+---
+
+<section aria-labelledby="identity-title" class="pb-16 pt-16">
+  <div class="flex items-center justify-between gap-4">
+    <h1 id="identity-title" class="text-display font-semibold text-text-primary">
+      {identity.name}
+    </h1>
+    <LanguageSwitch language={language} locale={locale} />
+  </div>
+  <p class="mt-1 text-sm font-semibold text-brand-strong">{identity.role}</p>
+  <p class="mt-8 text-lead font-normal text-text-primary">
+    {identity.lead}
+  </p>
+  <p class="mt-4 text-base leading-7 text-text-secondary">
+    {identity.supporting}
+  </p>
+  <ul class="mt-7 hidden flex-wrap gap-x-6 gap-y-3 sm:flex">
+    {identity.links.map((link) => (
+      <li>
+        <a
+          href={link.href}
+          class="inline-flex min-h-6 items-center font-semibold text-brand-strong decoration-brand-base hover:text-brand-hover"
+          aria-label={`${link.label}: ${link.context}`}
+        >
+          {link.label}
+        </a>
+      </li>
+    ))}
+  </ul>
+  <MobileProfileLinks links={identity.links} />
+</section>

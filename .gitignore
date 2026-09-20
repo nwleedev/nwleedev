@@ -362,6 +362,7 @@ pyrightconfig.json
 # Temporary files
 temps/
 .playwright-mcp/
+.astro/
 
 # AI Agents
 .agents/

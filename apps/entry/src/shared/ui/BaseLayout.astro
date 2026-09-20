@@ -1,0 +1,31 @@
+---
+import "@/shared/styles/global.css";
+
+interface Props {
+  locale: "ko" | "en";
+  title: string;
+  description: string;
+}
+
+const { locale, title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <link
+      rel="preload"
+      href="/fonts/PretendardVariable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <title>{title}</title>
+  </head>
+  <body id="page-top">
+    <slot />
+  </body>
+</html>

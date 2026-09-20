@@ -1,0 +1,27 @@
+---
+import type { Contribution } from "@/shared/terms";
+import { MetadataLine } from "@/shared/ui";
+
+interface Props {
+  contribution: Contribution;
+}
+
+const { contribution } = Astro.props;
+---
+
+<article class="border-t border-border-default py-8 first:border-t-0 first:pt-0 md:py-10 md:first:pt-0">
+  <h4 class="text-item font-semibold text-text-primary">
+    {contribution.title}
+  </h4>
+  <div class="mt-4 grid gap-3">
+    {contribution.paragraphs.map((paragraph) => (
+      <p class="text-base leading-7 text-text-secondary">{paragraph}</p>
+    ))}
+  </div>
+  <div class="mt-6">
+    <MetadataLine
+      period={contribution.metadata.period}
+      technologies={contribution.metadata.technologies}
+    />
+  </div>
+</article>

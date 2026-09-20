@@ -1,0 +1,14 @@
+---
+interface Props {
+  period: string;
+  technologies: readonly string[];
+}
+
+const { period, technologies } = Astro.props;
+---
+
+<p class="flex flex-wrap gap-x-3 gap-y-1 text-sm font-medium text-text-muted">
+  <span>{period}</span>
+  <span aria-hidden="true" class="text-border-strong">/</span>
+  <span>{technologies.join(", ")}</span>
+</p>

@@ -1,0 +1,15 @@
+{
+  "name": "nwleedev-workspace",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": "11.25.0"
+  },
+  "scripts": {
+    "entry:build": "pnpm --filter entry build",
+    "entry:check": "pnpm --filter entry check",
+    "entry:dev": "pnpm --filter entry dev",
+    "entry:preview": "pnpm --filter entry preview"
+  }
+}

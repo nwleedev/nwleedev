@@ -1,0 +1,45 @@
+---
+import type { HomeTerms, Locale } from "@/shared/terms";
+
+type LanguageTerms = HomeTerms["language"];
+
+interface Props {
+  language: LanguageTerms;
+  locale: Locale;
+}
+
+const { language, locale } = Astro.props;
+const alternateLanguage = language.links.find((link) => link.locale !== locale);
+---
+
+<nav aria-label={language.label} class="shrink-0">
+  <ul class="hidden gap-4 text-sm font-semibold text-text-muted sm:flex">
+    {language.links.map((link) => (
+      <li>
+        <a
+          class:list={[
+            "inline-flex min-h-6 items-center",
+            link.locale === locale && "text-brand-strong no-underline",
+          ]}
+          href={link.href}
+          aria-current={link.locale === locale ? "page" : undefined}
+          lang={link.locale}
+          hreflang={link.locale}
+        >
+          {link.label}
+        </a>
+      </li>
+    ))}
+  </ul>
+
+  {alternateLanguage && (
+    <a
+      class="inline-flex min-h-11 items-center text-sm font-semibold text-text-muted sm:hidden"
+      href={alternateLanguage.href}
+      lang={alternateLanguage.locale}
+      hreflang={alternateLanguage.locale}
+    >
+      {alternateLanguage.label}
+    </a>
+  )}
+</nav>

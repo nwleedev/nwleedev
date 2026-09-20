@@ -1,0 +1,31 @@
+---
+import type { ProfileLink } from "@/shared/terms";
+import Article from "phosphor-astro/Article.astro";
+import FilePdf from "phosphor-astro/FilePdf.astro";
+import GithubLogo from "phosphor-astro/GithubLogo.astro";
+import LinkedinLogo from "phosphor-astro/LinkedinLogo.astro";
+
+interface Props {
+  links: readonly ProfileLink[];
+}
+
+const { links } = Astro.props;
+const iconClass = "size-[clamp(1.125rem,7vw,1.5rem)]";
+---
+
+<ul class="mt-7 flex flex-nowrap items-center justify-start gap-4 sm:hidden">
+  {links.map((link) => (
+    <li class="shrink-0">
+      <a
+        href={link.href}
+        class="inline-flex size-11 items-center justify-center text-brand-strong hover:text-brand-hover"
+        aria-label={`${link.label}: ${link.context}`}
+      >
+        {link.icon === "github" && <GithubLogo aria-hidden="true" class={iconClass} />}
+        {link.icon === "article" && <Article aria-hidden="true" class={iconClass} />}
+        {link.icon === "linkedin" && <LinkedinLogo aria-hidden="true" class={iconClass} />}
+        {link.icon === "file-pdf" && <FilePdf aria-hidden="true" class={iconClass} />}
+      </a>
+    </li>
+  ))}
+</ul>
