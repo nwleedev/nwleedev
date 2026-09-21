@@ -1,0 +1,192 @@
+{
+  "meta": {
+    "title": "Nowon Lee — Frontend Engineer",
+    "description": "Technical profile of frontend engineer Nowon Lee, focused on information accuracy, task visibility, interface responsiveness, and service reliability"
+  },
+  "skipLink": "Skip to main content",
+  "linkLabels": {
+    "resume": "Résumé",
+    "resumeContext": "Resume"
+  },
+  "language": {
+    "label": "Language",
+    "links": [
+      { "locale": "ko", "label": "KO", "href": "/" },
+      { "locale": "en", "label": "EN", "href": "/en/" }
+    ]
+  },
+  "identity": {
+    "name": "Nowon Lee",
+    "role": "Frontend Engineer",
+    "lead": "I trace service issues to their causes so users can trust the information they see and keep track of work in progress.",
+    "supporting": "Across TypeScript and React services, I have improved real-time information, long-running tasks, operational dashboards, and authentication, then verified behavior after deployment.",
+    "links": [
+      { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "Code and open source contributions", "icon": "github" },
+      { "label": "Blog", "href": "https://blog.nwlee.com", "context": "Technical notes and problem-solving process", "icon": "article" },
+      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "Professional profile", "icon": "linkedin" }
+    ]
+  },
+  "experience": {
+    "id": "experience",
+    "title": "Experience",
+    "companies": [
+      {
+        "company": "AI Factory",
+        "period": "2025 — Present",
+        "role": "Frontend Engineer",
+        "summary": "For public-sector web services, I improved operational information accuracy, visibility into long-running tasks, responsiveness on data-heavy screens, and release reliability.",
+        "contributions": [
+          {
+            "title": "Improving dashboard accuracy and transfer efficiency",
+            "paragraphs": [
+              "I corrected missing values, incorrect usage ratios, and omitted time series so operators could rely on the PC status shown in the dashboard. I aligned metric names and labels with actual responses, corrected usage-ratio calculations, and separated time series that shared the same label.",
+              "I changed queries to fetch only values after the previous request time, reducing data transferred over 10 minutes from 96.5 MB to 41 KB. I compared the deployed dashboard with actual responses to verify the displayed values."
+            ],
+            "metadata": {
+              "period": "Verified in production",
+              "technologies": ["Next.js", "Prometheus", "Recharts"]
+            }
+          },
+          {
+            "title": "Improving wait experience and status accuracy for 5–10 minute document generation",
+            "paragraphs": [
+              "Users can see the current stage and elapsed time during 5–10 minute document generation and decide whether to leave or cancel with the relevant status in view. If they continue, status tracking remains active so they can keep following progress.",
+              "The client confirms server status after SSE events, so the UI reflects actual processing even when events arrive during a request or the connection fails. Status checks stayed at 10 or fewer per task, compared with an estimated 100–200 checks at three-second intervals. After deployment, I verified that the server-side generation and cancellation states matched the displayed progress."
+            ],
+            "metadata": {
+              "period": "For 5–10 minute tasks",
+              "technologies": ["React", "SSE", "Next.js"]
+            }
+          },
+          {
+            "title": "Eliminating 3–4 second UI freezes and keeping real-time charts continuous",
+            "paragraphs": [
+              "I restored interaction on run-history and detail screens that froze for 3–4 seconds while processing API responses of about 5 MB. I applied a shared approach that moved API requests and transformation into a SharedWorker, then verified after deployment that the freezes were resolved.",
+              "I merged historical values loaded after refresh with new streamed values on the same time basis, keeping the chart continuous without duplicates. I recombined split JSON fragments with the next chunk so real-time updates could continue."
+            ],
+            "metadata": {
+              "period": "Response size and format retained",
+              "technologies": ["SharedWorker", "REST", "Streaming"]
+            }
+          },
+          {
+            "title": "Validating 70+ key flows with consistent authentication recovery",
+            "paragraphs": [
+              "I made more than 70 key authenticated-user flows repeatably testable before release. This coverage surfaced a mismatch between credentials retained in the browser and an expired server session.",
+              "I applied one recovery behavior both before entering protected screens and when authentication failed during use, giving users a consistent response. I handled root-cause analysis and deployment of the shared recovery behavior to the QA environment."
+            ],
+            "metadata": {
+              "period": "Pre-deployment verification",
+              "technologies": ["Playwright", "Authentication", "QA"]
+            }
+          }
+        ]
+      },
+      {
+        "company": "Crust Universe / Quarkonix",
+        "period": "2022 — 2024",
+        "role": "Frontend Engineer",
+        "summary": "I improved immediate feedback after user actions, initial load times, and real-time information updates, then documented the loading approach for reuse across frontend projects.",
+        "contributions": [
+          {
+            "title": "Keeping immediate UI feedback aligned with server values",
+            "paragraphs": [
+              "I used optimistic updates on periodically refreshed screens so user changes appeared immediately while reducing mismatches after refetches and duplicate requests."
+            ],
+            "metadata": {
+              "period": "Production service",
+              "technologies": ["React", "TypeScript", "Optimistic Update"]
+            }
+          },
+          {
+            "title": "Shortening initial load and sharing a reusable setup",
+            "paragraphs": [
+              "I shortened initial load with Vite configuration and React lazy loading, then documented the setup for reuse across other frontend projects."
+            ],
+            "metadata": {
+              "period": "Service delivery",
+              "technologies": ["Vite", "React", "Lazy Loading"]
+            }
+          },
+          {
+            "title": "Restoring real-time information updates",
+            "paragraphs": [
+              "I used Chrome DevTools to find and fix intermittent WebSocket disconnections that stopped real-time information from updating."
+            ],
+            "metadata": {
+              "period": "Production service",
+              "technologies": ["WebSocket", "Chrome DevTools"]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "openSource": {
+    "id": "open-source",
+    "title": "Open Source",
+    "contributions": [
+      {
+        "project": "React Router",
+        "release": "v7.13.1",
+        "summary": "Fixed optional URL parameters incorrectly matching paths that lacked a `/` separator.",
+        "verification": "Added regression coverage while preserving existing dot-suffix behavior.",
+        "links": [
+          { "label": "PR #14689", "href": "https://github.com/remix-run/react-router/pull/14689", "context": "Change and review history" },
+          { "label": "Release v7.13.1", "href": "https://github.com/remix-run/react-router/releases/tag/react-router@7.13.1", "context": "Official release" }
+        ]
+      },
+      {
+        "project": "Outline",
+        "release": "v1.2.0",
+        "summary": "Fixed an editor defect that prevented Delete or Backspace from removing the final character before an inline image.",
+        "verification": "Verified deletion inside and outside tables while preserving regular text deletion.",
+        "links": [
+          { "label": "PR #10759", "href": "https://github.com/outline/outline/pull/10759", "context": "Change and review history" },
+          { "label": "Release v1.2.0", "href": "https://github.com/outline/outline/releases/tag/v1.2.0", "context": "Official release" }
+        ]
+      }
+    ]
+  },
+  "independentWork": {
+    "id": "independent-work",
+    "title": "Independent Work",
+    "items": [
+      {
+        "title": "AI Agent Workflow",
+        "period": "2026 — Present",
+        "summary": "I created repository rules and skills that separate requirements, research, decisions, and implementation so the reasons and criteria behind changes remain traceable. I paired them with a pre-save check for ambiguous Korean copy and applied the workflow across multiple repositories.",
+        "technologies": ["Node.js", "Repository Rules", "Text Validation"]
+      },
+      {
+        "title": "Offline Translation Web App",
+        "period": "2025",
+        "summary": "With language models saved ahead of time, users can translate between Korean and English or Korean and Japanese without a network connection and keep interacting with the page while the model runs. I used browser caching, Web Workers, and IndexedDB to keep the required files and processing in the browser, and automated repeated deployment steps with GitHub Actions.",
+        "technologies": ["Web Worker", "IndexedDB", "Offline", "GitHub Actions"]
+      }
+    ]
+  },
+  "background": {
+    "id": "background",
+    "title": "Background",
+    "items": [
+      { "title": "Dankook University", "detail": "Applied Computer Engineering", "period": "2016 — 2022" },
+      { "title": "Engineer Information Processing", "detail": "Human Resources Development Service of Korea", "period": "2022" },
+      { "title": "TOEIC Speaking", "detail": "IH", "period": "2025" }
+    ]
+  },
+  "contact": {
+    "id": "contact",
+    "title": "Contact",
+    "links": [
+      { "label": "Email", "href": "mailto:nw.lee@outlook.com", "context": "Send an email" },
+      { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "Code and open source contributions" },
+      { "label": "Blog", "href": "https://blog.nwlee.com", "context": "Technical notes and problem-solving process" },
+      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "Professional profile" }
+    ]
+  },
+  "footer": {
+    "text": "Nowon Lee, Frontend Engineer",
+    "topLabel": "Back to top"
+  }
+}

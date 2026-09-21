@@ -4,6 +4,10 @@
 
 This directory contains repository-specific development guidance that remains useful across changes. It routes contributors to current rules and approved engineering decisions; it does not replace tests, tooling, official framework documentation, or task-specific design documents.
 
+## Current Guidance
+
+- [Astro, FSD와 Tailwind CSS 구현 규칙](frontend/astro-fsd-tailwind.md): 개발자 소개 사이트의 모듈 배치, 정적 렌더링, UI 재사용, 타입과 스타일 작성 시 피해야 할 구현 및 확인 방법
+
 ## Structure and Inclusion
 
 ```text

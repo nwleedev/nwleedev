@@ -1,10 +1,10 @@
 {
   "name": "nwleedev-workspace",
   "private": true,
-  "packageManager": "pnpm@11.22.0",
+  "packageManager": "pnpm@11.25.0",
   "engines": {
     "node": ">=24.15.0 <25",
-    "pnpm": "11.22.0"
+    "pnpm": "11.25.0"
   },
   "scripts": {
     "notes:build": "pnpm --filter notes-app build",
@@ -13,6 +13,10 @@
     "notes:start": "pnpm --filter notes-app start",
     "notes:test": "pnpm --filter notes-app test",
     "notes:test:e2e": "pnpm --filter notes-app test:e2e",
-    "notes:typecheck": "pnpm --filter notes-app typecheck"
+    "notes:typecheck": "pnpm --filter notes-app typecheck",
+    "entry:build": "pnpm --filter entry build",
+    "entry:check": "pnpm --filter entry check",
+    "entry:dev": "pnpm --filter entry dev",
+    "entry:preview": "pnpm --filter entry preview"
   }
 }
