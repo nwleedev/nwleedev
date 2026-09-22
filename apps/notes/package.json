@@ -1,0 +1,53 @@
+{
+  "name": "notes-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.15.0 <25",
+    "pnpm": "11.25.0"
+  },
+  "browserslist": [
+    "Chrome >= 111",
+    "Edge >= 111",
+    "Firefox >= 125",
+    "Safari >= 16.4"
+  ],
+  "scripts": {
+    "build": "next build --webpack",
+    "dev": "next dev --webpack",
+    "lint": "eslint .",
+    "start": "next start --hostname localhost",
+    "test": "vitest run --passWithNoTests",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "test:e2e": "pnpm build && playwright test",
+    "test:model": "vitest run src/_pages/notes/model/note-content.model.test.ts src/_pages/notes/model/copy-note.model.test.ts src/entities/note/model/note-lifecycle.model.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "16.3.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-hook-form": "7.86.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@boundaries/eslint-plugin": "7.2.0",
+    "@playwright/test": "1.62.1",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "24.13.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "@vitest/browser-playwright": "4.1.11",
+    "@vitest/eslint-plugin": "1.6.27",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.3",
+    "eslint-import-resolver-typescript": "4.4.5",
+    "eslint-plugin-playwright": "2.11.0",
+    "fast-check": "4.10.0",
+    "postcss": "8.5.26",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3",
+    "vitest": "4.1.11"
+  }
+}

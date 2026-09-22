@@ -2,6 +2,7 @@ packages:
   - apps/*
 
 allowBuilds:
+  unrs-resolver: false
   esbuild: true
 
 disallowWorkspaceCycles: true

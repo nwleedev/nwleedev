@@ -1,0 +1,68 @@
+:root {
+  --notes-color-canvas: oklch(96% 0.006 70deg);
+  --notes-color-surface: oklch(98% 0.004 70deg);
+  --notes-color-surface-raised: oklch(100% 0 0deg);
+  --notes-color-text: oklch(24% 0.012 30deg);
+  --notes-color-icon: oklch(39% 0.012 30deg);
+  --notes-color-border: oklch(86% 0.009 55deg);
+  --notes-color-border-strong: oklch(68% 0.016 35deg);
+  --notes-color-accent: #ee5165;
+  --notes-color-accent-hover: oklch(57% 0.2 20deg);
+  --notes-color-on-accent: oklch(99% 0.002 20deg);
+  --notes-color-focus: oklch(62% 0.2 20deg);
+  --notes-color-selection: oklch(65% 0.17 20deg);
+  --notes-color-danger: oklch(53% 0.19 25deg);
+  --notes-color-success: oklch(55% 0.12 150deg);
+  --notes-color-warning: oklch(65% 0.14 75deg);
+  --notes-color-feedback: oklch(42% 0.018 30deg);
+
+  --notes-color-action: var(--notes-color-accent);
+  --notes-color-action-hover: var(--notes-color-accent-hover);
+  --notes-color-action-ink: var(--notes-color-on-accent);
+  --notes-color-ink: var(--notes-color-text);
+  --notes-color-line: var(--notes-color-border);
+  --notes-color-line-strong: var(--notes-color-border-strong);
+  --notes-color-notice: var(--notes-color-feedback);
+  --notes-color-soft-ink: oklch(49% 0.014 30deg);
+  --notes-focus-ring: var(--notes-color-focus);
+  --notes-font-ui: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
+  --notes-control-size: 2.375rem;
+  --notes-motion-fast: 120ms;
+  --notes-motion-panel: 180ms;
+  --notes-radius-control: 0.375rem;
+  --notes-radius-note: 0.375rem;
+  --notes-radius-panel: 0.5rem;
+  --notes-shadow-floating: 0 1rem 2.5rem -1.25rem oklch(18% 0.01 255deg / 45%);
+}
+
+@theme inline {
+  --color-action: var(--notes-color-action);
+  --color-action-hover: var(--notes-color-action-hover);
+  --color-action-ink: var(--notes-color-action-ink);
+  --color-accent: var(--notes-color-accent);
+  --color-accent-hover: var(--notes-color-accent-hover);
+  --color-on-accent: var(--notes-color-on-accent);
+  --color-canvas: var(--notes-color-canvas);
+  --color-border: var(--notes-color-border);
+  --color-border-strong: var(--notes-color-border-strong);
+  --color-danger: var(--notes-color-danger);
+  --color-feedback: var(--notes-color-feedback);
+  --color-focus: var(--notes-color-focus);
+  --color-icon: var(--notes-color-icon);
+  --color-ink: var(--notes-color-ink);
+  --color-line: var(--notes-color-line);
+  --color-line-strong: var(--notes-color-line-strong);
+  --color-notice: var(--notes-color-notice);
+  --color-soft-ink: var(--notes-color-soft-ink);
+  --color-selection: var(--notes-color-selection);
+  --color-success: var(--notes-color-success);
+  --color-surface: var(--notes-color-surface);
+  --color-surface-raised: var(--notes-color-surface-raised);
+  --color-text: var(--notes-color-text);
+  --color-warning: var(--notes-color-warning);
+  --font-ui: var(--notes-font-ui);
+  --radius-control: var(--notes-radius-control);
+  --radius-note: var(--notes-radius-note);
+  --radius-panel: var(--notes-radius-panel);
+  --shadow-floating: var(--notes-shadow-floating);
+}
