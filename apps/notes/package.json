@@ -15,6 +15,9 @@
   ],
   "scripts": {
     "build": "next build --webpack",
+    "cloudflare:build": "opennextjs-cloudflare build",
+    "cloudflare:deploy": "pnpm cloudflare:build && opennextjs-cloudflare deploy",
+    "cloudflare:preview": "pnpm cloudflare:build && opennextjs-cloudflare preview",
     "dev": "next dev --webpack",
     "lint": "eslint .",
     "start": "next start --hostname localhost",
@@ -25,6 +28,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "1.20.6",
     "next": "16.3.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -48,6 +52,7 @@
     "postcss": "8.5.26",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
-    "vitest": "4.1.11"
+    "vitest": "4.1.11",
+    "wrangler": "4.136.0"
   }
 }

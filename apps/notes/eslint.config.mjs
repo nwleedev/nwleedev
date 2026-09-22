@@ -1,23 +1,23 @@
-import { defineConfig, globalIgnores } from "eslint/config"
-import boundaries from "@boundaries/eslint-plugin"
-import vitest from "@vitest/eslint-plugin"
-import nextVitals from "eslint-config-next/core-web-vitals"
-import nextTypeScript from "eslint-config-next/typescript"
-import playwright from "eslint-plugin-playwright"
+import boundaries from "@boundaries/eslint-plugin";
+import vitest from "@vitest/eslint-plugin";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTypeScript from "eslint-config-next/typescript";
+import playwright from "eslint-plugin-playwright";
+import { defineConfig, globalIgnores } from "eslint/config";
 
-const sourceFiles = ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"]
-const publicEntryPoint = "index.{ts,tsx}"
-const pagePublicEntryPoint = "{composition,index}.{ts,tsx}"
+const sourceFiles = ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"];
+const publicEntryPoint = "index.{ts,tsx}";
+const pagePublicEntryPoint = "{composition,index}.{ts,tsx}";
 
 const element = (type, fileInternalPath) => ({
   element: {
     type,
     ...(fileInternalPath ? { fileInternalPath } : {}),
   },
-})
+});
 
 const allowPublicEntries = (types) =>
-  types.map((type) => element(type, publicEntryPoint))
+  types.map((type) => element(type, publicEntryPoint));
 
 const dependencyPolicies = [
   {
@@ -78,10 +78,7 @@ const dependencyPolicies = [
       kind: "type",
     },
     allow: {
-      to: element(
-        "entity",
-        "@x/{{from.element.captured.slice}}.{ts,tsx}",
-      ),
+      to: element("entity", "@x/{{from.element.captured.slice}}.{ts,tsx}"),
     },
   },
   {
@@ -104,7 +101,7 @@ const dependencyPolicies = [
       },
     },
   },
-]
+];
 
 export default defineConfig([
   ...nextVitals,
@@ -211,5 +208,12 @@ export default defineConfig([
       "playwright/prefer-native-locators": "error",
     },
   },
-  globalIgnores([".next/**", "out/**", "next-env.d.ts", "temps/**"]),
-])
+  globalIgnores([
+    ".next/**",
+    ".open-next/**",
+    ".wrangler/**",
+    "out/**",
+    "next-env.d.ts",
+    "temps/**",
+  ]),
+]);

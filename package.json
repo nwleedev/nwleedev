@@ -8,6 +8,9 @@
   },
   "scripts": {
     "notes:build": "pnpm --filter notes-app build",
+    "notes:cloudflare:build": "pnpm --filter notes-app cloudflare:build",
+    "notes:cloudflare:deploy": "pnpm --filter notes-app cloudflare:deploy",
+    "notes:cloudflare:preview": "pnpm --filter notes-app cloudflare:preview",
     "notes:dev": "pnpm --filter notes-app dev",
     "notes:lint": "pnpm --filter notes-app lint",
     "notes:start": "pnpm --filter notes-app start",
