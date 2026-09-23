@@ -142,6 +142,22 @@ export function ArrowBackIcon(props: IconProps) {
   )
 }
 
+export function ArrowUpIcon(props: IconProps) {
+  return (
+    <svg {...props} aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16">
+      <path d="M8 13V3m0 0L4.5 6.5M8 3l3.5 3.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+export function ArrowDownIcon(props: IconProps) {
+  return (
+    <svg {...props} aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16">
+      <path d="M8 3v10m0 0 3.5-3.5M8 13 4.5 9.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
 export function NavigateBackIcon(props: IconProps) {
   return (
     <svg {...props} aria-hidden="true" fill="none" height="20" viewBox="0 0 20 20" width="20">

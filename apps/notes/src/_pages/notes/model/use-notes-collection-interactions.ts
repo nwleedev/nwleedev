@@ -183,18 +183,11 @@ export function useNotesCollectionInteractions({
     }
   }, [clearSelection, clearSelections])
 
-  async function createNewNote() {
+  async function createNoteOnce() {
     setCreationPending(true)
 
     try {
-      const note = await createNote()
-      select(note.id)
-      requestAnimationFrame(() => {
-        document
-          .getElementById(`note-${encodeURIComponent(note.id)}-content`)
-          ?.focus({ preventScroll: true })
-      })
-      return note
+      return await createNote()
     } catch {
       showNotice({
         kind: "error",
@@ -206,9 +199,29 @@ export function useNotesCollectionInteractions({
     }
   }
 
+  async function createNewNote() {
+    const note = await createNoteOnce()
+
+    if (note === null) {
+      return
+    }
+
+    select(note.id)
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`note-${encodeURIComponent(note.id)}-content`)
+        ?.focus({ preventScroll: true })
+    })
+  }
+
+  async function createMobileNote() {
+    await createNoteOnce()
+  }
+
   return {
     commandPressed,
     createButton,
+    createMobileNote,
     createNewNote,
     creationPending,
     linkedNoteId,

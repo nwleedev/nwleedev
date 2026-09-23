@@ -9,6 +9,7 @@ import { useBatchCopyEditing } from "../model/use-batch-copy-editing"
 import { BatchCopyList } from "./batch-copy-list"
 
 type BatchCopyEditingViewProps = {
+  actionPresentation: "popover" | "sheet" | null
   items: readonly BatchCopyItem[]
   pending: boolean
   presentation: "management" | "panel"
@@ -21,6 +22,7 @@ type BatchCopyEditingViewProps = {
 }
 
 export function BatchCopyEditingView({
+  actionPresentation,
   items,
   onDuplicate,
   onMove,
@@ -49,6 +51,7 @@ export function BatchCopyEditingView({
         </StatusNotice>
       ) : null}
       <BatchCopyList
+        actionPresentation={actionPresentation}
         items={editing.items}
         onDuplicate={editing.duplicate}
         onMove={editing.move}

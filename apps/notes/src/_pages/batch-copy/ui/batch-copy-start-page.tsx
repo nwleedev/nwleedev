@@ -12,6 +12,7 @@ import {
 import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
 import { Button } from "@/shared/ui/button"
 
+import { useBatchCopyActionPresentation } from "../model/use-batch-copy-action-presentation"
 import { useBatchCopyPage } from "../model/use-batch-copy-page"
 import { MobileBatchCopyConfirmation } from "./mobile-batch-copy-confirmation"
 
@@ -46,36 +47,44 @@ function BatchCopyPageContent() {
     )
   }
 
-  if (batchCopy.items.length === 0) {
-    return (
-      <section
-        aria-labelledby="batch-copy-empty-title"
-        className="grid min-h-0 place-items-center overflow-auto px-4 py-8"
-      >
-        <h2 className="text-base font-semibold" id="batch-copy-empty-title">
-          일괄 복사 항목이 없습니다.
-        </h2>
-      </section>
-    )
-  }
-
   return (
     <section
       aria-label="일괄 복사 항목 관리"
       className="min-h-0 overflow-auto px-4 py-5 sm:px-5"
     >
-      <div className="mx-auto max-w-3xl">
-        <BatchCopyEditingView
-          items={batchCopy.items}
-          onDuplicate={batchCopy.duplicateItem}
-          onMove={batchCopy.moveItem}
-          onRemove={batchCopy.removeItem}
-          pending={batchCopy.pending}
-          presentation="management"
-          reorderButtonsEnabled={batchCopy.reorderButtonsEnabled}
-        />
-      </div>
+      {batchCopy.items.length === 0 ? (
+        <h2 className="grid min-h-40 place-items-center text-base font-semibold">
+          일괄 복사 항목이 없습니다.
+        </h2>
+      ) : null}
+      <BatchCopyManagement
+        items={batchCopy.items}
+        onDuplicate={batchCopy.duplicateItem}
+        onMove={batchCopy.moveItem}
+        onRemove={batchCopy.removeItem}
+        pending={batchCopy.pending}
+        reorderButtonsEnabled={batchCopy.reorderButtonsEnabled}
+      />
     </section>
+  )
+}
+
+type BatchCopyManagementProps = Pick<
+  Parameters<typeof BatchCopyEditingView>[0],
+  "items" | "onDuplicate" | "onMove" | "onRemove" | "pending" | "reorderButtonsEnabled"
+>
+
+function BatchCopyManagement(props: BatchCopyManagementProps) {
+  const { container, presentation } = useBatchCopyActionPresentation()
+
+  return (
+    <div className="mx-auto max-w-3xl" ref={container}>
+      <BatchCopyEditingView
+        {...props}
+        actionPresentation={presentation}
+        presentation="management"
+      />
+    </div>
   )
 }
 

@@ -106,6 +106,7 @@ export function useNoteDetailEditing({
 
     clearDraftTimer()
 
+
     try {
       await saveDraft(noteReference.current.id, getValues("content"))
       setFailure((current) => current?.kind === "draft" ? null : current)
@@ -201,9 +202,12 @@ export function useNoteDetailEditing({
     const latestContent = getValues("content")
 
     if (latestContent === fields.content) {
-      reset({ content: result.note.content })
+      reset({ content: result.note.content }, { keepFieldsRef: true })
     } else {
-      reset({ content: result.note.content }, { keepValues: true })
+      reset(
+        { content: result.note.content },
+        { keepFieldsRef: true, keepValues: true },
+      )
     }
 
     showSavedLabel()

@@ -54,7 +54,7 @@ export function MobileNoteCard({
   return (
     <article
       aria-label={`메모, ${summary}`}
-      className="relative overflow-hidden rounded-note border border-border bg-surface-raised"
+      className="relative shrink-0 overflow-hidden rounded-note border border-border bg-surface-raised"
     >
       <button
         aria-label={actionName}

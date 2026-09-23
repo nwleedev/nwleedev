@@ -1,4 +1,11 @@
-import { expect, test, type Locator, type Page } from "@playwright/test"
+import {
+  expect,
+  test,
+  type Browser,
+  type BrowserContext,
+  type Locator,
+  type Page,
+} from "@playwright/test"
 import * as fc from "fast-check"
 
 import {
@@ -90,12 +97,19 @@ type NoteCreationModel = {
 }
 
 type NoteCreationReal = {
+  actions?: string[]
   page: Page
 }
 
 type StoredCreationState = {
   contents: string[]
   distinctIds: number
+}
+
+type CreationFailure = {
+  actions: string[]
+  expectedContents: string[]
+  observed: StoredCreationState
 }
 
 async function readStoredCreationState(page: Page): Promise<StoredCreationState> {
@@ -153,7 +167,8 @@ class CreateNoteThroughUiCommand
     return true
   }
 
-  async run(model: NoteCreationModel, { page }: NoteCreationReal) {
+  async run(model: NoteCreationModel, { actions, page }: NoteCreationReal) {
+    actions?.push(this.toString())
     await createNoteThroughUi(page, this.content)
     model.contents.push(this.content)
     await expectVisibleNoteContents(page, model.contents)
@@ -172,7 +187,8 @@ class FailNoteCreationThroughUiCommand
     return true
   }
 
-  async run(model: NoteCreationModel, { page }: NoteCreationReal) {
+  async run(model: NoteCreationModel, { actions, page }: NoteCreationReal) {
+    actions?.push(this.toString())
     await page.getByRole("button", { name: "새 메모" }).click()
     await expect(
       page.getByRole("alert").filter({
@@ -197,7 +213,8 @@ class ReloadNotesThroughUiCommand
     return model.contents.length > 0
   }
 
-  async run(model: NoteCreationModel, { page }: NoteCreationReal) {
+  async run(model: NoteCreationModel, { actions, page }: NoteCreationReal) {
+    actions?.push(this.toString())
     await page.reload()
     await expectVisibleNoteContents(page, model.contents)
     await expectStoredCreationState(page, model.contents)
@@ -221,6 +238,548 @@ const noteCreationCommands = fc.commands(
   ],
   { maxCommands: 4 },
 )
+
+async function contextWithoutSecondCreatedNote(browser: Browser) {
+  const context = await browser.newContext()
+  await context.addInitScript(() => {
+    const originalPut = IDBObjectStore.prototype.put
+    let createdCount = 0
+    let omittedNoteId: string | null = null
+
+    IDBObjectStore.prototype.put = function (value, key) {
+      const record = value as {
+        content: string
+        contentRevision: number
+        id: string
+      }
+
+      if (
+        this.name === "notes" &&
+        record.content === "" &&
+        record.contentRevision === 0
+      ) {
+        createdCount += 1
+
+        if (createdCount === 2) {
+          omittedNoteId = record.id
+        }
+      }
+
+      if (this.name === "notes" && record.id === omittedNoteId) {
+        return this.get(record.id)
+      }
+
+      return key === undefined
+        ? originalPut.call(this, value)
+        : originalPut.call(this, value, key)
+    }
+  })
+  return context
+}
+
+function replaySequence<Model extends object, Real>(
+  details: fc.RunDetails<[Iterable<fc.AsyncCommand<Model, Real>>]>,
+) {
+  const commands = details.counterexample?.[0]
+  const path = details.counterexamplePath
+
+  if (commands === undefined || path === null) {
+    throw new Error("Missing reduced command sequence")
+  }
+
+  const printed = String(commands)
+  const replayPath = printed.match(/\/\*replayPath="([^"]+)"\*\//u)?.[1]
+
+  if (replayPath === undefined) {
+    throw new Error("Missing command replay path")
+  }
+
+  return { commands, path, printed, replayPath }
+}
+
+function expectMissingCreatedNote(failure: CreationFailure | undefined) {
+  if (failure === undefined) {
+    throw new Error("Missing creation failure observation")
+  }
+
+  expect(failure.observed.distinctIds).toBeLessThan(
+    failure.expectedContents.length,
+  )
+  expect(failure.observed.contents).not.toEqual(
+    [...failure.expectedContents].sort(),
+  )
+}
+
+type AutosaveModel = {
+  elapsedSinceInput: number
+  input: string
+  stored: string
+}
+
+type AutosaveReal = {
+  actions: string[]
+  editor: Locator
+  noteId: string
+  page: Page
+}
+
+type AutosaveFailure = {
+  actions: string[]
+  expectedContent: string
+  observedContent: string | null
+}
+
+async function expectAutosaveStored(real: AutosaveReal, content: string) {
+  await expect
+    .poll(async () => (await readStoredNote(real.page, real.noteId))?.content)
+    .toBe(content)
+}
+
+class EnterAutosaveContent implements fc.AsyncCommand<AutosaveModel, AutosaveReal> {
+  constructor(private readonly content: string) {}
+
+  check() {
+    return true
+  }
+
+  async run(model: AutosaveModel, real: AutosaveReal) {
+    real.actions.push(this.toString())
+    await real.editor.fill(this.content)
+    model.input = this.content
+    model.elapsedSinceInput = 0
+    await expect(real.editor).toHaveValue(model.input)
+  }
+
+  toString() {
+    return `enter(${JSON.stringify(this.content)})`
+  }
+}
+
+class AdvanceAutosaveClock implements fc.AsyncCommand<AutosaveModel, AutosaveReal> {
+  constructor(private readonly durationMs: number) {}
+
+  check(model: Readonly<AutosaveModel>) {
+    return model.input !== model.stored
+  }
+
+  async run(model: AutosaveModel, real: AutosaveReal) {
+    real.actions.push(this.toString())
+    await real.page.clock.runFor(this.durationMs)
+    model.elapsedSinceInput += this.durationMs
+
+    if (model.elapsedSinceInput >= 800) {
+      model.stored = model.input
+      await expectAutosaveStored(real, model.stored)
+      return
+    }
+
+    const observed = await readStoredNote(real.page, real.noteId)
+    expect(observed?.content).toBe(model.stored)
+  }
+
+  toString() {
+    return `advance(${this.durationMs})`
+  }
+}
+
+class BlurAutosaveEditor implements fc.AsyncCommand<AutosaveModel, AutosaveReal> {
+  check(model: Readonly<AutosaveModel>) {
+    return model.input !== model.stored
+  }
+
+  async run(model: AutosaveModel, real: AutosaveReal) {
+    real.actions.push(this.toString())
+    await real.editor.press("Tab")
+    model.stored = model.input
+    await expectAutosaveStored(real, model.stored)
+  }
+
+  toString() {
+    return "blur"
+  }
+}
+
+class SignalAutosaveExit implements fc.AsyncCommand<AutosaveModel, AutosaveReal> {
+  constructor(private readonly signal: "hidden" | "pagehide") {}
+
+  check(model: Readonly<AutosaveModel>) {
+    return model.input !== model.stored
+  }
+
+  async run(model: AutosaveModel, real: AutosaveReal) {
+    real.actions.push(this.toString())
+    await real.page.evaluate((signal) => {
+      if (signal === "pagehide") {
+        window.dispatchEvent(new Event("pagehide"))
+        return
+      }
+
+      const visibility = Object.getOwnPropertyDescriptor(
+        document,
+        "visibilityState",
+      )
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        value: "hidden",
+      })
+      document.dispatchEvent(new Event("visibilitychange"))
+
+      if (visibility === undefined) {
+        Reflect.deleteProperty(document, "visibilityState")
+        return
+      }
+
+      Object.defineProperty(document, "visibilityState", visibility)
+    }, this.signal)
+    model.stored = model.input
+    await expectAutosaveStored(real, model.stored)
+  }
+
+  toString() {
+    return this.signal
+  }
+}
+
+const autosaveContent = fc.string({
+  maxLength: 12,
+  minLength: 1,
+  unit: "grapheme-ascii",
+})
+const autosaveActions = [
+  autosaveContent.map((content) => new EnterAutosaveContent(content)),
+  fc.constant(new AdvanceAutosaveClock(799)),
+  fc.constant(new AdvanceAutosaveClock(1)),
+  fc.constant(new AdvanceAutosaveClock(800)),
+  fc.constant(new BlurAutosaveEditor()),
+  fc.constant(new SignalAutosaveExit("hidden")),
+  fc.constant(new SignalAutosaveExit("pagehide")),
+]
+
+async function runAutosaveCommands(
+  commands: Iterable<fc.AsyncCommand<AutosaveModel, AutosaveReal>>,
+  openContext: () => Promise<BrowserContext>,
+  failures?: AutosaveFailure[],
+) {
+  const context = await openContext()
+
+  try {
+    const page = await context.newPage()
+    await page.clock.install()
+    await page.goto("/")
+    const initialContent = "저장된 메모"
+    const note = await createNoteThroughUi(page, initialContent)
+    const articleId = await note.getAttribute("id")
+    expect(articleId).not.toBeNull()
+    const noteId = decodeURIComponent(
+      articleId!.slice("note-".length, -"-board".length),
+    )
+    const real: AutosaveReal = {
+      actions: [],
+      editor: note.getByRole("textbox", { name: "메모 내용" }),
+      noteId,
+      page,
+    }
+    await expectAutosaveStored(real, initialContent)
+    await page.clock.pauseAt(Date.now() + 60_000)
+    const model: AutosaveModel = {
+      elapsedSinceInput: 0,
+      input: initialContent,
+      stored: initialContent,
+    }
+
+    try {
+      await fc.asyncModelRun(() => ({ model, real }), commands)
+      await expect(real.editor).toHaveValue(model.input)
+    } catch (error) {
+      const observed = await readStoredNote(page, noteId)
+      failures?.push({
+        actions: [...real.actions],
+        expectedContent: model.stored,
+        observedContent: observed?.content ?? null,
+      })
+      throw error
+    }
+    return { actions: real.actions, input: model.input, stored: model.stored }
+  } finally {
+    await context.close()
+  }
+}
+
+async function contextWithoutEditedSave(browser: Browser) {
+  const context = await browser.newContext()
+  await context.addInitScript(() => {
+    const originalPut = IDBObjectStore.prototype.put
+
+    IDBObjectStore.prototype.put = function (value, key) {
+      const record = value as { contentRevision: number; id: string }
+
+      if (this.name === "notes" && record.contentRevision >= 2) {
+        return this.get(record.id)
+      }
+
+      return key === undefined
+        ? originalPut.call(this, value)
+        : originalPut.call(this, value, key)
+    }
+  })
+  return context
+}
+
+type MobileSaveModel = {
+  input: string
+  stored: string
+  view: "confirming" | "detail" | "list"
+}
+
+type MobileSaveReal = {
+  actions: string[]
+  noteId: string
+  page: Page
+}
+
+type MobileSaveFailure = {
+  actions: string[]
+  expectedContent: string
+  observedContent: string | null
+  observedInput: string | null
+  saveLabel: string | null
+  view: MobileSaveModel["view"]
+}
+
+async function expectMobileSaveState(model: MobileSaveModel, real: MobileSaveReal) {
+  await expect
+    .poll(async () => (await readStoredNote(real.page, real.noteId))?.content, {
+      timeout: 2_000,
+    })
+    .toBe(model.stored)
+
+  if (model.view === "list") {
+    await expect(real.page).toHaveURL("/")
+    return
+  }
+
+  const editor = real.page.getByRole("textbox", { name: "메모 내용" })
+  await expect(editor).toHaveValue(model.input)
+
+  if (model.view === "confirming") {
+    await expect(
+      real.page.getByRole("dialog", { name: "저장하지 않은 변경사항" }),
+    ).toBeVisible()
+  }
+}
+
+class EditMobileContent implements fc.AsyncCommand<MobileSaveModel, MobileSaveReal> {
+  constructor(private readonly content: string) {}
+
+  check(model: Readonly<MobileSaveModel>) {
+    return model.view === "detail"
+  }
+
+  async run(model: MobileSaveModel, real: MobileSaveReal) {
+    real.actions.push(this.toString())
+    await real.page.getByRole("textbox", { name: "메모 내용" }).fill(this.content)
+    model.input = this.content
+    await expectMobileSaveState(model, real)
+  }
+
+  toString() {
+    return `edit(${JSON.stringify(this.content)})`
+  }
+}
+
+class SaveMobileContent implements fc.AsyncCommand<MobileSaveModel, MobileSaveReal> {
+  check(model: Readonly<MobileSaveModel>) {
+    return model.view === "detail" && model.input !== model.stored
+  }
+
+  async run(model: MobileSaveModel, real: MobileSaveReal) {
+    real.actions.push(this.toString())
+    await real.page.getByRole("button", { exact: true, name: "저장" }).click()
+    model.stored = model.input
+    await expectMobileSaveState(model, real)
+  }
+
+  toString() {
+    return "save"
+  }
+}
+
+class LeaveMobileDetail implements fc.AsyncCommand<MobileSaveModel, MobileSaveReal> {
+  check(model: Readonly<MobileSaveModel>) {
+    return model.view === "detail" && model.input !== model.stored
+  }
+
+  async run(model: MobileSaveModel, real: MobileSaveReal) {
+    real.actions.push(this.toString())
+    await real.page.getByRole("link", { exact: true, name: "메모 목록" }).click()
+    model.view = "confirming"
+    await expectMobileSaveState(model, real)
+  }
+
+  toString() {
+    return "attempt-leave"
+  }
+}
+
+class ContinueMobileDetail implements fc.AsyncCommand<MobileSaveModel, MobileSaveReal> {
+  check(model: Readonly<MobileSaveModel>) {
+    return model.view === "confirming"
+  }
+
+  async run(model: MobileSaveModel, real: MobileSaveReal) {
+    real.actions.push(this.toString())
+    await real.page
+      .getByRole("dialog", { name: "저장하지 않은 변경사항" })
+      .getByRole("button", { name: "계속 편집" })
+      .click()
+    model.view = "detail"
+    await expectMobileSaveState(model, real)
+  }
+
+  toString() {
+    return "continue-editing"
+  }
+}
+
+class DiscardMobileContent implements fc.AsyncCommand<MobileSaveModel, MobileSaveReal> {
+  check(model: Readonly<MobileSaveModel>) {
+    return model.view === "confirming"
+  }
+
+  async run(model: MobileSaveModel, real: MobileSaveReal) {
+    real.actions.push(this.toString())
+    await real.page
+      .getByRole("dialog", { name: "저장하지 않은 변경사항" })
+      .getByRole("button", { name: "변경사항 버리기" })
+      .click()
+    model.input = model.stored
+    model.view = "list"
+    await expectMobileSaveState(model, real)
+    await expect
+      .poll(() => readStoredNoteDraft(real.page, real.noteId))
+      .toBeNull()
+  }
+
+  toString() {
+    return "discard-changes"
+  }
+}
+
+class ReopenMobileDetail implements fc.AsyncCommand<MobileSaveModel, MobileSaveReal> {
+  check(model: Readonly<MobileSaveModel>) {
+    return model.view === "list"
+  }
+
+  async run(model: MobileSaveModel, real: MobileSaveReal) {
+    real.actions.push(this.toString())
+    await real.page.getByRole("link", { name: /수정$/u }).click()
+    model.input = model.stored
+    model.view = "detail"
+    await expectMobileSaveState(model, real)
+  }
+
+  toString() {
+    return "reopen"
+  }
+}
+
+const mobileSaveContent = fc.string({
+  maxLength: 12,
+  minLength: 1,
+  unit: "grapheme-ascii",
+})
+const mobileSavePair = fc
+  .tuple(mobileSaveContent, mobileSaveContent)
+  .filter(([first, second]) => first !== second)
+const mobileSaveActions = [
+  mobileSaveContent.map((content) => new EditMobileContent(content)),
+  fc.constant(new SaveMobileContent()),
+  fc.constant(new LeaveMobileDetail()),
+  fc.constant(new ContinueMobileDetail()),
+  fc.constant(new DiscardMobileContent()),
+  fc.constant(new ReopenMobileDetail()),
+]
+
+async function runMobileSaveCommands(
+  commands: Iterable<fc.AsyncCommand<MobileSaveModel, MobileSaveReal>>,
+  openContext: () => Promise<BrowserContext>,
+  failures?: MobileSaveFailure[],
+  blockSave = false,
+) {
+  const context = await openContext()
+
+  try {
+    const page = await context.newPage()
+    await page.goto("/")
+    const initialContent = "저장된 메모"
+    const note = await createMobileNoteThroughUi(page, initialContent)
+    const noteId = noteIdFromHref(
+      await note.getByRole("link", { name: /수정$/u }).getAttribute("href"),
+    )
+    await note.getByRole("link", { name: /수정$/u }).click()
+
+    if (blockSave) {
+      await page.evaluate(() => {
+        window.addEventListener(
+          "click",
+          (event) => {
+            const button = (event.target as Element | null)?.closest("button")
+
+            if (button?.textContent?.trim() !== "저장") {
+              return
+            }
+
+            event.preventDefault()
+            event.stopImmediatePropagation()
+          },
+          true,
+        )
+      })
+    }
+
+    const model: MobileSaveModel = {
+      input: initialContent,
+      stored: initialContent,
+      view: "detail",
+    }
+    const real: MobileSaveReal = { actions: [], noteId, page }
+    await expectMobileSaveState(model, real)
+
+    try {
+      await fc.asyncModelRun(() => ({ model, real }), commands)
+      await expectMobileSaveState(model, real)
+    } catch (error) {
+      const observed = await readStoredNote(page, noteId)
+      failures?.push({
+        actions: [...real.actions],
+        expectedContent: model.stored,
+        observedContent: observed?.content ?? null,
+        observedInput: await page
+          .getByRole("textbox", { name: "메모 내용" })
+          .inputValue()
+          .catch(() => null),
+        saveLabel: await page
+          .getByRole("button", { name: /^저장/u })
+          .textContent()
+          .catch(() => null),
+        view: model.view,
+      })
+      throw error
+    }
+
+    return { actions: real.actions, content: model.stored, view: model.view }
+  } finally {
+    await context.close()
+  }
+}
+
+function createMobileSaveContext(browser: Browser) {
+  return browser.newContext({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { height: 720, width: 320 },
+  })
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/")
@@ -334,60 +893,123 @@ test("메모 생성 실패를 알리고 다음 생성 시도를 저장한다", a
 
 test("두 번째 메모의 쓰기가 누락되면 화면과 저장 결과의 차이를 찾는다", async ({
   browser,
-}) => {
-  const context = await browser.newContext()
-  await context.addInitScript(() => {
-    const originalPut = IDBObjectStore.prototype.put
-    let createdCount = 0
-    let omittedNoteId: string | null = null
+}, testInfo) => {
+  test.setTimeout(180_000)
+  const failedCandidates: CreationFailure[] = []
+  const actionArbitraries = [
+    noteCreationContent.map(
+      (content) => new CreateNoteThroughUiCommand(content),
+    ),
+    noteCreationContent.map(
+      (content) => new CreateNoteThroughUiCommand(content),
+    ),
+    fc.constant(new ReloadNotesThroughUiCommand()),
+  ]
+  const maxCommands = 6
+  const runSequence = async (
+    commands: Iterable<fc.AsyncCommand<NoteCreationModel, NoteCreationReal>>,
+    openContext: () => Promise<BrowserContext>,
+  ) => {
+    const context = await openContext()
 
-    IDBObjectStore.prototype.put = function (value, key) {
-      const record = value as {
-        content: string
-        contentRevision: number
-        id: string
+    try {
+      const page = await context.newPage()
+      await page.goto("/")
+      const model: NoteCreationModel = { contents: [] }
+      const actions: string[] = []
+
+      try {
+        await fc.asyncModelRun(
+          () => ({ model, real: { actions, page } }),
+          commands,
+        )
+        await expectVisibleNoteContents(page, model.contents)
+        await expectStoredCreationState(page, model.contents)
+      } catch (error) {
+        failedCandidates.push({
+          actions: [...actions],
+          expectedContents: [...model.contents],
+          observed: await readStoredCreationState(page),
+        })
+        throw error
       }
-
-      if (
-        this.name === "notes" &&
-        record.content === "" &&
-        record.contentRevision === 0
-      ) {
-        createdCount += 1
-
-        if (createdCount === 2) {
-          omittedNoteId = record.id
-        }
-      }
-
-      if (this.name === "notes" && record.id === omittedNoteId) {
-        return this.get(record.id)
-      }
-
-      return key === undefined
-        ? originalPut.call(this, value)
-        : originalPut.call(this, value, key)
+    } finally {
+      await context.close()
     }
-  })
-
-  try {
-    const page = await context.newPage()
-    await page.goto("/")
-    const firstContent = `첫 메모-${crypto.randomUUID()}`
-    const secondContent = `두 번째 메모-${crypto.randomUUID()}`
-    const model: NoteCreationModel = { contents: [] }
-    const real: NoteCreationReal = { page }
-
-    await new CreateNoteThroughUiCommand(firstContent).run(model, real)
-    await expect(
-      new CreateNoteThroughUiCommand(secondContent).run(model, real),
-    ).rejects.toThrow()
-
-    await expectVisibleNoteContents(page, model.contents)
-    await expectStoredCreationState(page, [firstContent])
-  } finally {
-    await context.close()
   }
+  const failureCommands = fc.commands(actionArbitraries, { maxCommands })
+  const details = await fc.check(
+    fc.asyncProperty(failureCommands, async (commands) => {
+      await runSequence(commands, () => contextWithoutSecondCreatedNote(browser))
+    }),
+    { numRuns: 12 },
+  )
+
+  expect(details.failed).toBe(true)
+  expect(details.interrupted).toBe(false)
+  expect(details.numShrinks).toBeGreaterThan(0)
+  expect(failedCandidates.length).toBeGreaterThan(0)
+  const reducedSequence = replaySequence(details)
+
+  const reduced = failedCandidates.at(-1)
+  const replay = await fc.check(
+    fc.asyncProperty(
+      fc.commands(actionArbitraries, {
+        maxCommands,
+        replayPath: reducedSequence.replayPath,
+      }),
+      async (commands) => {
+        await runSequence(commands, () => contextWithoutSecondCreatedNote(browser))
+      },
+    ),
+    {
+      endOnFailure: true,
+      numRuns: 1,
+      path: reducedSequence.path,
+      seed: details.seed,
+    },
+  )
+  expect(replay.failed).toBe(true)
+  const replayFailure = failedCandidates.at(-1)
+  expectMissingCreatedNote(replayFailure)
+
+  const directCommands = [...reducedSequence.commands]
+  await runSequence(
+    directCommands.slice(0, -1),
+    () => contextWithoutSecondCreatedNote(browser),
+  )
+  await expect(
+    runSequence(directCommands, () => contextWithoutSecondCreatedNote(browser)),
+  ).rejects.toThrow()
+  const directFailure = failedCandidates.at(-1)
+  expectMissingCreatedNote(directFailure)
+  await runSequence(directCommands, () => browser.newContext())
+
+  const report = {
+    browser: browser.browserType().name(),
+    classification: "controlled-storage-omission",
+    feature: "note-creation",
+    initialContents: [],
+    layer: "note-board-and-indexeddb",
+    minimalCommands: reducedSequence.printed,
+    original: failedCandidates[0],
+    path: reducedSequence.path,
+    reduced,
+    replay: {
+      failed: replay.failed,
+      observed: replayFailure?.observed,
+    },
+    replayPath: reducedSequence.replayPath,
+    runs: details.numRuns,
+    seed: details.seed,
+    shrinks: details.numShrinks,
+    toolVersion: fc.__version,
+  }
+  await testInfo.attach("note-creation-exploration.json", {
+    body: Buffer.from(JSON.stringify(report)),
+    contentType: "application/json",
+  })
+  console.info(JSON.stringify(report))
 })
 
 test("해시로 연 메모의 자동 저장이 편집기 초점을 유지한다", async ({
@@ -412,6 +1034,282 @@ test("해시로 연 메모의 자동 저장이 편집기 초점을 유지한다"
   await page.clock.fastForward(800)
   await expect(editor).toBeFocused()
   await expect(editor).toHaveValue(revisedContent)
+})
+
+test("저장 기한 전 내부 이동에서도 최신 원문을 보존한다", async ({ page }) => {
+  const initialContent = "이동 전 메모"
+  const changedContent = "이동 직전의 최신 원문"
+  const note = await createNoteThroughUi(page, initialContent)
+  const articleId = await note.getAttribute("id")
+  expect(articleId).not.toBeNull()
+  const noteId = decodeURIComponent(
+    articleId!.slice("note-".length, -"-board".length),
+  )
+  const editor = note.getByRole("textbox", { name: "메모 내용" })
+  await page.clock.install()
+  await page.clock.pauseAt(Date.now() + 60_000)
+  await editor.fill(changedContent)
+  await page.getByRole("link", { exact: true, name: "설정" }).click()
+  await expect(page).toHaveURL(/\/settings\/?$/u)
+  await expect
+    .poll(async () => (await readStoredNote(page, noteId))?.content)
+    .toBe(changedContent)
+})
+
+test("실제 편집기의 입력, 800ms 경과와 이탈 저장을 조합한다", async ({
+  browser,
+}) => {
+  test.setTimeout(120_000)
+  const details = await fc.check(
+    fc.asyncProperty(
+      autosaveContent,
+      fc.commands(autosaveActions, { maxCommands: 5 }),
+      async (firstContent, commands) => {
+        await runAutosaveCommands(
+          [
+            new EnterAutosaveContent(firstContent),
+            new AdvanceAutosaveClock(800),
+            ...commands,
+          ],
+          () => browser.newContext(),
+        )
+      },
+    ),
+    { numRuns: 4 },
+  )
+
+  expect(details.failed, fc.defaultReportMessage(details)).toBe(false)
+})
+
+test("자동 저장 쓰기 누락을 실제 입력과 시간 진행으로 축소하고 재현한다", async ({
+  browser,
+}, testInfo) => {
+  test.setTimeout(180_000)
+  const failures: AutosaveFailure[] = []
+  const timerActions = [
+    autosaveContent.map((content) => new EnterAutosaveContent(content)),
+    fc.constant(new AdvanceAutosaveClock(799)),
+    fc.constant(new AdvanceAutosaveClock(1)),
+    fc.constant(new AdvanceAutosaveClock(800)),
+  ]
+  const maxCommands = 6
+  const details = await fc.check(
+    fc.asyncProperty(
+      fc.commands(timerActions, { maxCommands }),
+      async (commands) => {
+        await runAutosaveCommands(
+          commands,
+          () => contextWithoutEditedSave(browser),
+          failures,
+        )
+      },
+    ),
+    { numRuns: 20 },
+  )
+
+  expect(details.failed).toBe(true)
+  expect(details.interrupted).toBe(false)
+  expect(details.numShrinks).toBeGreaterThan(0)
+  const reducedSequence = replaySequence(details)
+  const reducedFailure = failures.at(-1)
+  expect(reducedFailure?.expectedContent).not.toBe(
+    reducedFailure?.observedContent,
+  )
+
+  const replay = await fc.check(
+    fc.asyncProperty(
+      fc.commands(timerActions, {
+        maxCommands,
+        replayPath: reducedSequence.replayPath,
+      }),
+      async (commands) => {
+        await runAutosaveCommands(
+          commands,
+          () => contextWithoutEditedSave(browser),
+          failures,
+        )
+      },
+    ),
+    {
+      endOnFailure: true,
+      numRuns: 1,
+      path: reducedSequence.path,
+      seed: details.seed,
+    },
+  )
+  expect(replay.failed).toBe(true)
+  const replayFailure = failures.at(-1)
+  expect(replayFailure?.expectedContent).not.toBe(
+    replayFailure?.observedContent,
+  )
+
+  const directCommands = [...reducedSequence.commands]
+  await runAutosaveCommands(
+    directCommands.slice(0, -1),
+    () => contextWithoutEditedSave(browser),
+  )
+  await expect(
+    runAutosaveCommands(
+      directCommands,
+      () => contextWithoutEditedSave(browser),
+      failures,
+    ),
+  ).rejects.toThrow()
+  const directFailure = failures.at(-1)
+  expect(directFailure?.expectedContent).not.toBe(
+    directFailure?.observedContent,
+  )
+  await runAutosaveCommands(directCommands, () => browser.newContext())
+
+  const report = {
+    browser: browser.browserType().name(),
+    classification: "controlled-storage-omission",
+    feature: "desktop-autosave",
+    initialContent: "저장된 메모",
+    layer: "note-editor-and-indexeddb",
+    minimalCommands: reducedSequence.printed,
+    original: failures[0],
+    path: reducedSequence.path,
+    reduced: reducedFailure,
+    replay: replayFailure,
+    replayPath: reducedSequence.replayPath,
+    seed: details.seed,
+    shrinks: details.numShrinks,
+    toolVersion: fc.__version,
+  }
+  await testInfo.attach("desktop-autosave-exploration.json", {
+    body: Buffer.from(JSON.stringify(report)),
+    contentType: "application/json",
+  })
+  console.info(JSON.stringify(report))
+})
+
+test("모바일 상세 화면의 저장과 이탈 선택을 조합한다", async ({ browser }) => {
+  test.setTimeout(120_000)
+  const details = await fc.check(
+    fc.asyncProperty(
+      mobileSavePair,
+      fc.commands(mobileSaveActions, { maxCommands: 6 }),
+      async ([firstContent, secondContent], commands) => {
+        await runMobileSaveCommands(
+          [
+            new EditMobileContent(firstContent),
+            new SaveMobileContent(),
+            new EditMobileContent(secondContent),
+            new SaveMobileContent(),
+            ...commands,
+          ],
+          () => createMobileSaveContext(browser),
+        )
+      },
+    ),
+    { numRuns: 5 },
+  )
+
+  expect(details.failed, fc.defaultReportMessage(details)).toBe(false)
+})
+
+test("모바일 저장 버튼의 연결이 빠지면 실패 행동을 축소하고 재현한다", async ({
+  browser,
+}, testInfo) => {
+  test.setTimeout(180_000)
+  const failures: MobileSaveFailure[] = []
+  const actions = [
+    mobileSaveContent.map((content) => new EditMobileContent(content)),
+    fc.constant(new SaveMobileContent()),
+  ]
+  const maxCommands = 6
+  const details = await fc.check(
+    fc.asyncProperty(
+      fc.commands(actions, { maxCommands }),
+      async (commands) => {
+        await runMobileSaveCommands(
+          commands,
+          () => createMobileSaveContext(browser),
+          failures,
+          true,
+        )
+      },
+    ),
+    { numRuns: 20 },
+  )
+
+  expect(details.failed).toBe(true)
+  expect(details.interrupted).toBe(false)
+  const reducedSequence = replaySequence(details)
+  const reducedFailure = failures.at(-1)
+  expect(reducedFailure?.expectedContent).not.toBe(
+    reducedFailure?.observedContent,
+  )
+
+  const replay = await fc.check(
+    fc.asyncProperty(
+      fc.commands(actions, {
+        maxCommands,
+        replayPath: reducedSequence.replayPath,
+      }),
+      async (commands) => {
+        await runMobileSaveCommands(
+          commands,
+          () => createMobileSaveContext(browser),
+          failures,
+          true,
+        )
+      },
+    ),
+    {
+      endOnFailure: true,
+      numRuns: 1,
+      path: reducedSequence.path,
+      seed: details.seed,
+    },
+  )
+  expect(replay.failed).toBe(true)
+  const replayFailure = failures.at(-1)
+  expect(replayFailure?.expectedContent).not.toBe(
+    replayFailure?.observedContent,
+  )
+
+  const directCommands = [...reducedSequence.commands]
+  await runMobileSaveCommands(
+    directCommands.slice(0, -1),
+    () => createMobileSaveContext(browser),
+    undefined,
+    true,
+  )
+  await expect(
+    runMobileSaveCommands(
+      directCommands,
+      () => createMobileSaveContext(browser),
+      failures,
+      true,
+    ),
+  ).rejects.toThrow()
+  await runMobileSaveCommands(
+    directCommands,
+    () => createMobileSaveContext(browser),
+  )
+
+  const report = {
+    browser: testInfo.project.name,
+    classification: "controlled-save-click-omission",
+    feature: "mobile-explicit-save",
+    initialContent: "저장된 메모",
+    layer: "note-detail-and-indexeddb",
+    original: failures[0],
+    path: reducedSequence.path,
+    reduced: reducedFailure,
+    replay: replayFailure,
+    replayPath: reducedSequence.replayPath,
+    seed: details.seed,
+    shrinks: details.numShrinks,
+    toolVersion: fc.__version,
+  }
+  await testInfo.attach("mobile-save-exploration.json", {
+    body: Buffer.from(JSON.stringify(report)),
+    contentType: "application/json",
+  })
+  console.info(JSON.stringify(report))
 })
 
 test("허용하지 않는 주소에서 다시 접속할 방법을 안내한다", async ({ page }) => {
@@ -511,6 +1409,24 @@ test("선택한 본문을 교체하고 위치 변경과 원문 revision을 구�
     contentRevision: afterEdit!.contentRevision,
     revision: afterEdit!.revision + 1,
   })
+
+  const whitespaceOnlyContent = " ".repeat(2)
+  await editor.fill(whitespaceOnlyContent)
+  await editor.press("Tab")
+  await expect
+    .poll(async () => (await readStoredNote(page, noteId))?.content)
+    .toBe(whitespaceOnlyContent)
+  const afterWhitespaceEdit = await readStoredNote(page, noteId)
+  expect(afterWhitespaceEdit).toMatchObject({
+    content: whitespaceOnlyContent,
+    contentRevision: afterMove!.contentRevision + 1,
+    revision: afterMove!.revision + 1,
+  })
+
+  await page.reload()
+  await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
+    whitespaceOnlyContent,
+  )
 })
 
 test("저장된 Tab 순서로 메모를 선택하고 Enter에서만 속성을 편집한다", async ({
@@ -821,8 +1737,10 @@ test("Escape, 빈 캔버스와 Command는 선택만 해제한다", async ({ page
   )
 
   await note.focus()
+  await expect(note).toHaveAccessibleDescription("선택됨")
   await note.press("Escape")
   await expect(note).toBeFocused()
+  await expect(note).not.toHaveAccessibleDescription("선택됨")
   await note.press("Enter")
   await expect(page.getByRole("complementary", { name: "메모 속성" })).toHaveCount(0)
 
@@ -966,6 +1884,42 @@ test("연속 삭제 알림이 사라진 뒤 이전 삭제를 다시 알리지 �
 
 test.describe("320px 메모 화면", () => {
   test.use({ hasTouch: true, viewport: { height: 720, width: 320 } })
+
+  test("목록의 복구 초안을 상세 화면에서 열어도 저장 전 원문을 유지한다", async ({
+    page,
+  }) => {
+    const storedContent = `저장 원문 ${crypto.randomUUID()}`
+    const draftContent = `${storedContent} 수정 중`
+    const note = await createMobileNoteThroughUi(page, storedContent)
+    const noteId = noteIdFromHref(
+      await note.getByRole("link", { name: /수정$/u }).getAttribute("href"),
+    )
+    const storedBeforeOpen = await readStoredNote(page, noteId)
+    expect(storedBeforeOpen).not.toBeNull()
+    const draft = {
+      content: draftContent,
+      note: {
+        contentRevision: storedBeforeOpen!.contentRevision,
+        id: noteId,
+      },
+      updatedAt: new Date().toISOString(),
+    }
+    await writeStoredNoteDraft(page, draft)
+    await page.clock.install()
+    await page.reload()
+    await page.getByRole("link", { name: /수정$/u }).click()
+    await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
+      draftContent,
+    )
+    await page.clock.fastForward(800)
+
+    const storedAfterOpen = await readStoredNote(page, noteId)
+    expect(storedAfterOpen?.content).toBe(storedBeforeOpen?.content)
+    expect(storedAfterOpen?.contentRevision).toBe(
+      storedBeforeOpen?.contentRevision,
+    )
+    expect(await readStoredNoteDraft(page, noteId)).toEqual(draft)
+  })
 
   test("복구한 초안을 저장하고 제거 실패를 다음 저장에서 정리한다", async ({
     page,
@@ -1123,6 +2077,9 @@ test.describe("320px 메모 화면", () => {
     const initialContent = "이동 결정을 확인할 메모"
     const discardedContent = "목록으로 돌아갈 때 버릴 변경사항"
     const note = await createMobileNoteThroughUi(page, initialContent)
+    const noteId = noteIdFromHref(
+      await note.getByRole("link", { name: / 수정$/u }).getAttribute("href"),
+    )
 
     await note.getByRole("link", { name: / 수정$/u }).click()
     const editor = page.getByRole("textbox", { name: "메모 내용" })
@@ -1140,6 +2097,7 @@ test.describe("320px 메모 화면", () => {
     dialog = page.getByRole("dialog", { name: "저장하지 않은 변경사항" })
     await dialog.getByRole("button", { name: "변경사항 버리기" }).click()
     await expect(page).toHaveURL("/")
+    await expect.poll(() => readStoredNoteDraft(page, noteId)).toBeNull()
 
     const restoredNote = page
       .getByRole("article")

@@ -185,6 +185,49 @@ test("메모를 길게 눌러 복사하고 확인 항목을 길게 누른 뒤 �
   await expect(reorderedEntries).toContainText([secondContent, firstContent])
 })
 
+test("낮은 모바일 화면에서도 항목 동작을 누르고 삭제 뒤 남은 항목으로 돌아간다", async ({
+  page,
+}) => {
+  await page.goto("/")
+  const firstContent = `첫 동작 항목 ${crypto.randomUUID()}`
+  const secondContent = `둘째 동작 항목 ${crypto.randomUUID()}`
+  const firstNote = await createMobileNoteThroughUi(page, firstContent)
+  const secondNote = await createMobileNoteThroughUi(page, secondContent)
+
+  await page.getByRole("button", { name: "일괄 복사 시작" }).tap()
+  await firstNote.getByRole("button", {
+    name: `${firstContent} 일괄 복사에 추가`,
+  }).tap()
+  await secondNote.getByRole("button", {
+    name: `${secondContent} 일괄 복사에 추가`,
+  }).tap()
+  await page.getByRole("button", { name: "다음, 2회 선택" }).tap()
+  await page.setViewportSize({ height: 360, width: 320 })
+
+  await page.getByRole("button", {
+    name: "1번째 일괄 복사 항목 동작",
+  }).tap()
+  const sheet = page.getByRole("dialog", {
+    name: "1번째 일괄 복사 항목",
+  })
+  await expect(sheet).toBeVisible()
+  await sheet.getByRole("button", { name: "삭제" }).tap()
+  await expect(sheet).toBeHidden()
+  await expect(page.getByRole("article", {
+    name: /번째 일괄 복사 항목$/u,
+  })).toContainText([secondContent])
+
+  const remainingAction = page.getByRole("button", {
+    name: "1번째 일괄 복사 항목 동작",
+  })
+  await expect(remainingAction).toBeFocused()
+  await remainingAction.tap()
+  await page.getByRole("dialog", {
+    name: "1번째 일괄 복사 항목",
+  }).getByRole("button", { name: "동작 선택창 닫기" }).tap()
+  await expect(remainingAction).toBeFocused()
+})
+
 test("메모 길게 누르기는 이동, 취소와 pointer capture 상실에서 중단된다", async ({
   context,
   page,

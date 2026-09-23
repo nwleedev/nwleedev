@@ -18,7 +18,7 @@ export function MobileNoteList({
   onCopy,
 }: MobileNoteListProps) {
   return (
-    <div className="grid h-full min-h-0 content-start gap-3 overflow-auto p-4 pb-28 pt-16">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-4">
       {notes.map((note) => (
         <MobileNoteCard
           batchCopyActive={batchCopyActive}

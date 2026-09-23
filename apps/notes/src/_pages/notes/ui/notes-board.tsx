@@ -73,7 +73,7 @@ export function NotesBoard({
 
   return (
     <div
-      className="relative hidden h-full min-h-0 bg-canvas @3xl/note-area:block"
+      className="relative h-full min-h-0 bg-canvas"
     >
       <div
         className="absolute inset-0 cursor-grab overflow-clip touch-none active:cursor-grabbing"

@@ -20,6 +20,7 @@ import {
   focusNote,
   useNotesCollectionInteractions,
 } from "../model/use-notes-collection-interactions"
+import { useNoteWorkspaceLayout } from "../model/use-note-workspace-layout"
 import { MobileNotesWorkspace } from "./mobile-notes-workspace"
 import { NotesBoard } from "./notes-board"
 import { useBatchCopyWorkspace } from "./batch-copy-workspace"
@@ -81,6 +82,7 @@ export function NotesCollection({
   const {
     commandPressed,
     createButton,
+    createMobileNote,
     createNewNote,
     creationPending,
     linkedNoteId,
@@ -93,6 +95,7 @@ export function NotesCollection({
     showNotice: batchCopyWorkspace.showNotice,
   })
   const createLabel = creationPending ? "메모 만드는 중" : "새 메모"
+  const { container, layout } = useNoteWorkspaceLayout()
   const empty = orderedNotes.length === 0
   const selectedNoteId = workspace.selectedNoteId
   const propertiesNoteId = workspace.propertiesTarget?.id ?? null
@@ -275,18 +278,20 @@ export function NotesCollection({
   }
 
   return (
-    <div className="@container/note-area relative h-full min-h-0 overflow-clip bg-canvas">
-      <div className="absolute left-3 top-3 z-30 hidden @3xl/note-area:block sm:left-4">
-        <Button
-          className="shadow-floating"
-          disabled={creationPending}
-          onClick={createNewNote}
-          ref={createButton}
-          tabIndex={100}
-        >
-          {createLabel}
-        </Button>
-      </div>
+    <div className="relative h-full min-h-0 overflow-clip bg-canvas" ref={container}>
+      {layout === "desktop" ? (
+        <div className="absolute left-3 top-3 z-30 sm:left-4">
+          <Button
+            className="shadow-floating"
+            disabled={creationPending}
+            onClick={createNewNote}
+            ref={createButton}
+            tabIndex={100}
+          >
+            {createLabel}
+          </Button>
+        </div>
+      ) : null}
       {empty ? (
         <p
           className="pointer-events-none absolute inset-0 grid place-items-center p-6 text-sm text-soft-ink"
@@ -295,33 +300,37 @@ export function NotesCollection({
           메모가 없습니다.
         </p>
       ) : null}
-      <MobileNotesWorkspace
-        creationPending={creationPending}
-        notes={orderedNotes}
-        onCopy={copy}
-        onCreate={createNewNote}
-        onFailure={showRetryableFailure}
-      />
-      <NotesBoard
-        batchCopyShortcutEnabled={batchCopyShortcutEnabled}
-        commandPressed={commandPressed}
-        draftContentByNote={draftContentByNote}
-        focusedNoteId={linkedNoteId}
-        notes={orderedNotes}
-        onActivateProperties={activateProperties}
-        onAddToBatchCopy={addToBatchCopy}
-        onCopy={copy}
-        onClearSelection={clearSelection}
-        onMoveToBack={moveNoteToBack}
-        onMoveToFront={moveNoteToFront}
-        onRemove={remove}
-        onSaveContent={saveContent}
-        onSaveFailure={showSaveFailure}
-        onSaveGeometry={saveGeometry}
-        onSelect={select}
-        propertiesNoteId={propertiesNoteId}
-        selectedNoteId={selectedNoteId}
-      />
+      {layout === "mobile" ? (
+        <MobileNotesWorkspace
+          creationPending={creationPending}
+          notes={orderedNotes}
+          onCopy={copy}
+          onCreate={createMobileNote}
+          onFailure={showRetryableFailure}
+        />
+      ) : null}
+      {layout === "desktop" ? (
+        <NotesBoard
+          batchCopyShortcutEnabled={batchCopyShortcutEnabled}
+          commandPressed={commandPressed}
+          draftContentByNote={draftContentByNote}
+          focusedNoteId={linkedNoteId}
+          notes={orderedNotes}
+          onActivateProperties={activateProperties}
+          onAddToBatchCopy={addToBatchCopy}
+          onCopy={copy}
+          onClearSelection={clearSelection}
+          onMoveToBack={moveNoteToBack}
+          onMoveToFront={moveNoteToFront}
+          onRemove={remove}
+          onSaveContent={saveContent}
+          onSaveFailure={showSaveFailure}
+          onSaveGeometry={saveGeometry}
+          onSelect={select}
+          propertiesNoteId={propertiesNoteId}
+          selectedNoteId={selectedNoteId}
+        />
+      ) : null}
     </div>
   )
 }

@@ -3,11 +3,16 @@
 import type { PointerEvent as ReactPointerEvent } from "react"
 
 import type { MobileBatchCopyEntry } from "@/entities/batch-copy"
+import {
+  BatchCopyActionSheet,
+  createBatchCopyItemActions,
+  useBatchCopyActionSheet,
+} from "@/features/edit-batch-copy"
 import { joinClassNames } from "@/shared/lib/join-class-names"
-import { GripIcon } from "@/shared/ui/icons"
+import { IconButton } from "@/shared/ui/icon-button"
+import { GripIcon, MoreIcon } from "@/shared/ui/icons"
 
 import { useMobileBatchCopyPointerReorder } from "../model/use-mobile-batch-copy-pointer-reorder"
-import { BatchCopyItemActions } from "./batch-copy-item-actions"
 
 type MobileBatchCopyConfirmationListProps = {
   disabled: boolean
@@ -24,10 +29,8 @@ type MobileBatchCopyEntryRowProps = {
   dropPlacement: "after" | "before" | null
   entry: MobileBatchCopyEntry
   position: number
-  reorderButtonsEnabled: boolean
-  totalEntries: number
-  onDuplicate(entryId: string): void
-  onMoveBy(entryId: string, position: number, offset: -1 | 1): boolean
+  actionsOpen: boolean
+  onOpenActions(entryId: string): void
   onPointerCancel(event: ReactPointerEvent<HTMLButtonElement>): void
   onPointerDown(
     event: ReactPointerEvent<HTMLButtonElement>,
@@ -37,7 +40,7 @@ type MobileBatchCopyEntryRowProps = {
   onPointerMove(event: ReactPointerEvent<HTMLButtonElement>): void
   onPointerUp(event: ReactPointerEvent<HTMLButtonElement>): void
   onRegisterHandle(entryId: string, element: HTMLButtonElement | null): void
-  onRemove(entryId: string): void
+  onRegisterActionTrigger(entryId: string, element: HTMLButtonElement | null): void
 }
 
 function MobileBatchCopyEntryRow({
@@ -45,17 +48,15 @@ function MobileBatchCopyEntryRow({
   dragging,
   dropPlacement,
   entry,
-  onDuplicate,
-  onMoveBy,
+  actionsOpen,
+  onOpenActions,
   onPointerCancel,
   onPointerDown,
   onPointerMove,
   onPointerUp,
   onRegisterHandle,
-  onRemove,
+  onRegisterActionTrigger,
   position,
-  reorderButtonsEnabled,
-  totalEntries,
 }: MobileBatchCopyEntryRowProps) {
   const positionText = (position + 1).toLocaleString("ko-KR")
   const itemLabel = `${positionText}번째 일괄 복사 항목`
@@ -78,6 +79,14 @@ function MobileBatchCopyEntryRow({
     onPointerDown(event, entry.id, position)
   }
 
+  function registerActionTrigger(element: HTMLButtonElement | null) {
+    onRegisterActionTrigger(entry.id, element)
+  }
+
+  function openActions() {
+    onOpenActions(entry.id)
+  }
+
   return (
     <li data-mobile-batch-copy-position={position}>
       <article aria-label={itemLabel} className={articleClassName}>
@@ -98,18 +107,17 @@ function MobileBatchCopyEntryRow({
         <p className="min-w-0 whitespace-pre-wrap break-words py-2">
           {entry.textSnapshot || "빈 메모"}
         </p>
-        <BatchCopyItemActions
-          canMoveDown={
-            reorderButtonsEnabled && position < totalEntries - 1
-          }
-          canMoveUp={reorderButtonsEnabled && position > 0}
+        <IconButton
+          aria-expanded={actionsOpen}
+          aria-haspopup="dialog"
+          aria-label={`${itemLabel} 동작`}
           disabled={disabled}
-          itemLabel={itemLabel}
-          onDelete={() => onRemove(entry.id)}
-          onDuplicate={() => onDuplicate(entry.id)}
-          onMoveDown={() => onMoveBy(entry.id, position, 1)}
-          onMoveUp={() => onMoveBy(entry.id, position, -1)}
-        />
+          onClick={openActions}
+          ref={registerActionTrigger}
+          size="compact"
+        >
+          <MoreIcon />
+        </IconButton>
       </article>
     </li>
   )
@@ -134,6 +142,28 @@ export function MobileBatchCopyConfirmationList({
     onPointerUp,
     registerHandle,
   } = useMobileBatchCopyPointerReorder({ disabled, entries, onMove })
+  const actionSheet = useBatchCopyActionSheet(entries.map(({ id }) => id), list)
+  const activePosition = entries.findIndex(({ id }) => id === actionSheet.activeItemId)
+  const activeEntry = entries[activePosition]
+  const activeLabel = activePosition >= 0
+    ? `${(activePosition + 1).toLocaleString("ko-KR")}번째 일괄 복사 항목`
+    : "일괄 복사 항목 동작"
+  const actions = createBatchCopyItemActions({
+    canMoveDown: reorderButtonsEnabled && activePosition >= 0 && activePosition < entries.length - 1,
+    canMoveUp: reorderButtonsEnabled && activePosition > 0,
+    onDuplicate: () => {
+      if (activeEntry) onDuplicate(activeEntry.id)
+    },
+    onMoveDown: () => {
+      if (activeEntry) moveBy(activeEntry.id, activePosition, 1)
+    },
+    onMoveUp: () => {
+      if (activeEntry) moveBy(activeEntry.id, activePosition, -1)
+    },
+    onRemove: () => {
+      if (activeEntry) onRemove(activeEntry.id)
+    },
+  })
   let movingMessage = announcement
 
   if (drag?.targetIndex === null) {
@@ -148,7 +178,7 @@ export function MobileBatchCopyConfirmationList({
       <p aria-live="polite" className="sr-only" role="status">
         {movingMessage}
       </p>
-      <ol className="grid gap-3" ref={list}>
+      <ol className="grid gap-3" ref={list} tabIndex={-1}>
         {entries.map((entry, position) => {
           const dragging = drag?.entryId === entry.id
           const target = drag?.targetIndex === position
@@ -167,21 +197,26 @@ export function MobileBatchCopyConfirmationList({
               dropPlacement={dropPlacement}
               entry={entry}
               key={entry.id}
-              onDuplicate={onDuplicate}
-              onMoveBy={moveBy}
+              actionsOpen={actionSheet.activeItemId === entry.id}
+              onOpenActions={actionSheet.open}
               onPointerCancel={onPointerCancel}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
               onRegisterHandle={registerHandle}
-              onRemove={onRemove}
+              onRegisterActionTrigger={actionSheet.registerTrigger}
               position={position}
-              reorderButtonsEnabled={reorderButtonsEnabled}
-              totalEntries={entries.length}
             />
           )
         })}
       </ol>
+      <BatchCopyActionSheet
+        actions={actions}
+        itemLabel={activeLabel}
+        onClose={actionSheet.closed}
+        onRun={actionSheet.run}
+        open={activeEntry !== undefined && !disabled}
+      />
     </div>
   )
 }

@@ -12,11 +12,16 @@ import {
   ActionPopover,
   type ActionPopoverAction,
 } from "@/shared/ui/action-popover"
-import { GripIcon } from "@/shared/ui/icons"
+import { IconButton } from "@/shared/ui/icon-button"
+import { GripIcon, MoreIcon } from "@/shared/ui/icons"
 
+import { createBatchCopyItemActions } from "../model/batch-copy-item-actions"
+import { useBatchCopyActionSheet } from "../model/use-batch-copy-action-sheet"
 import { useBatchCopyPointerReorder } from "../model/use-batch-copy-pointer-reorder"
+import { BatchCopyActionSheet } from "./batch-copy-action-sheet"
 
 type BatchCopyListProps = {
+  actionPresentation: "popover" | "sheet" | null
   items: readonly BatchCopyItem[]
   pending: boolean
   presentation: "management" | "panel"
@@ -29,6 +34,8 @@ type BatchCopyListProps = {
 }
 
 type BatchCopyRowProps = {
+  actionPresentation: "popover" | "sheet" | null
+  actionsOpen: boolean
   dragging: boolean
   dropPlacement: "after" | "before" | null
   item: BatchCopyItem
@@ -36,9 +43,9 @@ type BatchCopyRowProps = {
   pending: boolean
   position: number
   presentation: "management" | "panel"
-  reorderButtonsEnabled: boolean
   selected: boolean
-  onDuplicate(itemId: string): void
+  popoverActions: readonly ActionPopoverAction[]
+  onOpenActions(itemId: string): void
   onKeyDown(
     event: ReactKeyboardEvent<HTMLButtonElement>,
     itemId: string,
@@ -53,33 +60,31 @@ type BatchCopyRowProps = {
   onPointerMove(event: ReactPointerEvent<HTMLButtonElement>): void
   onPointerUp(event: ReactPointerEvent<HTMLButtonElement>): void
   onRegisterHandle(itemId: string, element: HTMLButtonElement | null): void
-  onRemove(itemId: string): void
-  onMoveBy(itemId: string, position: number, offset: -1 | 1): boolean
+  onRegisterActionTrigger(itemId: string, element: HTMLButtonElement | null): void
   onToggleSelection?(itemId: string): void
-  totalItems: number
 }
 
 function BatchCopyRow({
+  actionPresentation,
+  actionsOpen,
   dragging,
   dropPlacement,
   item,
-  onDuplicate,
   onKeyDown,
-  onMoveBy,
+  onOpenActions,
   onPointerCancel,
   onPointerDown,
   onPointerMove,
   onPointerUp,
   onRegisterHandle,
-  onRemove,
+  onRegisterActionTrigger,
   onToggleSelection,
   outside,
   pending,
   position,
+  popoverActions,
   presentation,
-  reorderButtonsEnabled,
   selected,
-  totalItems,
 }: BatchCopyRowProps) {
   const text = item.textSnapshot || "빈 메모"
   const positionText = (position + 1).toLocaleString("ko-KR")
@@ -97,42 +102,6 @@ function BatchCopyRow({
       ? "after:absolute after:-bottom-1.5 after:left-1 after:right-1 after:h-0.5 after:rounded-full after:bg-accent"
       : undefined,
   )
-  const actions: ActionPopoverAction[] = []
-
-  if (reorderButtonsEnabled && position > 0) {
-    actions.push({
-      icon: "move",
-      id: "move-up",
-      label: "위로 이동",
-      onSelect: () => onMoveBy(item.id, position, -1),
-    })
-  }
-
-  if (reorderButtonsEnabled && position < totalItems - 1) {
-    actions.push({
-      icon: "move",
-      id: "move-down",
-      label: "아래로 이동",
-      onSelect: () => onMoveBy(item.id, position, 1),
-    })
-  }
-
-  actions.push(
-    {
-      icon: "duplicate",
-      id: "duplicate",
-      label: "복제",
-      onSelect: () => onDuplicate(item.id),
-    },
-    {
-      icon: "remove",
-      id: "remove",
-      label: "삭제",
-      onSelect: () => onRemove(item.id),
-      tone: "danger",
-    },
-  )
-
   function registerHandle(element: HTMLButtonElement | null) {
     onRegisterHandle(item.id, element)
   }
@@ -149,6 +118,14 @@ function BatchCopyRow({
     if (event.detail === 0 || !dragging) {
       onToggleSelection?.(item.id)
     }
+  }
+
+  function registerActionTrigger(element: HTMLButtonElement | null) {
+    onRegisterActionTrigger(item.id, element)
+  }
+
+  function openActions() {
+    onOpenActions(item.id)
   }
 
   return (
@@ -188,11 +165,26 @@ function BatchCopyRow({
           {text}
         </p>
       )}
-      <ActionPopover
-        actions={actions}
-        disabled={pending}
-        label={`${itemLabel} 동작`}
-      />
+      {actionPresentation === "popover" ? (
+        <ActionPopover
+          actions={popoverActions}
+          disabled={pending}
+          label={`${itemLabel} 동작`}
+        />
+      ) : null}
+      {actionPresentation === "sheet" ? (
+        <IconButton
+          aria-expanded={actionsOpen}
+          aria-haspopup="dialog"
+          aria-label={`${itemLabel} 동작`}
+          disabled={pending}
+          onClick={openActions}
+          ref={registerActionTrigger}
+          size="compact"
+        >
+          <MoreIcon />
+        </IconButton>
+      ) : null}
       {dragging && outside ? (
         <p className="col-span-3 text-xs font-semibold text-danger" role="status">
           패널 밖에 놓으면 삭제됩니다.
@@ -203,6 +195,7 @@ function BatchCopyRow({
 }
 
 export function BatchCopyList({
+  actionPresentation,
   items,
   onDuplicate,
   onMove,
@@ -233,13 +226,34 @@ export function BatchCopyList({
     presentation,
     selectedItemId,
   })
+  const actionSheet = useBatchCopyActionSheet(items.map(({ id }) => id), list)
+  const activePosition = items.findIndex(({ id }) => id === actionSheet.activeItemId)
+  const activeItem = items[activePosition]
+  const activeLabel = activePosition >= 0
+    ? `${(activePosition + 1).toLocaleString("ko-KR")}번째 일괄 복사 항목`
+    : "일괄 복사 항목 동작"
+
+  function actionsFor(item: BatchCopyItem, position: number) {
+    return createBatchCopyItemActions({
+      canMoveDown: reorderButtonsEnabled && position < items.length - 1,
+      canMoveUp: reorderButtonsEnabled && position > 0,
+      onDuplicate: () => onDuplicate(item.id),
+      onMoveDown: () => { moveBy(item.id, position, 1) },
+      onMoveUp: () => { moveBy(item.id, position, -1) },
+      onRemove: () => onRemove(item.id),
+    })
+  }
+
+  const activeActions = activeItem === undefined
+    ? []
+    : actionsFor(activeItem, activePosition)
 
   return (
     <div className="grid gap-3">
       <p aria-live="polite" className="sr-only">
         {announcement}
       </p>
-      <ol className="grid gap-2" ref={list}>
+      <ol className="grid gap-2" ref={list} tabIndex={-1}>
         {items.map((item, position) => {
           const dragging = drag?.active === true && drag.itemId === item.id
           const target = drag?.active === true && drag.targetIndex === position
@@ -253,31 +267,38 @@ export function BatchCopyList({
 
           return (
             <BatchCopyRow
+              actionPresentation={actionPresentation}
+              actionsOpen={actionSheet.activeItemId === item.id}
               dragging={dragging}
               dropPlacement={dropPlacement}
               item={item}
               key={item.id}
-              onDuplicate={onDuplicate}
               onKeyDown={onKeyDown}
-              onMoveBy={moveBy}
+              onOpenActions={actionSheet.open}
               onPointerCancel={onPointerCancel}
               onPointerDown={onPointerDown}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
               onRegisterHandle={registerHandle}
-              onRemove={onRemove}
+              onRegisterActionTrigger={actionSheet.registerTrigger}
               onToggleSelection={onToggleSelection}
               outside={dragging && drag?.outside === true}
               pending={pending}
               position={position}
+              popoverActions={actionPresentation === "popover" ? actionsFor(item, position) : []}
               presentation={presentation}
-              reorderButtonsEnabled={reorderButtonsEnabled}
               selected={selectedItemId === item.id}
-              totalItems={items.length}
             />
           )
         })}
       </ol>
+      <BatchCopyActionSheet
+        actions={activeActions}
+        itemLabel={activeLabel}
+        onClose={actionSheet.closed}
+        onRun={actionSheet.run}
+        open={actionPresentation === "sheet" && activeItem !== undefined && !pending}
+      />
     </div>
   )
 }

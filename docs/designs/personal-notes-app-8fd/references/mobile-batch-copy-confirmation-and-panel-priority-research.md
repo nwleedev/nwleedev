@@ -2,7 +2,7 @@
 
 ## 후속 변경 안내
 
-2026년 9월 3일 후속 요구는 이 조사에서 사용한 데스크톱 메모의 `1280 × 960` 크기 상한을 논리 캔버스 범위로 대체했다. 현재 geometry 기준은 [개인 메모 애플리케이션 요구사항](../requirements.md), [메모 선택과 오른쪽 속성 패널 결정](../decisions/note-selection-and-properties.md)과 [데스크톱 입력과 피드백 복원력 조사](desktop-input-and-feedback-resilience-research.md)를 따른다. 모바일 확인 페이지의 동작 선택창과 길게 누른 뒤 drag에 관한 아래 조사 결과는 계속 적용한다.
+2026년 9월 3일 후속 요구는 이 조사에서 사용한 데스크톱 메모의 `1280 × 960` 크기 상한을 논리 캔버스 범위로 대체했다. 현재 geometry 기준은 [개인 메모 애플리케이션 요구사항](../requirements.md), [메모 선택과 오른쪽 속성 패널 결정](../decisions/note-selection-and-properties.md)과 [데스크톱 입력과 피드백 복원력 조사](desktop-input-and-feedback-resilience-research.md)를 따른다. 모바일 확인 페이지의 버튼 옆 작은 팝오버와 삽입 위치 선택 설명도 이후 요구로 대체되었다. 현재 동작 선택 방식은 [모바일 일괄 복사 액션 시트와 이동 아이콘 조사](mobile-batch-copy-action-sheet-and-direction-icons-research.md)를 따른다. 길게 누른 뒤 drag를 시작하는 조사 근거는 남지만 실제 시작 지점과 재정렬 결과는 현행 요구사항을 따른다.
 
 ## 결론
 

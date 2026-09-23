@@ -162,6 +162,7 @@ export function NoteCard({
   const encodedNoteId = encodeURIComponent(note.id)
   const articleId = `note-${encodedNoteId}-board`
   const contentId = `note-${encodedNoteId}-content`
+  const selectionDescriptionId = `${articleId}-selection`
   const controlsDisabled = interactionPending || gesture.saving
   const selectedVisible = selected && !commandPressed
   const headerClassName = joinClassNames(
@@ -342,6 +343,7 @@ export function NoteCard({
 
   return (
     <article
+      aria-describedby={selectedVisible ? selectionDescriptionId : undefined}
       aria-label="메모"
       className={cardClassName}
       id={articleId}
@@ -350,6 +352,9 @@ export function NoteCard({
       style={cardStyle}
       tabIndex={note.tabIndex}
     >
+      <span className="sr-only" id={selectionDescriptionId}>
+        선택됨
+      </span>
       <header className={headerClassName}>
         <IconButton
           aria-label="메모 이동"

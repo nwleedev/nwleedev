@@ -27,6 +27,7 @@
   --notes-focus-ring: var(--notes-color-focus);
   --notes-font-ui: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
   --notes-control-size: 2.375rem;
+  --notes-board-min-width: 48rem;
   --notes-drawer-width: min(21rem, 88vw);
   --notes-mobile-action-size: 3rem;
   --notes-mobile-action-inset: 1rem;

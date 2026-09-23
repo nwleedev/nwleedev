@@ -375,7 +375,12 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
     .filter({ hasText: firstContent })
     .getByRole("button", { name: /번째 일괄 복사 항목 동작$/u })
     .click()
-  await page.getByRole("button", { exact: true, name: "삭제" }).click()
+  const managementSheet = page.getByRole("dialog", {
+    name: /번째 일괄 복사 항목$/u,
+  })
+  await expect(managementSheet).toBeVisible()
+  await managementSheet.getByRole("button", { exact: true, name: "삭제" }).click()
+  await expect(managementSheet).toBeHidden()
   await page.getByRole("link", { exact: true, name: "취소" }).click()
   await page.setViewportSize({ height: 720, width: 1000 })
   const remainingBatchCopyTrigger = page.getByRole("button", {
@@ -439,7 +444,12 @@ test.describe("320px 일괄 복사", () => {
       name: "1번째 일괄 복사 항목 동작",
     })
     await firstAction.click()
-    await page.getByRole("button", { exact: true, name: "복제" }).click()
+    const sheet = page.getByRole("dialog", {
+      name: /번째 일괄 복사 항목$/u,
+    })
+    await expect(sheet).toBeVisible()
+    await sheet.getByRole("button", { exact: true, name: "복제" }).click()
+    await expect(sheet).toBeHidden()
     entries = page.getByRole("article", { name: /번째 일괄 복사 항목$/u })
     await expect(entries).toHaveCount(4)
     await expect(entries).toContainText([
@@ -453,7 +463,8 @@ test.describe("320px 일괄 복사", () => {
       name: "2번째 일괄 복사 항목 동작",
     })
     await duplicatedAction.click()
-    await page.getByRole("button", { exact: true, name: "삭제" }).click()
+    await sheet.getByRole("button", { exact: true, name: "삭제" }).click()
+    await expect(sheet).toBeHidden()
     await expect(entries).toHaveCount(3)
     await expect(entries).toContainText([
       firstContent,
@@ -465,12 +476,12 @@ test.describe("320px 일괄 복사", () => {
       name: "3번째 일괄 복사 항목 동작",
     })
     await lastAction.click()
-    await page.getByRole("button", { exact: true, name: "위로 이동" }).click()
+    await sheet.getByRole("button", { exact: true, name: "위로 이동" }).click()
     await entries
       .filter({ hasText: secondContent })
       .getByRole("button", { name: /번째 일괄 복사 항목 동작$/u })
       .click()
-    await page.getByRole("button", { exact: true, name: "위로 이동" }).click()
+    await sheet.getByRole("button", { exact: true, name: "위로 이동" }).click()
     await expect(entries).toContainText([
       secondContent,
       firstContent,
@@ -484,13 +495,63 @@ test.describe("320px 일괄 복사", () => {
     await page.keyboard.press("Escape")
     await expect(movedAction).toBeFocused()
     await movedAction.click()
-    await page.getByRole("heading", { name: "일괄 복사 확인" }).click()
+    const headingBox = await visibleBox(page.getByRole("heading", {
+      name: "일괄 복사 확인",
+    }))
+    await page.mouse.click(
+      headingBox.x + headingBox.width / 2,
+      headingBox.y + headingBox.height / 2,
+    )
+    await expect(movedAction).toBeFocused()
+
+    await movedAction.click()
+    await sheet.getByRole("button", { name: "동작 선택창 닫기" }).click()
     await expect(movedAction).toBeFocused()
 
     await page.getByRole("button", { exact: true, name: "취소" }).click()
     await expect(page).toHaveURL("/")
     await expect(page.getByRole("article").filter({ hasText: firstContent })).toBeVisible()
     await expect(page.getByRole("article").filter({ hasText: secondContent })).toBeVisible()
+  })
+
+  test("직접 이동 설정을 켜지 않은 확인 목록은 이동 아이콘 없이 시트 동작을 제공한다", async ({
+    page,
+  }) => {
+    const firstContent = `시트 첫 메모 ${crypto.randomUUID()}`
+    const secondContent = `시트 둘째 메모 ${crypto.randomUUID()}`
+    const firstNote = await createMobileNoteThroughUi(page, firstContent)
+    const secondNote = await createMobileNoteThroughUi(page, secondContent)
+
+    await page.getByRole("button", { name: "일괄 복사 시작" }).click()
+    await firstNote.getByRole("button", {
+      name: `${firstContent} 일괄 복사에 추가`,
+    }).click()
+    await secondNote.getByRole("button", {
+      name: `${secondContent} 일괄 복사에 추가`,
+    }).click()
+    await page.getByRole("button", { name: "다음, 2회 선택" }).click()
+
+    const firstAction = page.getByRole("button", {
+      name: "1번째 일괄 복사 항목 동작",
+    })
+    await firstAction.click()
+    const sheet = page.getByRole("dialog", {
+      name: "1번째 일괄 복사 항목",
+    })
+    await expect(sheet).toBeVisible()
+    await expect(sheet.getByRole("button", { name: "위로 이동" })).toHaveCount(0)
+    await expect(sheet.getByRole("button", { name: "아래로 이동" })).toHaveCount(0)
+    await expect(sheet.getByRole("button", { name: "복제" })).toBeVisible()
+    await expect(sheet.getByRole("button", { name: "삭제" })).toBeVisible()
+    await sheet.getByRole("button", { name: "동작 선택창 닫기" }).click()
+    await expect(firstAction).toBeFocused()
+
+    await firstAction.click()
+    await page.keyboard.press("Escape")
+    await expect(firstAction).toBeFocused()
+    await expect(page.getByRole("article", {
+      name: /번째 일괄 복사 항목$/u,
+    })).toContainText([firstContent, secondContent])
   })
 
   test("확인 작업을 새로고침 뒤 복원하고 뒤로가기와 취소를 구분한다", async ({

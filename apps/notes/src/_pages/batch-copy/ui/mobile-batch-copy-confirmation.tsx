@@ -93,16 +93,15 @@ export function MobileBatchCopyConfirmation({
           <p className="grid min-h-40 place-items-center text-sm text-soft-ink">
             일괄 복사 항목이 없습니다.
           </p>
-        ) : (
-          <MobileBatchCopyConfirmationList
-            disabled={confirmation.pending}
-            entries={confirmation.entries}
-            onDuplicate={confirmation.duplicate}
-            onMove={confirmation.move}
-            onRemove={confirmation.remove}
-            reorderButtonsEnabled={confirmation.reorderButtonsEnabled}
-          />
-        )}
+        ) : null}
+        <MobileBatchCopyConfirmationList
+          disabled={confirmation.pending}
+          entries={confirmation.entries}
+          onDuplicate={confirmation.duplicate}
+          onMove={confirmation.move}
+          onRemove={confirmation.remove}
+          reorderButtonsEnabled={confirmation.reorderButtonsEnabled}
+        />
       </section>
       <footer className="flex justify-between gap-3 border-t border-line bg-surface-raised px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <Button

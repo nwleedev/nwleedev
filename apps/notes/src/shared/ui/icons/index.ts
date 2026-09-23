@@ -1,5 +1,7 @@
 export {
   ArrowBackIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
   BatchCopyIcon,
   BringToFrontIcon,
   CloseIcon,

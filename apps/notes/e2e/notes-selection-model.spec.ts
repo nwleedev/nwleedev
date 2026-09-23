@@ -455,17 +455,6 @@ async function activeFocus(
   }, [...noteIds])
 }
 
-async function selectedVisible(article: Locator) {
-  return article.evaluate((element) => {
-    const selection = getComputedStyle(element, "::after")
-    return (
-      selection.content !== "none" &&
-      Number.parseFloat(selection.borderTopWidth) > 0 &&
-      selection.borderTopStyle !== "none"
-    )
-  })
-}
-
 async function installRetargetAfterCanvasClear(page: Page, noteId: string) {
   await page.evaluate((controlledNoteId) => {
     const article = document.getElementById(
@@ -560,7 +549,9 @@ async function executeSelectionCommands(
         await settleFrames(page)
       },
       async clickHeader(notePosition) {
-        await notes[notePosition].click({ position: { x: 12, y: 14 } })
+        await notes[notePosition].getByRole("button", {
+          name: "메모 이동",
+        }).click()
       },
       async closeProperties() {
         await properties
@@ -606,6 +597,10 @@ async function executeSelectionCommands(
               .getByRole("spinbutton", { name: "너비" })
               .inputValue()
           : null
+        const selectedArticleIds = await page.getByRole("article", {
+          description: "선택됨",
+          name: "메모",
+        }).evaluateAll((articles) => articles.map((article) => article.id))
         const observed = {
           focus: await activeFocus(page, noteIds),
           headerVisible: await Promise.all(
@@ -620,7 +615,9 @@ async function executeSelectionCommands(
             title: panelTitle,
             width: panelWidth,
           },
-          selected: await Promise.all(notes.map(selectedVisible)),
+          selected: noteIds.map(
+            (id) => selectedArticleIds.includes(`note-${encodeURIComponent(id)}-board`),
+          ),
         }
         const wanted = {
           focus: expected.focus,
@@ -644,7 +641,9 @@ async function executeSelectionCommands(
         }
       },
       async openFromHeader(notePosition) {
-        await notes[notePosition].dblclick({ position: { x: 12, y: 14 } })
+        await notes[notePosition].getByRole("button", {
+          name: "메모 이동",
+        }).dblclick()
         await expect(properties).toBeVisible()
       },
       async tabToNote(notePosition) {

@@ -31,7 +31,14 @@ export async function createMobileNoteThroughUi(
   page: Page,
   content: string,
 ): Promise<Locator> {
+  const notes = page.getByRole("article")
+  const previousNoteCount = await notes.count()
+
   await page.getByRole("button", { name: "새 메모" }).click()
+  await expect(page).toHaveURL("/")
+  await expect(notes).toHaveCount(previousNoteCount + 1)
+
+  await page.getByRole("link", { name: "빈 메모 수정" }).click()
   await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)
 
   const editor = page.getByRole("textbox", { name: "메모 내용" })

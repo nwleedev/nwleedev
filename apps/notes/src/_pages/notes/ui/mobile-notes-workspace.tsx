@@ -17,7 +17,7 @@ type MobileNotesWorkspaceProps = {
   creationPending: boolean
   notes: readonly Note[]
   onCopy(note: Note): Promise<void>
-  onCreate(): Promise<Note | null>
+  onCreate(): Promise<void>
   onFailure(message: string, retry?: () => void): void
 }
 
@@ -114,18 +114,9 @@ export function MobileNotesWorkspace({
     })
   }
 
-  async function createAndOpenNote() {
-    const note = await onCreate()
-
-    if (note !== null) {
-      const noteId = encodeURIComponent(note.id)
-      router.push(`/notes/${noteId}/`)
-    }
-  }
-
   return (
-    <div className="relative h-full min-h-0 @3xl/note-area:hidden">
-      <header className="absolute inset-x-0 top-0 z-20 flex h-14 items-center justify-between border-b border-line bg-surface-raised/95 px-3 backdrop-blur-sm">
+    <div className="relative flex h-full min-h-0 flex-col">
+      <header className="relative z-20 flex h-14 shrink-0 items-center justify-between border-b border-line bg-surface-raised/95 px-3 backdrop-blur-sm">
         {collecting ? (
           <IconButton
             aria-label="일괄 복사 끝내기"
@@ -176,13 +167,13 @@ export function MobileNotesWorkspace({
           aria-label={creationPending ? "메모 만드는 중" : "새 메모"}
           className="absolute bottom-[max(var(--notes-mobile-action-inset),env(safe-area-inset-bottom))] right-[var(--notes-mobile-action-inset)] z-20 h-[var(--notes-mobile-action-size)] w-[var(--notes-mobile-action-size)] rounded-full bg-action text-action-ink shadow-floating hover:bg-action/90"
           disabled={creationPending}
-          onClick={createAndOpenNote}
+          onClick={onCreate}
         >
           <PlusIcon />
         </IconButton>
       ) : null}
       {collecting ? (
-        <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-end gap-2 border-t border-line bg-surface-raised/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-sm">
+        <div className="relative z-20 flex shrink-0 items-center justify-end gap-2 border-t border-line bg-surface-raised/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-sm">
           <Button
             disabled={batchCopy.pending || count === 0}
             onClick={resetBatchCopy}

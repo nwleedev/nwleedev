@@ -1,9 +1,27 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type Page } from "@playwright/test"
 import * as fc from "fast-check"
 
 import { createMobileNoteThroughUi } from "./support/create-note-through-ui"
 
 test.use({ viewport: { height: 720, width: 320 } })
+
+async function createNotesBeyondViewport(page: Page) {
+  const contents = fc.sample(
+    fc.uniqueArray(fc.stringMatching(/^[a-z]{64,72}$/u), {
+      minLength: 5,
+      maxLength: 5,
+    }),
+    1,
+  )[0]
+
+  await page.goto("/")
+
+  for (const content of contents) {
+    await createMobileNoteThroughUi(page, content)
+  }
+
+  return contents
+}
 
 test("좁은 메모 목록의 탐색을 닫은 뒤 보조 화면으로 이동한다", async ({ page }) => {
   await page.goto("/")
@@ -70,20 +88,31 @@ test("메모 본문은 복사하고 수정 아이콘만 상세 화면으로 이�
   await expect(page.getByRole("button", { name: "탐색 열기" })).toHaveCount(0)
 })
 
-test("목록 끝까지 이동해도 새 메모 제어가 보이는 화면에 남는다", async ({ page }) => {
-  const contents = fc.sample(
-    fc.uniqueArray(fc.stringMatching(/^[a-z]{64,72}$/u), {
-      minLength: 5,
-      maxLength: 5,
-    }),
-    1,
-  )[0]
+test("빈 목록과 메모 한 개의 새 메모 버튼은 화면 아래에 남는다", async ({ page }) => {
+  const content = fc.sample(fc.stringMatching(/^[a-z]{12,24}$/u), 1)[0]
 
   await page.goto("/")
+  const createButton = page.getByRole("button", { name: "새 메모" })
+  const viewport = page.viewportSize()
+  const emptyPosition = await createButton.boundingBox()
 
-  for (const content of contents) {
-    await createMobileNoteThroughUi(page, content)
-  }
+  expect(viewport).not.toBeNull()
+  expect(emptyPosition).not.toBeNull()
+  expect(viewport!.height - (emptyPosition!.y + emptyPosition!.height)).toBeLessThan(emptyPosition!.height)
+
+  const note = await createMobileNoteThroughUi(page, content)
+  const singlePosition = await createButton.boundingBox()
+
+  expect(singlePosition).not.toBeNull()
+  expect(singlePosition!.y).toBeCloseTo(emptyPosition!.y, 0)
+  await note.getByRole("button", { name: `${content} 복사` }).click()
+  await expect(page.getByRole("status").filter({ hasText: "복사했습니다." })).toBeVisible()
+  await note.getByRole("link", { name: `${content} 수정` }).click()
+  await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(content)
+})
+
+test("목록 끝까지 이동해도 새 메모 제어가 보이는 화면에 남는다", async ({ page }) => {
+  const contents = await createNotesBeyondViewport(page)
 
   const notes = page.getByRole("article")
   await expect(notes).toHaveCount(contents.length)
@@ -91,6 +120,87 @@ test("목록 끝까지 이동해도 새 메모 제어가 보이는 화면에 남
   await lastNote.scrollIntoViewIfNeeded()
   await expect(lastNote).toBeInViewport()
   await expect(page.getByRole("button", { name: "새 메모" })).toBeInViewport()
+  await lastNote.getByRole("button", { name: `${contents.at(-1)!} 복사` }).click()
+  await expect(page.getByRole("status").filter({ hasText: "복사했습니다." })).toBeVisible()
+  await lastNote.getByRole("link", { name: `${contents.at(-1)!} 수정` }).click()
+  await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(contents.at(-1)!)
+})
+
+test("일괄 복사 중 마지막 메모와 화면 아래의 작업 버튼에 접근한다", async ({ page }) => {
+  const contents = await createNotesBeyondViewport(page)
+
+  await page.getByRole("button", { name: "일괄 복사 시작" }).click()
+  await expect(page.getByRole("button", { name: "새 메모" })).toHaveCount(0)
+
+  const lastContent = contents.at(-1)!
+  const lastNote = page.getByRole("article").filter({ hasText: lastContent })
+
+  await lastNote.scrollIntoViewIfNeeded()
+  await expect(lastNote).toBeInViewport()
+  await lastNote.getByRole("button", { name: `${lastContent} 일괄 복사에 추가` }).click()
+  await expect(page.getByRole("button", { name: "다음, 1회 선택" })).toBeInViewport()
+  await expect(page.getByRole("button", { name: "초기화" })).toBeInViewport()
+
+  await page.getByRole("button", { name: "일괄 복사 끝내기" }).click()
+  await expect(page.getByRole("button", { name: "새 메모" })).toBeInViewport()
+})
+
+test("보이는 화면의 높이가 줄어도 메모 높이를 유지하고 목록 끝까지 스크롤한다", async ({ page }) => {
+  const contents = await createNotesBeyondViewport(page)
+
+  const firstNote = page.getByRole("article").filter({ hasText: contents[0] })
+  const firstBefore = await firstNote.boundingBox()
+  const viewport = page.viewportSize()
+
+  expect(firstBefore).not.toBeNull()
+  expect(viewport).not.toBeNull()
+  await page.setViewportSize({
+    height: Math.floor(viewport!.height / 2),
+    width: viewport!.width,
+  })
+
+  const firstAfter = await firstNote.boundingBox()
+  const lastNote = page.getByRole("article").filter({ hasText: contents.at(-1)! })
+
+  expect(firstAfter).not.toBeNull()
+  expect(firstAfter!.height).toBeCloseTo(firstBefore!.height, 0)
+  await lastNote.scrollIntoViewIfNeeded()
+  await expect(lastNote).toBeInViewport()
+  await expect(lastNote.getByRole("link", { name: `${contents.at(-1)!} 수정` })).toBeVisible()
+})
+
+test("빈 목록에서 새 메모를 만들면 목록에 남고 수정 아이콘으로 상세를 연다", async ({ page }) => {
+  await page.goto("/")
+  const notes = page.getByRole("article")
+  const previousNoteCount = await notes.count()
+
+  await page.getByRole("button", { name: "새 메모" }).click()
+
+  await expect(page).toHaveURL("/")
+  await expect(notes).toHaveCount(previousNoteCount + 1)
+  await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveCount(0)
+  await expect(page.getByRole("status").filter({ hasText: "복사했습니다." })).toHaveCount(0)
+
+  await page.getByRole("link", { name: "빈 메모 수정" }).click()
+
+  await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)
+  await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue("")
+})
+
+test("메모가 있는 목록에서 새 메모를 만들어도 기존 메모와 목록을 유지한다", async ({ page }) => {
+  const content = fc.sample(fc.stringMatching(/^[a-z]{12,24}$/u), 1)[0]
+
+  await page.goto("/")
+  await createMobileNoteThroughUi(page, content)
+  const notes = page.getByRole("article")
+  const previousNoteCount = await notes.count()
+
+  await page.getByRole("button", { name: "새 메모" }).click()
+
+  await expect(page).toHaveURL("/")
+  await expect(notes).toHaveCount(previousNoteCount + 1)
+  await expect(notes.filter({ hasText: content })).toBeVisible()
+  await expect(page.getByRole("link", { name: "빈 메모 수정" })).toBeVisible()
 })
 
 test("긴 메모를 스크롤해도 저장 제어가 화면 아래쪽에 남는다", async ({ page }) => {
@@ -103,7 +213,12 @@ test("긴 메모를 스크롤해도 저장 제어가 화면 아래쪽에 남는�
   )[0].join("\n")
 
   await page.goto("/")
+  const notes = page.getByRole("article")
+  const previousNoteCount = await notes.count()
   await page.getByRole("button", { name: "새 메모" }).click()
+  await expect(page).toHaveURL("/")
+  await expect(notes).toHaveCount(previousNoteCount + 1)
+  await page.getByRole("link", { name: "빈 메모 수정" }).click()
   const editor = page.getByRole("textbox", { name: "메모 내용" })
   const save = page.getByRole("button", { exact: true, name: "저장" })
   await editor.fill(content)

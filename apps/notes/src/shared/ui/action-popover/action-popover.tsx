@@ -8,6 +8,8 @@ import { joinClassNames } from "@/shared/lib/join-class-names"
 import { IconButton } from "@/shared/ui/icon-button"
 import {
   DuplicateIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
   BringToFrontIcon,
   GripIcon,
   MoreIcon,
@@ -20,7 +22,7 @@ import { useActionPopover } from "./use-action-popover"
 
 export type ActionPopoverAction = {
   id: string
-  icon: "back" | "duplicate" | "front" | "move" | "properties" | "remove"
+  icon: "back" | "down" | "duplicate" | "front" | "move" | "properties" | "remove" | "up"
   label: string
   tone?: "danger" | "neutral"
   onSelect(): void
@@ -57,6 +59,14 @@ function ActionPopoverIcon({ icon }: Pick<ActionPopoverAction, "icon">) {
 
   if (icon === "back") {
     return <SendToBackIcon />
+  }
+
+  if (icon === "up") {
+    return <ArrowUpIcon />
+  }
+
+  if (icon === "down") {
+    return <ArrowDownIcon />
   }
 
   return <GripIcon />
