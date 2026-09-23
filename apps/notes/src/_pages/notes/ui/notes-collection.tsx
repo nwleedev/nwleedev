@@ -275,7 +275,7 @@ export function NotesCollection({
   }
 
   return (
-    <div className="@container/note-area relative h-full min-h-0 overflow-hidden bg-canvas">
+    <div className="@container/note-area relative h-full min-h-0 overflow-clip bg-canvas">
       <div className="absolute left-3 top-3 z-30 hidden @3xl/note-area:block sm:left-4">
         <Button
           className="shadow-floating"
@@ -307,7 +307,6 @@ export function NotesCollection({
         commandPressed={commandPressed}
         draftContentByNote={draftContentByNote}
         focusedNoteId={linkedNoteId}
-        key={linkedNoteId ?? "notes-board"}
         notes={orderedNotes}
         onActivateProperties={activateProperties}
         onAddToBatchCopy={addToBatchCopy}

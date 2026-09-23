@@ -4,10 +4,12 @@ import { useRouter } from "next/navigation"
 
 import type { Note } from "@/entities/note"
 import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
+import { useBatchCopyEditor } from "@/features/edit-batch-copy"
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
-import { ArrowBackIcon, BatchCopyIcon } from "@/shared/ui/icons"
+import { BatchCopyIcon, NavigateBackIcon, PlusIcon } from "@/shared/ui/icons"
 import { StatusNotice } from "@/shared/ui/status-notice"
+import { MobileNavigation, type SavedBatchCopyLink } from "@/widgets/application-navigation"
 
 import { MobileNoteList } from "./mobile-note-list"
 
@@ -27,6 +29,7 @@ export function MobileNotesWorkspace({
   onFailure,
 }: MobileNotesWorkspaceProps) {
   const batchCopy = useMobileBatchCopy()
+  const savedBatchCopy = useBatchCopyEditor()
   const router = useRouter()
   const draft = batchCopy.status === "ready" ? batchCopy.draft : null
   const collecting = draft?.step === "collecting"
@@ -37,6 +40,21 @@ export function MobileNotesWorkspace({
   const batchCopyButtonName = continueBatchCopy
     ? "일괄 복사 계속하기"
     : "일괄 복사 시작"
+  let savedBatchCopyLink: SavedBatchCopyLink = null
+
+  if (!collecting && draft === null && savedBatchCopy.status === "ready") {
+    savedBatchCopyLink = {
+      count: savedBatchCopy.items.length,
+      status: "ready",
+    }
+  }
+
+  if (!collecting && draft === null && savedBatchCopy.status === "failure") {
+    savedBatchCopyLink = {
+      onRetry: savedBatchCopy.retry,
+      status: "failure",
+    }
+  }
 
   async function startBatchCopy() {
     if (continueBatchCopy) {
@@ -115,22 +133,16 @@ export function MobileNotesWorkspace({
             onClick={cancelBatchCopy}
             size="compact"
           >
-            <ArrowBackIcon />
+            <NavigateBackIcon />
           </IconButton>
         ) : (
-          <Button
-            disabled={creationPending}
-            onClick={createAndOpenNote}
-            tone="quiet"
-          >
-            {creationPending ? "메모 만드는 중" : "새 메모"}
-          </Button>
+          <MobileNavigation pathname="/" savedBatchCopy={savedBatchCopyLink} />
         )}
         {collecting ? (
           <p className="text-sm font-semibold">일괄 복사</p>
         ) : null}
         {collecting ? (
-          <span aria-hidden="true" className="h-9 w-9" />
+          <MobileNavigation pathname="/" />
         ) : (
           <IconButton
             aria-label={batchCopyButtonName}
@@ -159,6 +171,16 @@ export function MobileNotesWorkspace({
         onAddToBatchCopy={addToBatchCopy}
         onCopy={onCopy}
       />
+      {!collecting ? (
+        <IconButton
+          aria-label={creationPending ? "메모 만드는 중" : "새 메모"}
+          className="absolute bottom-[max(var(--notes-mobile-action-inset),env(safe-area-inset-bottom))] right-[var(--notes-mobile-action-inset)] z-20 h-[var(--notes-mobile-action-size)] w-[var(--notes-mobile-action-size)] rounded-full bg-action text-action-ink shadow-floating hover:bg-action/90"
+          disabled={creationPending}
+          onClick={createAndOpenNote}
+        >
+          <PlusIcon />
+        </IconButton>
+      ) : null}
       {collecting ? (
         <div className="absolute bottom-0 left-0 right-0 z-20 flex items-center justify-end gap-2 border-t border-line bg-surface-raised/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-sm">
           <Button

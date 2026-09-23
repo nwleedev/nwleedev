@@ -1,17 +1,11 @@
 "use client"
 
 import type { Note, NoteGeometry } from "@/entities/note"
-import { IconButton } from "@/shared/ui/icon-button"
-import {
-  ArrowBackIcon,
-  FitViewIcon,
-  ZoomInIcon,
-  ZoomOutIcon,
-} from "@/shared/ui/icons"
 
 import type { SaveNoteContentResult } from "../model/save-note-content"
 import { useNotesBoardView } from "../model/use-notes-board-view"
 import { NoteCard } from "./note-card"
+import { NotesBoardControls } from "./notes-board-controls"
 
 type NotesBoardProps = {
   batchCopyShortcutEnabled: boolean
@@ -36,9 +30,6 @@ type NotesBoardProps = {
   onSaveGeometry(note: Note, geometry: NoteGeometry): Promise<Note>
   onSelect(noteId: string): void
 }
-
-const VIEW_PAN_STEP = 48
-const VIEW_SCALE_STEP = 0.1
 
 export function NotesBoard({
   batchCopyShortcutEnabled,
@@ -65,13 +56,14 @@ export function NotesBoard({
     boardRef,
     boardStyle,
     cancelPan,
+    controlsRef,
     continuePan,
     finishPan,
     fitAllNotes,
     moveView,
     originX,
     originY,
-    resetViewportScroll,
+    revealFocusedNote,
     scale,
     scaleText,
     startBackgroundPan,
@@ -81,105 +73,58 @@ export function NotesBoard({
 
   return (
     <div
-      className="relative hidden h-full min-h-0 cursor-grab overflow-hidden touch-none bg-canvas active:cursor-grabbing @3xl/note-area:block"
-      onLostPointerCapture={cancelPan}
-      onPointerCancel={cancelPan}
-      onPointerDown={startBackgroundPan}
-      onPointerDownCapture={startSpacePan}
-      onPointerMove={continuePan}
-      onPointerUp={finishPan}
-      ref={viewportRef}
-      tabIndex={-1}
+      className="relative hidden h-full min-h-0 bg-canvas @3xl/note-area:block"
     >
       <div
-        className="absolute left-0 top-0"
-        ref={boardRef}
-        style={boardStyle}
+        className="absolute inset-0 cursor-grab overflow-clip touch-none active:cursor-grabbing"
+        onLostPointerCapture={cancelPan}
+        onPointerCancel={cancelPan}
+        onPointerDown={startBackgroundPan}
+        onPointerDownCapture={startSpacePan}
+        onPointerMove={continuePan}
+        onPointerUp={finishPan}
+        ref={viewportRef}
+        tabIndex={-1}
       >
-        {notes.map((note) => (
-          <NoteCard
-            batchCopyShortcutEnabled={batchCopyShortcutEnabled}
-            commandPressed={commandPressed}
-            initialContent={draftContentByNote[note.id] ?? note.content}
-            key={note.id}
-            note={note}
-            onActivateProperties={onActivateProperties}
-            onAddToBatchCopy={onAddToBatchCopy}
-            onCopy={onCopy}
-            onMoveToBack={onMoveToBack}
-            onMoveToFront={onMoveToFront}
-            onRemove={onRemove}
-            onSaveContent={onSaveContent}
-            onSaveFailure={onSaveFailure}
-            onSaveGeometry={onSaveGeometry}
-            onSelect={onSelect}
-            propertiesTarget={propertiesNoteId === note.id}
-            renderOriginX={originX}
-            renderOriginY={originY}
-            scale={scale}
-            selected={selectedNoteId === note.id}
-          />
-        ))}
+        <div
+          className="absolute left-0 top-0"
+          ref={boardRef}
+          style={boardStyle}
+        >
+          {notes.map((note) => (
+            <NoteCard
+              batchCopyShortcutEnabled={batchCopyShortcutEnabled}
+              commandPressed={commandPressed}
+              initialContent={draftContentByNote[note.id] ?? note.content}
+              key={note.id}
+              note={note}
+              onActivateProperties={onActivateProperties}
+              onAddToBatchCopy={onAddToBatchCopy}
+              onCopy={onCopy}
+              onFocusNote={revealFocusedNote}
+              onMoveToBack={onMoveToBack}
+              onMoveToFront={onMoveToFront}
+              onRemove={onRemove}
+              onSaveContent={onSaveContent}
+              onSaveFailure={onSaveFailure}
+              onSaveGeometry={onSaveGeometry}
+              onSelect={onSelect}
+              propertiesTarget={propertiesNoteId === note.id}
+              renderOriginX={originX}
+              renderOriginY={originY}
+              scale={scale}
+              selected={selectedNoteId === note.id}
+            />
+          ))}
+        </div>
       </div>
-      <div
-        aria-label="캔버스 보기"
-        className="absolute bottom-3 left-3 z-20 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-2 rounded-panel border border-border bg-surface-raised p-2 shadow-floating [&_button>svg]:size-5"
-        onFocusCapture={resetViewportScroll}
-        role="group"
-      >
-        <IconButton
-          aria-label="왼쪽 보기"
-          onClick={() => moveView(VIEW_PAN_STEP, 0)}
-          title="왼쪽 보기"
-        >
-          <ArrowBackIcon />
-        </IconButton>
-        <IconButton
-          aria-label="오른쪽 보기"
-          onClick={() => moveView(-VIEW_PAN_STEP, 0)}
-          title="오른쪽 보기"
-        >
-          <ArrowBackIcon className="rotate-180" />
-        </IconButton>
-        <IconButton
-          aria-label="위 보기"
-          onClick={() => moveView(0, VIEW_PAN_STEP)}
-          title="위 보기"
-        >
-          <ArrowBackIcon className="rotate-90" />
-        </IconButton>
-        <IconButton
-          aria-label="아래 보기"
-          onClick={() => moveView(0, -VIEW_PAN_STEP)}
-          title="아래 보기"
-        >
-          <ArrowBackIcon className="-rotate-90" />
-        </IconButton>
-        <IconButton
-          aria-label="축소"
-          onClick={() => adjustScale(-VIEW_SCALE_STEP)}
-          title="축소"
-        >
-          <ZoomOutIcon />
-        </IconButton>
-        <span className="min-w-12 text-center text-xs font-semibold tabular-nums text-soft-ink">
-          {scaleText}
-        </span>
-        <IconButton
-          aria-label="확대"
-          onClick={() => adjustScale(VIEW_SCALE_STEP)}
-          title="확대"
-        >
-          <ZoomInIcon />
-        </IconButton>
-        <IconButton
-          aria-label="모두 보기"
-          onClick={fitAllNotes}
-          title="모두 보기"
-        >
-          <FitViewIcon />
-        </IconButton>
-      </div>
+      <NotesBoardControls
+        controlsRef={controlsRef}
+        onAdjustScale={adjustScale}
+        onFitAllNotes={fitAllNotes}
+        onMoveView={moveView}
+        scaleText={scaleText}
+      />
     </div>
   )
 }

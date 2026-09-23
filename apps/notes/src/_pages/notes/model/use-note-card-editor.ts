@@ -1,10 +1,5 @@
 "use client"
 
-import {
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from "react"
 import { useForm } from "react-hook-form"
 
 import type { Note } from "@/entities/note"
@@ -27,8 +22,6 @@ export function useNoteCardEditor({
   note,
   onSave,
 }: UseNoteCardEditorOptions) {
-  const [pointerFocused, setPointerFocused] = useState(false)
-  const pointerFocusPending = useRef(false)
   const { getValues, register, reset } = useForm<NoteContentFields>({
     defaultValues: { content: initialContent },
   })
@@ -52,7 +45,6 @@ export function useNoteCardEditor({
   })
   const registration = register("content", {
     onBlur() {
-      setPointerFocused(false)
       void autosave.save()
     },
     onChange() {
@@ -60,33 +52,9 @@ export function useNoteCardEditor({
     },
   })
 
-  function markPointerFocus(event: ReactPointerEvent<HTMLTextAreaElement>) {
-    const directPointer =
-      event.isPrimary &&
-      event.button === 0 &&
-      !event.metaKey &&
-      !event.altKey &&
-      !event.ctrlKey &&
-      !event.shiftKey
-
-    pointerFocusPending.current = directPointer
-    setPointerFocused(directPointer)
-  }
-
-  function settleFocus() {
-    if (!pointerFocusPending.current) {
-      setPointerFocused(false)
-    }
-
-    pointerFocusPending.current = false
-  }
-
   return {
     autosave,
-    markPointerFocus,
-    pointerFocused,
     readContent,
     registration,
-    settleFocus,
   }
 }

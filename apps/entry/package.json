@@ -11,7 +11,6 @@
     "dev": "astro dev",
     "check": "astro check",
     "build": "astro build",
-    "cf:deploy": "wrangler deploy",
     "preview": "astro preview"
   },
   "dependencies": {
@@ -22,7 +21,6 @@
     "@astrojs/check": "0.9.10",
     "@tailwindcss/vite": "4.3.3",
     "tailwindcss": "4.3.3",
-    "typescript": "6.0.3",
-    "wrangler": "4.136.0"
+    "typescript": "6.0.3"
   }
 }

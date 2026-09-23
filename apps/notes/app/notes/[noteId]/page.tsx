@@ -1,3 +1,4 @@
+import { TaskPageFrame } from "@/_app"
 import { NoteDetailPage } from "@/_pages/notes"
 
 type PageProps = {
@@ -7,5 +8,9 @@ type PageProps = {
 export default async function Page({ params }: PageProps) {
   const { noteId } = await params
 
-  return <NoteDetailPage noteId={noteId} />
+  return (
+    <TaskPageFrame pathname={`/notes/${noteId}`}>
+      <NoteDetailPage noteId={noteId} />
+    </TaskPageFrame>
+  )
 }

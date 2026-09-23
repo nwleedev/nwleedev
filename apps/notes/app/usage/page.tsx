@@ -1,5 +1,10 @@
+import { DocumentPageFrame } from "@/_app"
 import { UsageStartPage } from "@/_pages/usage"
 
 export default function Page() {
-  return <UsageStartPage />
+  return (
+    <DocumentPageFrame pathname="/usage">
+      <UsageStartPage />
+    </DocumentPageFrame>
+  )
 }

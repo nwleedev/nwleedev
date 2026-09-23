@@ -30,7 +30,9 @@ function noteIdFromHash() {
 }
 
 export function focusNote(noteId: string) {
-  document.getElementById(`note-${encodeURIComponent(noteId)}-board`)?.focus()
+  document
+    .getElementById(`note-${encodeURIComponent(noteId)}-board`)
+    ?.focus({ preventScroll: true })
 }
 
 export function useNotesCollectionInteractions({
@@ -102,7 +104,9 @@ export function useNotesCollectionInteractions({
         return
       }
 
-      activeElement.closest<HTMLElement>("article")?.focus()
+      activeElement
+        .closest<HTMLElement>("article")
+        ?.focus({ preventScroll: true })
       clearSelection()
     }
 
@@ -188,7 +192,7 @@ export function useNotesCollectionInteractions({
       requestAnimationFrame(() => {
         document
           .getElementById(`note-${encodeURIComponent(note.id)}-content`)
-          ?.focus()
+          ?.focus({ preventScroll: true })
       })
       return note
     } catch {

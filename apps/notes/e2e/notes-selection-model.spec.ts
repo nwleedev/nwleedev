@@ -775,7 +775,7 @@ test("선택과 속성 대상의 실패를 줄이고 실제 포커스로 재현�
 }) => {
   test.setTimeout(180_000)
   const normal = await checkSelectionExploration(browser, "none")
-  expect(normal.details.failed).toBe(false)
+  expect(normal.details.failed, fc.defaultReportMessage(normal.details)).toBe(false)
   expect(normal.details.interrupted).toBe(false)
   console.info(
     JSON.stringify({

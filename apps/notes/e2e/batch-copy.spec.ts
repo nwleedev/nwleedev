@@ -305,7 +305,9 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   await expect(
     panel.getByRole("button", { exact: true, name: "복사" }),
   ).toBeEnabled()
-  await page.keyboard.press("ControlOrMeta+z")
+  await secondItem.getByRole("button", {
+    name: `일괄 복사 항목 선택: ${secondContent}`,
+  }).press("ControlOrMeta+z")
   await expect(firstItem).toBeVisible()
   await expect(firstSelection).toHaveAttribute("aria-pressed", "false")
   await firstSelection.click()
@@ -315,7 +317,9 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   await expect(
     panel.getByRole("button", { exact: true, name: "복사" }),
   ).toBeEnabled()
-  await page.keyboard.press("ControlOrMeta+z")
+  await secondItem.getByRole("button", {
+    name: `일괄 복사 항목 선택: ${secondContent}`,
+  }).press("ControlOrMeta+z")
   await expect(firstItem).toBeVisible()
   await expect(firstSelection).toHaveAttribute("aria-pressed", "false")
 
@@ -351,6 +355,7 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   await expect(dialog).toHaveCount(0)
 
   await page.setViewportSize({ height: 720, width: 320 })
+  await page.getByRole("button", { name: "탐색 열기" }).click()
   const managementLink = page.getByRole("link", { name: "일괄 복사 2개 관리" })
   await expect(managementLink).toBeVisible()
   await managementLink.click()
@@ -385,6 +390,7 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   await page.keyboard.press("ControlOrMeta+z")
   await expect(page.getByRole("button", { name: "일괄 복사 2개" })).toBeVisible()
   await page.setViewportSize({ height: 720, width: 320 })
+  await page.getByRole("button", { name: "탐색 열기" }).click()
   await page.getByRole("link", { name: "일괄 복사 2개 관리" }).click()
   await expect(managementItems).toContainText([firstContent, secondContent])
   await page.reload()
@@ -405,8 +411,8 @@ test.describe("320px 일괄 복사", () => {
     const secondNote = await createMobileNoteThroughUi(page, secondContent)
 
     await page.getByRole("button", { name: "일괄 복사 시작" }).click()
-    const firstEntry = firstNote.getByRole("link", { name: "일괄 복사에 추가" })
-    const secondEntry = secondNote.getByRole("link", { name: "일괄 복사에 추가" })
+    const firstEntry = firstNote.getByRole("button", { name: `${firstContent} 일괄 복사에 추가` })
+    const secondEntry = secondNote.getByRole("button", { name: `${secondContent} 일괄 복사에 추가` })
     await firstEntry.click()
     await expect(page.getByRole("button", { name: "다음, 1회 선택" })).toBeEnabled()
     await page.getByRole("button", { name: "초기화" }).click()
@@ -494,7 +500,7 @@ test.describe("320px 일괄 복사", () => {
     const note = await createMobileNoteThroughUi(page, content)
 
     await page.getByRole("button", { name: "일괄 복사 시작" }).click()
-    const entry = note.getByRole("link", { name: "일괄 복사에 추가" })
+    const entry = note.getByRole("button", { name: `${content} 일괄 복사에 추가` })
     await entry.click()
     await entry.click()
     await page.getByRole("button", { name: "다음, 2회 선택" }).click()

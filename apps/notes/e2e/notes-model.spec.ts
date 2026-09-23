@@ -244,12 +244,12 @@ async function executeMobileSaveCommands(
     const initialContent = "모바일 저장 기준 원문"
     const note = await createMobileNoteThroughUi(page, initialContent)
     const noteId = noteIdFromHref(
-      await note.getByRole("link", { name: "메모 열기" }).getAttribute("href"),
+      await note.getByRole("link", { name: `${initialContent} 수정` }).getAttribute("href"),
     )
     await expect
       .poll(async () => (await readStoredNote(page, noteId))?.content)
       .toBe(initialContent)
-    await note.getByRole("link", { name: "메모 열기" }).click()
+    await note.getByRole("link", { name: `${initialContent} 수정` }).click()
     await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
       initialContent,
     )
@@ -315,7 +315,7 @@ async function executeMobileSaveCommands(
       },
       async open(content) {
         const current = page.getByRole("article").filter({ hasText: content })
-        await current.getByRole("link", { name: "메모 열기" }).click()
+        await current.getByRole("link", { name: `${content} 수정` }).click()
         await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
           content,
         )
@@ -493,7 +493,7 @@ test("800ms 타이머와 blur 및 내부 이동이 최신 원문을 저장한다
 test("모바일 저장 누락을 축소하고 이탈 선택을 생성한다", async ({ browser }) => {
   test.setTimeout(180_000)
   const normal = await checkMobileSaveExploration(browser, "none", false)
-  expect(normal.details.failed).toBe(false)
+  expect(normal.details.failed, fc.defaultReportMessage(normal.details)).toBe(false)
   expect(normal.details.interrupted).toBe(false)
   console.info(
     JSON.stringify({

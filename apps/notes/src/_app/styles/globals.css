@@ -50,6 +50,54 @@ dialog::backdrop {
   background: oklch(18% 0.01 255deg / 68%);
 }
 
+.notes-navigation-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--notes-drawer-width);
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  border: 0;
+  background: transparent;
+  color: var(--notes-color-text);
+  opacity: 0;
+  transform: translateX(-100%);
+  transition: opacity var(--notes-motion-panel) ease,
+    transform var(--notes-motion-panel) ease,
+    display var(--notes-motion-panel) allow-discrete,
+    overlay var(--notes-motion-panel) allow-discrete;
+}
+
+.notes-navigation-drawer[open] {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.notes-navigation-drawer::backdrop {
+  background: var(--notes-drawer-backdrop-clear);
+  transition: background var(--notes-motion-panel) ease,
+    display var(--notes-motion-panel) allow-discrete,
+    overlay var(--notes-motion-panel) allow-discrete;
+}
+
+.notes-navigation-drawer[open]::backdrop {
+  background: var(--notes-drawer-backdrop-visible);
+}
+
+@starting-style {
+  .notes-navigation-drawer[open] {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+
+  .notes-navigation-drawer[open]::backdrop {
+    background: var(--notes-drawer-backdrop-clear);
+  }
+}
+
 @keyframes notes-toast-enter {
   from {
     opacity: 0;

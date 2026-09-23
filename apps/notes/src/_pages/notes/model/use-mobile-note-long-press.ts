@@ -15,7 +15,7 @@ type LongPressSession = {
   pointerId: number
   startX: number
   startY: number
-  target: HTMLAnchorElement
+  target: HTMLButtonElement
   timer: ReturnType<typeof setTimeout>
 }
 
@@ -24,7 +24,6 @@ type UseMobileNoteLongPressOptions = {
   longPressEnabled: boolean
   onLongPress(): void
   onShortPress(): void
-  shortPressHandled: boolean
 }
 
 export function useMobileNoteLongPress({
@@ -32,7 +31,6 @@ export function useMobileNoteLongPress({
   longPressEnabled,
   onLongPress,
   onShortPress,
-  shortPressHandled,
 }: UseMobileNoteLongPressOptions) {
   const session = useRef<LongPressSession | null>(null)
   const suppressClick = useRef(false)
@@ -51,7 +49,7 @@ export function useMobileNoteLongPress({
 
   useEffect(() => () => clearSession(false), [])
 
-  function onPointerDown(event: ReactPointerEvent<HTMLAnchorElement>) {
+  function onPointerDown(event: ReactPointerEvent<HTMLButtonElement>) {
     if (event.isPrimary) {
       suppressClick.current = false
     }
@@ -92,7 +90,7 @@ export function useMobileNoteLongPress({
     target.setPointerCapture(pointerId)
   }
 
-  function onPointerMove(event: ReactPointerEvent<HTMLAnchorElement>) {
+  function onPointerMove(event: ReactPointerEvent<HTMLButtonElement>) {
     const current = session.current
 
     if (current === null || current.pointerId !== event.pointerId) {
@@ -109,7 +107,7 @@ export function useMobileNoteLongPress({
     }
   }
 
-  function onPointerUp(event: ReactPointerEvent<HTMLAnchorElement>) {
+  function onPointerUp(event: ReactPointerEvent<HTMLButtonElement>) {
     const current = session.current
 
     if (current === null || current.pointerId !== event.pointerId) {
@@ -144,27 +142,22 @@ export function useMobileNoteLongPress({
     }
   }
 
-  function onClick(event: ReactMouseEvent<HTMLAnchorElement>) {
+  function onClick(event: ReactMouseEvent<HTMLButtonElement>) {
     if (disabled) {
-      event.preventDefault()
       return
     }
 
     if (event.detail > 0 && suppressClick.current) {
       suppressClick.current = false
-      event.preventDefault()
       return
     }
 
     suppressClick.current = false
 
-    if (shortPressHandled) {
-      event.preventDefault()
-      onShortPress()
-    }
+    onShortPress()
   }
 
-  function onContextMenu(event: ReactMouseEvent<HTMLAnchorElement>) {
+  function onContextMenu(event: ReactMouseEvent<HTMLButtonElement>) {
     if (session.current !== null) {
       event.preventDefault()
     }

@@ -38,6 +38,7 @@ type NoteCardProps = {
   onActivateProperties(note: Note, focus: "first-field" | "preserve"): void
   onAddToBatchCopy(note: Note): Promise<void>
   onCopy(note: Note): Promise<void>
+  onFocusNote(noteId: string): void
   onMoveToBack(noteId: string): Promise<readonly Note[]>
   onMoveToFront(noteId: string): Promise<readonly Note[]>
   onRemove(note: Note): Promise<void>
@@ -131,6 +132,7 @@ export function NoteCard({
   onActivateProperties,
   onAddToBatchCopy,
   onCopy,
+  onFocusNote,
   onMoveToBack,
   onMoveToFront,
   onRemove,
@@ -167,9 +169,9 @@ export function NoteCard({
     commandPressed ? "[&_button]:invisible" : undefined,
   )
   const cardClassName = joinClassNames(
-    "absolute flex flex-col overflow-visible rounded-note border border-border bg-surface-raised outline-transparent focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[0.2rem] focus-visible:outline-[var(--notes-color-focus)]",
+    "absolute flex flex-col overflow-visible rounded-note border border-border bg-surface-raised outline-transparent focus-visible:outline-none after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-note after:content-[''] after:forced-colors:border-[Highlight] focus-visible:after:border-[0.2rem] focus-visible:after:border-dashed focus-visible:after:border-focus has-[textarea:focus-visible]:after:border-[0.2rem] has-[textarea:focus-visible]:after:border-dashed has-[textarea:focus-visible]:after:border-focus",
     selectedVisible
-      ? "after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-note after:border-2 after:border-selection after:content-['']"
+      ? "after:border-2 after:border-selection"
       : undefined,
     propertiesTarget
       ? "outline outline-1 outline-offset-2 outline-dashed outline-border-strong"
@@ -198,6 +200,8 @@ export function NoteCard({
   }
 
   function selectFromKeyboard(event: ReactFocusEvent<HTMLElement>) {
+    onFocusNote(note.id)
+
     if (event.target === event.currentTarget && !commandPressed) {
       onSelect(note.id)
     }
@@ -391,14 +395,11 @@ export function NoteCard({
       <textarea
         aria-label="메모 내용"
         className={joinClassNames(
-          "min-h-0 flex-1 resize-none overflow-auto border-0 bg-transparent px-4 py-3 text-base leading-7 text-text outline-transparent placeholder:text-soft-ink focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[-0.2rem] focus-visible:outline-[var(--notes-color-focus)]",
-          editor.pointerFocused ? "focus-visible:outline-none" : undefined,
+          "min-h-0 flex-1 resize-none overflow-auto border-0 bg-transparent px-4 py-3 text-base leading-7 text-text outline-transparent focus-visible:outline-none placeholder:text-soft-ink",
         )}
         id={contentId}
         onClick={runContentShortcut}
-        onFocus={editor.settleFocus}
         onMouseDown={prepareContentShortcut}
-        onPointerDown={editor.markPointerFocus}
         placeholder="메모를 입력하세요"
         {...editor.registration}
       />

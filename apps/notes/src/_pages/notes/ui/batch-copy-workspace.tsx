@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import {
   createContext,
   useContext,
@@ -14,7 +13,6 @@ import {
 } from "react"
 
 import type { BatchCopyItem } from "@/entities/batch-copy"
-import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
 import {
   BatchCopyEditingView,
   BatchCopyHistoryShortcuts,
@@ -218,7 +216,6 @@ function BatchCopyPanelContent({
 
 function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
   const batchCopy = useBatchCopyEditor()
-  const mobileBatchCopy = useMobileBatchCopy()
   const session = useNoteSession()
   const batchCopyItems = batchCopy.status === "ready" ? batchCopy.items : []
   const batchCopyCount = batchCopyItems.length
@@ -239,8 +236,6 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
   const open = activePanel !== null
   const batchCopyActive = activePanel === "batch-copy"
   const propertiesActive = activePanel === "note-properties"
-  const mobileBatchCopyActive =
-    mobileBatchCopy.status === "ready" && mobileBatchCopy.draft !== null
   const showInlinePanel = open && inline
   const workspaceLayoutClassName = joinClassNames(
     "h-full min-h-0",
@@ -370,7 +365,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
       }}
     >
       <main
-        className="@container/notes-workspace relative h-full min-h-0 overflow-hidden"
+        className="@container/notes-workspace relative h-full min-h-0 overflow-clip"
         id="main-content"
         ref={container}
       >
@@ -401,18 +396,6 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
             </span>
           </Button>
         </div>
-        {batchCopyCount > 0 && !mobileBatchCopyActive ? (
-          <Link
-            aria-label={`일괄 복사 ${batchCopyCountText} 관리`}
-            className="absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-3 z-30 inline-flex min-h-12 items-center gap-2 rounded-full border border-action bg-action px-4 py-2 text-sm font-semibold text-action-ink shadow-floating @3xl/notes-workspace:hidden"
-            href="/batch-copy/"
-          >
-            <span>일괄 복사</span>
-            <span aria-hidden="true" className="min-w-6 text-center tabular-nums">
-              {batchCopyCountText}
-            </span>
-          </Link>
-        ) : null}
         {notice ? (
           <div className={noticeClassName}>
             <ActionToast
@@ -429,7 +412,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
         <div className={workspaceLayoutClassName}>
           <section
             aria-label="메모 작업 영역"
-            className="h-full min-h-0 min-w-0 overflow-hidden"
+            className="h-full min-h-0 min-w-0 overflow-clip"
           >
             {children}
           </section>

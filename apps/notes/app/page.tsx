@@ -1,5 +1,10 @@
+import { NotesWorkspaceFrame } from "@/_app"
 import { NotesStartPage } from "@/_pages/notes"
 
 export default function Page() {
-  return <NotesStartPage />
+  return (
+    <NotesWorkspaceFrame>
+      <NotesStartPage />
+    </NotesWorkspaceFrame>
+  )
 }

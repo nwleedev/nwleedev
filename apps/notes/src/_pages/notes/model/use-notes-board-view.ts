@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -10,13 +11,16 @@ import {
 
 import { NOTE_CANVAS_SIZE, type Note } from "@/entities/note"
 
-type BoardView = {
-  originX: number
-  originY: number
-  scale: number
-  x: number
-  y: number
-}
+import {
+  fitNotesInView,
+  initialBoardView,
+  revealNoteInView,
+  zoomBoardView,
+  type BoardRectangle,
+  type BoardView,
+} from "./board-view"
+
+const WHEEL_ZOOM_SENSITIVITY = 0.002
 
 type PanGesture = {
   moved: boolean
@@ -31,25 +35,6 @@ type UseNotesBoardViewOptions = {
   focusedNoteId: string | null
   notes: readonly Note[]
   onClearSelection(): void
-}
-
-function initialBoardView(
-  notes: readonly Note[],
-  focusedNoteId: string | null,
-): BoardView {
-  const focusedNote = notes.find(({ id }) => id === focusedNoteId)
-
-  if (focusedNote === undefined) {
-    return { originX: 0, originY: 0, scale: 1, x: 0, y: 0 }
-  }
-
-  return {
-    originX: focusedNote.geometry.x,
-    originY: focusedNote.geometry.y,
-    scale: 1,
-    x: 48,
-    y: 80,
-  }
 }
 
 function isTextEditingTarget(target: EventTarget | null) {
@@ -69,27 +54,21 @@ function panThreshold(pointerType: string) {
   return pointerType === "touch" ? 10 : 5
 }
 
-function noteBounds(notes: readonly Note[]) {
-  const [firstNote, ...remainingNotes] = notes
-
-  if (firstNote === undefined) {
-    return { bottom: 0, left: 0, right: 0, top: 0 }
+function wheelDeltaInPixels(event: WheelEvent, viewport: HTMLElement) {
+  if (event.deltaMode === WheelEvent.DOM_DELTA_PIXEL) {
+    return event.deltaY
   }
 
-  return remainingNotes.reduce(
-    (bounds, note) => ({
-      bottom: Math.max(bounds.bottom, note.geometry.y + note.geometry.height),
-      left: Math.min(bounds.left, note.geometry.x),
-      right: Math.max(bounds.right, note.geometry.x + note.geometry.width),
-      top: Math.min(bounds.top, note.geometry.y),
-    }),
-    {
-      bottom: firstNote.geometry.y + firstNote.geometry.height,
-      left: firstNote.geometry.x,
-      right: firstNote.geometry.x + firstNote.geometry.width,
-      top: firstNote.geometry.y,
-    },
-  )
+  if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+    return event.deltaY * viewport.clientHeight
+  }
+
+  const typography = getComputedStyle(viewport)
+  const lineHeight = Number.parseFloat(typography.lineHeight)
+  const fontSize = Number.parseFloat(typography.fontSize)
+  const lineStep = Number.isFinite(lineHeight) ? lineHeight : fontSize * 1.2
+
+  return event.deltaY * lineStep
 }
 
 export function useNotesBoardView({
@@ -99,6 +78,8 @@ export function useNotesBoardView({
 }: UseNotesBoardViewOptions) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const boardRef = useRef<HTMLDivElement>(null)
+  const controlsRef = useRef<HTMLDivElement>(null)
+  const lastLinkedNoteId = useRef<string | null>(null)
   const panGesture = useRef<PanGesture | null>(null)
   const [spacePressed, setSpacePressed] = useState(false)
   const [view, setView] = useState<BoardView>(() =>
@@ -138,14 +119,104 @@ export function useNotesBoardView({
     }
   }, [])
 
+  const revealFocusedNote = useCallback((noteId: string) => {
+    const viewport = viewportRef.current
+    const note = notes.find(({ id }) => id === noteId)
+
+    if (viewport === null || note === undefined) {
+      return false
+    }
+
+    const viewportBounds = viewport.getBoundingClientRect()
+    const controlsBounds = controlsRef.current?.getBoundingClientRect()
+    const controls: BoardRectangle | null = controlsBounds === undefined
+      ? null
+      : {
+          bottom: controlsBounds.bottom - viewportBounds.top,
+          left: controlsBounds.left - viewportBounds.left,
+          right: controlsBounds.right - viewportBounds.left,
+          top: controlsBounds.top - viewportBounds.top,
+        }
+
+    if (viewport.clientWidth === 0 || viewport.clientHeight === 0) {
+      return false
+    }
+
+    setView((current) =>
+      revealNoteInView(
+        current,
+        note.geometry,
+        { height: viewport.clientHeight, width: viewport.clientWidth },
+        controls,
+      ),
+    )
+    return true
+  }, [notes])
+
+  useEffect(() => {
+    if (focusedNoteId === null) {
+      lastLinkedNoteId.current = null
+      return
+    }
+
+    if (focusedNoteId === lastLinkedNoteId.current) {
+      return
+    }
+
+    if (revealFocusedNote(focusedNoteId)) {
+      lastLinkedNoteId.current = focusedNoteId
+    }
+  }, [focusedNoteId, revealFocusedNote])
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+
+    if (viewport === null) {
+      return
+    }
+    const wheelViewport = viewport
+
+    function handleWheel(event: WheelEvent) {
+      if ((!event.ctrlKey && !event.metaKey) || !event.cancelable) {
+        return
+      }
+
+      event.preventDefault()
+      const bounds = wheelViewport.getBoundingClientRect()
+      const anchor = {
+        x: event.clientX - bounds.left,
+        y: event.clientY - bounds.top,
+      }
+      const pixelDelta = wheelDeltaInPixels(event, wheelViewport)
+      const factor = Math.exp(-pixelDelta * WHEEL_ZOOM_SENSITIVITY)
+
+      setView((current) =>
+        zoomBoardView(current, current.scale * factor, anchor),
+      )
+    }
+
+    viewport.addEventListener("wheel", handleWheel, { passive: false })
+
+    return () => viewport.removeEventListener("wheel", handleWheel)
+  }, [])
+
   function adjustScale(change: number) {
-    setView((current) => ({
-      ...current,
-      scale:
-        change < 0
-          ? Math.max(Number.EPSILON, current.scale + change)
-          : Math.min(2, current.scale + change),
-    }))
+    const viewport = viewportRef.current
+
+    if (viewport === null) {
+      return
+    }
+
+    const anchor = {
+      x: viewport.clientWidth / 2,
+      y: viewport.clientHeight / 2,
+    }
+
+    setView((current) => zoomBoardView(
+      current,
+      current.scale + change,
+      anchor,
+    ))
   }
 
   function moveView(x: number, y: number) {
@@ -156,42 +227,17 @@ export function useNotesBoardView({
     }))
   }
 
-  function resetViewportScroll() {
-    const element = viewportRef.current
-
-    if (element !== null) {
-      element.scrollLeft = 0
-      element.scrollTop = 0
-    }
-  }
-
   function fitAllNotes() {
     const element = viewportRef.current
 
-    if (element === null || notes.length === 0) {
-      setView({ originX: 0, originY: 0, scale: 1, x: 0, y: 0 })
+    if (element === null) {
       return
     }
 
-    const bounds = noteBounds(notes)
-    const padding = 32
-    const contentWidth = Math.max(1, bounds.right - bounds.left)
-    const contentHeight = Math.max(1, bounds.bottom - bounds.top)
-    const availableWidth = Math.max(1, element.clientWidth - padding * 2)
-    const availableHeight = Math.max(1, element.clientHeight - padding * 2)
-    const scale = Math.min(
-      1,
-      availableWidth / contentWidth,
-      availableHeight / contentHeight,
-    )
-
-    setView({
-      originX: bounds.left,
-      originY: bounds.top,
-      scale,
-      x: padding,
-      y: padding,
-    })
+    setView(fitNotesInView(notes, {
+      height: element.clientHeight,
+      width: element.clientWidth,
+    }))
   }
 
   function beginPan(event: ReactPointerEvent<HTMLDivElement>) {
@@ -296,13 +342,14 @@ export function useNotesBoardView({
     boardRef,
     boardStyle,
     cancelPan,
+    controlsRef,
     continuePan,
     finishPan,
     fitAllNotes,
     moveView,
     originX: view.originX,
     originY: view.originY,
-    resetViewportScroll,
+    revealFocusedNote,
     scale: view.scale,
     scaleText: `${Math.round(view.scale * 100).toLocaleString("ko-KR")}%`,
     startBackgroundPan,

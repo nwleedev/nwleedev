@@ -28,6 +28,35 @@ async function visibleBox(locator: Locator) {
   return box
 }
 
+async function createUntilFirstNoteLeavesView(
+  page: Page,
+  firstNote: Locator,
+  controls: Locator,
+  workspace: Locator,
+) {
+  const firstBox = await visibleBox(firstNote)
+  const workspaceBox = await visibleBox(workspace)
+  const visibleCapacity =
+    Math.ceil(workspaceBox.width / firstBox.width) *
+    Math.ceil(workspaceBox.height / firstBox.height)
+
+  for (let attempt = 0; attempt < visibleCapacity; attempt += 1) {
+    const latestNote = await createNoteThroughUi(
+      page,
+      `추가 메모-${crypto.randomUUID()}`,
+    )
+    await expect(latestNote).toBeInViewport()
+    await expect(controls).toBeInViewport()
+    const currentFirstBox = await visibleBox(firstNote)
+
+    if (currentFirstBox.x + currentFirstBox.width < workspaceBox.x) {
+      return latestNote
+    }
+  }
+
+  throw new Error("A newly focused note did not move the first note out of view")
+}
+
 async function openPropertiesWithKeyboard(note: Locator) {
   await note.focus()
   await expect(note).toBeFocused()
@@ -64,6 +93,48 @@ type NoteCreationReal = {
   page: Page
 }
 
+type StoredCreationState = {
+  contents: string[]
+  distinctIds: number
+}
+
+async function readStoredCreationState(page: Page): Promise<StoredCreationState> {
+  return page.evaluate(
+    () =>
+      new Promise<StoredCreationState>((resolve, reject) => {
+        const openRequest = indexedDB.open("personal-notes")
+        openRequest.onerror = () => reject(openRequest.error)
+        openRequest.onsuccess = () => {
+          const database = openRequest.result
+          const transaction = database.transaction("notes", "readonly")
+          const request = transaction.objectStore("notes").getAll()
+
+          transaction.onerror = () => {
+            database.close()
+            reject(transaction.error)
+          }
+          transaction.oncomplete = () => {
+            const records = request.result as {
+              content: string
+              id: string
+            }[]
+            database.close()
+            resolve({
+              contents: records.map(({ content }) => content).sort(),
+              distinctIds: new Set(records.map(({ id }) => id)).size,
+            })
+          }
+        }
+      }),
+  )
+}
+
+async function expectStoredCreationState(page: Page, contents: string[]) {
+  await expect
+    .poll(() => readStoredCreationState(page))
+    .toEqual({ contents: [...contents].sort(), distinctIds: contents.length })
+}
+
 async function expectVisibleNoteContents(page: Page, expected: string[]) {
   const editors = page.getByRole("textbox", { name: "메모 내용" })
   await expect(editors).toHaveCount(expected.length)
@@ -86,6 +157,7 @@ class CreateNoteThroughUiCommand
     await createNoteThroughUi(page, this.content)
     model.contents.push(this.content)
     await expectVisibleNoteContents(page, model.contents)
+    await expectStoredCreationState(page, model.contents)
   }
 
   toString() {
@@ -128,6 +200,7 @@ class ReloadNotesThroughUiCommand
   async run(model: NoteCreationModel, { page }: NoteCreationReal) {
     await page.reload()
     await expectVisibleNoteContents(page, model.contents)
+    await expectStoredCreationState(page, model.contents)
   }
 
   toString() {
@@ -254,6 +327,64 @@ test("메모 생성 실패를 알리고 다음 생성 시도를 저장한다", a
     await expect(
       page.getByRole("textbox", { name: "메모 내용" }),
     ).toHaveValue("다시 시도해 저장한 메모")
+  } finally {
+    await context.close()
+  }
+})
+
+test("두 번째 메모의 쓰기가 누락되면 화면과 저장 결과의 차이를 찾는다", async ({
+  browser,
+}) => {
+  const context = await browser.newContext()
+  await context.addInitScript(() => {
+    const originalPut = IDBObjectStore.prototype.put
+    let createdCount = 0
+    let omittedNoteId: string | null = null
+
+    IDBObjectStore.prototype.put = function (value, key) {
+      const record = value as {
+        content: string
+        contentRevision: number
+        id: string
+      }
+
+      if (
+        this.name === "notes" &&
+        record.content === "" &&
+        record.contentRevision === 0
+      ) {
+        createdCount += 1
+
+        if (createdCount === 2) {
+          omittedNoteId = record.id
+        }
+      }
+
+      if (this.name === "notes" && record.id === omittedNoteId) {
+        return this.get(record.id)
+      }
+
+      return key === undefined
+        ? originalPut.call(this, value)
+        : originalPut.call(this, value, key)
+    }
+  })
+
+  try {
+    const page = await context.newPage()
+    await page.goto("/")
+    const firstContent = `첫 메모-${crypto.randomUUID()}`
+    const secondContent = `두 번째 메모-${crypto.randomUUID()}`
+    const model: NoteCreationModel = { contents: [] }
+    const real: NoteCreationReal = { page }
+
+    await new CreateNoteThroughUiCommand(firstContent).run(model, real)
+    await expect(
+      new CreateNoteThroughUiCommand(secondContent).run(model, real),
+    ).rejects.toThrow()
+
+    await expectVisibleNoteContents(page, model.contents)
+    await expectStoredCreationState(page, [firstContent])
   } finally {
     await context.close()
   }
@@ -628,6 +759,59 @@ test("확대 뒤에도 메모와 보기 제어를 작업 영역에 유지한다"
     .toBeGreaterThan(before.width)
 })
 
+test("화면 밖에 새 메모가 생겨도 편집 대상과 보기 제어를 함께 드러낸다", async ({ page }) => {
+  const firstNote = await createNoteThroughUi(page, `첫 메모-${crypto.randomUUID()}`)
+  const controls = page.getByRole("group", { name: "캔버스 보기" })
+  const workspace = page.getByRole("region", { name: "메모 작업 영역" })
+  const latestNote = await createUntilFirstNoteLeavesView(
+    page,
+    firstNote,
+    controls,
+    workspace,
+  )
+  const workspaceBox = await visibleBox(workspace)
+  const currentFirstBox = await visibleBox(firstNote)
+  expect(currentFirstBox.x + currentFirstBox.width).toBeLessThan(workspaceBox.x)
+  const beforeMove = await visibleBox(latestNote)
+  await controls.getByRole("button", { name: "왼쪽 보기" }).click()
+  await expect(controls).toBeInViewport()
+  await expect
+    .poll(async () => (await visibleBox(latestNote)).x)
+    .toBeGreaterThan(beforeMove.x)
+
+  const editor = latestNote.getByRole("textbox", { name: "메모 내용" })
+  const revisedContent = `수정한 메모-${crypto.randomUUID()}`
+  await editor.fill(revisedContent)
+  await expect(editor).toHaveValue(revisedContent)
+})
+
+test("캔버스 안의 보조키와 휠은 메모를 확대하고 일반 휠은 확대하지 않는다", async ({ page }) => {
+  const content = `휠 확대 메모-${crypto.randomUUID()}`
+  const note = await createNoteThroughUi(page, content)
+  const editor = note.getByRole("textbox", { name: "메모 내용" })
+  const workspace = page.getByRole("region", { name: "메모 작업 영역" })
+  const workspaceBox = await visibleBox(workspace)
+  const before = await visibleBox(note)
+  const wheelChange = workspaceBox.height / 8
+
+  await page.mouse.move(
+    workspaceBox.x + workspaceBox.width * 0.65,
+    workspaceBox.y + workspaceBox.height * 0.45,
+  )
+  await page.keyboard.down("Control")
+  await page.mouse.wheel(0, -wheelChange)
+  await page.keyboard.up("Control")
+
+  await expect
+    .poll(async () => (await visibleBox(note)).width)
+    .toBeGreaterThan(before.width)
+  const zoomed = await visibleBox(note)
+  await page.mouse.wheel(0, wheelChange)
+  await expect(editor).toHaveValue(content)
+  expect((await visibleBox(note)).width).toBeCloseTo(zoomed.width, 2)
+  await expect(page.getByRole("group", { name: "캔버스 보기" })).toBeInViewport()
+})
+
 test("Escape, 빈 캔버스와 Command는 선택만 해제한다", async ({ page }) => {
   const note = await createNoteThroughUi(page, "선택을 해제할 메모")
   const headerAction = note.getByRole("button", { name: "메모 동작" })
@@ -702,7 +886,7 @@ test("가장 최근에 활성화한 오른쪽 패널 하나만 표시한다", as
     page.getByRole("status").filter({ hasNotText: /^메모 \d+개$/u }),
   ).toHaveCount(0)
 
-  await note.dblclick({ position: { x: 12, y: 14 } })
+  await note.press("Enter")
   const properties = page.getByRole("complementary", { name: "메모 속성" })
   await expect(properties).toBeVisible()
   await expect(batchPanel).toHaveCount(0)
@@ -713,7 +897,7 @@ test("가장 최근에 활성화한 오른쪽 패널 하나만 표시한다", as
   await batchCopyTrigger.click()
   await expect(batchPanel).toBeVisible()
   await expect(properties).toHaveCount(0)
-  await note.dblclick({ position: { x: 12, y: 14 } })
+  await note.press("Enter")
   await expect(properties).toBeVisible()
   await expect(
     properties.getByRole("spinbutton", { name: "X" }),
@@ -792,7 +976,7 @@ test.describe("320px 메모 화면", () => {
     const staleContent = "이전 revision에서 남은 초안"
     const note = await createMobileNoteThroughUi(page, storedContent)
     const noteId = noteIdFromHref(
-      await note.getByRole("link", { name: "메모 열기" }).getAttribute("href"),
+      await note.getByRole("link", { name: / 수정$/u }).getAttribute("href"),
     )
     await page.reload()
     const initialStoredNote = await readStoredNote(page, noteId)
@@ -909,13 +1093,13 @@ test.describe("320px 메모 화면", () => {
     const revisedContent = `${initialContent}\n두 번째 줄\n세 번째 줄\n네 번째 줄\n다섯 번째 줄\n여섯 번째 줄\n일곱 번째 줄`
     const note = await createMobileNoteThroughUi(page, initialContent)
     const noteId = noteIdFromHref(
-      await note.getByRole("link", { name: "메모 열기" }).getAttribute("href"),
+      await note.getByRole("link", { name: / 수정$/u }).getAttribute("href"),
     )
     const storedBeforeResize = await readStoredNote(page, noteId)
     expect(storedBeforeResize).not.toBeNull()
 
     await expect(note.getByText("내용 더 있음")).toHaveCount(0)
-    await note.getByRole("link", { name: "메모 열기" }).click()
+    await note.getByRole("link", { name: / 수정$/u }).click()
     const editor = page.getByRole("textbox", { name: "메모 내용" })
     await editor.fill(revisedContent)
     await page.getByRole("button", { exact: true, name: "저장" }).click()
@@ -940,7 +1124,7 @@ test.describe("320px 메모 화면", () => {
     const discardedContent = "목록으로 돌아갈 때 버릴 변경사항"
     const note = await createMobileNoteThroughUi(page, initialContent)
 
-    await note.getByRole("link", { name: "메모 열기" }).click()
+    await note.getByRole("link", { name: / 수정$/u }).click()
     const editor = page.getByRole("textbox", { name: "메모 내용" })
     const backLink = page.getByRole("link", { exact: true, name: "메모 목록" })
     await editor.fill(discardedContent)
@@ -960,7 +1144,7 @@ test.describe("320px 메모 화면", () => {
     const restoredNote = page
       .getByRole("article")
       .filter({ hasText: initialContent })
-    await restoredNote.getByRole("link", { name: "메모 열기" }).click()
+    await restoredNote.getByRole("link", { name: / 수정$/u }).click()
     await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
       initialContent,
     )
@@ -973,7 +1157,7 @@ test.describe("320px 메모 화면", () => {
     const changedContent = "버리기 전에 작성한 변경사항"
     const note = await createMobileNoteThroughUi(page, initialContent)
 
-    await note.getByRole("link", { name: "메모 열기" }).click()
+    await note.getByRole("link", { name: / 수정$/u }).click()
     const editor = page.getByRole("textbox", { name: "메모 내용" })
     await editor.fill(changedContent)
     await page.getByRole("link", { exact: true, name: "메모 목록" }).click()
@@ -1050,15 +1234,17 @@ test.describe("320px 메모 화면", () => {
     const revisedContent = "탐색 전에 확인할 변경사항"
     const note = await createMobileNoteThroughUi(page, initialContent)
 
-    await note.getByRole("link", { name: "메모 열기" }).click()
+    await note.getByRole("link", { name: / 수정$/u }).click()
     await page.setViewportSize({ height: 800, width: 1280 })
     const editor = page.getByRole("textbox", { name: "메모 내용" })
     await editor.fill(revisedContent)
+    await expect(editor).toHaveValue(revisedContent)
     await page.getByRole("link", { exact: true, name: "텍스트 분석" }).click()
 
     const dialog = page.getByRole("dialog", { name: "저장하지 않은 변경사항" })
     await expect(dialog).toBeVisible()
     await expect(page).toHaveURL(/\/notes\//u)
+    await expect(editor).toHaveValue(revisedContent)
     await dialog.getByRole("button", { name: "계속 편집" }).click()
     await expect(editor).toBeFocused()
     await expect(editor).toHaveValue(revisedContent)

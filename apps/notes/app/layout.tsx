@@ -2,9 +2,10 @@ import type { Metadata } from "next"
 import type { ReactNode } from "react"
 
 import {
-  ApplicationFrame,
+  NavigationGuardProvider,
   PersonalNotesProvider,
   RuntimeAccessGuard,
+  SkipLink,
 } from "@/_app"
 import "@/_app/styles/globals.css"
 
@@ -23,7 +24,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <body>
         <RuntimeAccessGuard>
           <PersonalNotesProvider>
-            <ApplicationFrame>{children}</ApplicationFrame>
+            <NavigationGuardProvider>
+              <SkipLink />
+              {children}
+            </NavigationGuardProvider>
           </PersonalNotesProvider>
         </RuntimeAccessGuard>
       </body>

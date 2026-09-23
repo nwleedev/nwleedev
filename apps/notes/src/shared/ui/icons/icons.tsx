@@ -56,6 +56,30 @@ export function CloseIcon(props: IconProps) {
   )
 }
 
+export function MenuIcon(props: IconProps) {
+  return (
+    <svg {...props} aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16">
+      <path d="M2.5 4h11M2.5 8h11M2.5 12h11" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+export function PlusIcon(props: IconProps) {
+  return (
+    <svg {...props} aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16">
+      <path d="M8 2.5v11M2.5 8h11" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+export function EditIcon(props: IconProps) {
+  return (
+    <svg {...props} aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16">
+      <path d="m9.75 3.25 3 3M3 13l3.25-.7 6.2-6.2a1.6 1.6 0 0 0-2.25-2.25L4 10.05 3 13Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.3" />
+    </svg>
+  )
+}
+
 export function GripIcon(props: IconProps) {
   return (
     <svg
@@ -114,6 +138,14 @@ export function ArrowBackIcon(props: IconProps) {
         strokeLinejoin="round"
         strokeWidth="1.5"
       />
+    </svg>
+  )
+}
+
+export function NavigateBackIcon(props: IconProps) {
+  return (
+    <svg {...props} aria-hidden="true" fill="none" height="20" viewBox="0 0 20 20" width="20">
+      <path d="M16 10H4m0 0 5-5m-5 5 5 5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
     </svg>
   )
 }

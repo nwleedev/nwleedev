@@ -2,7 +2,7 @@
 
 ## 후속 변경 안내
 
-2026년 9월 3일 후속 요구는 이 조사에 남은 얇은 선택 테두리, `1280 × 960` 메모 상한, 데스크톱 항목 동작 선택창과 자동으로 사라지지 않는 복사 알림을 대체했다. 2026년 9월 4일 후속 요구는 토스트를 5초 동안 표시하고, 일괄 복사 항목 선택과 방향키 재정렬 및 두 선택을 함께 해제하는 `Escape`를 추가했으며, 접속 확인과 다른 화면의 장식용 카드 표면을 제거하도록 정했다. 현재 화면 기준은 [개인 메모 애플리케이션 요구사항](../requirements.md), [개인 메모 디자인 시스템과 UI 기반 결정](../decisions/application-design-system.md), [공간형 보드와 작은 화면 목록 결정](../decisions/responsive-note-presentation.md), [일괄 복사 패널과 모바일 확인 페이지 결정](../decisions/accumulator-workspace-panel.md)과 [데스크톱 입력과 피드백 복원력 조사](desktop-input-and-feedback-resilience-research.md)를 따른다. 아래 내용은 앞선 화면 구조 결정의 근거와 변경 이력으로 유지한다.
+2026년 9월 3일 후속 요구는 이 조사에 남은 얇은 선택 테두리, `1280 × 960` 메모 상한, 데스크톱 항목 동작 선택창과 자동으로 사라지지 않는 복사 알림을 대체했다. 2026년 9월 4일 후속 요구는 토스트를 5초 동안 표시하고, 일괄 복사 항목 선택과 방향키 재정렬 및 두 선택을 함께 해제하는 `Escape`를 추가했으며, 접속 확인과 다른 화면의 장식용 카드 표면을 제거하도록 정했다. 2026년 9월 23일 모바일 결정은 아래의 우측 하단 저장 항목 수 제어를 평상시 메모 목록의 Drawer 링크로 대체했다. 현재 화면 기준은 [개인 메모 애플리케이션 요구사항](../requirements.md), [개인 메모 디자인 시스템과 UI 기반 결정](../decisions/application-design-system.md), [공간형 보드와 작은 화면 목록 결정](../decisions/responsive-note-presentation.md), [일괄 복사 패널과 모바일 확인 페이지 결정](../decisions/accumulator-workspace-panel.md)과 [Drawer 저장 목록 링크 조사](mobile-saved-batch-copy-drawer-research.md)를 따른다. 아래 내용은 앞선 화면 구조 결정의 근거와 변경 이력으로 유지한다.
 
 ## 결론
 

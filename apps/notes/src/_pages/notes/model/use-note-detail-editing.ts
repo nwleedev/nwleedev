@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import {
+  useCallback,
   useEffect,
   useEffectEvent,
   useId,
@@ -270,10 +271,10 @@ export function useNoteDetailEditing({
     void storeDraft()
   }
 
-  function connectEditor(element: HTMLTextAreaElement | null) {
-    contentRegistration.ref(element)
+  const connectEditor = useCallback((element: HTMLTextAreaElement | null) => {
+    register("content").ref(element)
     editor.current = element
-  }
+  }, [register])
 
   function submitSave() {
     void handleSubmit(save)()

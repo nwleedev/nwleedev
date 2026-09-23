@@ -5,7 +5,7 @@ import type { RefObject, SyntheticEvent } from "react"
 
 import type { Note } from "@/entities/note"
 import { Button } from "@/shared/ui/button"
-import { ArrowBackIcon } from "@/shared/ui/icons"
+import { NavigateBackIcon } from "@/shared/ui/icons"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
 import type { SaveNoteContentResult } from "../model/save-note-content"
@@ -17,7 +17,7 @@ import { useNotesData } from "../model/notes-data-provider"
 import { noteContentFailureMessage } from "./note-content-failure-message"
 
 const backLinkClassName =
-  "inline-flex h-[var(--notes-control-size)] w-[var(--notes-control-size)] items-center justify-center rounded-control border border-line bg-surface-raised text-icon hover:border-line-strong hover:bg-canvas hover:text-text"
+  "inline-flex h-[var(--notes-control-size)] w-[var(--notes-control-size)] items-center justify-center rounded-control text-icon hover:bg-canvas hover:text-text active:translate-y-px"
 
 type ReadyNoteDetailProps = {
   initialContent: string
@@ -145,7 +145,7 @@ function ReadyNoteDetail({
           href="/"
           onClick={requestBackNavigation}
         >
-          <ArrowBackIcon />
+          <NavigateBackIcon />
         </Link>
         <h1 className="truncate text-base font-semibold">메모 편집</h1>
       </header>
@@ -153,6 +153,7 @@ function ReadyNoteDetail({
         <textarea
           aria-label="메모 내용"
           className="h-full min-h-56 w-full resize-none rounded-note border border-border bg-surface-raised px-4 py-3 text-base leading-7 outline-none"
+          defaultValue={initialContent}
           name={contentName}
           onBlur={onBlur}
           onChange={changeContent}
@@ -223,7 +224,7 @@ export function NoteDetailPage({ noteId }: NoteDetailPageProps) {
         <div className="grid justify-items-center gap-4 text-center">
           <p>메모를 찾을 수 없습니다.</p>
           <Link aria-label="메모 목록" className={backLinkClassName} href="/">
-            <ArrowBackIcon />
+            <NavigateBackIcon />
           </Link>
         </div>
       </main>

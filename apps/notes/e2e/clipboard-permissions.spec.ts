@@ -42,6 +42,7 @@ test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", 
   context,
   page,
 }) => {
+  await page.clock.install()
   await context.grantPermissions(
     ["clipboard-read", "clipboard-write"],
     { origin: applicationOrigin },
@@ -51,6 +52,7 @@ test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", 
   const note = await createNoteThroughUi(page, content)
   const editor = note.getByRole("textbox", { name: "메모 내용" })
 
+  await editor.focus()
   await editor.click({ modifiers: ["Meta"] })
   await editor.click({ modifiers: ["Meta"] })
   const copyNotice = page.getByRole("status").filter({
@@ -58,9 +60,17 @@ test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", 
   })
 
   await expect(copyNotice).toBeVisible()
-  await expect(
-    copyNotice.getByRole("button", { name: "알림 닫기" }),
-  ).toHaveCount(0)
+  const dismissNotice = copyNotice.getByRole("button", { name: "알림 닫기" })
+  await expect(dismissNotice).toBeVisible()
+  await dismissNotice.click()
+  await expect(copyNotice).toBeHidden()
+  await expect(editor).toBeFocused()
+  await editor.click({ modifiers: ["Meta"] })
+  await expect(copyNotice).toBeVisible()
+  await dismissNotice.focus()
+  await page.clock.fastForward(toastLifetimeMs)
+  await expect(copyNotice).toBeHidden()
+  await expect(editor).toBeFocused()
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
     .toBe(content)
@@ -73,9 +83,9 @@ test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", 
   await page.setViewportSize({ height: 720, width: 320 })
 
   const usageRow = page.getByRole("row").filter({ hasText: content })
-  await expect(usageRow.getByRole("cell", { name: "개별 복사 2회" })).toBeVisible()
+  await expect(usageRow.getByRole("cell", { name: "개별 복사 3회" })).toBeVisible()
   await expect(usageRow.getByRole("cell", { name: "일괄 복사 1회" })).toBeVisible()
-  await expect(usageRow.getByRole("cell", { name: "합계 3회" })).toBeVisible()
+  await expect(usageRow.getByRole("cell", { name: "합계 4회" })).toBeVisible()
 })
 
 test("클립보드 권한이 거절되면 원인을 알리고 일반 복사 횟수를 늘리지 않는다", async ({
@@ -116,6 +126,10 @@ test("클립보드 권한이 거절되면 원인을 알리고 일반 복사 횟�
   })
 
   await retryCopy.focus()
+  await page.clock.fastForward(toastLifetimeMs)
+  await expect(individualCopyAlert).toBeVisible()
+  await page.keyboard.press("Tab")
+  await expect(individualCopyAlert.getByRole("button", { name: "알림 닫기" })).toBeFocused()
   await page.clock.fastForward(toastLifetimeMs)
   await expect(individualCopyAlert).toBeVisible()
   await page.keyboard.press("Tab")

@@ -77,13 +77,19 @@ test("메모를 길게 눌러 복사하고 확인 항목을 길게 누른 뒤 �
   const firstNote = await createMobileNoteThroughUi(page, firstContent)
   const secondNote = await createMobileNoteThroughUi(page, secondContent)
   const session = await context.newCDPSession(page)
-  const firstLink = firstNote.getByRole("link", { name: "메모 열기" })
-  const firstPoint = await center(firstLink)
+  const firstLink = firstNote.getByRole("button", { name: `${firstContent} 복사` })
 
   await secondNote.getByRole("button", { name: `${secondContent} 복사` }).click()
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
     .toBe(secondContent)
+  await firstNote.getByRole("link", { name: `${firstContent} 수정` }).click()
+  await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(firstContent)
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe(secondContent)
+  await page.getByRole("link", { name: "메모 목록" }).click()
+  const firstPoint = await center(firstLink)
 
   await startTouch(session, firstPoint)
   await page.clock.fastForward(500)
@@ -97,8 +103,8 @@ test("메모를 길게 눌러 복사하고 확인 항목을 길게 누른 뒤 �
     .toBe(firstContent)
 
   await page.getByRole("button", { name: "일괄 복사 시작" }).click()
-  const firstBatchLink = firstNote.getByRole("link", {
-    name: "일괄 복사에 추가",
+  const firstBatchLink = firstNote.getByRole("button", {
+    name: `${firstContent} 일괄 복사에 추가`,
   })
   const batchLongPressPoint = await center(firstBatchLink)
   await startTouch(session, batchLongPressPoint)
@@ -110,7 +116,7 @@ test("메모를 길게 눌러 복사하고 확인 항목을 길게 누른 뒤 �
     .toBe(firstContent)
 
   await firstBatchLink.click()
-  await secondNote.getByRole("link", { name: "일괄 복사에 추가" }).click()
+  await secondNote.getByRole("button", { name: `${secondContent} 일괄 복사에 추가` }).click()
   await page.getByRole("button", { name: "다음, 2회 선택" }).click()
 
   const firstEntry = page.getByRole("article", {
@@ -188,7 +194,7 @@ test("메모 길게 누르기는 이동, 취소와 pointer capture 상실에서 
   const content = "취소 조건을 확인할 메모"
   const note = await createMobileNoteThroughUi(page, content)
   const session = await context.newCDPSession(page)
-  const link = note.getByRole("link", { name: "메모 열기" })
+  const link = note.getByRole("button", { name: `${content} 복사` })
   const point = await center(link)
 
   await startTouch(session, point)
@@ -215,5 +221,8 @@ test("메모 길게 누르기는 이동, 취소와 pointer capture 상실에서 
   const nextTapPoint = await center(link)
   await startTouch(session, nextTapPoint)
   await endTouch(session)
-  await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)
+  await expect(page).toHaveURL("/")
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe(content)
 })

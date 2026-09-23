@@ -8,7 +8,7 @@ import {
 import { ActionToast } from "@/shared/ui/action-toast"
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
-import { ArrowBackIcon } from "@/shared/ui/icons"
+import { NavigateBackIcon } from "@/shared/ui/icons"
 
 import {
   useMobileBatchCopyConfirmation,
@@ -73,7 +73,7 @@ export function MobileBatchCopyConfirmation({
           onClick={confirmation.returnToCollection}
           size="compact"
         >
-          <ArrowBackIcon />
+          <NavigateBackIcon />
         </IconButton>
         <h1 className="text-center text-base font-semibold">일괄 복사 확인</h1>
         <span aria-hidden="true" className="h-9 w-9" />

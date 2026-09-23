@@ -1,23 +1,23 @@
-import boundaries from "@boundaries/eslint-plugin";
-import vitest from "@vitest/eslint-plugin";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTypeScript from "eslint-config-next/typescript";
-import playwright from "eslint-plugin-playwright";
-import { defineConfig, globalIgnores } from "eslint/config";
+import { defineConfig, globalIgnores } from "eslint/config"
+import boundaries from "@boundaries/eslint-plugin"
+import vitest from "@vitest/eslint-plugin"
+import nextVitals from "eslint-config-next/core-web-vitals"
+import nextTypeScript from "eslint-config-next/typescript"
+import playwright from "eslint-plugin-playwright"
 
-const sourceFiles = ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"];
-const publicEntryPoint = "index.{ts,tsx}";
-const pagePublicEntryPoint = "{composition,index}.{ts,tsx}";
+const sourceFiles = ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"]
+const publicEntryPoint = "index.{ts,tsx}"
+const pagePublicEntryPoint = "{composition,index}.{ts,tsx}"
 
 const element = (type, fileInternalPath) => ({
   element: {
     type,
     ...(fileInternalPath ? { fileInternalPath } : {}),
   },
-});
+})
 
 const allowPublicEntries = (types) =>
-  types.map((type) => element(type, publicEntryPoint));
+  types.map((type) => element(type, publicEntryPoint))
 
 const dependencyPolicies = [
   {
@@ -50,14 +50,21 @@ const dependencyPolicies = [
     allow: {
       to: [
         element("page", pagePublicEntryPoint),
+        element("widget", publicEntryPoint),
         ...allowPublicEntries(["feature", "entity", "shared"]),
       ],
     },
   },
   {
-    from: element("page"),
+    from: element("widget"),
     allow: {
       to: allowPublicEntries(["feature", "entity", "shared"]),
+    },
+  },
+  {
+    from: element("page"),
+    allow: {
+      to: allowPublicEntries(["widget", "feature", "entity", "shared"]),
     },
   },
   {
@@ -78,7 +85,10 @@ const dependencyPolicies = [
       kind: "type",
     },
     allow: {
-      to: element("entity", "@x/{{from.element.captured.slice}}.{ts,tsx}"),
+      to: element(
+        "entity",
+        "@x/{{from.element.captured.slice}}.{ts,tsx}",
+      ),
     },
   },
   {
@@ -101,7 +111,7 @@ const dependencyPolicies = [
       },
     },
   },
-];
+]
 
 export default defineConfig([
   ...nextVitals,
@@ -123,6 +133,12 @@ export default defineConfig([
         {
           type: "app",
           pattern: "src/_app",
+          partialMatch: false,
+        },
+        {
+          type: "widget",
+          pattern: "src/widgets/*",
+          capture: ["slice"],
           partialMatch: false,
         },
         {
@@ -216,4 +232,4 @@ export default defineConfig([
     "next-env.d.ts",
     "temps/**",
   ]),
-]);
+])

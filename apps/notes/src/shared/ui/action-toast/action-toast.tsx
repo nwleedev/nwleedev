@@ -4,6 +4,8 @@ import type { FocusEvent as ReactFocusEvent } from "react"
 
 import { joinClassNames } from "@/shared/lib/join-class-names"
 import { Button } from "@/shared/ui/button"
+import { IconButton } from "@/shared/ui/icon-button"
+import { CloseIcon } from "@/shared/ui/icons"
 
 import { useActionToastTimer } from "./use-action-toast-timer"
 
@@ -33,7 +35,7 @@ export function ActionToast({
   revision,
 }: ActionToastProps) {
   const actionable = actionLabel !== undefined && onAction !== undefined
-  const { pause, resume } = useActionToastTimer({
+  const { closeButtonRef, dismiss, pause, resume, toastRef } = useActionToastTimer({
     durationMs,
     expiresAtMs,
     onDismiss,
@@ -68,6 +70,7 @@ export function ActionToast({
       onFocus={pause}
       onPointerEnter={pause}
       onPointerLeave={resume}
+      ref={toastRef}
       role={kind === "error" ? "alert" : "status"}
     >
       <p className="min-w-0 flex-1">{message}</p>
@@ -76,6 +79,14 @@ export function ActionToast({
           {actionLabel}
         </Button>
       ) : null}
+      <IconButton
+        aria-label="알림 닫기"
+        onClick={dismiss}
+        ref={closeButtonRef}
+        size="compact"
+      >
+        <CloseIcon />
+      </IconButton>
     </div>
   )
 }

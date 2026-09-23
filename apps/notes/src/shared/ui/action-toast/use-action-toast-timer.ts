@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useEffectEvent, useRef } from "react"
+import { useCallback, useEffect, useEffectEvent, useRef } from "react"
 
 type UseActionToastTimerOptions = {
   durationMs: number
@@ -17,11 +17,38 @@ export function useActionToastTimer({
   pausable,
   revision,
 }: UseActionToastTimerOptions) {
-  const dismiss = useEffectEvent(onDismiss)
   const remainingMs = useRef(durationMs)
   const startedAtMs = useRef(0)
   const timer = useRef<number | null>(null)
   const paused = useRef(false)
+  const closeButton = useRef<HTMLButtonElement | null>(null)
+  const toast = useRef<HTMLDivElement | null>(null)
+  const returnFocusTarget = useRef<HTMLElement | null>(null)
+
+  const closeButtonRef = useCallback((element: HTMLButtonElement | null) => {
+    closeButton.current = element
+  }, [])
+
+  function dismissToast() {
+    const restoreFocus = document.activeElement === closeButton.current
+    const target = returnFocusTarget.current
+
+    onDismiss()
+
+    if (!restoreFocus || target === null) {
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      if (!target.isConnected || target.matches(":disabled")) {
+        return
+      }
+
+      target.focus()
+    })
+  }
+
+  const dismissOnTimer = useEffectEvent(dismissToast)
 
   function clearTimer() {
     if (timer.current === null) {
@@ -33,6 +60,16 @@ export function useActionToastTimer({
   }
 
   useEffect(() => {
+    const activeElement = document.activeElement
+
+    if (
+      activeElement instanceof HTMLElement &&
+      activeElement !== document.body &&
+      !toast.current?.contains(activeElement)
+    ) {
+      returnFocusTarget.current = activeElement
+    }
+
     remainingMs.current = expiresAtMs === undefined
       ? durationMs
       : Math.max(0, expiresAtMs - Date.now())
@@ -41,7 +78,7 @@ export function useActionToastTimer({
     startedAtMs.current = Date.now()
     timer.current = window.setTimeout(() => {
       timer.current = null
-      dismiss()
+      dismissOnTimer()
     }, remainingMs.current)
 
     return clearTimer
@@ -69,9 +106,9 @@ export function useActionToastTimer({
     startedAtMs.current = Date.now()
     timer.current = window.setTimeout(() => {
       timer.current = null
-      onDismiss()
+      dismissToast()
     }, remainingMs.current)
   }
 
-  return { pause, resume }
+  return { closeButtonRef, dismiss: dismissToast, pause, resume, toastRef: toast }
 }
