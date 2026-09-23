@@ -1,3 +1,4 @@
+import * as fc from "fast-check"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import {
@@ -38,6 +39,7 @@ import {
   readRequest,
   waitForTransaction,
 } from "@/shared/lib/indexed-db"
+import { ExplorationInvariantError } from "@/shared/lib/note-model-exploration"
 
 import {
   DatabaseConnectionClosedError,
@@ -238,6 +240,165 @@ describe("personal notes IndexedDB storage", () => {
     expect(await restoredPreferences.get()).toMatchObject({
       batchCopyShortcutEnabled: true,
     })
+  })
+
+  it("복사 당시 원문 버전별 횟수를 새 연결에서도 유지한다", async () => {
+    type UsageScenario = {
+      firstCopies: number
+      firstText: string
+      revision: number
+      secondCopies: number
+      suffix: string
+    }
+    const scenario = fc.record({
+      firstCopies: fc.integer({ min: 1, max: 3 }),
+      firstText: fc.string({ minLength: 1, maxLength: 16 }),
+      revision: fc.integer({ min: 0, max: 100 }),
+      secondCopies: fc.integer({ min: 1, max: 3 }),
+      suffix: fc.string({ minLength: 1, maxLength: 16 }),
+    })
+
+    async function run(
+      input: UsageScenario,
+      wrongRevision: boolean,
+    ) {
+      const firstConnection = createConnection()
+      const identifiers = new CryptoEntityIdGenerator()
+      const notes = new IndexedDbNoteRepository(firstConnection)
+      const usage = new IndexedDbUsageRepository(
+        firstConnection,
+        identifiers,
+        () => timestamp,
+      )
+      const batch = new IndexedDbBatchCopyItemWriter(
+        firstConnection,
+        identifiers,
+      )
+      const noteId = crypto.randomUUID()
+      const firstReference = {
+        contentRevision: input.revision,
+        id: noteId,
+      }
+      const secondReference = {
+        contentRevision: input.revision + 1,
+        id: noteId,
+      }
+      const secondText = input.firstText + input.suffix
+
+      await notes.save({
+        ...note,
+        content: input.firstText,
+        contentRevision: input.revision,
+        id: noteId,
+      })
+      for (let copy = 0; copy < input.firstCopies; copy += 1) {
+        await usage.recordIndividualCopy({
+          note: firstReference,
+          textSnapshot: input.firstText,
+        })
+      }
+      await batch.addAndRecordUsage({
+        ...batchCopyItem,
+        id: crypto.randomUUID(),
+        sourceNote: firstReference,
+        textSnapshot: input.firstText,
+      })
+      await notes.save({
+        ...note,
+        content: secondText,
+        contentRevision: secondReference.contentRevision,
+        id: noteId,
+        revision: note.revision + 1,
+      })
+      for (let copy = 0; copy < input.secondCopies; copy += 1) {
+        await usage.recordIndividualCopy({
+          note: wrongRevision ? firstReference : secondReference,
+          textSnapshot: secondText,
+        })
+      }
+      firstConnection.close()
+
+      const restoredConnection = createConnection()
+      const restoredUsage = new IndexedDbUsageRepository(
+        restoredConnection,
+        identifiers,
+        () => timestamp,
+      )
+      const observed = (await restoredUsage.getAll())
+        .filter((record) => record.note.id === noteId)
+        .map((record) => ({
+          counts: record.counts,
+          revision: record.note.contentRevision,
+          text: record.textSnapshot,
+        }))
+        .sort((left, right) => left.revision - right.revision)
+      const expected = [
+        {
+          counts: { batchCopy: 1, individualCopy: input.firstCopies },
+          revision: input.revision,
+          text: input.firstText,
+        },
+        {
+          counts: { batchCopy: 0, individualCopy: input.secondCopies },
+          revision: input.revision + 1,
+          text: secondText,
+        },
+      ]
+
+      if (JSON.stringify(observed) !== JSON.stringify(expected)) {
+        throw new ExplorationInvariantError(
+          "usage-counts-follow-content-revision",
+          expected,
+          observed,
+        )
+      }
+    }
+
+    let normalRuns = 0
+    await fc.assert(
+      fc.asyncProperty(scenario, async (input) => {
+        normalRuns += 1
+        await run(input, false)
+      }),
+      { numRuns: 5, verbose: true },
+    )
+
+    const faulty = await fc.check(
+      fc.asyncProperty(scenario, async (input) => run(input, true)),
+      { numRuns: 10, verbose: true },
+    )
+    expect(faulty.failed).toBe(true)
+    expect(faulty.errorInstance).toBeInstanceOf(ExplorationInvariantError)
+    expect(faulty.counterexample).not.toBeNull()
+    const reduced = faulty.counterexample![0]
+
+    const replay = await fc.check(
+      fc.asyncProperty(scenario, async (input) => run(input, true)),
+      {
+        endOnFailure: true,
+        numRuns: 1,
+        path: faulty.counterexamplePath ?? undefined,
+        seed: faulty.seed,
+      },
+    )
+    expect(replay.errorInstance).toBeInstanceOf(ExplorationInvariantError)
+    await expect(run(reduced, true)).rejects.toMatchObject({
+      invariant: "usage-counts-follow-content-revision",
+    })
+    await expect(run(reduced, false)).resolves.toBeUndefined()
+
+    const failure = faulty.errorInstance as ExplorationInvariantError
+    console.info(JSON.stringify({
+      expected: failure.expected,
+      feature: "usage-projection",
+      initial: faulty.failures[0]?.[0] ?? null,
+      observed: failure.observed,
+      path: faulty.counterexamplePath,
+      reduced,
+      runs: normalRuns,
+      seed: faulty.seed,
+      shrinks: faulty.numShrinks,
+    }))
   })
 
   it("이전 자료를 옮기며 유효한 너비와 저장된 텍스트 순서를 보존한다", async () => {

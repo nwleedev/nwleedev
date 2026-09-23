@@ -104,10 +104,18 @@ export function useNotesBoardView({
       panGesture.current = null
     }
 
+    function releasePanOnDocumentEnd(event: PointerEvent) {
+      if (panGesture.current?.pointerId === event.pointerId) {
+        panGesture.current = null
+      }
+    }
+
     window.addEventListener("keydown", pressSpace)
     window.addEventListener("keyup", releaseSpace)
     window.addEventListener("blur", releaseTransientInput)
     window.addEventListener("pageshow", releaseTransientInput)
+    document.addEventListener("pointerup", releasePanOnDocumentEnd)
+    document.addEventListener("pointercancel", releasePanOnDocumentEnd)
     document.addEventListener("visibilitychange", releaseTransientInput)
 
     return () => {
@@ -115,6 +123,8 @@ export function useNotesBoardView({
       window.removeEventListener("keyup", releaseSpace)
       window.removeEventListener("blur", releaseTransientInput)
       window.removeEventListener("pageshow", releaseTransientInput)
+      document.removeEventListener("pointerup", releasePanOnDocumentEnd)
+      document.removeEventListener("pointercancel", releasePanOnDocumentEnd)
       document.removeEventListener("visibilitychange", releaseTransientInput)
     }
   }, [])

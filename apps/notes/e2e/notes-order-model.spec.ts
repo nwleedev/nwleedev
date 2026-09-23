@@ -1,3 +1,5 @@
+import { ok } from "node:assert/strict"
+
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test"
 import * as fc from "fast-check"
 
@@ -335,6 +337,105 @@ async function writeDuplicateStack(page: Page, noteIds: readonly string[]) {
   )
 }
 
+async function placeNotesInOverlap(page: Page, noteIds: readonly string[]) {
+  const [firstId, secondId] = noteIds
+  if (firstId === undefined || secondId === undefined) {
+    throw new Error("Expected two notes to overlap")
+  }
+  const first = await readStoredNote(page, firstId)
+  if (first === null) {
+    throw new Error("Expected the first stored note")
+  }
+  await page.evaluate(
+    ({ databaseName, firstGeometry, id, storeName }) =>
+      new Promise<void>((resolve, reject) => {
+        const openRequest = indexedDB.open(databaseName)
+        openRequest.onerror = () => reject(openRequest.error)
+        openRequest.onsuccess = () => {
+          const database = openRequest.result
+          const transaction = database.transaction(storeName, "readwrite")
+          const store = transaction.objectStore(storeName)
+          transaction.onabort = () => {
+            database.close()
+            reject(transaction.error)
+          }
+          transaction.oncomplete = () => {
+            database.close()
+            resolve()
+          }
+          const request = store.get(id)
+          request.onsuccess = () => {
+            const note = request.result as
+              | { geometry: { x: number; y: number } }
+              | undefined
+            if (note === undefined) {
+              transaction.abort()
+              return
+            }
+            store.put({
+              ...note,
+              geometry: {
+                ...note.geometry,
+                x: firstGeometry.x + firstGeometry.width / 5,
+                y: firstGeometry.y + firstGeometry.height / 3,
+              },
+            })
+          }
+          request.onerror = () => reject(request.error)
+        }
+      }),
+    {
+      databaseName: "personal-notes",
+      firstGeometry: first.geometry,
+      id: secondId,
+      storeName: "notes",
+    },
+  )
+  await page.reload()
+}
+
+async function inspectOverlapTarget(
+  page: Page,
+  noteIds: readonly string[],
+  expectedNotes: readonly StackNote[],
+) {
+  const overlapping = noteIds.slice(0, 2)
+  const topNote = stackOrder(expectedNotes)
+    .filter(({ id }) => overlapping.includes(id))
+    .at(-1)
+  const [firstId, secondId] = overlapping
+  if (topNote === undefined || firstId === undefined || secondId === undefined) {
+    throw new Error("Expected a top note in the overlap")
+  }
+  const first = await articleForId(page, firstId).boundingBox()
+  const second = await articleForId(page, secondId).boundingBox()
+  if (first === null || second === null) {
+    throw new Error("Expected visible overlapping notes")
+  }
+  const left = Math.max(first.x, second.x)
+  const right = Math.min(first.x + first.width, second.x + second.width)
+  const top = Math.max(first.y, second.y)
+  const bottom = Math.min(first.y + first.height, second.y + second.height)
+  if (left >= right || top >= bottom) {
+    throw new Error("Expected the notes to overlap")
+  }
+  const point = { x: (left + right) / 2, y: (top + bottom) / 2 }
+  const hitArticleId = await page.evaluate(
+    ({ x, y }) => document.elementFromPoint(x, y)?.closest("article")?.id,
+    point,
+  )
+  const expectedArticleId = await articleForId(page, topNote.id).getAttribute("id")
+  if (hitArticleId !== expectedArticleId) {
+    throw new ExplorationInvariantError(
+      "top-note-receives-input-at-overlap",
+      expectedArticleId,
+      hitArticleId,
+    )
+  }
+  await page.mouse.click(point.x, point.y)
+  await expect(articleForId(page, topNote.id).getByRole("textbox", { name: "메모 내용" })).toBeFocused()
+}
+
 async function executeStackCommands(
   browser: Browser,
   commands: Iterable<fc.AsyncCommand<StackModel, StackReal>>,
@@ -354,6 +455,7 @@ async function executeStackCommands(
       noteIds.push(await noteIdFromArticle(note))
     }
     await expect(page.getByRole("article", { exact: true, name: "메모" })).toHaveCount(3)
+    await placeNotesInOverlap(page, noteIds)
 
     const initialNotes: StackNote[] = []
     for (const [createdOrder, noteId] of noteIds.entries()) {
@@ -431,6 +533,7 @@ async function executeStackCommands(
             observed,
           )
         }
+        await inspectOverlapTarget(page, noteIds, expected.notes)
       },
       async move(noteId, edge) {
         const label = edge === "front" ? "메모를 맨 앞으로" : "메모를 맨 뒤로"
@@ -591,11 +694,8 @@ test("겹침 순서의 실패 행동을 줄이고 저장 및 화면 순서로 �
   expect(report.originalActions.length).toBeGreaterThan(
     report.minimalActions.length,
   )
-  expect(report.minimalActions).toEqual([
-    "move-front(0)",
-    "inspect-stored-stack",
-  ])
-  expect(report.replayPath).toBeNull()
+  expect(report.minimalActions.some((action) => action.startsWith("move-"))).toBe(true)
+  expect(report.minimalActions.at(-1)).toBe("inspect-stored-stack")
 
   const replay = await fc.check(
     fc.asyncProperty(faulty.sequences, async (generatedCommands) => {
@@ -615,12 +715,8 @@ test("겹침 순서의 실패 행동을 줄이고 저장 및 화면 순서로 �
   expect(replay.failed).toBe(true)
   expect(replay.errorInstance).toBeInstanceOf(ExplorationInvariantError)
 
-  const directCounts = createExplorationActionCounts()
-  const directPhase = () => "exploration" as const
-  const moveAndInspect = [
-    new MoveStackCommand(directCounts, directPhase, "front", 0),
-    new InspectStackCommand(directCounts, directPhase),
-  ]
+  const moveAndInspect = faulty.details.counterexample?.[0]
+  ok(moveAndInspect, "Expected a reduced stack sequence")
   await expect(
     executeStackCommands(browser, moveAndInspect, "block-stack-move"),
   ).rejects.toMatchObject({ invariant: report.invariant })
@@ -651,7 +747,8 @@ test("겹침 순서의 실패 행동을 줄이고 저장 및 화면 순서로 �
   expect(partialReport.originalActions.length).toBeGreaterThan(
     partialReport.minimalActions.length,
   )
-  expect(partialReport.minimalActions).toEqual(report.minimalActions)
+  expect(partialReport.minimalActions.some((action) => action.startsWith("move-"))).toBe(true)
+  expect(partialReport.minimalActions.at(-1)).toBe("inspect-stored-stack")
 
   const partialReplay = await fc.check(
     fc.asyncProperty(partial.sequences, async (generatedCommands) => {
@@ -670,8 +767,10 @@ test("겹침 순서의 실패 행동을 줄이고 저장 및 화면 순서로 �
   )
   expect(partialReplay.failed).toBe(true)
   expect(partialReplay.errorInstance).toBeInstanceOf(ExplorationInvariantError)
+  const partialMoveAndInspect = partial.details.counterexample?.[0]
+  ok(partialMoveAndInspect, "Expected a reduced partial-save sequence")
   await expect(
-    executeStackCommands(browser, moveAndInspect, "partial-stack-save"),
+    executeStackCommands(browser, partialMoveAndInspect, "partial-stack-save"),
   ).rejects.toMatchObject({ invariant: partialReport.invariant })
 
   const requiredCounts = createExplorationActionCounts()

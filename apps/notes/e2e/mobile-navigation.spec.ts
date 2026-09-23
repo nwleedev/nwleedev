@@ -63,6 +63,78 @@ test("움직임을 줄인 보조 화면에서도 바깥 영역으로 탐색을 �
   await expect(page).toHaveURL("/settings/")
 })
 
+test("보조 화면은 내용에 맞게 문서 스크롤을 허용한다", async ({ page }) => {
+  const viewport = page.viewportSize()
+  expect(viewport).not.toBeNull()
+  const screens = [
+    {
+      heading: "사용 빈도",
+      endContent: () =>
+        page.getByRole("status").filter({ hasText: "복사 기록이 없습니다." }),
+      route: "/usage/",
+    },
+    {
+      heading: "텍스트 분석",
+      endContent: () => page.getByText("아직 분석하지 않았습니다."),
+      route: "/analysis/",
+    },
+    {
+      heading: "템플릿",
+      endContent: () => page.getByRole("heading", { name: "저장된 템플릿" }),
+      route: "/templates/",
+    },
+    {
+      heading: "설정",
+      endContent: () =>
+        page.getByText(
+          "일괄 복사 항목에 위로 이동과 아래로 이동 표시",
+          { exact: true },
+        ),
+      route: "/settings/",
+    },
+  ]
+
+  for (const screen of screens) {
+    await page.setViewportSize(viewport!)
+    await page.goto(screen.route)
+    await expect(
+      page.getByRole("heading", { exact: true, name: screen.heading }),
+    ).toBeVisible()
+    await expect(screen.endContent()).toBeVisible()
+    const scrollPosition = await page.evaluate(() => {
+      window.scrollTo(0, document.documentElement.scrollHeight)
+      return window.scrollY
+    })
+    expect(scrollPosition).toBe(0)
+
+    await page.setViewportSize({
+      height: Math.floor(viewport!.height / 6),
+      width: viewport!.width,
+    })
+    await screen.endContent().scrollIntoViewIfNeeded()
+    await expect(screen.endContent()).toBeInViewport()
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY))
+      .toBeGreaterThan(0)
+  }
+})
+
+test("허용되지 않은 주소의 안내도 보이는 화면 안에 남는다", async ({ page }) => {
+  await page.goto("/")
+  const address = new URL(page.url())
+  address.hostname = "localhost."
+  await page.goto(address.toString())
+  await expect(page.getByRole("heading", { name: "잘못된 접근입니다." })).toBeInViewport()
+
+  const viewport = page.viewportSize()
+  expect(viewport).not.toBeNull()
+  const scrollPosition = await page.evaluate(() => {
+    window.scrollTo(0, document.documentElement.scrollHeight)
+    return window.scrollY
+  })
+  expect(scrollPosition).toBe(0)
+})
+
 test("메모 본문은 복사하고 수정 아이콘만 상세 화면으로 이동한다", async ({ page }) => {
   const [firstContent, secondContent] = fc.sample(
     fc.uniqueArray(fc.stringMatching(/^[a-z]{10,24}$/u), {
@@ -116,10 +188,16 @@ test("목록 끝까지 이동해도 새 메모 제어가 보이는 화면에 남
 
   const notes = page.getByRole("article")
   await expect(notes).toHaveCount(contents.length)
+  const createButton = page.getByRole("button", { name: "새 메모" })
+  const before = await createButton.boundingBox()
   const lastNote = notes.filter({ hasText: contents[contents.length - 1] })
   await lastNote.scrollIntoViewIfNeeded()
   await expect(lastNote).toBeInViewport()
-  await expect(page.getByRole("button", { name: "새 메모" })).toBeInViewport()
+  const after = await createButton.boundingBox()
+  expect(before).not.toBeNull()
+  expect(after).not.toBeNull()
+  expect(after!.y).toBeCloseTo(before!.y, 0)
+  await expect(createButton).toBeInViewport()
   await lastNote.getByRole("button", { name: `${contents.at(-1)!} 복사` }).click()
   await expect(page.getByRole("status").filter({ hasText: "복사했습니다." })).toBeVisible()
   await lastNote.getByRole("link", { name: `${contents.at(-1)!} 수정` }).click()
@@ -131,12 +209,18 @@ test("일괄 복사 중 마지막 메모와 화면 아래의 작업 버튼에 �
 
   await page.getByRole("button", { name: "일괄 복사 시작" }).click()
   await expect(page.getByRole("button", { name: "새 메모" })).toHaveCount(0)
+  const next = page.getByRole("button", { name: "다음, 0회 선택" })
+  const before = await next.boundingBox()
 
   const lastContent = contents.at(-1)!
   const lastNote = page.getByRole("article").filter({ hasText: lastContent })
 
   await lastNote.scrollIntoViewIfNeeded()
   await expect(lastNote).toBeInViewport()
+  const after = await next.boundingBox()
+  expect(before).not.toBeNull()
+  expect(after).not.toBeNull()
+  expect(after!.y).toBeCloseTo(before!.y, 0)
   await lastNote.getByRole("button", { name: `${lastContent} 일괄 복사에 추가` }).click()
   await expect(page.getByRole("button", { name: "다음, 1회 선택" })).toBeInViewport()
   await expect(page.getByRole("button", { name: "초기화" })).toBeInViewport()

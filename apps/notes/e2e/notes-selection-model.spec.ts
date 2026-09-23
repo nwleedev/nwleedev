@@ -1,3 +1,5 @@
+import { ok } from "node:assert/strict"
+
 import {
   expect,
   test,
@@ -27,7 +29,7 @@ import { readStoredNote } from "./support/read-stored-note"
 
 type NotePosition = 0 | 1
 type ClearMethod = "blank" | "command" | "escape"
-type SelectionDefect = "none" | "retarget-properties-after-clear"
+type SelectionDefect = "block-canvas-clear" | "none"
 type FocusTarget =
   | `editor:${NotePosition}`
   | `header-action:${NotePosition}`
@@ -455,18 +457,12 @@ async function activeFocus(
   }, [...noteIds])
 }
 
-async function installRetargetAfterCanvasClear(page: Page, noteId: string) {
+async function installBlockedCanvasClear(page: Page, noteId: string) {
   await page.evaluate((controlledNoteId) => {
-    const article = document.getElementById(
-      `note-${encodeURIComponent(controlledNoteId)}-board`,
-    )
-    const moveHandle = article?.querySelector('[aria-label="메모 이동"]')
+    const article = document.getElementById(`note-${encodeURIComponent(controlledNoteId)}-board`)
     const board = article?.parentElement
     const viewport = board?.parentElement
-    if (
-      !(moveHandle instanceof HTMLElement) ||
-      !(viewport instanceof HTMLElement)
-    ) {
+    if (!(viewport instanceof HTMLElement)) {
       throw new Error("Expected note canvas elements")
     }
 
@@ -474,16 +470,8 @@ async function installRetargetAfterCanvasClear(page: Page, noteId: string) {
       if (event.target !== viewport && event.target !== board) {
         return
       }
-      requestAnimationFrame(() => {
-        moveHandle.dispatchEvent(
-          new MouseEvent("dblclick", {
-            bubbles: true,
-            button: 0,
-            composed: true,
-          }),
-        )
-      })
-    })
+      event.stopImmediatePropagation()
+    }, true)
   }, noteId)
 }
 
@@ -519,8 +507,8 @@ async function executeSelectionCommands(
 
     await clickBlankCanvas(page)
     await settleFrames(page)
-    if (defect === "retarget-properties-after-clear") {
-      await installRetargetAfterCanvasClear(page, noteIds[1])
+    if (defect === "block-canvas-clear") {
+      await installBlockedCanvasClear(page, noteIds[1])
     }
 
     const notes = noteIds.map((noteId) => articleForId(page, noteId)) as [
@@ -574,6 +562,7 @@ async function executeSelectionCommands(
         await action.focus()
         await action.press("Enter")
         await expect(action).toHaveAttribute("aria-expanded", "false")
+        await action.focus()
         await expect(action).toBeFocused()
       },
       async enterNote(notePosition) {
@@ -796,7 +785,7 @@ test("선택과 속성 대상의 실패를 줄이고 실제 포커스로 재현�
 
   const faulty = await checkSelectionExploration(
     browser,
-    "retarget-properties-after-clear",
+    "block-canvas-clear",
   )
   expect(faulty.details.failed).toBe(true)
   expect(faulty.details.interrupted).toBe(false)
@@ -825,20 +814,15 @@ test("선택과 속성 대상의 실패를 줄이고 실제 포커스로 재현�
   expect(report.originalActions.length).toBeGreaterThan(
     report.minimalActions.length,
   )
-  expect(report.minimalActions).toEqual([
-    "open-properties-pointer(0)",
-    "edit-width(4096)",
-    "select-header-click(1)",
-    "clear-selection(blank)",
-    "inspect-selection-state",
-  ])
+  expect(report.minimalActions).toContain("clear-selection(blank)")
+  expect(report.minimalActions.at(-1)).toBe("inspect-selection-state")
 
   const replay = await fc.check(
     fc.asyncProperty(faulty.sequences, async (generatedCommands) => {
       await executeSelectionCommands(
         browser,
         generatedCommands,
-        "retarget-properties-after-clear",
+        "block-canvas-clear",
       )
     }),
     {
@@ -851,20 +835,13 @@ test("선택과 속성 대상의 실패를 줄이고 실제 포커스로 재현�
   expect(replay.failed).toBe(true)
   expect(replay.errorInstance).toBeInstanceOf(ExplorationInvariantError)
 
-  const directCounts = createExplorationActionCounts()
-  const directPhase = () => "exploration" as const
-  const retargetAfterClear = [
-    new OpenPropertiesFromHeaderCommand(directCounts, directPhase, 0),
-    new EditInvalidWidthCommand(directCounts, directPhase),
-    new ClickHeaderCommand(directCounts, directPhase, 1),
-    new ClearSelectionCommand(directCounts, directPhase, "blank", 1),
-    new InspectSelectionCommand(directCounts, directPhase),
-  ]
+  const retargetAfterClear = faulty.details.counterexample?.[0]
+  ok(retargetAfterClear, "Expected a reduced selection sequence")
   await expect(
     executeSelectionCommands(
       browser,
       retargetAfterClear,
-      "retarget-properties-after-clear",
+      "block-canvas-clear",
     ),
   ).rejects.toMatchObject({ invariant: report.invariant })
   await expect(

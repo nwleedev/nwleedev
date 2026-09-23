@@ -50,7 +50,7 @@ UI는 Tailwind CSS, 네이티브 폼 요소와 자체 `shared/ui`를 바탕으�
 
 [텍스트 재사용 작업 화면 결정](decisions/focused-text-utility-workspace.md), [조작 피드백과 실패 복구 결정](decisions/interaction-feedback-and-recovery.md), [디자인 시스템 조사](references/focused-text-utility-design-system-research.md), [상용 수준의 조작 경험 조사](references/commercial-service-ux-research.md), [UI 재구축 구현 패턴 조사](references/ui-reconstruction-implementation-patterns.md), [UI 재구축 테스트 선정 조사](references/ui-reconstruction-testing-research.md), [좁은 화면 탐색과 메모 동작 조사](references/mobile-navigation-and-actions-research.md), [모바일 Drawer의 저장 목록 링크 조사](references/mobile-saved-batch-copy-drawer-research.md), [메모 선택 표시, 보기 제어와 캔버스 확대 조사](references/canvas-focus-controls-and-zoom-research.md), [모바일 일괄 복사 액션 시트와 이동 아이콘 조사](references/mobile-batch-copy-action-sheet-and-direction-icons-research.md), [모바일 일괄 복사 액션 시트 닫기 결정](decisions/mobile-batch-copy-action-sheet-dismissal.md) 및 [`apps/notes/DESIGN.md`](../../../apps/notes/DESIGN.md)를 새 UI의 기준으로 사용한다.
 
-이 절은 U4부터 U7과 U11의 시각 표현, 메모 제어 배치, 일괄 복사 재정렬과 피드백 표면 계획을 대체한다. U22부터 U25는 공통 application frame, 좁은 화면 탐색, 메모 기본 동작과 토스트 닫기에 관한 U14, U16, U18 및 U21의 이전 지시보다 우선한다. U26부터 U28은 메모 표면과 캔버스 시점에 관한 U19, U5 및 U12의 이전 구현 설명보다 우선한다. U32는 모바일 일괄 복사 확인 및 저장 목록 관리의 팝오버와 이동 문구에 관한 U17부터 U20 및 이전 절의 지시보다 우선한다. 저장 자료, 자유 배치, 자동 저장, 모바일 명시적 저장, 복사 횟수, 삭제 복구, 분석, 템플릿과 설정 기능은 유지한다. 이 문서의 뒤쪽에 남은 이전 시각 설명은 이미 구현한 기능의 이력으로만 읽고 새 화면의 완료 조건으로 사용하지 않는다.
+이 절은 U4부터 U7과 U11의 시각 표현, 메모 제어 배치, 일괄 복사 재정렬과 피드백 표면 계획을 대체한다. U22부터 U25는 공통 application frame, 좁은 화면 탐색, 메모 기본 동작과 토스트 닫기에 관한 U14, U16, U18 및 U21의 이전 지시보다 우선한다. U26부터 U28은 메모 표면과 캔버스 시점에 관한 U19, U5 및 U12의 이전 구현 설명보다 우선한다. U32는 모바일 일괄 복사 확인 및 저장 목록 관리의 팝오버와 이동 문구에 관한 U17부터 U20 및 이전 절의 지시보다 우선한다. U33과 U34는 화면 목적별 프레임을 유지하면서 문서 전체의 불필요한 스크롤을 제거한다. 이 두 절차는 U21의 Grid 행 수정과 다른 원인을 수정한다. 저장 자료, 자유 배치, 자동 저장, 모바일 명시적 저장, 복사 횟수, 삭제 복구, 분석, 템플릿과 설정 기능은 유지한다. 이 문서의 뒤쪽에 남은 이전 시각 설명은 이미 구현한 기능의 이력으로만 읽고 새 화면의 완료 조건으로 사용하지 않는다.
 
 [React Hook Form 사용 지침](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md)은 현재 개발 지침으로 적용한다. [애플리케이션 기술 안티패턴](../../dev/personal-notes-app/anti-patterns.md)은 아직 `proposed`이므로 구현 규칙으로 강제하지 않고, 각 작업 단위에서 공식 자료와 실제 실패 근거를 다시 확인할 조사 항목으로만 사용한다.
 
@@ -828,6 +828,60 @@ CSS 배치와 실제 화면 높이가 결정하는 동작이므로 TDD를 적용
 절차 4에서 320 CSS px의 확인 및 관리 화면, Escape, 바깥 누르기, 닫기 버튼과 삭제 후 포커스 복귀를 브라우저 과업으로 확인했다. 높이 360 CSS px의 모바일 터치 검사에서도 마지막 동작과 남은 항목에 접근했다. 타입 검사, lint, 199개 단위 검사, 51개 Browser Mode 검사, 빌드와 일괄 복사 브라우저 검사는 통과했다. 전체 E2E는 174개 중 171개가 통과했고, U12 재작성 대상으로 분류한 메모 선택 모델 검사가 세 브라우저에서 각각 실패했다. 실제 기기의 뒤로가기, 화면 키보드, safe area 및 200% 확대는 자동화 결과로 확인했다고 적지 않는다.
 
 이후 선택 모델의 관찰과 조작 대상 오류를 바로잡고 전체 E2E 175개가 통과했다. 이 재실행은 U32의 기존 브라우저 과업 회귀가 없다는 근거이며, 실제 기기에서 확인하지 않은 조건과 U12의 재작성 완료를 대신하지 않는다.
+
+## 모바일 문서 높이와 화면별 스크롤
+
+[모바일 문서 스크롤과 화면 높이 조사](references/mobile-document-scroll-and-height-research.md)는 메모 상세 및 일괄 복사 확인 화면의 하단 동작이 위로 밀리는 현상과 같은 높이 계산을 쓰는 다른 route를 구분한다. [요구사항의 반드시 지킬 조건](requirements.md#반드시-지킬-조건) 중 화면별 프레임, 메모 상세 저장 영역, 일괄 복사 수집 및 확인의 하단 동작과 보조 화면의 스크롤이 기준이다. 화면의 자료, Clipboard, 저장, 이탈 확인, Drawer 및 액션 시트 동작은 바꾸지 않는다. 실제 Android 기기의 계산 높이는 아직 계측하지 않았으므로, 코드에서 도출한 영향 범위를 각 화면의 재현 결과로 확정한 뒤 수정한다.
+
+### U33 과업 화면과 메모 화면의 바깥 문서 스크롤 제거
+
+메모 상세 `/notes/[noteId]`와 일괄 복사 확인 및 저장 목록 관리 `/batch-copy`의 하단 동작이 본문을 스크롤해도 보이는 화면 아래쪽에 남도록 한다. 같은 높이 구성을 쓰는 `/`의 평상시 메모 목록, 일괄 복사 수집 상태와 넓은 보드도 함께 확인한다. U21의 프레임 내부 Grid 배치 수정과 U22의 화면 목적별 프레임 분리를 선행 상태로 사용한다.
+
+#### 절차 1: 높이 차이를 실제 화면에서 확인
+
+- 추가 및 제거: 운영 코드, 검사 전용 fixture와 스크립트는 추가하거나 제거하지 않는다. 대상 브라우저의 기존 개발자 도구에서 `body` 최소 높이, 현재 보이는 높이, 문서 스크롤 높이와 프레임 높이를 읽어 메모 상세 및 확인 화면의 빈 영역이 시작되는 위치와 비교한다.
+- 확인: 주소창이 펼쳐진 상태에서 문서 전체가 프레임보다 길고 스크롤 후 하단 동작이 함께 올라가야 높이 충돌로 판단한다. 계산한 높이나 화면 움직임이 다르면 `body` 규칙을 바로 고치지 말고 본문 최소 크기, 내부 스크롤 및 화면 키보드 영향을 다시 조사해 계획을 갱신한다.
+
+진행 상태: 로컬 Chromium의 320×720 모바일 설정에서는 주소창이 없어 `body` 최소 높이, 문서 높이와 보이는 높이가 모두 720 CSS px였다. 이 설정은 제보된 주소창 상태를 재현하지 못한다. 연결된 Android 기기도 없어 실제 주소창에서의 수치 판정은 남아 있다. 반면 `/usage`와 `/settings`의 짧은 화면은 문서 높이가 777 CSS px로 나타나 보조 화면의 중복 최소 높이를 재현했다. 운영 코드 변경은 이 절차에서 하지 않았다.
+
+#### 절차 2: 한 곳에서 중복 높이 제한 제거
+
+- 제거: `apps/notes/src/_app/styles/globals.css`의 `body`에 지정된 `min-height: 100vh`를 삭제한다. 모든 정상 route는 이미 자체 화면 프레임을 가지므로 `body`에 다른 전체 높이를 다시 지정하지 않는다.
+- 수정 없음: `apps/notes/src/_app/ui/task-page-frame.tsx`와 `notes-workspace-frame.tsx`의 `h-dvh`, 자식의 남는 높이 배분 및 내부 넘침 처리는 유지한다. `note-detail-page.tsx`, `mobile-batch-copy-confirmation.tsx`, `batch-copy-start-page.tsx`, `mobile-notes-workspace.tsx`의 하단 동작과 목록 스크롤 책임도 옮기지 않는다.
+- 추가하지 않음: route별 `position: fixed` footer, `body`의 일괄 `overflow: hidden`, JavaScript 높이 state 및 브라우저별 보정은 도입하지 않는다. 화면 밖 콘텐츠와 키보드 포커스가 접근 불가능해지는 방식으로 문서 스크롤을 숨기지 않는다.
+
+진행 상태: `body`의 최소 높이 선언만 제거했다. 메모 화면과 과업 화면의 `h-dvh`, 내부 목록 스크롤 및 하단 동작 구성은 그대로 둔다. 주소창이 있는 실제 Android에서 문서의 남는 스크롤이 사라졌는지는 아직 판정하지 않았다.
+
+#### 절차 3: 사용자 동작과 화면 위치로 확인
+
+- 수정: `apps/notes/e2e/mobile-navigation.spec.ts`의 기존 메모 목록, 수집과 상세 과업에 짧은 내용 및 화면보다 긴 내용의 스크롤 뒤 하단 동작 위치와 실행 결과를 연결한다. `apps/notes/e2e/batch-copy.spec.ts`에는 여러 항목을 확인 페이지에서 스크롤한 뒤 `취소`와 `일괄 복사하기`에 접근하는 사례, 저장 목록 관리의 같은 하단 동작 사례를 추가한다. 예상 원문과 순서는 테스트에서 실행한 입력으로 구하고 생성된 ID나 임의 좌표는 고정하지 않는다.
+- 확인: 메모 목록 자체는 끝까지 스크롤되고 새 메모 버튼은 보이는 우측 하단에 남아야 한다. 수집 중에는 마지막 메모와 `초기화` 및 `다음`에 접근해야 한다. 상세 본문과 두 일괄 복사 목록에서는 내용을 스크롤해도 하단 동작이 이동하지 않아야 한다. 넓은 보드의 캔버스 이동, 확대와 왼쪽 아래 보기 제어도 바깥 문서 스크롤로 흔들리지 않아야 한다.
+- 실제 기기 확인: Android 브라우저의 주소창이 보이거나 접힌 상태에서 각 화면을 맨 위와 맨 아래로 움직이고, safe area 및 편집기 화면 키보드가 하단 동작을 가리지 않는지 별도로 본다. 고정된 Playwright 표시 영역에서는 `vh`와 `dvh`의 차이가 재현되지 않을 수 있으므로 이 검사만으로 완료하지 않는다.
+
+진행 상태: 기존 모바일 목록과 수집 검사는 마지막 메모까지 이동한 전후의 하단 제어 위치를 비교하도록 보강했다. 일괄 복사 검사는 길게 만든 저장 목록과 확인 목록에서 마지막 항목 및 하단 동작에 접근하고 복사 후 안내를 확인한다. 전체 Playwright 212개와 메모 목록 및 일괄 복사 화면의 검사 57개가 통과했다. 실제 Android 주소창의 펼침과 접힘, safe area 및 편집기 화면 키보드는 자동화로 확인하지 못했으므로 U33의 기기 판정은 남아 있다.
+
+이 단위는 새 순수 자료 규칙이 없는 CSS 높이와 브라우저 스크롤 수정이므로 TDD를 적용하지 않는다. [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md)에 따라 CSS class, DOM 중첩, 특정 footer 픽셀 좌표나 내부 스크롤 요소의 이름이 아니라 사용자에게 보이는 동작과 하단 제어의 접근성을 판정한다. 실제 기기에서 본문의 끝이 가려지거나 문서 전체가 계속 움직이면 완료하지 않는다.
+
+### U34 보조 화면과 접속 안내의 불필요한 높이 제거
+
+U33 뒤에 `/usage`, `/analysis`, `/templates`, `/settings`와 접속 주소 확인 및 오류 상태를 확인한다. 이 화면들은 하단 고정 작업 행이 없으므로 U33의 버튼 증상으로 묶지 않는다. 짧은 콘텐츠에 불필요한 문서 스크롤을 만들지 않으면서 긴 콘텐츠의 일반 스크롤을 유지하는 것이 목적이다.
+
+#### 절차 1: 본문 높이 책임을 프레임에 맞춤
+
+- 제거: `apps/notes/src/_pages/usage/ui/usage-start-page.tsx`, `analysis/ui/analysis-start-page.tsx`, `templates/ui/templates-start-page.tsx`, `settings/ui/settings-start-page.tsx`의 `<main>`에 중복 지정된 `min-h-screen`을 제거한다. 탐색 높이를 포함해 최소 화면 높이를 확보하는 책임은 기존 `DocumentPageFrame`의 `min-h-dvh`에 남긴다.
+- 수정: `apps/notes/src/_app/ui/runtime-access-guard.tsx`의 접속 확인 및 오류 상태에만 쓰는 `min-h-screen`을 현재 보이는 높이에 맞는 최소 높이로 바꾼다. 상태 문구와 주소 판정, 지원 주소에서 정상 route를 렌더링하는 분기는 유지한다.
+- 추가하지 않음: 보조 화면마다 별도 프레임이나 scroll listener, 내용 길이에 따른 고정 높이, 새 높이 토큰을 만들지 않는다. `DocumentPageFrame`과 각 본문의 기존 FSD 역할을 합치지 않는다.
+
+진행 상태: 네 보조 화면 본문의 중복 최소 높이를 제거하고, 접속 주소 확인 및 오류 상태의 최소 높이를 `min-h-dvh`로 바꿨다. `DocumentPageFrame`의 탐색과 본문 구성, 각 화면의 입력과 오류 처리 코드는 유지한다. 내용이 표시 영역 안에 드는 경우와 넘어서는 경우의 스크롤 동작은 다음 절차에서 판정한다.
+
+#### 절차 2: 짧은 화면과 긴 화면을 구분해 확인
+
+- 수정: `apps/notes/e2e/mobile-navigation.spec.ts`의 보조 화면 탐색 검사에서 내용이 짧은 상태로 각 route를 열어 탐색과 본문을 확인하고, 길어진 사용 빈도, 분석 결과, 템플릿 또는 설정 내용은 끝까지 읽고 조작할 수 있는지 해당 기존 과업 검사와 연결한다. 접속 주소 확인 및 오류 상태는 기존 주소 검사에서 안내가 보이는 영역에 나타나는지 확인한다.
+- 확인: 짧은 화면은 탐색 높이를 한 번만 반영하고 스크롤 끝에 빈 한 화면을 만들지 않아야 한다. 실제 내용이 보이는 높이를 넘으면 문서 스크롤을 허용해야 하며 Drawer 열기, 화면 이동, 입력과 오류 복구가 유지돼야 한다. Android 주소창 상태와 큰 글자에서도 같은 차이를 확인한다.
+
+진행 상태: 네 보조 화면의 초기 내용이 한 화면에 들어올 때 불필요한 문서 스크롤이 없는지, 화면 높이를 줄였을 때 각 화면의 마지막 내용에 접근할 수 있는지 기존 모바일 탐색 검사에 추가했다. 접속 주소 오류 안내도 보이는 영역 안에 남았다. Chromium, Firefox 및 WebKit에서 전체 Playwright 212개와 최종 스크롤 검사 6개가 통과했다. 단위 검사 188개, Browser Mode 검사 57개, lint, 타입 검사와 운영 빌드도 통과했다. 실제 Android 주소창과 큰 글자 설정은 확인하지 못했으므로 U34의 기기 판정은 남아 있다.
+
+이 단위에도 TDD를 적용하지 않는다. 실제 화면의 스크롤 범위와 콘텐츠 접근성을 브라우저에서 확인하며 `min-h-screen` 문자열이나 프레임의 내부 구조를 테스트하지 않는다. 짧은 콘텐츠에서 여전히 탐색 높이만큼 빈 스크롤이 생기거나 긴 내용의 끝을 읽을 수 없으면 완료하지 않는다.
 
 ## 좌표 제한 제거와 일괄 복사 삽입식 재정렬
 
@@ -2070,7 +2124,9 @@ U1부터 U10까지 각 중단 조건이 해소되어야 한다.
 
 기준은 [모델 기반 탐색 테스트](requirements.md#모델-기반-탐색-테스트), [완료를 확인할 증거](requirements.md#완료를-확인할-증거)와 [구현 기본값](requirements.md#구현에-적용할-결정-원칙과-기본값)이다. [테스트 전략](../../dev/personal-notes-app/testing-strategy.md), [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md)과 [폼 지침](../../dev/personal-notes-app/react-hook-form.md)을 적용한다.
 
-현재 상태는 생성, 본문 편집과 모바일 명시적 저장의 세 기능에서 새 완료 기준의 로컬 증거를 확보했고, 나머지 9개 기능은 `needs revision`이다. 기존 탐색 코드와 과거 실행 기록은 남아 있지만 다른 기능의 새 완료 증거로 승계하지 않는다. [단일 실행 기록](model-based-testing-execution.md)의 과거 통과 수와 완료 표현보다 이 절의 현재 판정을 우선한다. 기존 서비스 기능 전체가 실패했다는 뜻은 아니다.
+현재 생성, 본문 편집, 데스크톱 자동 저장, 모바일 명시적 저장, 초안 복구 및 제거 재시도, 위치와 크기, 겹침 순서, 삭제와 취소 및 만료, 선택과 포커스 및 속성 대상, 개별 복사, 사용 기록과 집계 화면의 열한 항목은 새 완료 기준의 로컬 증거를 확보했다. 캔버스 이동과 확대 및 축소는 최종 검증에서 발견한 회귀를 수정했지만, 수정 뒤 세 브라우저의 축소와 재실행을 끝내지 못해 `needs revision`이다.
+
+기존 탐색 코드와 과거 실행 기록은 다른 항목의 새 완료 증거로 승계하지 않는다. [단일 실행 기록](model-based-testing-execution.md)의 과거 통과 수와 완료 표현보다 이 절의 현재 판정을 우선한다. 이는 기존 서비스 전체가 실패했다는 뜻이 아니다.
 
 Git 이력 재구성은 검토 상태이며 실행 승인이 아니다. 캔버스 제어 아이콘 확대까지의 구현을 비교 대상으로 사용한다. 리셋을 승인받으면 문서 보존과 코드 복귀를 먼저 수행하고, 승인받지 않으면 아래 삭제 및 재작성 범위를 별도 코드 변경으로 진행한다. 어느 방식도 이 계획을 작성하는 단계에서 실행하지 않는다.
 
@@ -2078,10 +2134,10 @@ Git 이력 재구성은 검토 상태이며 실행 승인이 아니다. 캔버�
 
 목적은 기존 탐색 구현의 명령, 상태와 보고서 형식을 새 테스트의 정답으로 삼지 않는 것이다. 삭제 예정 파일에서 알고리즘을 옮겨 새 이름으로 보존하지 않는다. 다음 파일 목록은 현재 코드와 비교한 변경 대상이며, 실제 삭제와 재작성은 코드 변경 승인 후에만 실행한다.
 
-- 파일 전체 삭제 대상: `apps/notes/src/_pages/notes/model/note-content.model.test.ts`, `copy-note.model.test.ts`, `apps/notes/src/entities/note/model/note-lifecycle.model.test.ts`, `apps/notes/src/_app/composition/indexed-db/note-storage.model.indexeddb.test.ts`.
-- 파일 전체 삭제 대상: `apps/notes/e2e/notes-model.spec.ts`, `notes-geometry-model.spec.ts`, `notes-order-model.spec.ts`, `notes-removal-model.spec.ts`, `notes-selection-model.spec.ts`.
+- 삭제 여부를 기능별 대체 검사와 함께 결정할 파일: `apps/notes/src/_pages/notes/model/note-content.model.test.ts`, `apps/notes/e2e/notes-model.spec.ts`, `notes-selection-model.spec.ts`. 기존의 서로 다른 사용자 결과를 보호하는 부분은 대체 전까지 유지한다. `note-lifecycle.model.test.ts`는 삭제 및 복원 검사로, `copy-note.model.test.ts`는 개별 복사 검사로 책임을 옮긴 뒤 제거했다.
+- 유지하며 보완한 파일: `apps/notes/src/_app/composition/indexed-db/note-storage.model.indexeddb.test.ts`, `apps/notes/e2e/notes-geometry-model.spec.ts`, `notes-order-model.spec.ts`, `notes-removal-model.spec.ts`. 실제 저장 및 카드 입력을 사용하므로 파일을 없애고 같은 검사를 다시 만드는 작업은 하지 않는다.
 - 보조 코드 삭제 대상: `apps/notes/src/shared/lib/note-model-exploration/`와 `note-model-settings/`의 각 구현 및 `index.ts`, `apps/notes/test-app-revision.ts`, `apps/notes/e2e/support/read-stored-note.ts`. 삭제 전 전체 import를 찾아 같은 변경 단위에서 정리한다.
-- 설정 재작성 대상: `apps/notes/vitest.config.ts`와 `vitest.browser.config.ts`에서 Git 조회 import, 상수 생성과 `__NOTES_GIT_REVISION__` 주입을 제거한다. `apps/notes/package.json`의 삭제 파일을 지정한 `test:model` 명령도 제거한다. 일반 Vitest, Browser Mode와 Playwright 실행 명령을 사용한다.
+- 설정 재작성 검토 대상: `apps/notes/vitest.config.ts`와 `vitest.browser.config.ts`의 Git 조회 import, 상수 생성과 `__NOTES_GIT_REVISION__` 주입은 독립 실행 기록의 필요성과 함께 최종 단계에서 결정한다. `apps/notes/package.json`의 `test:model` 명령은 현재 남은 본문 탐색 파일을 실행한다. 일반 Vitest, Browser Mode와 Playwright 실행 명령도 사용한다.
 - 기존 테스트의 부분 재작성 대상: `notes-data-provider.browser.test.tsx`, `note-content-save-state.test.ts`, `save-note-content.test.ts`, `note-draft.test.ts`, `apps/notes/e2e/notes.spec.ts`. 비교 대상 이후 추가한 모델 실행, 테스트용 화면, 내부 요청 검증을 분리하고 각 기능의 결과 검사로 교체한다. 원래 있던 예제와 같은 파일이라는 이유로 파일 전체를 삭제하지 않는다.
 - 유지할 운영 수정: `save-note-content.ts`, `note-content-save-state.ts`, `use-note-content-autosave.ts`의 초안 정리 재시도 책임. 이력 재구성으로 사라진 경우 아래 초안 절차에서 다시 구현한다. 그대로 남아 있으면 결과 검사로 판단하고 이름이나 구조만 바꾸지 않는다.
 - 유지할 자산: 기존 서비스 UI, 저장 schema, 메모 및 초안 repository, 기존 예제 테스트, `create-note-through-ui.ts`, `pointer-capture.ts`, `select-text-range.ts`. 기존 도우미도 사용 동작과 구현이 맞는지 확인하고 사용한다.
@@ -2204,7 +2260,9 @@ React의 [Effect 사용 판단](https://react.dev/learn/you-might-not-need-an-ef
 
 다음 코드 변경 전 결정: 지연된 첫 저장의 실제 화면 입력과 원문 보존을 검증할 수 있는 기존 서비스 UI 조립 지점을 조사한다. 지연 저장을 위해 운영 Provider 또는 IndexedDB를 새 상태로 감싸지 않는다. 현재 예제의 테스트용 편집기를 실제 UI로 안전하게 교체할 수 없으면 지연 완료의 서비스 화면 증거는 미확인으로 남기고 자동 저장 단위를 완료 표시하지 않는다. 이미 확인한 타이머와 이탈 검사를 다시 복제하지 않는다.
 
-- [ ] 생성, 탐지, 축소, 기록과 재현의 새 증거 확보
+조립 지점 확인 뒤 코드 변경 계획: `notes-data-provider.browser.test.tsx`의 `AutosaveEditor`는 `useForm` 등록과 `useNoteContentAutosave` 호출을 직접 복제해 실제 카드의 저장 후 입력 유지 동작을 검사하지 못한다. 이 테스트용 편집기의 props와 import를 삭제하고 같은 Provider 조립 안에 운영 `NoteCard`를 렌더링한다. 자동 저장 외의 카드 명령만 테스트용 무동작 callback으로 연결하며 새 Provider, fixture 파일이나 운영 prop을 만들지 않는다. 지연 저장 예제는 입력 원문 두 개를 생성해 카드의 실제 편집기에 연속으로 넣고 첫 쓰기를 대기시킨 뒤 두 번째 입력의 화면 유지, 첫 쓰기 해제 뒤 후속 쓰기 시작, 완료 후 카드와 repository 원문을 검사한다. 기존 저장소 대역은 쓰기 시점을 제어하는 데만 유지하고 기대 원문을 저장 요청에서 읽어 만들지 않는다. 카드 직접 조립에 필요한 callback 수가 지나치게 많아 검사의 목적을 흐리거나 기존 서비스 화면과 다르게 동작하면 이 변경을 중단하고 다른 실제 화면 조립 지점을 조사한다.
+
+- [x] 데스크톱 자동 저장의 다섯 절차 완료. 실제 카드 편집기로 두 원문을 연속 입력하고 첫 쓰기를 지연시킨 뒤 후속 쓰기와 최종 저장 원문을 확인했다. 테스트가 운영 hook을 재구현하던 편집기는 제거했다. 타이머, blur, 내부 이동 및 합성 문서 이벤트의 앞선 실제 화면 탐색과 통제 결함 축소 및 재현은 유지한다. 합성 신호를 실제 OS 탭 전환이나 종료로 계산하지 않는다.
 
 ### 모바일 명시적 저장과 이탈
 
@@ -2243,6 +2301,14 @@ Chromium에서 복구 초안을 가진 모바일 목록을 다시 연 뒤 수정
 
 목적은 저장 실패에서도 입력을 복구하고, 메모 저장 뒤 초안 제거만 실패하면 다음 실제 저장 기회에서 정리를 끝내는 것이다.
 
+이번 코드 변경 전 결정: `note-content.model.test.ts`의 `begin`, `complete`, `accept`, `expectedRequest`와 고정 원문별 중복 검사를 제거한다. 같은 파일에는 사용자 관점의 편집, 저장, 저장 실패 및 재시도 명령을 작성하고, 후보별로 새 메모와 초안 저장 대역을 만들어 실제 `saveNoteContent` 및 저장 상태를 한 번의 저장 동작으로 실행한다. 기대 모델은 입력 원문, 마지막으로 저장된 원문 및 revision, 남은 초안과 다음 저장 실패만 보관한다. 저장 요청 생성 여부나 내부 pending 값을 기대 결과로 비교하지 않는다. `note-draft.test.ts`, `save-note-content.test.ts`, `note-content-save-state.test.ts`와 기존 실제 IndexedDB 검사는 새 탐색에서 입증되지 않는 단일 실패와 복구 분류 사례만 유지하며, 대체 증거 없이 삭제하지 않는다. `notes.spec.ts`의 실제 모바일 복구 및 정리 재시도 과업은 유지하고, 앞 절차에서 확인한 숨은 보드 수정이 저장 전 원문을 보존하는지도 함께 사용한다. 운영 저장 함수, Provider와 자료 형식은 현재 검사에서 새 결함이 확인되기 전에는 바꾸지 않는다. 기존 E2E의 전역 IndexedDB 실패 주입을 새 생성 검사에 복제하지 않고 저장소 주입으로 결함 조건을 만든다.
+
+실제 화면의 메모 저장 실패 뒤 재접속은 기존 E2E로 확인되지 않는다. 이를 위해 `note-detail-page.browser.test.tsx`에 실제 상세 화면과 현재 `NotesDataProvider`를 렌더링하고, 메모 및 초안 repository의 한 번 실패를 주입하는 브라우저 검사를 추가한다. 저장 실패 후 오류 안내, 재마운트된 입력, 다음 저장의 메모 원문 및 초안 제거를 확인한다. `next/navigation`의 화면 이동 함수만 테스트에서 대체하며 운영 컴포넌트에 테스트용 prop이나 상태를 추가하지 않는다. 새 저장 대역은 이 검사 안에서만 사용하고 기존 Provider 검사용 편집기를 복사하지 않는다.
+
+진행 상태: 저장 요청과 완료를 시험 코드가 따로 호출하던 명령을 사용자 관점의 저장 한 행동으로 합쳤다. 기대 모델은 입력, 저장 원문과 두 revision, 초안 및 다음 실패만 보관하고 저장 함수의 요청값을 정답으로 복사하지 않는다. 후보 100개에서 462개 행동을 실행했다. 초안 제거 실패 뒤 정리 상태를 잃는 결함과 메모 저장 실패 뒤 초안을 잃는 결함은 각각 네 행동과 세 행동으로 축소됐다. seed, path, replayPath 및 축소 행동의 직접 재실행에서 결함 조건만 실패하고 정상 저장은 통과했다. 초안 제거가 연달아 두 번 실패한 뒤의 정리도 생성 원문으로 확인했다.
+
+실제 상세 화면에서는 메모 repository의 한 번 실패 뒤 오류 안내, 재마운트된 복구 입력과 다음 저장 완료를 세 브라우저의 Browser Mode 검사로 확인했다. 모바일 목록의 복구 초안 이동과 제거 실패 뒤 재시도는 Chromium, Firefox 및 WebKit의 실제 IndexedDB 과업 여섯 건이 통과했다. 기존 E2E의 실패 주입은 격리된 사례로 유지하고 새 생성 검사에는 복제하지 않았다. 단위 검사 197건, Browser Mode 51건, 타입 검사와 lint가 통과했다. 전체 E2E는 이번 테스트 변경 뒤 다시 실행하지 않았으며, 직전 운영 변경의 전체 190건 통과와 구분한다. 운영 코드와 저장 형식은 바꾸지 않았다.
+
 먼저 `note-draft.ts`, 초안 repository, `NotesDataProvider`의 읽기 및 저장과 기존 자동 저장 상태를 읽는다. `note-content.model.test.ts`의 `expectedRequest`와 요청 생성 판정은 삭제한다. `note-draft.test.ts`, `save-note-content.test.ts`, `note-content-save-state.test.ts`, `personal-notes-database.indexeddb.test.ts`와 `e2e/notes.spec.ts`에서 책임별로 재작성한다.
 
 1. 생성: 편집, 초안 저장 실패, 메모 저장 실패, 초안 제거 실패, 같은 입력의 다음 저장 기회, 재실패와 다시 열기를 조합한다. 실제 저장 함수와 기존 repository 주입을 사용한다. 오래된 초안처럼 UI로 만들 수 없는 초기 자료만 테스트 안에서 최소 레코드로 준비한다.
@@ -2259,13 +2325,21 @@ Chromium에서 복구 초안을 가진 모바일 목록을 다시 연 뒤 수정
 
 조사 근거는 [IndexedDB transaction](https://w3c.github.io/IndexedDB/#transaction-concept), [React Effect 정리](https://react.dev/reference/react/useEffect)와 [승인된 정리 재시도 결정](decisions/note-draft-cleanup-retry.md)이다. 실제 브라우저에서 실패를 주입할 방법은 조사 후 기록하며, 임의 전역 IndexedDB 덮어쓰기를 기본 해법으로 사용하지 않는다.
 
-- [ ] 생성, 탐지, 축소, 기록과 재현 및 숨은 편집기 저장 문제 해결
+- [x] 초안 복구와 제거 재시도의 다섯 절차 완료. 저장 실패 뒤 실제 상세 화면에서 다시 열어도 초안이 남고 재저장할 수 있다. 숨은 편집기가 모바일 초안을 먼저 원문에 확정하던 동작은 앞선 모바일 절차에서 제거했다. 실제 기기 종료와 CI 재현은 이번 로컬 판정에 포함하지 않는다.
 
 ### 위치와 크기 및 속성 적용
 
 목적은 이동, 크기 조절과 속성 입력을 섞어도 원문을 보존하고 허용된 좌표 및 크기만 저장하는지 확인하는 것이다.
 
-먼저 `note-geometry.ts`, `note-card.tsx`, `notes-board.tsx`, `note-properties-panel.tsx`와 `NotePropertiesFormProvider`를 읽는다. `notes-geometry-model.spec.ts`와 생명 주기 모델의 geometry 복제를 삭제하고 `note-geometry.test.ts`와 `e2e/notes.spec.ts`에 결과 검사를 작성한다.
+먼저 `note-geometry.ts`, `note-card.tsx`, `notes-board.tsx`, `note-properties-panel.tsx`와 `NotePropertiesFormProvider`를 읽는다. 실제 화면을 독립적으로 실행하는 geometry 과업은 유지하고 생명 주기 모델의 geometry 복제를 삭제한다. `note-geometry.test.ts`와 기존 실제 화면 과업에는 저장된 좌표와 크기를 읽는 검사를 보강한다.
+
+이번 코드 변경 전 결정: `notes-geometry-model.spec.ts`는 이미 실제 카드, 속성 폼 및 새 IndexedDB 연결을 사용하는 독립 브라우저 과업이다. 이 브라우저 검사를 2천 줄이 넘는 `notes.spec.ts`로 옮기면 검사 대상은 그대로인데 파일만 커진다. 따라서 전용 파일은 유지하되 고정된 이동량, 한 방향만 조절하는 명령 및 최소 행동 문자열을 정답으로 고정한 검사를 교체한다. 여덟 조절 방향의 시작 지점을 화면 사각형에서 계산하고, 기대값은 반대쪽 변의 위치와 입력 이동량 및 허용 크기에서 구한다. pointer 종료 누락의 격리 조건과 seed/path 재현은 유지하며, 저장 원문과 두 revision은 모든 조회에서 함께 비교한다. `note-geometry.test.ts`의 고정 수치 목록은 허용 크기 안팎, 음수 및 캔버스 밖 좌표를 생성하는 입력으로 교체한다. `note-lifecycle.model.test.ts`의 geometry 갱신 명령과 중복 계산은 삭제하되 생성 배치, 겹침, 삭제 및 복원의 독립 검사는 유지한다. 운영 gesture hook, 카드, 속성 폼과 저장 형식은 실제 결함이 확인되지 않는 한 수정하지 않는다.
+
+여덟 방향 검사에서 첫 메모의 북서쪽 꼭짓점에 pointer를 내려놓으면 메모가 아니라 `새 메모` 버튼이 입력을 받는 것을 `elementFromPoint`로 확인했다. `NotesCollection`의 데스크톱 생성 버튼은 작업 영역 위에 절대 배치되어 첫 메모의 조절 지점과 겹친다. 다음 운영 코드 변경은 생성 버튼을 데스크톱 메모 화면의 별도 상단 줄로 옮기고, `NotesBoard`를 남은 높이에 배치하는 것으로 제한한다. 모바일 목록과 상세 화면, 생성 함수 및 캔버스 좌표는 변경하지 않는다. 생성 버튼의 겹침을 피하려고 첫 메모의 저장 위치를 보정하거나 pointer 제스처를 우회하지 않는다. 화면 사각형에서 계산한 여덟 방향 조절 검사를 다시 실행한 뒤 진단용 로그를 제거한다.
+
+확대 상태의 검사에서는 동일한 소수점 화면 좌표를 요청해도 Firefox와 WebKit이 전달한 pointer의 세로 위치가 달라 1 메모 좌표만큼 예상값이 어긋났다. 브라우저별 보정 상수를 만들지 않는다. 이동과 크기 조절 직전에 표준 `pointerdown`과 `pointermove`의 viewport 좌표를 기록하고, 그 차이를 화면에서 관찰한 배율로 변환해 기대 위치와 크기를 계산한다. 기록한 좌표는 입력값만 나타내며 앱의 gesture 상태나 계산 함수를 읽지 않는다. 기존 생성량과 결함 주입은 유지하고 운영 코드에는 이 차이만으로 수정을 가하지 않는다.
+
+전체 E2E 실행에서는 여덟 방향 검사의 WebKit 후보가 저장값 확인 전에 `browser.newContext`에서 시간 초과됐다. 파일 단독 실행은 세 브라우저에서 통과했고, 전체 실행의 추적 자료에는 동쪽 방향의 새 문맥 시작 실패가 남았다. 여덟 방향 검사는 방향마다 새 브라우저를 열고 닫되, 그 안의 생성 후보는 이전과 같이 서로 다른 문맥과 저장소에서 실행한다. 특정 방향의 실행 횟수를 줄이거나 같은 저장소를 재사용해 축소된 행동을 오염시키지 않는다. 전체 실행의 다른 기존 검사에서 발생한 문맥 생성 지연은 이 변경의 성공으로 대신 판정하지 않는다.
 
 1. 생성: 헤더 이동, 네 변 및 네 꼭짓점 조절, X/Y와 너비/높이 입력, 적용과 취소를 조합한다. 음수 및 4096 바깥 좌표, 크기 240/180의 하한과 4095 상한 안팎을 구분한다.
 2. 탐지: 이동 후 위치, 크기 조절 시 반대편 변, 잘못된 입력 후 이전 저장값과 수정 가능 상태를 확인한다. 기대 좌표를 운영 계산 함수로 만들지 않고 시작 사각형과 입력 이동량에서 산출한다. 허용 좌표를 임의 보정하거나 취소된 값을 저장하는 결함을 잡는다.
@@ -2275,13 +2349,19 @@ Chromium에서 복구 초안을 가진 모바일 목록을 다시 연 뒤 수정
 
 조사 질문은 [Pointer Events](https://www.w3.org/TR/pointerevents3/)의 capture 상실과 종료 순서, 배율이 적용된 이동량이다. 기존 pointer 진행 상태와 폼을 수정하며 mirror geometry state를 추가하지 않는다.
 
-- [ ] 생성, 탐지, 축소, 기록과 재현의 새 증거 확보
+- [x] 위치와 크기의 다섯 절차 완료. 실제 메모 카드에서 여덟 방향 조절과 확대 뒤 이동 및 크기 조절, 속성의 잘못된 입력과 수정, pointer 종료 누락의 실패 축소와 재현을 확인했다. 첫 메모의 조절 지점을 가리던 데스크톱 생성 버튼은 작업 영역 위에서 분리했다. 저장 geometry와 원문 및 두 revision을 함께 확인했으며 화면 배율에 따른 기대 이동량은 실제 pointer 입력 좌표로 계산했다.
+
+전체 E2E는 병렬 및 단일 작업자 실행에서 각각 193/196건이 통과했다. WebKit의 새 문맥 생성 지연 때문에 남은 세 건이 시간 초과됐으므로 전체 통과로 표시하지 않는다. 방향별 브라우저 분리 뒤 위치와 크기 대상 아홉 건은 다시 통과했고, 다른 시간 초과 검사는 이후 선택과 모바일 저장 절차에서 각각 다시 실행하고 전체 실행과 다른 조건임을 기록한다.
 
 ### 겹침 순서
 
 목적은 앞뒤 이동 후 지정한 메모의 위치와 다른 메모의 상대 순서가 저장되고, Tab 순서 및 원문 revision은 유지되는지 확인하는 것이다.
 
-먼저 `note-order.ts`, `NotesDataProvider.changeStack`과 repository의 `saveAll`을 읽는다. `notes-order-model.spec.ts`와 생명 주기 모델의 재정렬 구현을 삭제하고 `note-order.test.ts`, 기존 IndexedDB 검사와 `e2e/notes.spec.ts`에 작성한다.
+먼저 `note-order.ts`, `NotesDataProvider.changeStack`과 repository의 `saveAll`을 읽는다. 기존 `notes-order-model.spec.ts`는 실제 카드 메뉴와 IndexedDB를 이미 사용하므로 파일을 옮기거나 새 탐색 실행기를 만들지 않는다. 이 파일의 고정 축소 순서 단언과 저장 숫자만 보는 관찰을 교체하고, 겹친 지점의 실제 입력 대상과 새로고침 뒤 결과를 같은 과업에서 확인한다. `note-order.test.ts`의 고정 예시는 생성된 메모의 상대 순서, 탐색 순서와 원문 revision 불변 조건으로 교체한다. 기존 IndexedDB 검사에는 `saveAll` transaction이 중단될 때 이전 값이 전부 유지되는 한 사례를 추가하되 저장소 구현과 schema는 변경하지 않는다. 생명 주기 모델의 순서 명령은 삭제 복원 시나리오도 지키므로 이 절에서 제거하지 않고 다음 삭제 복원 절차에서 같은 사용자 결과 검사로 대체한 뒤 제거한다. `e2e/notes.spec.ts`에 전용 파일과 같은 검사를 중복 추가하지 않는다.
+
+코드 변경 전 범위: 추가는 `note-order.test.ts`의 생성 입력 기반 불변 조건과 IndexedDB 중단 관찰, `notes-order-model.spec.ts`의 실제 겹침 입력 관찰이다. 수정은 전용 탐색의 기대 모델과 실패 기록을 사용자에게 보이는 순서에 맞추는 부분이다. 제거는 고정 명령 배열과 특정 축소 결과를 정답으로 단언하는 부분이다. 운영용 컴포넌트, Provider, 저장소, 새 fixture 및 공통 reporter는 추가하거나 수정하지 않는다.
+
+겹침 순서 변경을 순수 전이로 두고 UI 및 저장소를 각각 어댑터로 관찰하는 기존 역할 분담을 유지한다. [IndexedDB transaction](https://w3c.github.io/IndexedDB/#transaction-concept)은 완료 전 쓰기 결과를 확정할 수 없고 중단 시 전체 쓰기가 취소된다고 정한다. [CSSOM View의 `elementFromPoint`](https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint)는 겹친 화면 지점의 실제 최상단 입력 대상을 확인하는 데 사용한다. 이 관찰은 CSS 숫자 비교를 대체하지 않고 화면 결과를 보완한다.
 
 1. 생성: 세 메모에서 앞/뒤 이동, 반복 이동, 삭제 복원으로 생긴 동률과 다시 열기를 조합한다. 정렬 알고리즘을 모델에 복제하지 않고 기대 ID 순서만 보관한다.
 2. 탐지: 대상이 맨 앞 또는 뒤인지, 나머지 ID 순서, 명시적 이동 후 1..N, Tab 순서와 content revision 보존을 검사한다. `saveAll` 중 abort는 새 연결에서 일부만 저장되지 않았는지 확인한다.
@@ -2291,13 +2371,15 @@ Chromium에서 복구 초안을 가진 모바일 목록을 다시 연 뒤 수정
 
 조사 질문은 [IndexedDB의 원자적 commit](https://w3c.github.io/IndexedDB/#transaction-concept)과 동률 표시다. 동률을 무조건 없애는 읽기 보정이나 새 schema를 추가하지 않는다.
 
-- [ ] 생성, 탐지, 축소, 기록과 재현의 새 증거 확보
+- [x] 겹침 순서의 다섯 절차 완료. 생성된 메모의 앞뒤 이동 불변 조건, 실제 카드 메뉴와 IndexedDB 재조회, 두 메모의 겹친 본문을 누른 뒤 입력 포커스, 저장 중단 후 전체 이전 값 유지를 확인했다. 이동 차단과 부분 저장 결함은 동일 관찰식에서 축소된 행동으로 재현했다. 대상 E2E 세 건, 단위 검사 다섯 건, IndexedDB Browser Mode 아홉 건, 타입 검사, lint 및 빌드가 통과했다. 전체 E2E 통과나 CI 재현으로 확대 해석하지 않는다.
 
 ### 삭제와 취소 및 만료
 
 목적은 연속 삭제와 취소가 같은 메모를 복원하고, 원래 만료 시각과 삭제 전 zIndex를 유지하는지 확인하는 것이다.
 
-먼저 `note-removal-history.ts`, `NoteSessionProvider`, `NotesCollection`의 삭제 및 복원과 repository를 읽는다. `notes-removal-model.spec.ts`와 생명 주기 모델의 삭제 목록 복제를 삭제하고 `note-removal-history.test.ts`와 `e2e/notes.spec.ts`를 재작성한다.
+먼저 `note-removal-history.ts`, `NoteSessionProvider`, `NotesCollection`의 삭제 및 복원과 repository를 읽는다. `notes-removal-model.spec.ts`는 이미 실제 카드의 삭제 메뉴, 알림의 취소 버튼, 새 연결의 저장값 및 Playwright Clock을 사용하므로 유지하고 고정 축소 행동 단언을 교체한다. `note-removal-history.test.ts`의 고정 시각 및 두 메모 예시는 생성된 삭제 순서와 만료 직전 및 직후의 불변 조건으로 보완한다. 생명 주기 모델의 중복 순서, 삭제와 복원 상태 및 통제 결함은 이 두 검사와 앞선 겹침 순서, 위치 검사로 대체한 뒤 파일 전체를 제거한다. `test:model` 명령에서는 제거한 파일만 빼고 남은 본문 및 복사 모델을 계속 실행한다. `e2e/notes.spec.ts`에는 같은 삭제 과업을 다시 쓰지 않는다.
+
+코드 변경 전 범위: `note-removal-history.test.ts`에 생성된 여러 메모의 최근 삭제 우선 복원, 원문 및 위치 보존과 삭제 완료 시각부터 계산한 기한을 추가한다. `notes-removal-model.spec.ts`에서는 특정 최소 행동 문자열과 별도 수동 복제 순서를 제거하고 실제 축소된 명령을 정상 화면 및 통제 결함 화면에 직접 재실행한다. `note-lifecycle.model.test.ts`를 제거하며 `package.json`의 `test:model` 지정만 수정한다. 운영용 세션, 토스트, 메모 카드, 저장소, UI 컴포넌트, 새 fixture와 별도 시계 구현은 추가하거나 수정하지 않는다. 삭제 스냅샷을 최근 항목부터 복원하는 스택 전이와 실제 화면 및 저장소를 관찰하는 어댑터를 분리한다. [Playwright Clock](https://playwright.dev/docs/clock)은 앱의 타이머보다 먼저 설치하고, 로딩 뒤 기준 시각에 멈춘 상태에서 기한 전후를 실행한다. 테스트의 임의 시계값을 운영 조건으로 가정하지 않는다.
 
 1. 생성: 서로 다른 메모 삭제, 취소, 순서 변경, 5초 직전 및 이후, 화면 왕복과 새로고침을 조합한다. 삭제 완료 시각부터 경과한 시간으로 취소 기한을 계산한다.
 2. 탐지: 삭제 직후 부재, 취소 후 같은 ID 및 원문과 geometry, 포커스, 만료 후 취소 불가를 확인한다. 삭제 전 zIndex는 동률이어도 보존하며 복원 때문에 다른 메모를 재배정하지 않는다.
@@ -2307,13 +2389,17 @@ Chromium에서 복구 초안을 가진 모바일 목록을 다시 연 뒤 수정
 
 조사 근거는 [Clock](https://playwright.dev/docs/clock)과 [복원 결정](decisions/note-removal-recovery.md)이다. `A=1,B=2,C=3`에서 B 삭제, A 앞으로, B 복원은 `C=1,A=2,B=2`를 유지한다. 세션 이력을 별도 컴포넌트 state에 복제하지 않는다.
 
-- [ ] 생성, 탐지, 축소, 기록과 재현의 새 증거 확보
+- [x] 삭제, 취소와 만료의 다섯 절차 완료. 최근 삭제 우선 복원과 원래 원문 및 위치, 삭제 완료 시각의 기한을 생성된 입력으로 검사했다. 실제 카드의 삭제와 토스트 취소, 다른 화면 왕복, 새로고침 및 저장값 탐색에서 겹침 복원 결함을 축소하고 다시 실행했다. 같은 역할의 생명 주기 모델 파일을 제거하고 남은 모델 명령을 두 파일에 맞췄다. E2E 대상 세 건, 단위 검사 190건, 모델 명령 여덟 건, 타입 검사와 lint가 통과했다. 전체 E2E와 CI는 이 절차에서 실행하지 않았다.
 
 ### 선택과 포커스 및 속성 대상
 
 목적은 선택한 메모, 실제 포커스와 속성 패널 대상이 서로 달라도 각자의 동작과 입력을 유지하는지 확인하는 것이다.
 
-먼저 `note-workspace-state.ts`, `NoteSessionProvider`, `NotesCollection`, `note-card.tsx`와 속성 폼을 읽는다. `notes-selection-model.spec.ts`의 합성 double click 결함과 DOM 부모 탐색 모델을 삭제한다. `note-workspace-state.test.ts`는 순수 전이 검사로 유지하고 `e2e/notes.spec.ts`에 실제 조작을 작성한다.
+먼저 `note-workspace-state.ts`, `NoteSessionProvider`, `NotesCollection`, `note-card.tsx`와 속성 폼을 읽는다. `notes-selection-model.spec.ts`는 실제 Tab, 카드 버튼, 속성 폼과 접근 가능한 선택 설명을 이미 조작하므로 유지한다. 빈 캔버스 입력 뒤 다른 메모의 `dblclick`을 합성하는 결함은 제거하고 캔버스의 실제 pointer 종료 전달을 격리 조건에서 막아 선택 해제 누락을 관찰한다. `note-workspace-state.test.ts`에 생성된 두 메모 ID와 revision으로 속성 대상, 선택 및 해제의 독립 전이를 추가한다. `e2e/notes.spec.ts`에는 같은 키보드와 패널 과업을 중복 추가하지 않는다.
+
+코드 변경 전 점검: 추가는 기존 상태 검사 파일의 생성 입력과 전용 브라우저 검사의 실제 빈 캔버스 입력 차단 조건이다. 수정은 통제 결함의 명칭 및 설치 지점, 특정 축소 행동 문자열을 정답으로 삼는 단언과 직접 재현 명령이다. 제거는 합성 `dblclick`과 그 DOM 대상 추적, 이미 축소된 명령을 수동으로 다시 작성한 배열이다. 운영 세션, 보드, 메모 카드, 속성 폼, 추가 선택 state 및 새로운 test helper는 수정하거나 추가하지 않는다.
+
+선택, 포커스와 속성 대상을 서로 독립된 값으로 유지하는 상태 전이를 단일 출처로 두고 브라우저 입력과 화면을 어댑터로 관찰한다. [HTML 포커스](https://html.spec.whatwg.org/multipage/interaction.html#focus)와 [WAI 키보드 지침](https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/)에 따라 실제 포커스와 선택 설명을 별개로 검사하며 색이나 점선만으로 선택을 추정하지 않는다. 네이티브 팝오버를 닫은 직후에는 브라우저별 복귀 위치를 이 절의 요구사항으로 가정하지 않는다. 다음 헤더 동작을 시작할 때 버튼에 명시적으로 포커스를 두고 실제 활성 요소를 다시 확인한다.
 
 1. 생성: Tab, 단일 헤더 클릭, 더블클릭, 선택 지점 Enter, 편집기 Enter, Escape, Command와 빈 캔버스 클릭을 두 메모에 조합한다. 패널 A에 잘못된 너비를 입력한 뒤 B 선택을 포함한다.
 2. 탐지: 선택만 한 경우 패널이 열리지 않고, 지정 동작에서 패널과 첫 입력 포커스가 바뀌는지 확인한다. 선택 해제 후 A 제목과 미완성 입력은 유지돼야 한다. React state key 대신 패널 입력과 `toBeFocused`를 사용한다.
@@ -2323,7 +2409,13 @@ Chromium에서 복구 초안을 가진 모바일 목록을 다시 연 뒤 수정
 
 조사 질문은 [Playwright 키보드 입력](https://playwright.dev/docs/api/class-keyboard)과 [HTML 포커스](https://html.spec.whatwg.org/multipage/interaction.html#focus)의 차이다. 새 선택 ref나 패널 state를 만들지 않고 기존 세션 전이와 폼 연결에서 고친다.
 
-- [ ] 생성, 탐지, 축소, 기록과 재현의 새 증거 확보
+- [x] 생성: 두 메모의 Tab, 헤더, 편집기, 속성 패널과 선택 해제 입력을 정상 후보 10개 및 필수 순서로 실행했다.
+- [x] 탐지: 빈 캔버스의 pointer 종료 전달만 막으면 선택 설명이 남고, 포커스와 속성 패널의 기존 대상 및 초안은 유지되는 차이를 찾았다.
+- [x] 축소: 결함 조건에서 불필요한 기준 관찰 네 번을 없애고 실제 실패 명령을 남겼다. 특정 명령 문자열 전체를 정답으로 고정하지 않았다.
+- [x] 기록: 실행한 명령 수, seed, path, 초기 자료와 화면에서 읽은 선택, 포커스, 패널 제목 및 입력값을 남겼다.
+- [x] 재현: 축소된 명령을 seed와 path 및 직접 실행으로 다시 확인했다. 결함 조건에서만 실패하고 정상 화면에서는 통과했다.
+
+2026년 9월 24일 현재 대상 E2E 세 건, 전체 단위 검사 191건, 타입 검사와 lint가 통과했다. Chromium, Firefox 및 WebKit에서 헤더 버튼의 팝오버 열림과 닫힘은 같았지만, 닫힌 직후의 자동 포커스 복귀는 일치하지 않았다. 버튼의 다음 키보드 행동 전에 명시적으로 포커스를 맞추고 선택 상태, 실제 포커스와 속성 패널의 값은 각각 검사했다. 운영 코드와 자료 형식은 변경하지 않았다. 전체 E2E와 CI는 이 절차에서 실행하지 않았다.
 
 카드 선택은 접근성 설명 `선택됨`으로 전달하고, 포커스만 있는 카드는 선택으로 전달하지 않는다. `notes.spec.ts`의 키보드 및 패널 과업과 접근성 설명 검사로 현재 사용자 동작을 별도로 확인한다. 기존 `notes-selection-model.spec.ts`는 CSS `::after`의 선을 선택으로 읽으므로 접근성 설명 검사로 대체하지 않고 이 절의 재작성 대상으로 남긴다.
 
@@ -2339,7 +2431,11 @@ Chromium에서 복구 초안을 가진 모바일 목록을 다시 연 뒤 수정
 
 목적은 시점 조작이 메모 저장 위치를 바꾸지 않고, pointer 종료가 중복돼도 마지막 유효 시점이 유지되는지 확인하는 것이다.
 
-먼저 `notes-board.tsx`의 시점, 크기 관찰과 pointer 처리를 읽고 보드가 호출하는 계산 함수의 기존 검사를 찾는다. `e2e/notes.spec.ts`의 캔버스 검사에 생성 순서를 추가한다. 캔버스만을 위한 새로운 fixture나 별도 앱은 만들지 않는다.
+먼저 `notes-board.tsx`, `use-notes-board-view.ts`의 시점, 크기 관찰과 pointer 처리를 읽고 `board-view.test.ts`의 기존 확대 기준점 및 메모 표시 검사를 확인한다. `e2e/notes.spec.ts`에 생성된 시점 조작 순서를 추가한다. 캔버스만을 위한 새 fixture나 별도 앱은 만들지 않는다.
+
+코드 변경 전 점검: `notes.spec.ts`에 화면 제어, 빈 공간 drag, pointer 해제 뒤 hover, 확대와 맞춤 보기를 실제 UI에서 실행할 탐색만 추가한다. 테스트의 기대 위치와 크기는 각 입력 직전 화면 사각형과 이미 읽어 둔 저장 geometry에서 계산한다. 결함 격리에는 빈 공간의 `pointerup`과 뒤따르는 `lostpointercapture` 전달을 함께 막아 버튼을 놓은 뒤 hover에서 시점이 다시 움직이는지 관찰한다. fast-check가 반환한 축소 행동을 직접 재실행하고 같은 행동을 정상 화면에서도 실행한다.
+
+기존 `notes.spec.ts`의 메모 이동, 크기 조절, capture 상실, 보조 키 휠 검사는 서로 다른 과업을 확인하므로 제거하지 않는다. `board-view.test.ts`의 기준점 불변 검사를 반복하지 않는다. 운영 보드, hook, 보기 제어, 저장소 및 새로운 시점 state는 변경하지 않는다. 이 절차에서 중복 구현이 확인될 때에만 그 부분의 교체를 별도로 기록한다. [Pointer Events](https://www.w3.org/TR/pointerevents3/)에 따라 `pointerup`과 `pointercancel` 뒤 capture가 해제된다는 점을 이용하고, 브라우저가 생성하지 않는 두 번째 `pointerup`을 정상 사용자 입력인 것처럼 합성하지 않는다.
 
 1. 생성: 빈 공간 이동, 확대, 축소, 전체 맞춤, pointer 완료 및 취소와 화면 너비 전환을 조합한다. 메모에서 시작한 drag는 캔버스 이동으로 처리하지 않는 사례를 포함한다.
 2. 탐지: 화면에서 메모 사각형과 배율의 변화, 저장 geometry 불변과 조작 종료 후 시점 유지를 확인한다. 중복 종료가 시작 위치로 되돌리거나 저장 좌표를 바꾸면 실패다.
@@ -2349,13 +2445,31 @@ Chromium에서 복구 초안을 가진 모바일 목록을 다시 연 뒤 수정
 
 조사 질문은 [Pointer Events](https://www.w3.org/TR/pointerevents3/)의 정상 capture 해제와 취소 차이다. 기존 진행 상태를 수정하며 별도 종료 플래그와 좌표 ref를 계속 추가하지 않는다.
 
-- [ ] 생성, 탐지, 축소, 기록과 재현의 새 증거 확보
+- [x] 생성: 보기 버튼의 왼쪽 이동, 모두 보기와 축소를 섞고 보조 키 휠 확대, 빈 공간 이동, 일반 해제 또는 capture 상실, 뒤따르는 hover 및 화면 너비 변경을 생성한 원문과 이동량으로 실행했다. 실제 OS의 `pointercancel`은 생성했다고 주장하지 않는다.
+- [x] 탐지: 실제 화면에서 조작 전후 메모의 사각형, 보기 제어의 위치 및 IndexedDB geometry를 확인했다. `pointerup`과 `lostpointercapture`를 함께 막은 조건에서 해제 뒤 hover만으로 시점이 다시 움직이는 차이를 찾았다.
+- [x] 축소: 실패 순서의 불필요한 보기 이동을 없애고 휠 확대, 이동, 해제 및 hover와 필요한 입력량을 남겼다.
+- [x] 기록: 최초 및 축소 입력의 휠과 이동량 및 화면 너비, 메모 원문, 화면의 기대 및 관찰 좌표, seed, path, 브라우저와 축소 횟수를 JSON으로 남겼다.
+- [x] 재현: seed와 path 및 축소 입력 직접 실행에서 종료 신호가 모두 막힌 경우에만 실패했다. 정상 화면에서는 저장 위치가 그대로이고 해제 뒤 hover로 시점이 움직이지 않았다.
+
+2026년 9월 24일 캔버스 동작 E2E 12건, 단위 검사 191건, 타입 검사와 lint가 통과했다. 이후 같은 캔버스 검사에 capture 상실과 화면 너비 변경을 추가한 대상 E2E 세 건도 통과했다. 운영 보드, 계산 함수, 보기 제어와 저장소는 바꾸지 않았다. 실제 터치패드 및 OS 입력 누락과 전체 E2E 및 CI는 이번 절차에서 확인하지 않았다.
+
+최종 검증에서 WebKit의 capture 상실 뒤 버튼을 놓은 다음 움직임이 시점을 다시 이동시키는 사례가 나왔다. 앞선 대상 검사 통과만으로 이 입력 순서의 완료를 유지하지 않는다. 변경 대상으로 `use-notes-board-view.ts`의 제스처 종료와 `notes.spec.ts`의 통제 결함 입력을 정했다.
+
+기존 viewport 종료 처리와 동일한 pointer ID에 대해 document가 받은 `pointerup`과 `pointercancel`에서도 제스처를 정리한다. 새 제스처 상태, 브라우저 분기, 테스트 fixture, 저장 자료 변경은 추가하지 않으며 기존 종료 처리는 제거하지 않는다. 수정 뒤 Chromium에서는 종료 신호를 viewport에서만 막아도 document 수신기가 제스처를 정리해 통제 결함이 탐지되지 않았다. capture 해제 뒤 대상이 달라져도 같은 결함을 만들도록 `notes.spec.ts`의 차단 지점을 document의 capture 단계로 옮긴다. 정상 입력과 화면 위치 및 저장 좌표 관찰식은 바꾸지 않는다.
+
+보완 뒤 WebKit의 정상 및 통제 결함 탐색 한 번은 통과했다. 다만 그때의 통제 결함 차단은 viewport 기준이었다. 이후 차단 지점을 document로 옮긴 다음 Chromium의 정상 후보 다섯 개는 진행됐고, 별도 단일 후보에서 종료 신호 누락에 따른 화면 이동을 확인했다. 전체 축소와 재실행은 180초 제한에 걸렸고 Firefox는 브라우저 시작 단계에서 시간 초과가 발생했다.
+
+현재 판정은 `needs revision`이다. 수정된 차단 조건으로 세 브라우저의 정상 후보, 통제 결함의 축소 및 재실행을 각각 완료해야 한다. 제한 시간을 늘리거나 후보 수를 줄여서 통과 처리하기 전에 실행 환경의 지연을 확인한다.
 
 ### 개별 복사
 
 목적은 선택한 메모의 원문 전체를 복사하고, 실패와 취소를 성공 횟수로 기록하거나 상세 이동으로 이어가지 않는지 확인하는 것이다.
 
-먼저 `copy-note.ts`, `browser-clipboard-writer.ts`, `mobile-note-card.tsx`와 사용 기록 repository를 읽는다. `copy-note.model.test.ts`는 삭제하고 `copy-note.test.ts`, `clipboard-permissions.spec.ts`, `touch-interactions.spec.ts`에서 각 실행 계층의 검사를 작성한다.
+먼저 `copy-note.ts`, `browser-clipboard-writer.ts`, `mobile-note-card.tsx`, `use-mobile-note-long-press.ts`와 사용 기록 repository를 읽는다. `copy-note.model.test.ts`의 명령 및 메모리 배열 관찰은 제거하고 `copy-note.test.ts`, `clipboard-permissions.spec.ts`, `touch-interactions.spec.ts`에서 각 실행 계층의 결과를 확인한다.
+
+코드 변경 전 점검: `copy-note.test.ts`의 고정 메모 한 건을 생성한 ID, 원문과 revision으로 바꾸고 Clipboard 쓰기 성공, 세 실패 이유 및 사용 기록 실패의 반환값과 외부 작성자 호출을 확인한다. `clipboard-permissions.spec.ts`에는 생성한 원문을 실제 Clipboard에서 읽는 정상 복사와 브라우저가 권한을 거절한 뒤 허용했을 때의 재시도를 추가한다. 격리된 잘못된 Clipboard 쓰기는 실제 브라우저 Clipboard API에 다른 원문을 넘기되 성공을 보고하게 해서 화면의 성공 알림만으로 원문 복사를 통과시키지 않는다. 그 실패 입력은 fast-check로 줄여 같은 입력을 결함 조건과 정상 조건에서 다시 실행한다. `touch-interactions.spec.ts`에서는 기존 CDP touch 입력과 Clock을 재사용해 길게 누르기 직전 및 직후, 이동 기준 안팎과 취소 뒤 복사 부재 및 주소 유지를 확인한다.
+
+기존 `copy-note.model.test.ts`는 실제 Clipboard와 저장된 사용 횟수를 읽지 않고 별도 배열만 비교하므로 대체 검사 확보 뒤 삭제하며 `package.json`의 `test:model` 명령에서 복사 모델 파일을 뺀다. 운영 `copyNote`, 메모 카드, 터치 hook, 사용 기록 repository 및 외부 의존성은 수정하지 않는다. ClipboardWriter와 사용 기록 작성자를 주입하는 현재 포트와 구현 분리를 유지하고, [Clipboard API](https://w3c.github.io/clipboard-apis/)의 쓰기 권한 및 활성 문서 조건과 [DevTools touch 입력](https://chromedevtools.github.io/devtools-protocol/tot/Input/)을 구별한다. 테스트용 쓰기 성공은 실제 Clipboard 읽기 성공으로 주장하지 않는다.
 
 1. 생성: 서로 다른 원문 복사, 반복 복사, 권한 거부 및 재시도, 모바일 500ms 전후와 10 CSS px 안팎 이동 및 취소를 조합한다. 일괄 복사 추가는 실행하지 않는다.
 2. 탐지: 실제 Clipboard를 읽을 수 있는 환경에서는 복사 원문을 확인하고 성공 후 횟수를 조회한다. 실패 시 횟수 불변과 알림, 취소 시 상세 이동 및 복사 부재를 확인한다. 대역의 쓰기 성공은 실제 권한 성공과 구분한다.
@@ -2365,13 +2479,23 @@ Chromium에서 복구 초안을 가진 모바일 목록을 다시 연 뒤 수정
 
 조사 근거는 [Clipboard 권한과 사용자 활성화](https://w3c.github.io/clipboard-apis/) 및 [Playwright 입력 지원](https://playwright.dev/docs/input)이다. 테스트를 통과시키려고 운영 권한 처리를 우회하거나 touch 상태를 두 군데서 관리하지 않는다.
 
-- [ ] 생성, 탐지, 축소, 기록과 재현의 새 증거 확보
+- [x] 생성: 원문, ID와 content revision을 생성해 복사 성공 및 세 Clipboard 실패 이유와 사용 기록 실패를 검사했다. Chromium에서 실제 Clipboard 복사, 권한 거절 후 재시도 및 모바일 touch의 500ms와 10 CSS px 앞뒤 입력을 실행했다.
+- [x] 탐지: 실제 Clipboard 읽기와 사용 빈도 화면의 개별 횟수를 확인했다. 쓰기 API에 다른 원문을 넘긴 격리 조건에서는 성공 알림이 보여도 복사 원문 불일치를 찾았다. 이동 또는 취소된 touch는 횟수를 늘리지 않았다.
+- [x] 축소: 잘못 쓰인 원문을 하나의 공백 문자로 줄이고, 같은 입력의 정상 복사에서는 원문 전체가 유지됨을 확인했다.
+- [x] 기록: 최초 및 축소 원문, 실제 Clipboard 읽기값, seed, path와 브라우저를 JSON으로 남겼다. 권한 및 touch 과업은 화면 결과와 사용 횟수로 기록했다.
+- [x] 재현: seed와 path 및 축소된 원문 직접 실행에서 쓰기 변조 조건만 실패했다. 권한 재허용 뒤 같은 메모의 다시 시도 버튼으로 복사가 성공하고 개별 횟수가 증가했다.
+
+2026년 9월 24일 Clipboard 및 touch E2E 13건, 전체 단위 검사 188건, 남은 모델 검사 네 건, 타입 검사와 lint가 통과했다. 메모리 배열만 비교하던 복사 모델 파일을 제거하고 중복 책임은 생성 입력의 서비스 검사와 실제 화면 검사로 옮겼다. Firefox와 WebKit의 실제 Clipboard 권한 및 네이티브 기기 touch는 이번 절차에서 확인하지 않았으며 전체 E2E와 CI도 실행하지 않았다.
 
 ### 사용 기록과 집계 화면
 
 목적은 복사 당시 원문 revision별 성공 횟수가 저장되고, 화면 합계가 그 기록과 일치하는지 확인하는 것이다.
 
-먼저 `copy-note.ts`, `indexed-db-usage-repository.ts`, `read-usage.ts`, `usage-projection.ts`와 `usage-table.tsx`를 읽는다. 삭제할 복사 모델의 메모리 집계는 복원하지 않는다. `text-usage-record.test.ts`, `usage-projection.test.ts`, 기존 IndexedDB 검사와 `e2e/notes.spec.ts`에 해당 검사를 작성한다.
+착수 전 코드 변경 대상: `text-usage-record.test.ts`와 `usage-projection.test.ts`의 고정 자료 및 고정 합계 검사를 생성 자료로 교체한다. 기존 IndexedDB 통합 검사에는 같은 메모의 원문 변경 전후 개별 복사와 새 연결 재조회를 더하고, 실제 Clipboard 권한을 설정하는 `e2e/clipboard-permissions.spec.ts`에는 메모 복사, 수정, 사용 빈도 화면 왕복과 저장 실패를 관찰하는 과업을 더한다. 새 운영 컴포넌트, 저장 상태, fixture, script 또는 의존성은 추가하지 않는다. 같은 집계값을 검사하는 기존 예제는 대체 검사가 준비된 경우에만 제거한다. 운영 결함이 확인되지 않으면 `copy-note.ts`, 저장소, projection과 table은 수정하지 않는다.
+
+적용 방식은 복사 명령이 사용 기록 포트를 호출하고 IndexedDB adapter가 복사 시점의 메모 ID, 원문 revision 및 원문으로 한 건을 누적하는 현재 책임 분리를 유지하는 것이다. 화면은 저장된 횟수에서 합계를 계산하는 순수 projection을 사용한다. 따라서 테스트의 예상 합계는 생성한 개별 횟수와 일괄 횟수에서 독립적으로 계산하고 운영 projection을 기대값 생성에 호출하지 않는다. IndexedDB 표준에서 쓰기 요청의 성공과 transaction commit은 다르므로 새 연결의 재조회로 저장 완료를 판정한다. fast-check의 축소는 잘못된 원문 revision에 누적되는 편집과 복사의 최소 순서를 찾는 데 사용한다. Playwright는 실제 UI와 접근성 이름을 관찰한다.
+
+먼저 `copy-note.ts`, `indexed-db-usage-repository.ts`, `read-usage.ts`, `usage-projection.ts`와 `usage-table.tsx`를 읽는다. 삭제할 복사 모델의 메모리 집계는 복원하지 않는다. `text-usage-record.test.ts`, `usage-projection.test.ts`, 기존 IndexedDB 검사와 `e2e/clipboard-permissions.spec.ts`에 사용 기록 검사를 작성한다.
 
 1. 생성: 복사, 본문 변경, 다시 복사, 쓰기 실패, 기록 실패와 사용 화면 재진입을 조합한다. 기존 일괄 복사 횟수는 최소 초기 자료로만 준비하고 보류된 일괄 복사 행동을 생성하지 않는다.
 2. 탐지: revision별 원문과 개별 횟수, 보존한 일괄 횟수 및 합계를 확인한다. Clipboard 성공 뒤 기록만 실패하면 두 결과를 구분하고 저장하지 못한 횟수가 성공 기록으로 남지 않는지 확인한다.
@@ -2381,7 +2505,13 @@ Chromium에서 복구 초안을 가진 모바일 목록을 다시 연 뒤 수정
 
 조사 질문은 저장 실패 이후 표시와 재조회, [IndexedDB commit](https://w3c.github.io/IndexedDB/#transaction-concept)의 관계다. 계산 가능한 합계는 기존 projection에서 계산하고 별도 state 및 동기화 Effect를 추가하지 않는다.
 
-- [ ] 생성, 탐지, 축소, 기록과 재현의 새 증거 확보
+- [x] 생성: 원문 변경 전후의 개별 복사 횟수, 기존 일괄 복사 횟수와 원문 revision을 생성했다. 실제 화면에서는 복사, 일괄 항목 추가, 본문 수정, 복사, 기록 실패와 사용 빈도 화면 재진입을 실행했다.
+- [x] 탐지: 새 IndexedDB 연결에서 두 원문 기록을 분리해 확인하고, 나중 복사를 이전 revision에 쓰는 격리 조건에서 같은 비교가 실패했다. 화면에서는 Clipboard 쓰기 성공과 기록 실패 안내를 구분했고 실패한 횟수는 행에 더해지지 않았다.
+- [x] 축소: 격리 조건에서 이전 원문 복사, 일괄 항목 추가, 한 번의 편집과 새 원문 복사만 남기고 각 개별 복사를 한 번으로, 원문을 공백으로 줄였다. 필요한 편집과 복사 순서를 고정한 상태에서 반복 횟수 및 입력을 축소했으며 임의의 전체 행동 순서에 대한 최소성 증명은 아니다.
+- [x] 기록: 최초 및 축소된 입력, 원문 revision과 저장 횟수의 예상값 및 관찰값, 브라우저별 seed와 path를 Browser Mode의 표준 출력에 남겼다. 실제 화면의 두 행, 합계와 저장 실패 안내는 E2E로 기록했다.
+- [x] 재현: seed 및 path와 축소 입력 직접 실행에서 잘못된 revision 전달 조건만 실패했다. 새 저장소 연결 및 사용 빈도 화면 재진입에서는 정상 기록이 유지됐다.
+
+2026년 9월 24일 단위 검사 188건, IndexedDB Browser Mode 27건, Clipboard E2E 10건, 타입 검사, lint와 운영 빌드가 통과했다. 전체 E2E와 실제 기기 Clipboard 입력은 이 절차 뒤 아직 확인하지 않았다. 운영 사용 기록 저장소, 집계 함수, UI 및 저장 자료 형식은 바꾸지 않았다. 모델 검사의 축소 횟수가 항상 양수라는 우연적 전제는 최초 실패가 이미 최소일 수 있어, 축소된 행동 수가 최초 실패보다 늘지 않는 조건으로 고쳤다. 자동 저장을 기다리지 않고 화면을 새로 열면 수정 전 원문이 나타나므로, 화면 과업은 저장된 원문을 새 연결로 확인한 뒤 다시 연다.
 
 ### 실행 순서, 연구 갱신과 완료 기록
 
@@ -2399,12 +2529,12 @@ Chromium에서 복구 초안을 가진 모바일 목록을 다시 연 뒤 수정
 
 검증된 기능 단위로 커밋하며 통제 결함을 운영 코드에 남기지 않는다. 문서 전용 변경과 실행 코드를 구분하고 커밋 메시지는 실제 변경 내용만 설명한다. Git 이력 재구성과 코드 삭제는 계획 작성만으로 승인된 것으로 취급하지 않는다.
 
-CI 서비스와 원격 저장소는 미정이다. 이번 실행은 로컬 기능 및 브라우저 결과까지만 확인하고 CI 재현은 이후 별도 작업으로 남긴다. CI 실행을 하지 않았는데 요구사항의 CI 조건까지 충족했다고 표시하지 않는다. 일괄 복사 탐색, HTTP Adapter, XState, 공통 패키지와 범용 UI 탐색은 이번 작업에 추가하지 않는다.
+이번 실행에서는 CI 재현을 확인하지 않는다. 로컬 기능 및 브라우저 결과만 완료 근거로 삼고 CI 조건을 충족했다고 표시하지 않는다. 일괄 복사 탐색, HTTP Adapter, XState, 공통 패키지와 범용 UI 탐색은 이번 작업에 추가하지 않는다.
 
 - [x] 12개 메모 기능의 목적, 운영 연결, 삭제 및 재작성 위치와 다섯 절차를 재정의했다.
-- [ ] 삭제 및 재작성 실행 범위를 확정하고 기존 서비스와 예제 검사를 보존했다.
-- [ ] 12개 기능 각각에서 다섯 절차와 필요한 실제 저장 및 화면 증거를 확보했다.
-- [ ] 실제 실행 옵션, 도구 버전, 실패 자료와 정상 비교를 단일 실행 기록에 남겼다.
+- [x] 삭제 및 재작성 실행 범위를 기능별로 확정하고 기존 서비스와 필요한 예제 검사를 보존했다.
+- [ ] 12개 항목 각각에서 다섯 절차와 필요한 실제 저장 및 화면 증거를 확보한다. 현재 캔버스의 수정 뒤 재검증이 남았다.
+- [ ] 실제 실행 옵션, 도구 버전, 실패 자료와 정상 비교를 단일 실행 기록에 남긴다. 캔버스의 수정 뒤 축소 및 재실행 관찰값이 남았다.
 - 이번 실행 제외: 같은 실행 조건의 CI 재현 확인. 요구사항은 유지한다.
 
 ## TDD 적용 요약
@@ -2456,8 +2586,10 @@ TDD 여부는 파일 종류나 모듈 크기가 아니라 구현 전에 사용�
 
 ## 계획 완료 판정
 
-이 계획은 문서를 만들었다는 이유로 완료되지 않는다. U1부터 U12까지 요구사항에 연결된 저장 및 기능 증거를 유지하고 U13부터 U32까지 필요한 UI 재구축, 실제 브라우저 과업, 시각 및 접근성 검토가 모두 `pass`여야 로컬 애플리케이션 완성을 주장할 수 있다. 메모 목록과 보조 화면의 Drawer, 화면별 프레임, 우측 하단 새 메모, 메모 누르기 복사와 수정 아이콘 상세 이동 및 토스트 닫기가 구현되지 않았으면 U22부터 U25는 완료가 아니다. U14와 U18의 좁은 화면 탐색도 U23의 실제 동작 증거가 없으면 완료가 아니다.
+이 계획은 문서를 만들었다는 이유로 완료되지 않는다. U1부터 U12까지 요구사항에 연결된 저장 및 기능 증거를 유지하고 U13부터 U34까지 필요한 UI 재구축, 실제 브라우저 과업, 시각 및 접근성 검토가 모두 `pass`여야 로컬 애플리케이션 완성을 주장할 수 있다. 메모 목록과 보조 화면의 Drawer, 화면별 프레임, 우측 하단 새 메모, 메모 누르기 복사와 수정 아이콘 상세 이동 및 토스트 닫기가 구현되지 않았으면 U22부터 U25는 완료가 아니다. U14와 U18의 좁은 화면 탐색도 U23의 실제 동작 증거가 없으면 완료가 아니다.
 
 새 메모의 본문 포커스가 헤더 아래에 별도 붉은 선을 만들거나 화면 밖 메모를 생성한 뒤 왼쪽 아래 보기 제어가 보이지 않으면 U26 및 U27은 완료가 아니다. 핀치와 보조키+휠이 같은 캔버스 시점을 바꾸고 메모 저장 자료와 일반 스크롤을 유지한다는 실제 기기 및 브라우저 증거가 없으면 U28은 완료가 아니다. 화면 높이가 줄 때 카드가 눌리거나 우측 하단 버튼을 위해 상시 빈 행이 남고 마지막 메모의 원문 또는 수정 동작을 사용할 수 없으면 U29와 U30은 완료가 아니다. 평상시와 수집 상태에 같은 하단 여백이 남거나, 모바일 생성 직후 상세 화면에 자동 이동하거나 숨겨진 보드 입력에 포커스가 가면 U30과 U31은 완료가 아니다.
 
 좁은 일괄 복사 확인 또는 저장 목록 관리에서 버튼 옆 팝오버가 남거나, 이동 아이콘에 방향별 접근 가능한 이름이 없거나, 설정을 끈 상태에 이동 동작이 나타나면 U32는 완료가 아니다. 승인된 닫기 방식 중 하나라도 자료를 바꾸거나 작동하지 않으면 완료로 계산하지 않는다. 넓은 패널과 넓은 저장 목록 관리의 기존 팝오버, 이동과 복사 결과가 약해져도 완료할 수 없다.
+
+모바일 주소창이 펼쳐지거나 접힌 뒤 메모 목록, 수집, 상세, 일괄 복사 확인 또는 저장 목록 관리에서 바깥 문서의 빈 영역으로 화면 전체가 스크롤되거나 하단 동작이 함께 이동하면 U33은 완료가 아니다. 사용 빈도, 분석, 템플릿, 설정 및 접속 안내의 짧은 화면에 불필요한 빈 스크롤이 남거나 긴 내용의 끝에 접근할 수 없으면 U34는 완료가 아니다. 고정된 데스크톱 표시 영역의 자동 검사만으로 실제 모바일 주소창과 화면 키보드 동작을 확인했다고 판정하지 않는다.

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   IndexedDbNoteDraftRepository,
@@ -166,5 +166,47 @@ describe("메모 저장소 모델", () => {
     expect(noteById(final, thirdNote.id)).toMatchObject({
       geometry: { ...thirdNote.geometry, zIndex: 1 },
     })
+  })
+
+  it("겹침 순서의 일괄 저장이 중단되면 이전 순서가 모두 남는다", async () => {
+    const firstConnection = createConnection()
+    const notes = new IndexedDbNoteRepository(firstConnection)
+    const companion: Note = {
+      ...note,
+      content: crypto.randomUUID(),
+      geometry: { ...note.geometry, zIndex: note.geometry.zIndex + 1 },
+      id: crypto.randomUUID(),
+      tabIndex: note.tabIndex + 1,
+    }
+    const original = [note, companion]
+    await notes.saveAll(original)
+    const moved = sendNoteToFront(original, note.id, timestamp)
+    const originalPut = IDBObjectStore.prototype.put
+    let writes = 0
+    const put = vi.spyOn(IDBObjectStore.prototype, "put")
+    put.mockImplementation(function (this: IDBObjectStore, value: unknown, key?: IDBValidKey) {
+      const request = originalPut.call(this, value, key)
+      if (this.name === "notes") {
+        writes += 1
+        if (writes === moved.length) {
+          queueMicrotask(() => this.transaction.abort())
+        }
+      }
+      return request
+    })
+
+    try {
+      await expect(notes.saveAll(moved)).rejects.toThrow()
+    } finally {
+      put.mockRestore()
+    }
+    firstConnection.close()
+
+    const restored = new IndexedDbNoteRepository(createConnection())
+    const saved = await restored.getAll()
+    expect(saved).toHaveLength(original.length)
+    for (const previous of original) {
+      expect(noteById(saved, previous.id)).toEqual(previous)
+    }
   })
 })

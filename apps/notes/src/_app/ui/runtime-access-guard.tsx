@@ -38,7 +38,7 @@ export function RuntimeAccessGuard({ children }: PropsWithChildren) {
   return (
     <main
       aria-busy={access === "checking"}
-      className="grid min-h-screen place-items-center bg-canvas px-4 py-10 text-ink"
+      className="grid min-h-dvh place-items-center bg-canvas px-4 py-10 text-ink"
       id="main-content"
     >
       {access === "checking" ? (

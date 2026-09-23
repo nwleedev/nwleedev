@@ -1,6 +1,6 @@
 import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"
-import { useForm } from "react-hook-form"
+import * as fc from "fast-check"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { page, userEvent } from "vitest/browser"
 
@@ -15,8 +15,7 @@ import {
   NotesDataProvider,
   useNotesData,
 } from "./notes-data-provider"
-import type { SaveNoteContentResult } from "./save-note-content"
-import { useNoteContentAutosave } from "./use-note-content-autosave"
+import { NoteCard } from "../ui/note-card"
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
@@ -31,56 +30,6 @@ const drafts: NoteDraftRepository = {
   get: async () => null,
   remove: async () => undefined,
   save: async (draft) => draft,
-}
-
-type AutosaveEditorProps = {
-  initialContent: string
-  note: Note
-  onSave(noteId: string, content: string): Promise<SaveNoteContentResult>
-}
-
-function AutosaveEditor({
-  initialContent,
-  note,
-  onSave,
-}: AutosaveEditorProps) {
-  const { getValues, register, reset } = useForm<{ content: string }>({
-    defaultValues: { content: initialContent },
-  })
-
-  function readContent() {
-    return getValues("content")
-  }
-
-  function acceptSavedContent(savedContent: string) {
-    if (readContent() === savedContent) {
-      reset({ content: savedContent })
-    }
-  }
-
-  const content = useNoteContentAutosave({
-    initialContent,
-    note,
-    onContentSaved: acceptSavedContent,
-    onFailure: () => undefined,
-    onSave,
-    readContent,
-  })
-  const contentRegistration = register("content", {
-    onBlur() {
-      void content.save()
-    },
-    onChange() {
-      content.scheduleSave()
-    },
-  })
-
-  return (
-    <textarea
-      aria-label="메모 내용"
-      {...contentRegistration}
-    />
-  )
 }
 
 function NotesDataProbe() {
@@ -134,12 +83,29 @@ function NotesDataProbe() {
         <article key={note.id}>{note.content}</article>
       ))}
       {firstNote ? (
-        <AutosaveEditor
+        <NoteCard
+          batchCopyShortcutEnabled={false}
+          commandPressed={false}
           initialContent={
             notesData.draftContentByNote[firstNote.id] ?? firstNote.content
           }
           note={firstNote}
-          onSave={notesData.saveContent}
+          onActivateProperties={() => undefined}
+          onAddToBatchCopy={async () => undefined}
+          onCopy={async () => undefined}
+          onFocusNote={() => undefined}
+          onMoveToBack={async () => []}
+          onMoveToFront={async () => []}
+          onRemove={async () => undefined}
+          onSaveContent={notesData.saveContent}
+          onSaveFailure={() => undefined}
+          onSaveGeometry={async (note) => note}
+          onSelect={() => undefined}
+          propertiesTarget={false}
+          renderOriginX={0}
+          renderOriginY={0}
+          scale={1}
+          selected={false}
         />
       ) : null}
     </>
@@ -354,34 +320,44 @@ describe("NotesDataProvider", () => {
 
   it("blur saves the latest text immediately after an earlier save finishes", async () => {
     const storage = createStorageMonitor()
+    const [firstContent, latestContent] = fc.sample(
+      fc.uniqueArray(fc.stringMatching(/^[a-z]{1,16}$/u), {
+        minLength: 2,
+        maxLength: 2,
+      }),
+      1,
+    )[0]
     const delayed = createDelayedSaveRepository(
       createNote("note-autosave", "저장된 메모"),
     )
     await renderNotes(delayed.repository, storage.monitor)
-    const editor = page.getByRole("textbox", { name: "메모 내용" })
+    const card = page.getByRole("article", { name: "메모", exact: true })
+    const editor = card.getByRole("textbox", { name: "메모 내용" })
 
     await act(async () => {
-      await userEvent.fill(editor, "먼저 저장할 메모")
+      await userEvent.fill(editor, firstContent)
       await userEvent.tab()
     })
     await delayed.firstSaveStarted
 
     await act(async () => {
-      await userEvent.fill(editor, "저장 중에 완성한 메모")
+      await userEvent.fill(editor, latestContent)
       await userEvent.tab()
     })
+    await expect.element(editor).toHaveValue(latestContent)
     await act(async () => {
       delayed.completeFirstSave()
       await delayed.secondSaveStarted
     })
+    await expect.element(editor).toHaveValue(latestContent)
     await act(async () => {
       delayed.completeSecondSave()
       await delayed.secondSaveFinished
     })
 
-    await expect
-      .element(page.getByRole("article").first())
-      .toHaveTextContent("저장 중에 완성한 메모")
+    await expect.element(editor).toHaveValue(latestContent)
+    const stored = await delayed.repository.getAll()
+    expect(stored[0]?.content).toBe(latestContent)
   })
 
 

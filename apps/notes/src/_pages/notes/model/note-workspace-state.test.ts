@@ -1,3 +1,4 @@
+import * as fc from "fast-check"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -24,6 +25,29 @@ function activateFirstNote() {
 }
 
 describe("메모 작업 상태", () => {
+  it("선택한 메모를 바꿨다가 해제해도 열린 속성의 메모는 바뀌지 않는다", () => {
+    fc.assert(
+      fc.property(
+        fc.uniqueArray(fc.uuid(), { minLength: 2, maxLength: 2 }),
+        fc.nat(),
+        ([propertiesId, selectedId], revision) => {
+          const properties = activateNoteProperties(
+            createNoteWorkspaceState(),
+            { id: propertiesId, revision },
+          )
+          const selected = selectNote(properties, selectedId)
+          const cleared = clearWorkspaceSelections(selected)
+
+          expect(selected.selectedNoteId).toBe(selectedId)
+          expect(selected.propertiesTarget).toEqual({ id: propertiesId, revision })
+          expect(cleared.selectedNoteId).toBeNull()
+          expect(cleared.propertiesTarget).toEqual({ id: propertiesId, revision })
+          expect(cleared.activePanel).toBe("note-properties")
+        },
+      ),
+    )
+  })
+
   it("새 작업에는 선택된 메모와 일괄 복사 항목이 없다", () => {
     const workspace = createNoteWorkspaceState()
 

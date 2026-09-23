@@ -1,3 +1,5 @@
+import { ok } from "node:assert/strict"
+
 import {
   expect,
   test,
@@ -8,6 +10,9 @@ import {
 } from "@playwright/test"
 import * as fc from "fast-check"
 
+import { ExplorationInvariantError } from "@/shared/lib/note-model-exploration"
+
+import { readAppRevision } from "../test-app-revision.js"
 import {
   createMobileNoteThroughUi,
   createNoteThroughUi,
@@ -1728,6 +1733,225 @@ test("캔버스 안의 보조키와 휠은 메모를 확대하고 일반 휠은 
   await expect(page.getByRole("group", { name: "캔버스 보기" })).toBeInViewport()
 })
 
+type CanvasPrelude = "fit" | "view-left" | "zoom-out"
+
+type CanvasScenario = {
+  content: string
+  panX: number
+  panY: number
+  prelude: CanvasPrelude[]
+  termination: "capture-loss" | "release"
+  viewportWidth: number
+  wheelDelta: number
+  toString(): string
+}
+
+function canvasScenarios(blockTermination: boolean) {
+  const prelude = blockTermination
+    ? fc.array(fc.constant<CanvasPrelude>("view-left"), {
+        maxLength: 4,
+        size: "max",
+      })
+    : fc.array(fc.constantFrom<CanvasPrelude>("fit", "view-left", "zoom-out"), {
+        maxLength: 3,
+      })
+
+  return fc.record({
+    content: noteCreationContent,
+    panX: fc.integer({ min: 35, max: 95 }),
+    panY: fc.integer({ min: 30, max: 75 }),
+    prelude,
+    termination: blockTermination
+      ? fc.constant("release" as const)
+      : fc.constantFrom("capture-loss" as const, "release" as const),
+    viewportWidth: fc.integer({ min: 1000, max: 1400 }),
+    wheelDelta: fc.integer({ min: 30, max: 90 }),
+  }).map((scenario): CanvasScenario => ({
+    ...scenario,
+    toString() {
+      return [
+        ...this.prelude,
+        `wheel-zoom(${this.wheelDelta})`,
+        `resize-viewport(${this.viewportWidth})`,
+        `pan(${this.panX},${this.panY})`,
+        this.termination,
+        "hover",
+      ].join(",")
+    },
+  }))
+}
+
+async function runCanvasScenario(
+  browser: Browser,
+  scenario: CanvasScenario,
+  blockTermination: boolean,
+) {
+  const context = await browser.newContext()
+
+  try {
+    const page = await context.newPage()
+    await page.goto("/")
+    const note = await createNoteThroughUi(page, scenario.content)
+    const articleId = await note.getAttribute("id")
+    if (articleId === null) {
+      throw new Error("Expected a note article id")
+    }
+    const noteId = decodeURIComponent(articleId.slice(5, -6))
+    await expect.poll(async () => readStoredNote(page, noteId)).not.toBeNull()
+    const storedBefore = await readStoredNote(page, noteId)
+    if (storedBefore === null) {
+      throw new Error("Expected a stored note")
+    }
+
+    const controls = page.getByRole("group", { name: "캔버스 보기" })
+    for (const action of scenario.prelude) {
+      const before = await visibleBox(note)
+      if (action === "view-left") {
+        await controls.getByRole("button", { name: "왼쪽 보기" }).click()
+        await expect.poll(async () => (await visibleBox(note)).x)
+          .toBeGreaterThan(before.x)
+      } else if (action === "zoom-out") {
+        await controls.getByRole("button", { name: "축소" }).click()
+        await expect.poll(async () => (await visibleBox(note)).width)
+          .toBeLessThan(before.width)
+      } else {
+        await controls.getByRole("button", { name: "모두 보기" }).click()
+        await expect(note).toBeInViewport()
+      }
+    }
+
+    const workspace = page.getByRole("region", { name: "메모 작업 영역" })
+    const initialWorkspaceBox = await visibleBox(workspace)
+    const wheelAnchor = {
+      x: initialWorkspaceBox.x + initialWorkspaceBox.width * 0.65,
+      y: initialWorkspaceBox.y + initialWorkspaceBox.height * 0.45,
+    }
+    const beforeWheel = await visibleBox(note)
+    await page.mouse.move(wheelAnchor.x, wheelAnchor.y)
+    await page.keyboard.down("Control")
+    await page.mouse.wheel(0, -scenario.wheelDelta)
+    await page.keyboard.up("Control")
+    await expect.poll(async () => (await visibleBox(note)).width)
+      .toBeGreaterThan(beforeWheel.width)
+
+    await page.setViewportSize({ height: 900, width: scenario.viewportWidth })
+    const workspaceBox = await visibleBox(workspace)
+    const start = {
+      x: workspaceBox.x + workspaceBox.width * 0.72,
+      y: workspaceBox.y + workspaceBox.height * 0.72,
+    }
+    const beforePan = await visibleBox(note)
+    if (blockTermination) {
+      await page.evaluate(() => {
+        for (const eventName of ["pointerup", "lostpointercapture"]) {
+          document.addEventListener(eventName, (event) => {
+            event.stopImmediatePropagation()
+          }, { capture: true, once: true })
+        }
+      })
+    }
+    if (scenario.termination === "capture-loss") {
+      await preparePointerCaptureRelease(page)
+    }
+    await page.mouse.move(start.x, start.y)
+    await page.mouse.down()
+    await page.mouse.move(start.x - scenario.panX, start.y - scenario.panY)
+    await expect.poll(async () => (await visibleBox(note)).x)
+      .toBeLessThan(beforePan.x)
+    if (scenario.termination === "capture-loss") {
+      await releasePointerCapture(page)
+    }
+    await page.mouse.up()
+    const released = await visibleBox(note)
+    await page.mouse.move(
+      start.x - scenario.panX * 1.5,
+      start.y - scenario.panY * 1.5,
+    )
+    await page.evaluate(() => new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    }))
+    const afterHover = await visibleBox(note)
+    const movement = Math.hypot(
+      afterHover.x - released.x,
+      afterHover.y - released.y,
+    )
+    if (movement > 1) {
+      throw new ExplorationInvariantError(
+        "canvas-view-stays-fixed-after-pointer-release",
+        { x: released.x, y: released.y },
+        { x: afterHover.x, y: afterHover.y },
+      )
+    }
+
+    const storedAfter = await readStoredNote(page, noteId)
+    expect(storedAfter?.geometry).toEqual(storedBefore.geometry)
+    await expect(controls).toBeInViewport()
+  } finally {
+    await context.close()
+  }
+}
+
+test("캔버스 시점 조합에서 입력을 놓은 뒤의 위치와 저장 좌표를 유지한다", async ({
+  browser,
+}) => {
+  test.setTimeout(180_000)
+  const normal = await fc.check(
+    fc.asyncProperty(canvasScenarios(false), async (scenario) => {
+      await runCanvasScenario(browser, scenario, false)
+    }),
+    { numRuns: 5, verbose: true },
+  )
+  expect(normal.failed, fc.defaultReportMessage(normal)).toBe(false)
+  expect(normal.interrupted).toBe(false)
+
+  const faulty = await fc.check(
+    fc.asyncProperty(canvasScenarios(true), async (scenario) => {
+      await runCanvasScenario(browser, scenario, true)
+    }),
+    { numRuns: 10, verbose: true },
+  )
+  expect(faulty.failed, fc.defaultReportMessage(faulty)).toBe(true)
+  expect(faulty.errorInstance).toBeInstanceOf(ExplorationInvariantError)
+  expect(faulty.numShrinks).toBeGreaterThan(0)
+  const reduced = faulty.counterexample?.[0]
+  ok(reduced, "Expected a reduced canvas scenario")
+
+  const replay = await fc.check(
+    fc.asyncProperty(canvasScenarios(true), async (scenario) => {
+      await runCanvasScenario(browser, scenario, true)
+    }),
+    {
+      endOnFailure: true,
+      numRuns: 1,
+      path: faulty.counterexamplePath ?? undefined,
+      seed: faulty.seed,
+    },
+  )
+  expect(replay.errorInstance).toBeInstanceOf(ExplorationInvariantError)
+  await expect(runCanvasScenario(browser, reduced, true)).rejects.toMatchObject({
+    invariant: "canvas-view-stays-fixed-after-pointer-release",
+  })
+  await expect(runCanvasScenario(browser, reduced, false)).resolves.toBeUndefined()
+
+  const failure = faulty.errorInstance as ExplorationInvariantError
+  console.info(JSON.stringify({
+    appRevision: readAppRevision(),
+    browser: browser.browserType().name(),
+    expected: failure.expected,
+    feature: "canvas-view",
+    firstActions: faulty.failures[0]?.[0].toString() ?? null,
+    initialContent: reduced.content,
+    invariant: failure.invariant,
+    minimalActions: reduced.toString(),
+    observed: failure.observed,
+    path: faulty.counterexamplePath,
+    runs: normal.numRuns,
+    seed: faulty.seed,
+    shrinks: faulty.numShrinks,
+    termination: "controlled-defect",
+  }))
+})
+
 test("Escape, 빈 캔버스와 Command는 선택만 해제한다", async ({ page }) => {
   const note = await createNoteThroughUi(page, "선택을 해제할 메모")
   const headerAction = note.getByRole("button", { name: "메모 동작" })
@@ -1928,6 +2152,7 @@ test.describe("320px 메모 화면", () => {
     const recoveredContent = "복구해서 저장할 메모 초안"
     const savedContent = `${recoveredContent} 저장본`
     const staleContent = "이전 revision에서 남은 초안"
+    const draftUpdatedAt = new Date().toISOString()
     const note = await createMobileNoteThroughUi(page, storedContent)
     const noteId = noteIdFromHref(
       await note.getByRole("link", { name: / 수정$/u }).getAttribute("href"),
@@ -1942,7 +2167,7 @@ test.describe("320px 메모 화면", () => {
         contentRevision: initialStoredNote!.contentRevision,
         id: noteId,
       },
-      updatedAt: "2026-09-13T12:00:00.000Z",
+      updatedAt: draftUpdatedAt,
     }
     await writeStoredNoteDraft(page, recoverableDraft)
     expect(await readStoredNoteDraft(page, noteId)).toEqual(recoverableDraft)
@@ -2032,7 +2257,7 @@ test.describe("320px 메모 화면", () => {
         contentRevision: savedAfterRemovalFailure!.contentRevision - 1,
         id: noteId,
       },
-      updatedAt: "2026-09-13T12:00:01.000Z",
+      updatedAt: new Date(Date.parse(draftUpdatedAt) + 1_000).toISOString(),
     }
     await writeStoredNoteDraft(detailPage, staleDraft)
     expect(await readStoredNoteDraft(detailPage, noteId)).toEqual(staleDraft)

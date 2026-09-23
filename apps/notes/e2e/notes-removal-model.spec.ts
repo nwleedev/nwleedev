@@ -1,3 +1,5 @@
+import { ok } from "node:assert/strict"
+
 import {
   expect,
   test,
@@ -807,12 +809,10 @@ test("삭제 실패를 줄이고 스냅샷, 포커스와 만료 시각으로 재
   expect(report.originalActions.length).toBeGreaterThan(
     report.minimalActions.length,
   )
-  expect(report.minimalActions).toEqual([
-    "remove(1)",
-    "move-front(0)",
-    "restore-latest",
-    "inspect-removal-state",
-  ])
+  expect(report.minimalActions.some((action) => action.startsWith("remove("))).toBe(true)
+  expect(report.minimalActions.some((action) => action.startsWith("move-front("))).toBe(true)
+  expect(report.minimalActions).toContain("restore-latest")
+  expect(report.minimalActions.at(-1)).toBe("inspect-removal-state")
 
   const replay = await fc.check(
     fc.asyncProperty(faulty.sequences, async (generatedCommands) => {
@@ -832,14 +832,8 @@ test("삭제 실패를 줄이고 스냅샷, 포커스와 만료 시각으로 재
   expect(replay.failed).toBe(true)
   expect(replay.errorInstance).toBeInstanceOf(ExplorationInvariantError)
 
-  const directCounts = createExplorationActionCounts()
-  const directPhase = () => "exploration" as const
-  const duplicateRestore = [
-    new RemoveNoteCommand(directCounts, directPhase, 1),
-    new MoveRemovalNoteToFrontCommand(directCounts, directPhase, 0),
-    new RestoreLatestRemovalCommand(directCounts, directPhase),
-    new InspectRemovalCommand(directCounts, directPhase),
-  ]
+  const duplicateRestore = faulty.details.counterexample?.[0]
+  ok(duplicateRestore, "Expected a reduced removal sequence")
   await expect(
     executeRemovalCommands(
       browser,

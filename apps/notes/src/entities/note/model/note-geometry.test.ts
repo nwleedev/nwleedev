@@ -1,4 +1,13 @@
+import * as fc from "fast-check"
 import { describe, expect, it } from "vitest"
+
+import {
+  NOTE_CANVAS_SIZE,
+  NOTE_HEIGHT_MAX,
+  NOTE_HEIGHT_MIN,
+  NOTE_WIDTH_MAX,
+  NOTE_WIDTH_MIN,
+} from "./note"
 
 import {
   findNewNoteGeometry,
@@ -7,68 +16,89 @@ import {
 } from "./note-geometry"
 
 describe("메모 속성 입력", () => {
-  it("허용 범위의 네 입력을 저장 geometry로 변환한다", () => {
-    expect(
-      readNoteGeometryDraft(
-        { height: "360", width: "480", x: "120", y: "240" },
-        3,
-      ),
-    ).toEqual({
-      geometry: { height: 360, width: 480, x: 120, y: 240, zIndex: 3 },
-      status: "valid",
-    })
+  it("허용된 크기와 캔버스 바깥 좌표를 입력한 그대로 저장한다", () => {
+    fc.assert(fc.property(
+      fc.record({
+        height: fc.integer({ min: NOTE_HEIGHT_MIN, max: NOTE_HEIGHT_MAX }),
+        width: fc.integer({ min: NOTE_WIDTH_MIN, max: NOTE_WIDTH_MAX }),
+        x: fc.integer({ min: -NOTE_CANVAS_SIZE - 1, max: NOTE_CANVAS_SIZE + 1 }),
+        y: fc.integer({ min: -NOTE_CANVAS_SIZE - 1, max: NOTE_CANVAS_SIZE + 1 }),
+        zIndex: fc.integer({ min: 1, max: NOTE_CANVAS_SIZE }),
+      }),
+      (geometry) => {
+        expect(readNoteGeometryDraft({
+          height: String(geometry.height),
+          width: String(geometry.width),
+          x: String(geometry.x),
+          y: String(geometry.y),
+        }, geometry.zIndex)).toEqual({ geometry, status: "valid" })
+      },
+    ))
   })
 
-  it("X와 Y의 음수, 0과 기존 캔버스 바깥 위치를 저장한다", () => {
-    expect(
-      readNoteGeometryDraft(
-        { height: "360", width: "480", x: "-120", y: "5000" },
-        3,
+  it("크기 한계를 벗어나거나 완성되지 않은 입력은 저장하지 않는다", () => {
+    fc.assert(fc.property(
+      fc.constantFrom(
+        ["width", NOTE_WIDTH_MIN - 1] as const,
+        ["width", NOTE_WIDTH_MAX + 1] as const,
+        ["height", NOTE_HEIGHT_MIN - 1] as const,
+        ["height", NOTE_HEIGHT_MAX + 1] as const,
       ),
-    ).toEqual({
-      geometry: { height: 360, width: 480, x: -120, y: 5000, zIndex: 3 },
-      status: "valid",
-    })
-  })
+      ([field, value]) => {
+        const draft = {
+          height: String(NOTE_HEIGHT_MIN),
+          width: String(NOTE_WIDTH_MIN),
+          x: "0",
+          y: "0",
+        }
+        expect(readNoteGeometryDraft({
+          ...draft,
+          [field]: String(value),
+        }, 1).status).toBe("invalid")
+      },
+    ))
 
-  it("너비와 높이가 4095이고 X와 Y가 1인 geometry를 저장한다", () => {
-    expect(
-      readNoteGeometryDraft(
-        { height: "4095", width: "4095", x: "1", y: "1" },
-        3,
-      ),
-    ).toEqual({
-      geometry: { height: 4095, width: 4095, x: 1, y: 1, zIndex: 3 },
-      status: "valid",
-    })
-  })
-
-  it.each([
-    { height: "360", width: "480", x: "", y: "240" },
-    { height: "360", width: "480", x: "문자", y: "240" },
-    { height: "360", width: "4096", x: "1", y: "240" },
-  ])("완성되지 않았거나 범위를 벗어난 입력을 거절한다", (draft) => {
-    expect(readNoteGeometryDraft(draft, 3).status).toBe("invalid")
+    fc.assert(fc.property(
+      fc.constantFrom("height", "width", "x", "y"),
+      fc.constantFrom("", "문자", "Infinity"),
+      (field, value) => {
+        const draft = {
+          height: String(NOTE_HEIGHT_MIN),
+          width: String(NOTE_WIDTH_MIN),
+          x: "0",
+          y: "0",
+        }
+        expect(readNoteGeometryDraft({
+          ...draft,
+          [field]: value,
+        }, 1).status).toBe("invalid")
+      },
+    ))
   })
 })
 
 describe("기존 메모 크기 보정", () => {
-  it("크기만 허용 범위로 맞추고 위치는 그대로 둔다", () => {
-    expect(
-      validateAndClampNoteGeometry({
-        height: 5000,
-        width: 5000,
-        x: 0,
-        y: 3900,
-        zIndex: 2,
+  it("크기만 허용 값으로 제한하고 위치는 유지한다", () => {
+    fc.assert(fc.property(
+      fc.record({
+        height: fc.integer({ min: 1, max: NOTE_HEIGHT_MAX + 100 }),
+        width: fc.integer({ min: 1, max: NOTE_WIDTH_MAX + 100 }),
+        x: fc.integer({ min: -NOTE_CANVAS_SIZE, max: NOTE_CANVAS_SIZE }),
+        y: fc.integer({ min: -NOTE_CANVAS_SIZE, max: NOTE_CANVAS_SIZE }),
+        zIndex: fc.integer({ min: 1, max: NOTE_CANVAS_SIZE }),
       }),
-    ).toEqual({
-      height: 4095,
-      width: 4095,
-      x: 0,
-      y: 3900,
-      zIndex: 2,
-    })
+      (geometry) => {
+        const adjusted = validateAndClampNoteGeometry(geometry)
+        expect(adjusted.width).toBe(Math.min(
+          Math.max(geometry.width, NOTE_WIDTH_MIN), NOTE_WIDTH_MAX,
+        ))
+        expect(adjusted.height).toBe(Math.min(
+          Math.max(geometry.height, NOTE_HEIGHT_MIN), NOTE_HEIGHT_MAX,
+        ))
+        expect({ x: adjusted.x, y: adjusted.y, zIndex: adjusted.zIndex })
+          .toEqual({ x: geometry.x, y: geometry.y, zIndex: geometry.zIndex })
+      },
+    ))
   })
 
   it("유한하지 않은 좌표를 임의 값으로 바꾸지 않는다", () => {

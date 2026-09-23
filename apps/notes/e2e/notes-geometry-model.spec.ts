@@ -1,3 +1,5 @@
+import { ok } from "node:assert/strict"
+
 import {
   expect,
   test,
@@ -7,6 +9,13 @@ import {
 } from "@playwright/test"
 import * as fc from "fast-check"
 
+import {
+  NOTE_CANVAS_SIZE,
+  NOTE_HEIGHT_MAX,
+  NOTE_HEIGHT_MIN,
+  NOTE_WIDTH_MAX,
+  NOTE_WIDTH_MIN,
+} from "@/entities/note"
 import {
   createExplorationActionCounts,
   createExplorationReport,
@@ -38,6 +47,63 @@ type Geometry = {
 }
 
 type GeometryDefect = "block-pointer-end" | "none"
+type PointerDelta = { x: number; y: number }
+type ResizeDirection =
+  | "east"
+  | "north"
+  | "north-east"
+  | "north-west"
+  | "south"
+  | "south-east"
+  | "south-west"
+  | "west"
+
+const resizeDirections: readonly ResizeDirection[] = [
+  "north",
+  "south",
+  "west",
+  "east",
+  "north-west",
+  "north-east",
+  "south-west",
+  "south-east",
+]
+
+function bounded(value: number, minimum: number, maximum: number) {
+  return Math.min(Math.max(value, minimum), maximum)
+}
+
+function expectedResize(
+  geometry: Geometry,
+  direction: ResizeDirection,
+  deltaX: number,
+  deltaY: number,
+): Geometry {
+  const right = geometry.x + geometry.width
+  const bottom = geometry.y + geometry.height
+  let width = geometry.width
+  let height = geometry.height
+
+  if (direction.includes("west")) {
+    width = bounded(geometry.width - deltaX, NOTE_WIDTH_MIN, NOTE_WIDTH_MAX)
+  } else if (direction.includes("east")) {
+    width = bounded(geometry.width + deltaX, NOTE_WIDTH_MIN, NOTE_WIDTH_MAX)
+  }
+
+  if (direction.includes("north")) {
+    height = bounded(geometry.height - deltaY, NOTE_HEIGHT_MIN, NOTE_HEIGHT_MAX)
+  } else if (direction.includes("south")) {
+    height = bounded(geometry.height + deltaY, NOTE_HEIGHT_MIN, NOTE_HEIGHT_MAX)
+  }
+
+  return {
+    ...geometry,
+    height,
+    width,
+    x: direction.includes("west") ? right - width : geometry.x,
+    y: direction.includes("north") ? bottom - height : geometry.y,
+  }
+}
 
 type GeometryModel = {
   contentRevision: number
@@ -51,8 +117,12 @@ type GeometryReal = {
   cancelMove(deltaX: number, deltaY: number): Promise<void>
   inspect(expected: GeometryModel): Promise<void>
   rejectAndCorrectWidth(width: number): Promise<void>
-  resizeSouthEast(deltaX: number, deltaY: number): Promise<void>
-  move(deltaX: number, deltaY: number): Promise<void>
+  resize(
+    direction: ResizeDirection,
+    deltaX: number,
+    deltaY: number,
+  ): Promise<PointerDelta>
+  move(deltaX: number, deltaY: number): Promise<PointerDelta>
 }
 
 abstract class GeometryCommand
@@ -130,11 +200,11 @@ class MoveGeometryCommand extends GeometryCommand {
 
   async run(model: GeometryModel, real: GeometryReal) {
     this.recordExecution()
-    await real.move(this.deltaX, this.deltaY)
+    const delivered = await real.move(this.deltaX, this.deltaY)
     model.geometry = {
       ...model.geometry,
-      x: model.geometry.x + this.deltaX,
-      y: model.geometry.y + this.deltaY,
+      x: model.geometry.x + delivered.x,
+      y: model.geometry.y + delivered.y,
     }
     model.revision += 1
     model.observationPending = true
@@ -145,10 +215,11 @@ class MoveGeometryCommand extends GeometryCommand {
   }
 }
 
-class ResizeSouthEastCommand extends GeometryCommand {
+class ResizeGeometryCommand extends GeometryCommand {
   constructor(
     counts: ExplorationActionCounts,
     phase: () => ExplorationPhase,
+    private readonly direction: ResizeDirection,
     private readonly deltaX: number,
     private readonly deltaY: number,
   ) {
@@ -161,18 +232,27 @@ class ResizeSouthEastCommand extends GeometryCommand {
 
   async run(model: GeometryModel, real: GeometryReal) {
     this.recordExecution()
-    await real.resizeSouthEast(this.deltaX, this.deltaY)
-    model.geometry = {
-      ...model.geometry,
-      height: model.geometry.height + this.deltaY,
-      width: model.geometry.width + this.deltaX,
+    const delivered = await real.resize(this.direction, this.deltaX, this.deltaY)
+    const nextGeometry = expectedResize(
+      model.geometry,
+      this.direction,
+      delivered.x,
+      delivered.y,
+    )
+    const changed =
+      nextGeometry.x !== model.geometry.x ||
+      nextGeometry.y !== model.geometry.y ||
+      nextGeometry.width !== model.geometry.width ||
+      nextGeometry.height !== model.geometry.height
+    if (changed) {
+      model.revision += 1
     }
-    model.revision += 1
+    model.geometry = nextGeometry
     model.observationPending = true
   }
 
   toString() {
-    return `pointer-resize-south-east(mouse;scale=1;delta=${this.deltaX}:${this.deltaY};end=pointerup)`
+    return `pointer-resize-${this.direction}(mouse;scale=1;delta=${this.deltaX}:${this.deltaY};end=pointerup)`
   }
 }
 
@@ -213,7 +293,7 @@ class RejectGeometryWidthCommand extends GeometryCommand {
   }
 
   toString() {
-    return "reject-width(4096)-then-correct"
+    return `reject-width(${NOTE_WIDTH_MAX + 1})-then-correct`
   }
 }
 
@@ -255,6 +335,79 @@ async function visibleBox(locator: Locator) {
     throw new Error("Visible element has no bounding box")
   }
   return box
+}
+
+function resizePoint(
+  box: { height: number; width: number; x: number; y: number },
+  direction: ResizeDirection,
+) {
+  let x = box.x + box.width / 2
+  let y = box.y + box.height / 2
+
+  if (direction.includes("west")) {
+    x = box.x + 1
+  } else if (direction.includes("east")) {
+    x = box.x + box.width - 1
+  }
+
+  if (direction.includes("north")) {
+    y = box.y + 1
+  } else if (direction.includes("south")) {
+    y = box.y + box.height - 1
+  }
+
+  return { x, y }
+}
+
+async function dragPointer(
+  page: Page,
+  start: { x: number; y: number },
+  requested: PointerDelta,
+  scale: number,
+): Promise<PointerDelta> {
+  await page.mouse.move(start.x, start.y)
+  const recorder = await page.evaluateHandle(() => {
+    let down: { x: number; y: number } | null = null
+    let moved: { x: number; y: number } | null = null
+    const onDown = (event: PointerEvent) => {
+      down = { x: event.clientX, y: event.clientY }
+    }
+    const onMove = (event: PointerEvent) => {
+      if (down !== null && event.buttons !== 0) {
+        moved = { x: event.clientX, y: event.clientY }
+      }
+    }
+    window.addEventListener("pointerdown", onDown, true)
+    window.addEventListener("pointermove", onMove, true)
+
+    return {
+      read: () => ({ down, moved }),
+      stop: () => {
+        window.removeEventListener("pointerdown", onDown, true)
+        window.removeEventListener("pointermove", onMove, true)
+      },
+    }
+  })
+
+  try {
+    await page.mouse.down()
+    await page.mouse.move(
+      start.x + requested.x * scale,
+      start.y + requested.y * scale,
+    )
+    await page.mouse.up()
+    const points = await recorder.evaluate((value) => value.read())
+    if (points.down === null || points.moved === null) {
+      throw new Error("Expected a delivered pointer drag")
+    }
+    return {
+      x: Math.round((points.moved.x - points.down.x) / scale),
+      y: Math.round((points.moved.y - points.down.y) / scale),
+    }
+  } finally {
+    await recorder.evaluate((value) => value.stop())
+    await recorder.dispose()
+  }
 }
 
 async function noteIdFromArticle(note: Locator) {
@@ -305,6 +458,7 @@ async function executeGeometryCommands(
   browser: Browser,
   commands: Iterable<fc.AsyncCommand<GeometryModel, GeometryReal>>,
   defect: GeometryDefect,
+  zoomed = false,
 ) {
   const context = await browser.newContext({
     viewport: { height: 900, width: 1280 },
@@ -321,6 +475,29 @@ async function executeGeometryCommands(
     if (initial === null) {
       throw new Error("Expected a stored note")
     }
+
+    if (zoomed) {
+      const controls = page.getByRole("group", { name: "캔버스 보기" })
+      await controls.getByRole("button", { name: "확대" }).click()
+      await expect.poll(async () => (await visibleBox(note)).width)
+        .toBeGreaterThan(initial.geometry.width)
+      await expect.poll(async () => {
+        const firstWidth = (await visibleBox(note)).width
+        await page.evaluate(() => new Promise<void>((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+        }))
+        return Math.abs((await visibleBox(note)).width - firstWidth)
+      }).toBeLessThan(0.01)
+      await controls.getByRole("button", { name: "왼쪽 보기" }).click()
+      const handle = note.getByRole("button", { name: "메모 이동" })
+      const workspace = page.getByRole("region", { name: "메모 작업 영역" })
+      const workspaceBox = await visibleBox(workspace)
+      await expect.poll(async () => {
+        const box = await visibleBox(handle)
+        return box.x + box.width / 2
+      }).toBeGreaterThan(workspaceBox.x)
+    }
+    const pointerScale = (await visibleBox(note)).width / initial.geometry.width
 
     if (defect === "block-pointer-end") {
       await installBlockedPointerEnd(page)
@@ -345,7 +522,10 @@ async function executeGeometryCommands(
         await preparePointerCaptureRelease(page)
         await page.mouse.move(startX, startY)
         await page.mouse.down()
-        await page.mouse.move(startX + deltaX, startY + deltaY)
+        await page.mouse.move(
+          startX + deltaX * pointerScale,
+          startY + deltaY * pointerScale,
+        )
         await releasePointerCapture(page)
         await page.mouse.up()
       },
@@ -377,7 +557,7 @@ async function executeGeometryCommands(
       async rejectAndCorrectWidth(width) {
         const properties = await openProperties(note)
         const field = properties.getByRole("spinbutton", { name: "너비" })
-        await field.fill("4096")
+        await field.fill(String(NOTE_WIDTH_MAX + 1))
         const workspace = page.getByRole("region", { name: "메모 작업 영역" })
         const workspaceBox = await visibleBox(workspace)
         await page.mouse.click(
@@ -393,15 +573,15 @@ async function executeGeometryCommands(
           name: "메모 속성 패널 닫기",
         }).click()
       },
-      async resizeSouthEast(deltaX, deltaY) {
+      async resize(direction, deltaX, deltaY) {
         const box = await visibleBox(note)
-        await page.mouse.move(box.x + box.width - 1, box.y + box.height - 1)
-        await page.mouse.down()
-        await page.mouse.move(
-          box.x + box.width - 1 + deltaX,
-          box.y + box.height - 1 + deltaY,
+        const start = resizePoint(box, direction)
+        return dragPointer(
+          page,
+          start,
+          { x: deltaX, y: deltaY },
+          pointerScale,
         )
-        await page.mouse.up()
       },
       async move(deltaX, deltaY) {
         const handle = await visibleBox(
@@ -409,10 +589,12 @@ async function executeGeometryCommands(
         )
         const startX = handle.x + handle.width / 2
         const startY = handle.y + handle.height / 2
-        await page.mouse.move(startX, startY)
-        await page.mouse.down()
-        await page.mouse.move(startX + deltaX, startY + deltaY)
-        await page.mouse.up()
+        return dragPointer(
+          page,
+          { x: startX, y: startY },
+          { x: deltaX, y: deltaY },
+          pointerScale,
+        )
       },
     }
 
@@ -438,15 +620,26 @@ function geometryCommands(
   phase: () => ExplorationPhase,
 ) {
   const inspect = fc.constant(new InspectGeometryCommand(counts, phase))
-  const move = fc.constant(new MoveGeometryCommand(counts, phase, 80, 40))
 
   return [
-    fc.constantFrom(80, 500).map(
+    fc.integer({ min: 20, max: 500 }).map(
       (x) => new ApplyGeometryXCommand(counts, phase, x),
     ),
-    move,
-    fc.constant(new ResizeSouthEastCommand(counts, phase, 48, 32)),
-    fc.constant(new CancelGeometryMoveCommand(counts, phase, 45, 40)),
+    fc.tuple(
+      fc.integer({ min: 12, max: 60 }),
+      fc.integer({ min: 12, max: 60 }),
+    ).map(([x, y]) => new MoveGeometryCommand(counts, phase, x, y)),
+    fc.tuple(
+      fc.constantFrom(...resizeDirections),
+      fc.integer({ min: 12, max: 48 }),
+      fc.integer({ min: 12, max: 48 }),
+    ).map(([direction, x, y]) =>
+      new ResizeGeometryCommand(counts, phase, direction, x, y),
+    ),
+    fc.tuple(
+      fc.integer({ min: 12, max: 60 }),
+      fc.integer({ min: 12, max: 60 }),
+    ).map(([x, y]) => new CancelGeometryMoveCommand(counts, phase, x, y)),
     fc.constant(new RejectGeometryWidthCommand(counts, phase)),
     inspect,
   ]
@@ -463,18 +656,20 @@ async function checkGeometryExploration(
   const sequences =
     defect === "none"
       ? fc.commands(commands, { maxCommands: 8, size: "max" })
-      : fc
-          .array(
+      : fc.tuple(
+          fc.array(
             fc.constant(
               new InspectGeometryBaselineCommand(counts, currentPhase),
             ),
             { maxLength: 4, size: "max" },
-          )
-          .map((prefix) => [
-            ...prefix,
-            new MoveGeometryCommand(counts, currentPhase, 80, 40),
-            new InspectGeometryCommand(counts, currentPhase),
-          ])
+          ),
+          fc.integer({ min: 12, max: 96 }),
+          fc.integer({ min: 12, max: 96 }),
+        ).map(([prefix, x, y]) => [
+          ...prefix,
+          new MoveGeometryCommand(counts, currentPhase, x, y),
+          new InspectGeometryCommand(counts, currentPhase),
+        ])
   const property = fc.asyncProperty(
     sequences,
     async (generatedCommands) => {
@@ -559,11 +754,10 @@ test("위치와 크기의 실패 행동을 줄이고 실제 저장값으로 재�
   expect(report.originalActions.length).toBeGreaterThan(
     report.minimalActions.length,
   )
-  expect(report.minimalActions).toEqual([
-    "pointer-move(mouse;scale=1;start=move-handle;delta=80:40;end=pointerup)",
-    "inspect-stored-geometry",
-  ])
-  expect(report.replayPath).toBeNull()
+  expect(report.minimalActions.some(
+    (action) => action.startsWith("pointer-move("),
+  )).toBe(true)
+  expect(report.minimalActions.at(-1)).toBe("inspect-stored-geometry")
 
   const replay = await fc.check(
     fc.asyncProperty(
@@ -586,12 +780,8 @@ test("위치와 크기의 실패 행동을 줄이고 실제 저장값으로 재�
   expect(replay.failed).toBe(true)
   expect(replay.errorInstance).toBeInstanceOf(ExplorationInvariantError)
 
-  const directCounts = createExplorationActionCounts()
-  const directPhase = () => "exploration" as const
-  const moveAndInspect = [
-    new MoveGeometryCommand(directCounts, directPhase, 80, 40),
-    new InspectGeometryCommand(directCounts, directPhase),
-  ]
+  const moveAndInspect = faulty.details.counterexample?.[0]
+  ok(moveAndInspect, "Expected a reduced pointer sequence")
   await expect(
     executeGeometryCommands(browser, moveAndInspect, "block-pointer-end"),
   ).rejects.toMatchObject({ invariant: report.invariant })
@@ -604,7 +794,11 @@ test("위치와 크기의 실패 행동을 줄이고 실제 저장값으로 재�
   const propertyAndResize = [
     new RejectGeometryWidthCommand(requiredCounts, requiredPhase),
     new InspectGeometryCommand(requiredCounts, requiredPhase),
-    new ApplyGeometryXCommand(requiredCounts, requiredPhase, 5000),
+    new ApplyGeometryXCommand(
+      requiredCounts,
+      requiredPhase,
+      NOTE_CANVAS_SIZE + 1,
+    ),
     new InspectGeometryCommand(requiredCounts, requiredPhase),
   ]
   await expect(
@@ -614,7 +808,13 @@ test("위치와 크기의 실패 행동을 줄이고 실제 저장값으로 재�
   const gestureSequence = [
     new CancelGeometryMoveCommand(requiredCounts, requiredPhase, 45, 40),
     new InspectGeometryCommand(requiredCounts, requiredPhase),
-    new ResizeSouthEastCommand(requiredCounts, requiredPhase, 48, 32),
+    new ResizeGeometryCommand(
+      requiredCounts,
+      requiredPhase,
+      "south-east",
+      48,
+      32,
+    ),
     new InspectGeometryCommand(requiredCounts, requiredPhase),
   ]
   await expect(
@@ -632,4 +832,90 @@ test("위치와 크기의 실패 행동을 줄이고 실제 저장값으로 재�
       termination: "completed",
     }),
   )
+})
+
+test("여덟 방향의 크기 조절은 반대편 변과 저장 원문을 유지한다", async ({
+  browser,
+}) => {
+  test.setTimeout(180_000)
+  const reports: { direction: ResizeDirection; runs: number; seed: number }[] = []
+
+  for (const direction of resizeDirections) {
+    const directionBrowser = await browser.browserType().launch()
+    try {
+      const counts = createExplorationActionCounts()
+      const phase = () => "exploration" as const
+      const details = await fc.check(
+        fc.asyncProperty(
+          fc.integer({ min: 12, max: 160 }),
+          fc.integer({ min: 12, max: 120 }),
+          async (deltaX, deltaY) => {
+            await executeGeometryCommands(directionBrowser, [
+              new ResizeGeometryCommand(
+                counts,
+                phase,
+                direction,
+                deltaX,
+                deltaY,
+              ),
+              new InspectGeometryCommand(counts, phase),
+            ], "none")
+          },
+        ),
+        { numRuns: 3 },
+      )
+      const failure = details.errorInstance
+      expect(
+        details.failed,
+        `${direction}: ${failure instanceof Error ? failure.stack : String(failure)}`,
+      ).toBe(false)
+      reports.push({ direction, runs: details.numRuns, seed: details.seed })
+    } finally {
+      await directionBrowser.close()
+    }
+  }
+
+  console.info(JSON.stringify({
+    browser: browser.browserType().name(),
+    feature: "note-geometry-resize-directions",
+    reports,
+  }))
+})
+
+test("확대 뒤 이동과 크기 조절량을 메모 좌표로 저장한다", async ({ browser }) => {
+  test.setTimeout(90_000)
+  const counts = createExplorationActionCounts()
+  const phase = () => "exploration" as const
+  const details = await fc.check(
+    fc.asyncProperty(
+      fc.integer({ min: 12, max: 72 }),
+      fc.integer({ min: 12, max: 72 }),
+      async (deltaX, deltaY) => {
+        await executeGeometryCommands(browser, [
+          new MoveGeometryCommand(counts, phase, deltaX, deltaY),
+          new InspectGeometryCommand(counts, phase),
+          new ResizeGeometryCommand(
+            counts,
+            phase,
+            "south-east",
+            deltaX,
+            deltaY,
+          ),
+          new InspectGeometryCommand(counts, phase),
+        ], "none", true)
+      },
+    ),
+    { numRuns: 3 },
+  )
+  const failure = details.errorInstance
+  expect(
+    details.failed,
+    failure instanceof Error ? failure.stack : String(failure),
+  ).toBe(false)
+  console.info(JSON.stringify({
+    browser: browser.browserType().name(),
+    feature: "note-geometry-zoomed-gesture",
+    runs: details.numRuns,
+    seed: details.seed,
+  }))
 })

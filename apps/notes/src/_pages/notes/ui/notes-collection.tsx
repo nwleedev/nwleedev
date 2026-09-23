@@ -279,19 +279,6 @@ export function NotesCollection({
 
   return (
     <div className="relative h-full min-h-0 overflow-clip bg-canvas" ref={container}>
-      {layout === "desktop" ? (
-        <div className="absolute left-3 top-3 z-30 sm:left-4">
-          <Button
-            className="shadow-floating"
-            disabled={creationPending}
-            onClick={createNewNote}
-            ref={createButton}
-            tabIndex={100}
-          >
-            {createLabel}
-          </Button>
-        </div>
-      ) : null}
       {empty ? (
         <p
           className="pointer-events-none absolute inset-0 grid place-items-center p-6 text-sm text-soft-ink"
@@ -310,26 +297,40 @@ export function NotesCollection({
         />
       ) : null}
       {layout === "desktop" ? (
-        <NotesBoard
-          batchCopyShortcutEnabled={batchCopyShortcutEnabled}
-          commandPressed={commandPressed}
-          draftContentByNote={draftContentByNote}
-          focusedNoteId={linkedNoteId}
-          notes={orderedNotes}
-          onActivateProperties={activateProperties}
-          onAddToBatchCopy={addToBatchCopy}
-          onCopy={copy}
-          onClearSelection={clearSelection}
-          onMoveToBack={moveNoteToBack}
-          onMoveToFront={moveNoteToFront}
-          onRemove={remove}
-          onSaveContent={saveContent}
-          onSaveFailure={showSaveFailure}
-          onSaveGeometry={saveGeometry}
-          onSelect={select}
-          propertiesNoteId={propertiesNoteId}
-          selectedNoteId={selectedNoteId}
-        />
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="flex shrink-0 px-3 py-2 sm:px-4">
+            <Button
+              disabled={creationPending}
+              onClick={createNewNote}
+              ref={createButton}
+              tabIndex={100}
+            >
+              {createLabel}
+            </Button>
+          </div>
+          <div className="min-h-0 flex-1">
+            <NotesBoard
+              batchCopyShortcutEnabled={batchCopyShortcutEnabled}
+              commandPressed={commandPressed}
+              draftContentByNote={draftContentByNote}
+              focusedNoteId={linkedNoteId}
+              notes={orderedNotes}
+              onActivateProperties={activateProperties}
+              onAddToBatchCopy={addToBatchCopy}
+              onCopy={copy}
+              onClearSelection={clearSelection}
+              onMoveToBack={moveNoteToBack}
+              onMoveToFront={moveNoteToFront}
+              onRemove={remove}
+              onSaveContent={saveContent}
+              onSaveFailure={showSaveFailure}
+              onSaveGeometry={saveGeometry}
+              onSelect={select}
+              propertiesNoteId={propertiesNoteId}
+              selectedNoteId={selectedNoteId}
+            />
+          </div>
+        </div>
       ) : null}
     </div>
   )

@@ -59,6 +59,21 @@ function cancelTouch(session: CDPSession) {
   })
 }
 
+async function holdAndReleaseTouch(
+  session: CDPSession,
+  page: Page,
+  point: TouchPoint,
+  duration: number,
+  movement: number,
+) {
+  await startTouch(session, point)
+  if (movement > 0) {
+    await moveTouch(session, { x: point.x, y: point.y + movement })
+  }
+  await page.clock.fastForward(duration)
+  await endTouch(session)
+}
+
 async function expectCopyCancelled(page: Page) {
   await expect(page).toHaveURL("/")
   await expect(
@@ -268,4 +283,52 @@ test("메모 길게 누르기는 이동, 취소와 pointer capture 상실에서 
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
     .toBe(content)
+})
+
+test("메모 누르기 시간과 이동 기준 앞뒤에서 복사를 한 번만 기록한다", async ({
+  context,
+  page,
+}) => {
+  await page.clock.install()
+  await page.goto("/")
+  const content = `터치 복사 ${crypto.randomUUID()}`
+  const note = await createMobileNoteThroughUi(page, content)
+  const copyButton = note.getByRole("button", { name: `${content} 복사` })
+  const session = await context.newCDPSession(page)
+  const successfulGestures = [
+    { duration: 499, movement: 0 },
+    { duration: 500, movement: 0 },
+    { duration: 500, movement: 9 },
+  ]
+
+  for (const gesture of successfulGestures) {
+    const point = await center(copyButton)
+    await holdAndReleaseTouch(
+      session,
+      page,
+      point,
+      gesture.duration,
+      gesture.movement,
+    )
+    await expect(page).toHaveURL("/")
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()))
+      .toBe(content)
+  }
+
+  const movedPoint = await center(copyButton)
+  await holdAndReleaseTouch(session, page, movedPoint, 500, 11)
+  await expect(page).toHaveURL("/")
+
+  const cancelledPoint = await center(copyButton)
+  await startTouch(session, cancelledPoint)
+  await page.clock.fastForward(500)
+  await cancelTouch(session)
+  await expect(page).toHaveURL("/")
+
+  await page.getByRole("button", { name: "탐색 열기" }).tap()
+  await page.getByRole("link", { exact: true, name: "사용 빈도" }).tap()
+  const usageRow = page.getByRole("row").filter({ hasText: content })
+  await expect(usageRow.getByRole("cell", {
+    name: `개별 복사 ${successfulGestures.length}회`,
+  })).toBeVisible()
 })

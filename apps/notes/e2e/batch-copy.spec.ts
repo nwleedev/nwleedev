@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test"
+import * as fc from "fast-check"
 
 import {
   createMobileNoteThroughUi,
@@ -404,6 +405,87 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
 
 test.describe("320px 일괄 복사", () => {
   test.use({ hasTouch: true, viewport: { height: 720, width: 320 } })
+
+  test("긴 목록을 스크롤해도 확인과 관리 화면의 하단 동작을 사용할 수 있다", async ({
+    page,
+  }) => {
+    const contents = fc.sample(
+      fc.uniqueArray(fc.stringMatching(/^[a-z]{64,72}$/u), {
+        minLength: 5,
+        maxLength: 5,
+      }),
+      1,
+    )[0]
+
+    await page.setViewportSize({ height: 720, width: 1000 })
+
+    for (const content of contents) {
+      const note = await createNoteThroughUi(page, content)
+      await note
+        .getByRole("textbox", { name: "메모 내용" })
+        .click({ modifiers: ["Meta", "Alt"] })
+    }
+
+    await page.setViewportSize({ height: 720, width: 320 })
+    await page.goto("/batch-copy/")
+    const managementItems = page
+      .getByRole("region", { name: "일괄 복사 항목 관리" })
+      .getByRole("listitem")
+    await expect(managementItems).toHaveCount(contents.length)
+    const managementCopy = page.getByRole("button", {
+      exact: true,
+      name: "복사",
+    })
+    const managementBefore = await visibleBox(managementCopy)
+    const finalManagedItem = managementItems.filter({
+      hasText: contents.at(-1)!,
+    })
+    await finalManagedItem.scrollIntoViewIfNeeded()
+    await expect(finalManagedItem).toBeInViewport()
+    const managementAfter = await visibleBox(managementCopy)
+    expect(managementAfter.y).toBeCloseTo(managementBefore.y, 0)
+    await managementCopy.click()
+    await expect(page.getByRole("button", { name: "알림 닫기" })).toBeVisible()
+
+    await page.goto("/")
+    await page.getByRole("button", { name: "일괄 복사 시작" }).click()
+
+    for (const content of contents) {
+      await page
+        .getByRole("article")
+        .filter({ hasText: content })
+        .getByRole("button", { name: `${content} 일괄 복사에 추가` })
+        .click()
+    }
+
+    await page
+      .getByRole("button", { name: `다음, ${contents.length}회 선택` })
+      .click()
+    await expect(page).toHaveURL("/batch-copy/")
+    const confirmationItems = page.getByRole("article", {
+      name: /번째 일괄 복사 항목$/u,
+    })
+    await expect(confirmationItems).toHaveCount(contents.length)
+    const cancel = page.getByRole("button", { exact: true, name: "취소" })
+    const confirmationCopy = page.getByRole("button", {
+      name: "일괄 복사하기",
+    })
+    const cancelBefore = await visibleBox(cancel)
+    const copyBefore = await visibleBox(confirmationCopy)
+    const finalConfirmationItem = confirmationItems.filter({
+      hasText: contents.at(-1)!,
+    })
+    await finalConfirmationItem.scrollIntoViewIfNeeded()
+    await expect(finalConfirmationItem).toBeInViewport()
+    const cancelAfter = await visibleBox(cancel)
+    const copyAfter = await visibleBox(confirmationCopy)
+    expect(cancelAfter.y).toBeCloseTo(cancelBefore.y, 0)
+    expect(copyAfter.y).toBeCloseTo(copyBefore.y, 0)
+    await confirmationCopy.click()
+    await expect(page.getByRole("button", { name: "알림 닫기" })).toBeVisible()
+    await cancel.click()
+    await expect(page).toHaveURL("/")
+  })
 
   test("선택 횟수를 초기화하고 확인 화면에서 복제, 이동과 삭제를 적용한다", async ({
     page,

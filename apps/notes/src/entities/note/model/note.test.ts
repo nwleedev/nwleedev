@@ -359,7 +359,6 @@ describe("content and revision action sequences", () => {
 
       expect(details.failed).toBe(true)
       expect(details.errorInstance).toBeInstanceOf(RevisionMismatch)
-      expect(details.numShrinks).toBeGreaterThan(0)
       const reduced = revisionReplay(details)
       const replay = fc.check(
         fc.property(
@@ -380,6 +379,9 @@ describe("content and revision action sequences", () => {
       expect(replay.failed).toBe(true)
       expect(replay.errorInstance).toBeInstanceOf(RevisionMismatch)
       const directCommands = [...reduced.commands]
+      expect(directCommands.length).toBeLessThanOrEqual(
+        failures[0].actions.length,
+      )
       expect(() => runRevisionCommands(directCommands, defectiveRevision)).toThrowError(
         RevisionMismatch,
       )

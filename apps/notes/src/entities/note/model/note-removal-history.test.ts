@@ -1,3 +1,4 @@
+import * as fc from "fast-check"
 import { describe, expect, it } from "vitest"
 
 import type { Note } from "./note"
@@ -6,6 +7,7 @@ import {
   dismissNoteRemovalHistory,
   expireNoteRemoval,
   forgetRemovedNote,
+  NOTE_REMOVAL_UNDO_DURATION_MS,
   noteRemovalUndoRemainingMs,
   rememberRemovedNote,
   restoreMostRecentlyRemovedNote,
@@ -31,6 +33,46 @@ const secondNote: Note = {
 }
 
 describe("메모 삭제 복구 이력", () => {
+  it("서로 다른 메모를 연속 삭제하면 최근 원문과 배치부터 복원한다", () => {
+    fc.assert(
+      fc.property(
+        fc.uniqueArray(fc.uuid(), { minLength: 2, maxLength: 10 }),
+        (ids) => {
+          const removed = ids.map((id, index): Note => ({
+            ...firstNote,
+            content: id,
+            geometry: {
+              ...firstNote.geometry,
+              x: firstNote.geometry.x + index * firstNote.geometry.width,
+              zIndex: index + 1,
+            },
+            id,
+            tabIndex: firstNote.tabIndex + index,
+          }))
+          const history = removed.reduce(
+            (current, note, index) => rememberRemovedNote(
+              current,
+              note,
+              new Date(Date.parse(firstNote.updatedAt) + index).toISOString(),
+            ),
+            createNoteRemovalHistory(),
+          )
+          let remaining = history
+
+          for (const expected of [...removed].reverse()) {
+            const restored = restoreMostRecentlyRemovedNote(remaining)
+            expect(restored?.note).toEqual(expected)
+            if (restored === null) {
+              throw new Error("Expected a removed note")
+            }
+            remaining = restored.history
+          }
+          expect(remaining.entries).toHaveLength(0)
+        },
+      ),
+    )
+  })
+
   it("가장 최근에 삭제한 메모부터 원문과 배치를 그대로 돌려준다", () => {
     const firstRemoval = rememberRemovedNote(
       createNoteRemovalHistory(),
@@ -81,8 +123,33 @@ describe("메모 삭제 복구 이력", () => {
     )
     const snapshot = history.entries[0]
 
-    expect(noteRemovalUndoRemainingMs(snapshot, 1_788_310_804_999)).toBe(1)
-    expect(noteRemovalUndoRemainingMs(snapshot, 1_788_310_805_000)).toBe(0)
+    const removedAt = Date.parse(snapshot.removedAt)
+    expect(noteRemovalUndoRemainingMs(snapshot, removedAt + NOTE_REMOVAL_UNDO_DURATION_MS - 1)).toBe(1)
+    expect(noteRemovalUndoRemainingMs(snapshot, removedAt + NOTE_REMOVAL_UNDO_DURATION_MS)).toBe(0)
+  })
+
+  it("삭제 완료 시각과 경과 시간으로 취소 가능 여부를 계산한다", () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: Date.UTC(2100, 0, 1) }),
+        fc.integer({ min: 0, max: NOTE_REMOVAL_UNDO_DURATION_MS - 1 }),
+        (removedAt, elapsed) => {
+          const history = rememberRemovedNote(
+            createNoteRemovalHistory(),
+            firstNote,
+            new Date(removedAt).toISOString(),
+          )
+          const snapshot = history.entries[0]
+          expect(noteRemovalUndoRemainingMs(snapshot, removedAt + elapsed)).toBe(
+            NOTE_REMOVAL_UNDO_DURATION_MS - elapsed,
+          )
+          expect(expireNoteRemoval(history, snapshot, removedAt + elapsed)).toEqual(history)
+          expect(
+            expireNoteRemoval(history, snapshot, removedAt + NOTE_REMOVAL_UNDO_DURATION_MS),
+          ).toEqual(createNoteRemovalHistory())
+        },
+      ),
+    )
   })
 
   it("복원을 시작한 삭제만 제거하고 그 뒤에 생긴 삭제는 유지한다", () => {
@@ -119,7 +186,7 @@ describe("메모 삭제 복구 이력", () => {
     const expired = expireNoteRemoval(
       secondRemoval,
       latestSnapshot,
-      1_788_314_405_000,
+      Date.parse(latestSnapshot.removedAt) + NOTE_REMOVAL_UNDO_DURATION_MS,
     )
 
     expect(expired.entries).toEqual([])

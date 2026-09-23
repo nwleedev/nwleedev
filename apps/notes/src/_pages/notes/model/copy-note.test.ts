@@ -1,6 +1,13 @@
+import * as fc from "fast-check"
 import { describe, expect, it } from "vitest"
 
-import type { Note } from "@/entities/note"
+import {
+  NOTE_HEIGHT_MIN,
+  NOTE_TAB_INDEX_MIN,
+  NOTE_WIDTH_MIN,
+  reviseNote,
+  type Note,
+} from "@/entities/note"
 import type { IndividualCopyUsageWriter } from "@/entities/usage"
 import type {
   ClipboardWriteResult,
@@ -9,16 +16,29 @@ import type {
 
 import { copyNote } from "./copy-note"
 
-const note: Note = {
-  content: "복사할 메모 원문",
-  contentRevision: 3,
-  createdAt: "2026-09-01T01:00:00.000Z",
-  geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
-  id: "note-copy",
-  revision: 5,
-  tabIndex: 1000,
-  updatedAt: "2026-09-01T02:00:00.000Z",
-}
+const copyableNote = fc.record({
+  content: fc.string({ maxLength: 80, unit: "grapheme-ascii" }),
+  contentRevision: fc.nat({ max: 1000 }),
+  id: fc.uuid(),
+}).map(({ content, contentRevision, id }): Note => {
+  const timestamp = new Date().toISOString()
+  return {
+    content,
+    contentRevision,
+    createdAt: timestamp,
+    geometry: {
+      height: NOTE_HEIGHT_MIN,
+      width: NOTE_WIDTH_MIN,
+      x: 0,
+      y: 0,
+      zIndex: 1,
+    },
+    id,
+    revision: contentRevision,
+    tabIndex: NOTE_TAB_INDEX_MIN,
+    updatedAt: timestamp,
+  }
+})
 
 class RecordingClipboardWriter implements ClipboardWriter {
   text: string | null = null
@@ -38,8 +58,7 @@ class RecordingClipboardWriter implements ClipboardWriter {
 }
 
 class RecordingUsageWriter implements IndividualCopyUsageWriter {
-  input: Parameters<IndividualCopyUsageWriter["recordIndividualCopy"]>[0] | null =
-    null
+  inputs: Parameters<IndividualCopyUsageWriter["recordIndividualCopy"]>[0][] = []
 
   constructor(private readonly failure: Error | null = null) {}
 
@@ -50,23 +69,25 @@ class RecordingUsageWriter implements IndividualCopyUsageWriter {
       throw this.failure
     }
 
-    this.input = input
+    this.inputs.push(input)
   }
 }
 
 describe("메모 개별 복사", () => {
   it("현재 원문 전체를 쓴 뒤 개별 복사 횟수를 기록한다", async () => {
-    const clipboard = new RecordingClipboardWriter()
-    const usage = new RecordingUsageWriter()
+    await fc.assert(fc.asyncProperty(copyableNote, async (note) => {
+      const clipboard = new RecordingClipboardWriter()
+      const usage = new RecordingUsageWriter()
 
-    const result = await copyNote({ clipboard, usage }, note)
+      const result = await copyNote({ clipboard, usage }, note)
 
-    expect(result).toEqual({ status: "copied" })
-    expect(clipboard.text).toBe(note.content)
-    expect(usage.input).toEqual({
-      note: { contentRevision: note.contentRevision, id: note.id },
-      textSnapshot: note.content,
-    })
+      expect(result).toEqual({ status: "copied" })
+      expect(clipboard.text).toBe(note.content)
+      expect(usage.inputs).toEqual([{
+        note: { contentRevision: note.contentRevision, id: note.id },
+        textSnapshot: note.content,
+      }])
+    }))
   })
 
   it.each([
@@ -76,31 +97,68 @@ describe("메모 개별 복사", () => {
   ] as const)(
     "%s 오류가 나면 개별 복사 횟수를 기록하지 않는다",
     async (reason) => {
-      const clipboard = new RecordingClipboardWriter({
-        reason,
-        status: "failed",
-      })
-      const usage = new RecordingUsageWriter()
+      await fc.assert(fc.asyncProperty(copyableNote, async (note) => {
+        const clipboard = new RecordingClipboardWriter({
+          reason,
+          status: "failed",
+        })
+        const usage = new RecordingUsageWriter()
 
-      const result = await copyNote({ clipboard, usage }, note)
+        const result = await copyNote({ clipboard, usage }, note)
 
-      expect(result).toEqual({
-        reason,
-        status: "clipboard-failure",
-      })
-      expect(clipboard.text).toBeNull()
-      expect(usage.input).toBeNull()
+        expect(result).toEqual({
+          reason,
+          status: "clipboard-failure",
+        })
+        expect(clipboard.text).toBeNull()
+        expect(usage.inputs).toEqual([])
+      }))
     },
   )
 
-  it("keeps the clipboard result distinct when usage recording fails", async () => {
-    const clipboard = new RecordingClipboardWriter()
-    const usage = new RecordingUsageWriter(new Error("storage unavailable"))
+  it("사용 기록이 실패해도 이미 쓴 Clipboard 원문을 보존한다", async () => {
+    await fc.assert(fc.asyncProperty(copyableNote, async (note) => {
+      const clipboard = new RecordingClipboardWriter()
+      const usage = new RecordingUsageWriter(new Error("storage unavailable"))
 
-    const result = await copyNote({ clipboard, usage }, note)
+      const result = await copyNote({ clipboard, usage }, note)
 
-    expect(result).toEqual({ status: "usage-failure" })
-    expect(clipboard.text).toBe(note.content)
-    expect(usage.input).toBeNull()
+      expect(result).toEqual({ status: "usage-failure" })
+      expect(clipboard.text).toBe(note.content)
+      expect(usage.inputs).toEqual([])
+    }))
+  })
+
+  it("본문을 바꾼 뒤에는 복사 당시의 두 원문 revision을 각각 전달한다", async () => {
+    await fc.assert(fc.asyncProperty(
+      copyableNote,
+      fc.string({ maxLength: 80, unit: "grapheme-ascii" }),
+      async (note, nextContent) => {
+        const clipboard = new RecordingClipboardWriter()
+        const usage = new RecordingUsageWriter()
+        const revised = reviseNote(note, {
+          content: nextContent,
+          updatedAt: new Date().toISOString(),
+        })
+
+        await copyNote({ clipboard, usage }, note)
+        await copyNote({ clipboard, usage }, revised)
+
+        const nextRevision = note.contentRevision + Number(
+          nextContent !== note.content,
+        )
+        expect(clipboard.text).toBe(nextContent)
+        expect(usage.inputs).toEqual([
+          {
+            note: { contentRevision: note.contentRevision, id: note.id },
+            textSnapshot: note.content,
+          },
+          {
+            note: { contentRevision: nextRevision, id: note.id },
+            textSnapshot: nextContent,
+          },
+        ])
+      },
+    ))
   })
 })

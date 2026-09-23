@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import * as fc from "fast-check"
 
 import {
   nextNoteTabIndex,
@@ -7,7 +8,7 @@ import {
   sendNoteToBack,
   sendNoteToFront,
 } from "./note-order"
-import type { Note } from "./note"
+import { NOTE_TAB_INDEX_MIN, type Note } from "./note"
 
 const firstNote: Note = {
   content: "첫 번째",
@@ -79,41 +80,51 @@ describe("메모 겹침 순서", () => {
     ])
   })
 
-  it("맨 앞으로 보내도 나머지 상대 순서와 키보드 순서를 유지한다", () => {
-    const reordered = sendNoteToFront(
-      [firstNote, secondNote, thirdNote],
-      secondNote.id,
-      "2026-09-02T01:00:00.000Z",
+  it("앞뒤 이동은 대상만 끝으로 옮기고 원문 및 키보드 순서를 보존한다", () => {
+    fc.assert(
+      fc.property(
+        fc.uniqueArray(fc.uuid(), { minLength: 3, maxLength: 10 }),
+        fc.nat(),
+        fc.boolean(),
+        (ids, position, moveFront) => {
+          const notes: Note[] = ids.map((id, index) => ({
+            ...firstNote,
+            content: id,
+            contentRevision: index,
+            createdAt: new Date(index * 1000).toISOString(),
+            geometry: { ...firstNote.geometry, zIndex: index + 1 },
+            id,
+            tabIndex: NOTE_TAB_INDEX_MIN + index,
+          }))
+          const target = notes[position % notes.length]
+          if (target === undefined) {
+            throw new Error("Expected a note to move")
+          }
+          const reordered = moveFront
+            ? sendNoteToFront(notes, target.id, firstNote.updatedAt)
+            : sendNoteToBack(notes, target.id, firstNote.updatedAt)
+          const remaining = ids.filter((id) => id !== target.id)
+          const expectedOrder = moveFront
+            ? [...remaining, target.id]
+            : [target.id, ...remaining]
+
+          expect(reordered.map(({ id }) => id)).toEqual(expectedOrder)
+          expect(reordered.map(({ geometry }) => geometry.zIndex)).toEqual(
+            expectedOrder.map((_, index) => index + 1),
+          )
+          for (const moved of reordered) {
+            const original = notes.find(({ id }) => id === moved.id)
+            if (original === undefined) {
+              throw new Error("Expected the original note")
+            }
+            expect(moved).toMatchObject({
+              content: original.content,
+              contentRevision: original.contentRevision,
+              tabIndex: original.tabIndex,
+            })
+          }
+        },
+      ),
     )
-
-    expect(reordered.map(({ id, geometry }) => [id, geometry.zIndex])).toEqual([
-      ["note-1", 1],
-      ["note-3", 2],
-      ["note-2", 3],
-    ])
-    expect(reordered.map(({ tabIndex }) => tabIndex)).toEqual([
-      firstNote.tabIndex,
-      thirdNote.tabIndex,
-      secondNote.tabIndex,
-    ])
-  })
-
-  it("맨 뒤로 보내도 나머지 상대 순서와 원문 revision을 유지한다", () => {
-    const reordered = sendNoteToBack(
-      [firstNote, secondNote, thirdNote],
-      thirdNote.id,
-      "2026-09-02T01:00:00.000Z",
-    )
-
-    expect(reordered.map(({ id, geometry }) => [id, geometry.zIndex])).toEqual([
-      ["note-3", 1],
-      ["note-1", 2],
-      ["note-2", 3],
-    ])
-    expect(reordered.map(({ contentRevision }) => contentRevision)).toEqual([
-      thirdNote.contentRevision,
-      firstNote.contentRevision,
-      secondNote.contentRevision,
-    ])
   })
 })

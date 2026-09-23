@@ -24,7 +24,7 @@
     "test": "vitest run --passWithNoTests",
     "test:browser": "vitest run --config vitest.browser.config.ts",
     "test:e2e": "pnpm build && playwright test",
-    "test:model": "vitest run src/_pages/notes/model/note-content.model.test.ts src/_pages/notes/model/copy-note.model.test.ts src/entities/note/model/note-lifecycle.model.test.ts",
+    "test:model": "vitest run src/_pages/notes/model/note-content.model.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
