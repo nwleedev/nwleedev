@@ -47,7 +47,7 @@ function SavedTemplateList({
   templates,
 }: SavedTemplateListProps) {
   return (
-    <ol className="divide-y divide-line border-y border-line">
+    <ol className="divide-y divide-line">
       {templates.map((template) => (
         <SavedTemplateItem
           key={template.id}

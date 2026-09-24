@@ -62,7 +62,7 @@ type UsageTableProps = {
 
 export function UsageTable({ rows }: UsageTableProps) {
   return (
-    <div className="overflow-x-auto border-y border-line">
+    <div className="overflow-x-auto">
       <table className="block w-full table-fixed sm:table">
         <caption className="sr-only">
           메모 원문별 개별 복사, 일괄 복사와 합계

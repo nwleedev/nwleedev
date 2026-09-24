@@ -36,7 +36,7 @@ function UsageContent({ onRetry, state }: UsageContentProps) {
   if (state.rows.length === 0) {
     return (
       <p
-        className="border-y border-line px-5 py-12 text-center text-sm text-soft-ink"
+        className="px-5 py-12 text-center text-sm text-soft-ink"
         role="status"
       >
         복사 기록이 없습니다.

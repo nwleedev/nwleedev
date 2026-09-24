@@ -105,7 +105,7 @@ export function SettingsStartPage() {
       id="main-content"
     >
       <PageHeading density="compact" title="설정" />
-      <section className="mt-5 border-y border-line py-6">
+      <section className="mt-5">
         {"preferences" in preferenceState ? (
           <div>
             <InteractionPreferencesForm

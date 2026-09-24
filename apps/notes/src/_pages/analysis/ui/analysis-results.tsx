@@ -127,7 +127,7 @@ export function AnalysisResults({
           {noteCount}개 메모 분석 완료, {completedAt}
         </p>
         <p
-          className="border-y border-line px-5 py-12 text-center text-sm text-soft-ink"
+          className="px-5 py-12 text-center text-sm text-soft-ink"
           role="status"
         >
           분석 후보가 없습니다.
@@ -146,7 +146,7 @@ export function AnalysisResults({
           {noteCount}개 메모 분석 완료, {completedAt}
         </p>
       </div>
-      <ol className="divide-y divide-line border-y border-line">
+      <ol className="divide-y divide-line">
         {completed.rows.map((row) => {
           const key = [
             row.left.note.id,
