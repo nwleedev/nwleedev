@@ -18,6 +18,7 @@ import { MobileBatchCopyConfirmationList } from "./mobile-batch-copy-confirmatio
 
 type MobileBatchCopyConfirmationProps = {
   draft: ConfirmingMobileBatchCopyDraft
+  onReturnToCollection(): Promise<boolean>
 }
 
 type ConfirmationNoticeViewProps = {
@@ -58,8 +59,12 @@ function ConfirmationNoticeView({
 
 export function MobileBatchCopyConfirmation({
   draft,
+  onReturnToCollection,
 }: MobileBatchCopyConfirmationProps) {
-  const confirmation = useMobileBatchCopyConfirmation(draft)
+  const confirmation = useMobileBatchCopyConfirmation(
+    draft,
+    onReturnToCollection,
+  )
 
   return (
     <main

@@ -9,7 +9,6 @@ import {
   CopyBatchTextNotice,
   useBatchCopyEditor,
 } from "@/features/edit-batch-copy"
-import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
 import { Button } from "@/shared/ui/button"
 
 import { useBatchCopyActionPresentation } from "../model/use-batch-copy-action-presentation"
@@ -93,18 +92,27 @@ export function BatchCopyStartPage() {
     batchCopy,
     copyNotice,
     dismissCopyNotice,
+    mobileDraft,
+    returningConfirmation,
+    returnToCollection,
     retryCopy,
     showCopyResult,
   } = useBatchCopyPage()
-  const mobileBatchCopy = useMobileBatchCopy()
   const copyDisabled =
     batchCopy.status !== "ready" || batchCopy.items.length === 0
-  const mobileDraft =
-    mobileBatchCopy.status === "ready" ? mobileBatchCopy.draft : null
+  const mobileConfirmation =
+    mobileDraft?.step === "confirming"
+      ? { ...mobileDraft, step: "confirming" as const }
+      : null
+  const confirmingDraft = returningConfirmation ?? mobileConfirmation
 
-  if (mobileDraft?.step === "confirming") {
-    const confirmingDraft = { ...mobileDraft, step: mobileDraft.step }
-    return <MobileBatchCopyConfirmation draft={confirmingDraft} />
+  if (confirmingDraft !== null) {
+    return (
+      <MobileBatchCopyConfirmation
+        draft={confirmingDraft}
+        onReturnToCollection={returnToCollection}
+      />
+    )
   }
 
   return (

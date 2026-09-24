@@ -640,12 +640,18 @@ test.describe("320px 일괄 복사", () => {
     page,
   }) => {
     const content = "복원할 모바일 일괄 복사 메모"
+    const secondContent = "순서를 복원할 두 번째 메모"
     const note = await createMobileNoteThroughUi(page, content)
+    const secondNote = await createMobileNoteThroughUi(page, secondContent)
 
     await page.getByRole("button", { name: "일괄 복사 시작" }).click()
     const entry = note.getByRole("button", { name: `${content} 일괄 복사에 추가` })
+    const secondEntry = secondNote.getByRole("button", {
+      name: `${secondContent} 일괄 복사에 추가`,
+    })
     await entry.click()
     await entry.click()
+    await secondEntry.click()
     await page.reload()
 
     await expect(
@@ -657,32 +663,67 @@ test.describe("320px 일괄 복사", () => {
     await expect(page.getByRole("button", { name: /다음, \d+회 선택/u })).toHaveCount(0)
 
     await page.getByRole("button", { name: "일괄 복사 이어가기" }).click()
-    await page.getByRole("button", { name: "다음, 2회 선택" }).click()
+    await page.getByRole("button", { name: "다음, 3회 선택" }).click()
     await expect(page).toHaveURL("/batch-copy/")
     await page.reload()
 
     let confirmationEntries = page.getByRole("article", {
       name: /번째 일괄 복사 항목$/u,
     })
-    await expect(confirmationEntries).toHaveCount(2)
-    await expect(confirmationEntries).toContainText([content, content])
+    await expect(confirmationEntries).toHaveCount(3)
+    await expect(confirmationEntries).toContainText([
+      content,
+      content,
+      secondContent,
+    ])
 
     await page
       .getByRole("button", { name: "메모 선택으로 돌아가기" })
       .click()
     await expect(page).toHaveURL("/")
-    await expect(page.getByRole("button", { name: "다음, 2회 선택" })).toBeEnabled()
+    await expect(page.getByRole("button", { name: "다음, 3회 선택" })).toBeEnabled()
 
-    await page.getByRole("button", { name: "다음, 2회 선택" }).click()
+    await page.getByRole("button", { name: "다음, 3회 선택" }).click()
     confirmationEntries = page.getByRole("article", {
       name: /번째 일괄 복사 항목$/u,
     })
-    await expect(confirmationEntries).toHaveCount(2)
+    await expect(confirmationEntries).toHaveCount(3)
+    await expect(confirmationEntries).toContainText([
+      content,
+      content,
+      secondContent,
+    ])
+
+    await page.goBack()
+    await expect(page).toHaveURL("/")
+    await expect(page.getByRole("button", { name: "새 메모" })).toBeVisible()
+    await expect(
+      page.getByRole("button", { name: "일괄 복사 계속하기" }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole("region", { name: "일괄 복사 항목 관리" }),
+    ).toHaveCount(0)
+    await expect(page.getByRole("button", { name: "초기화" })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /다음, \d+회 선택/u })).toHaveCount(0)
+
+    await page.getByRole("button", { name: "일괄 복사 계속하기" }).click()
+    await expect(page).toHaveURL("/batch-copy/")
+    confirmationEntries = page.getByRole("article", {
+      name: /번째 일괄 복사 항목$/u,
+    })
+    await expect(confirmationEntries).toHaveCount(3)
+    await expect(confirmationEntries).toContainText([
+      content,
+      content,
+      secondContent,
+    ])
+
     await page.getByRole("button", { exact: true, name: "취소" }).click()
     await expect(page).toHaveURL("/")
     await page.reload()
     await expect(page.getByRole("button", { name: "일괄 복사 시작" })).toBeVisible()
     await expect(page.getByRole("button", { name: /다음, \d+회 선택/u })).toHaveCount(0)
     await expect(page.getByRole("article").filter({ hasText: content })).toBeVisible()
+    await expect(page.getByRole("article").filter({ hasText: secondContent })).toBeVisible()
   })
 })

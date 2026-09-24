@@ -49,6 +49,7 @@ function applyOptimisticChange(
 
 export function useMobileBatchCopyConfirmation(
   draft: ConfirmingMobileBatchCopyDraft,
+  onReturnToCollection: () => Promise<boolean>,
 ) {
   const batchCopy = useMobileBatchCopy()
   const router = useRouter()
@@ -66,10 +67,7 @@ export function useMobileBatchCopyConfirmation(
   }
 
   async function returnToCollection() {
-    const result = await batchCopy.resumeCollection()
-
-    if (result.status === "saved") {
-      router.push("/")
+    if (await onReturnToCollection()) {
       return
     }
 
