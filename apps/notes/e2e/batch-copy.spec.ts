@@ -366,6 +366,14 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   })
   const managementItems = management.getByRole("listitem")
   await expect(managementItems).toContainText([secondContent, firstContent])
+  for (const width of [320, 640, 900, 1280]) {
+    await page.setViewportSize({ height: 720, width })
+    await expect(page.getByRole("heading", { name: "일괄 복사" })).toBeVisible()
+    await expect(managementItems).toContainText([secondContent, firstContent])
+    await expect(page.getByRole("link", { exact: true, name: "취소" })).toBeVisible()
+    await expect(page.getByRole("button", { exact: true, name: "복사" })).toBeVisible()
+  }
+  await page.setViewportSize({ height: 720, width: 320 })
   await managementItems
     .filter({ hasText: firstContent })
     .getByRole("button", { name: /번째 일괄 복사 항목 이동$/u })

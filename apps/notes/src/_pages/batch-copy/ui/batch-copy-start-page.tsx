@@ -20,18 +20,21 @@ const navigationClassName =
 
 function BatchCopyPageContent() {
   const batchCopy = useBatchCopyEditor()
+  const { container, presentation } = useBatchCopyActionPresentation()
 
   if (batchCopy.status !== "ready") {
     if (batchCopy.status === "failure") {
       return (
         <section className="grid min-h-0 place-items-center overflow-auto px-4 py-8">
-          <div className="grid justify-items-center gap-3 text-center">
-            <p className="text-sm text-danger" role="alert">
-              일괄 복사 항목을 불러오지 못했습니다.
-            </p>
-            <Button onClick={batchCopy.retry} tone="quiet">
-              다시 시도
-            </Button>
+          <div className="mx-auto w-full max-w-3xl" ref={container}>
+            <div className="grid justify-items-center gap-3 text-center">
+              <p className="text-sm text-danger" role="alert">
+                일괄 복사 항목을 불러오지 못했습니다.
+              </p>
+              <Button onClick={batchCopy.retry} tone="quiet">
+                다시 시도
+              </Button>
+            </div>
           </div>
         </section>
       )
@@ -39,10 +42,25 @@ function BatchCopyPageContent() {
 
     return (
       <section className="grid min-h-0 place-items-center overflow-auto px-4 py-8">
-        <p className="text-sm text-soft-ink" role="status">
-          일괄 복사 항목 불러오는 중
-        </p>
+        <div className="mx-auto w-full max-w-3xl" ref={container}>
+          <p className="text-sm text-soft-ink" role="status">
+            일괄 복사 항목 불러오는 중
+          </p>
+        </div>
       </section>
+    )
+  }
+
+  let emptyState = null
+
+  if (batchCopy.items.length === 0) {
+    emptyState = (
+      <p
+        className="grid min-h-40 place-items-center text-sm text-soft-ink"
+        role="status"
+      >
+        일괄 복사 항목이 없습니다.
+      </p>
     )
   }
 
@@ -51,39 +69,20 @@ function BatchCopyPageContent() {
       aria-label="일괄 복사 항목 관리"
       className="min-h-0 overflow-auto px-4 py-5 sm:px-5"
     >
-      {batchCopy.items.length === 0 ? (
-        <h2 className="grid min-h-40 place-items-center text-base font-semibold">
-          일괄 복사 항목이 없습니다.
-        </h2>
-      ) : null}
-      <BatchCopyManagement
-        items={batchCopy.items}
-        onDuplicate={batchCopy.duplicateItem}
-        onMove={batchCopy.moveItem}
-        onRemove={batchCopy.removeItem}
-        pending={batchCopy.pending}
-        reorderButtonsEnabled={batchCopy.reorderButtonsEnabled}
-      />
+      <div className="mx-auto w-full max-w-3xl" ref={container}>
+        {emptyState}
+        <BatchCopyEditingView
+          actionPresentation={presentation}
+          items={batchCopy.items}
+          onDuplicate={batchCopy.duplicateItem}
+          onMove={batchCopy.moveItem}
+          onRemove={batchCopy.removeItem}
+          pending={batchCopy.pending}
+          presentation="management"
+          reorderButtonsEnabled={batchCopy.reorderButtonsEnabled}
+        />
+      </div>
     </section>
-  )
-}
-
-type BatchCopyManagementProps = Pick<
-  Parameters<typeof BatchCopyEditingView>[0],
-  "items" | "onDuplicate" | "onMove" | "onRemove" | "pending" | "reorderButtonsEnabled"
->
-
-function BatchCopyManagement(props: BatchCopyManagementProps) {
-  const { container, presentation } = useBatchCopyActionPresentation()
-
-  return (
-    <div className="mx-auto max-w-3xl" ref={container}>
-      <BatchCopyEditingView
-        {...props}
-        actionPresentation={presentation}
-        presentation="management"
-      />
-    </div>
   )
 }
 
