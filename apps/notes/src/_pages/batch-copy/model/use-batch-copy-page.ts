@@ -1,7 +1,7 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { startTransition, useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
+import { startTransition, useEffect, useState } from "react"
 
 import type { ConfirmingMobileBatchCopyDraft } from "@/entities/batch-copy"
 import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
@@ -18,10 +18,30 @@ type CopyNotice = {
 export function useBatchCopyPage() {
   const batchCopy = useBatchCopyEditor()
   const mobileBatchCopy = useMobileBatchCopy()
+  const pathname = usePathname()
   const router = useRouter()
   const [copyNotice, setCopyNotice] = useState<CopyNotice | null>(null)
   const [returningConfirmation, setReturningConfirmation] =
     useState<ConfirmingMobileBatchCopyDraft | null>(null)
+  const mobileDraft =
+    mobileBatchCopy.status === "ready" ? mobileBatchCopy.draft : null
+  const isBatchCopyRoute =
+    pathname === "/batch-copy" || pathname === "/batch-copy/"
+  const redirectCollectingDraft =
+    isBatchCopyRoute &&
+    mobileBatchCopy.status === "ready" &&
+    mobileDraft?.step === "collecting" &&
+    returningConfirmation === null
+  const routePending =
+    isBatchCopyRoute &&
+    returningConfirmation === null &&
+    (mobileBatchCopy.status === "loading" || redirectCollectingDraft)
+
+  useEffect(() => {
+    if (redirectCollectingDraft) {
+      router.replace("/")
+    }
+  }, [redirectCollectingDraft, router])
 
   function showCopyResult(result: CopyBatchTextResult) {
     setCopyNotice((current) => ({
@@ -42,8 +62,6 @@ export function useBatchCopyPage() {
   }
 
   async function returnToCollection() {
-    const mobileDraft =
-      mobileBatchCopy.status === "ready" ? mobileBatchCopy.draft : null
     const draft = mobileDraft?.step === "confirming" ? mobileDraft : null
 
     if (draft === null) {
@@ -69,10 +87,10 @@ export function useBatchCopyPage() {
     batchCopy,
     copyNotice,
     dismissCopyNotice: () => setCopyNotice(null),
-    mobileDraft:
-      mobileBatchCopy.status === "ready" ? mobileBatchCopy.draft : null,
+    mobileDraft,
     returningConfirmation,
     returnToCollection,
+    routePending,
     retryCopy: () => void retryCopy(),
     showCopyResult,
   }

@@ -652,6 +652,9 @@ test.describe("320px 일괄 복사", () => {
     await entry.click()
     await entry.click()
     await secondEntry.click()
+    await expect(
+      page.getByRole("button", { name: "다음, 3회 선택" }),
+    ).toBeEnabled()
     await page.reload()
 
     await expect(
@@ -661,6 +664,15 @@ test.describe("320px 일괄 복사", () => {
     await expect(page.getByRole("button", { name: "일괄 복사 끝내기" })).toHaveCount(0)
     await expect(page.getByRole("button", { name: "초기화" })).toHaveCount(0)
     await expect(page.getByRole("button", { name: /다음, \d+회 선택/u })).toHaveCount(0)
+
+    await page.goto("/batch-copy/")
+    await expect(page).toHaveURL("/")
+    await expect(
+      page.getByRole("button", { name: "일괄 복사 이어가기" }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole("region", { name: "일괄 복사 항목 관리" }),
+    ).toHaveCount(0)
 
     await page.getByRole("button", { name: "일괄 복사 이어가기" }).click()
     await page.getByRole("button", { name: "다음, 3회 선택" }).click()

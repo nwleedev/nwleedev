@@ -95,11 +95,26 @@ export function BatchCopyStartPage() {
     mobileDraft,
     returningConfirmation,
     returnToCollection,
+    routePending,
     retryCopy,
     showCopyResult,
   } = useBatchCopyPage()
   const copyDisabled =
     batchCopy.status !== "ready" || batchCopy.items.length === 0
+
+  if (routePending) {
+    return (
+      <main
+        className="grid h-full min-h-0 place-items-center bg-canvas"
+        id="main-content"
+      >
+        <p className="text-sm text-soft-ink" role="status">
+          일괄 복사 화면 확인 중
+        </p>
+      </main>
+    )
+  }
+
   const mobileConfirmation =
     mobileDraft?.step === "confirming"
       ? { ...mobileDraft, step: "confirming" as const }
