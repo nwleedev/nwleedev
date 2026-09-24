@@ -806,6 +806,9 @@ test("초기 화면을 hydration 오류 없이 연다", async ({ page }) => {
   await expect(
     page.getByRole("region", { name: "메모 작업 영역" }),
   ).toBeVisible()
+  await expect(
+    page.getByText("접속 주소 확인 중", { exact: true }),
+  ).toHaveCount(0)
   expect(consoleMessages).toEqual([])
   const observedPageErrors = [...pageErrors]
   const knownPrefetchErrors = observedPageErrors.filter((message) =>
