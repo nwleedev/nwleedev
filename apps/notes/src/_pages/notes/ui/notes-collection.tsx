@@ -297,40 +297,37 @@ export function NotesCollection({
         />
       ) : null}
       {layout === "desktop" ? (
-        <div className="flex h-full min-h-0 flex-col">
-          <div className="flex shrink-0 px-3 py-2 sm:px-4">
-            <Button
-              disabled={creationPending}
-              onClick={createNewNote}
-              ref={createButton}
-              tabIndex={100}
-            >
-              {createLabel}
-            </Button>
-          </div>
-          <div className="min-h-0 flex-1">
-            <NotesBoard
-              batchCopyShortcutEnabled={batchCopyShortcutEnabled}
-              commandPressed={commandPressed}
-              draftContentByNote={draftContentByNote}
-              focusedNoteId={linkedNoteId}
-              notes={orderedNotes}
-              onActivateProperties={activateProperties}
-              onAddToBatchCopy={addToBatchCopy}
-              onCopy={copy}
-              onClearSelection={clearSelection}
-              onMoveToBack={moveNoteToBack}
-              onMoveToFront={moveNoteToFront}
-              onRemove={remove}
-              onSaveContent={saveContent}
-              onSaveFailure={showSaveFailure}
-              onSaveGeometry={saveGeometry}
-              onSelect={select}
-              propertiesNoteId={propertiesNoteId}
-              selectedNoteId={selectedNoteId}
-            />
-          </div>
-        </div>
+        <>
+          <NotesBoard
+            batchCopyShortcutEnabled={batchCopyShortcutEnabled}
+            commandPressed={commandPressed}
+            draftContentByNote={draftContentByNote}
+            focusedNoteId={linkedNoteId}
+            notes={orderedNotes}
+            onActivateProperties={activateProperties}
+            onAddToBatchCopy={addToBatchCopy}
+            onCopy={copy}
+            onClearSelection={clearSelection}
+            onMoveToBack={moveNoteToBack}
+            onMoveToFront={moveNoteToFront}
+            onRemove={remove}
+            onSaveContent={saveContent}
+            onSaveFailure={showSaveFailure}
+            onSaveGeometry={saveGeometry}
+            onSelect={select}
+            propertiesNoteId={propertiesNoteId}
+            selectedNoteId={selectedNoteId}
+          />
+          <Button
+            className="absolute left-3 top-3 z-30"
+            disabled={creationPending}
+            onClick={createNewNote}
+            ref={createButton}
+            tabIndex={100}
+          >
+            {createLabel}
+          </Button>
+        </>
       ) : null}
     </div>
   )

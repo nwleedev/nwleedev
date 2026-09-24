@@ -1680,6 +1680,32 @@ test("확대 뒤에도 메모와 보기 제어를 작업 영역에 유지한다"
     .toBeGreaterThan(before.width)
 })
 
+test("넓은 화면의 새 메모와 일괄 복사 제어는 캔버스 높이를 차지하지 않는다", async ({
+  page,
+}) => {
+  const note = await createNoteThroughUi(page, `캔버스 메모-${crypto.randomUUID()}`)
+  const main = page.getByRole("main")
+  const workspace = page.getByRole("region", { name: "메모 작업 영역" })
+  const createButton = page.getByRole("button", { name: "새 메모" })
+  const batchCopyButton = page.getByRole("button", { name: /일괄 복사 \d+개/u })
+
+  await expect(createButton).toBeVisible()
+  await expect(batchCopyButton).toBeVisible()
+  const mainBox = await visibleBox(main)
+  const workspaceBox = await visibleBox(workspace)
+  expect(workspaceBox.y).toBe(mainBox.y)
+  expect(workspaceBox.height).toBeCloseTo(mainBox.height, 0)
+
+  await createButton.click()
+  await expect(page.getByRole("article")).toHaveCount(2)
+
+  await batchCopyButton.click()
+  await expect(
+    page.getByRole("button", { name: "일괄 복사 패널 닫기" }),
+  ).toBeVisible()
+  await expect(note).toBeVisible()
+})
+
 test("화면 밖에 새 메모가 생겨도 편집 대상과 보기 제어를 함께 드러낸다", async ({ page }) => {
   const firstNote = await createNoteThroughUi(page, `첫 메모-${crypto.randomUUID()}`)
   const controls = page.getByRole("group", { name: "캔버스 보기" })
