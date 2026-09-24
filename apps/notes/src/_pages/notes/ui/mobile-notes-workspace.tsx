@@ -32,14 +32,21 @@ export function MobileNotesWorkspace({
   const savedBatchCopy = useBatchCopyEditor()
   const router = useRouter()
   const draft = batchCopy.status === "ready" ? batchCopy.draft : null
-  const collecting = draft?.step === "collecting"
+  const collectingDraft = draft?.step === "collecting"
+  const collecting =
+    batchCopy.status === "ready" &&
+    batchCopy.collectionVisible &&
+    collectingDraft
   const count = collecting ? draft.clickCount : 0
   const countText = count.toLocaleString("ko-KR")
   const nextAccessibleName = `다음, ${countText}회 선택`
   const continueBatchCopy = draft?.step === "confirming"
-  const batchCopyButtonName = continueBatchCopy
-    ? "일괄 복사 계속하기"
-    : "일괄 복사 시작"
+  const batchCopyButtonName =
+    continueBatchCopy
+      ? "일괄 복사 계속하기"
+      : collectingDraft
+        ? "일괄 복사 이어가기"
+        : "일괄 복사 시작"
   let savedBatchCopyLink: SavedBatchCopyLink = null
 
   if (!collecting && draft === null && savedBatchCopy.status === "ready") {
@@ -59,6 +66,11 @@ export function MobileNotesWorkspace({
   async function startBatchCopy() {
     if (continueBatchCopy) {
       router.push("/batch-copy/")
+      return
+    }
+
+    if (collectingDraft) {
+      batchCopy.continueCollection()
       return
     }
 

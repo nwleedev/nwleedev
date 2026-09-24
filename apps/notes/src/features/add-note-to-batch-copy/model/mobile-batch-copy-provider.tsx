@@ -41,7 +41,11 @@ import {
 
 type MobileBatchCopyState =
   | { status: "failure" | "loading" }
-  | { draft: MobileBatchCopyDraft | null; status: "ready" }
+  | {
+      collectionVisible: boolean
+      draft: MobileBatchCopyDraft | null
+      status: "ready"
+    }
 
 type MobileBatchCopyContextValue = MobileBatchCopyState & {
   pending: boolean
@@ -49,6 +53,7 @@ type MobileBatchCopyContextValue = MobileBatchCopyState & {
   add(note: Note): Promise<MobileBatchCopySaveResult>
   cancel(): Promise<MobileBatchCopyRemoveResult>
   confirm(): Promise<MobileBatchCopySaveResult>
+  continueCollection(): void
   copy(): Promise<CopyMobileBatchTextResult>
   duplicate(entryId: string): Promise<MobileBatchCopySaveResult>
   move(entryId: string, index: number): Promise<MobileBatchCopySaveResult>
@@ -109,9 +114,12 @@ export function MobileBatchCopyProvider({
   const loadSequence = useRef(0)
   const queue = useRef<Promise<void>>(Promise.resolve())
 
-  const publish = useCallback((nextDraft: MobileBatchCopyDraft | null) => {
+  const publish = useCallback((
+    nextDraft: MobileBatchCopyDraft | null,
+    collectionVisible: boolean,
+  ) => {
     draft.current = nextDraft
-    setState({ draft: nextDraft, status: "ready" })
+    setState({ collectionVisible, draft: nextDraft, status: "ready" })
   }, [])
 
   function enqueue<Result>(operation: () => Promise<Result>) {
@@ -144,7 +152,7 @@ export function MobileBatchCopyProvider({
         return
       }
 
-      publish(result.draft)
+      publish(result.draft, false)
     })
   }, [publish, repository])
 
@@ -173,7 +181,7 @@ export function MobileBatchCopyProvider({
       })
 
       if (result.status === "saved") {
-        publish(result.draft)
+        publish(result.draft, true)
       }
 
       return result
@@ -195,7 +203,7 @@ export function MobileBatchCopyProvider({
       )
 
       if (result.status === "saved") {
-        publish(result.draft)
+        publish(result.draft, true)
       }
 
       return result
@@ -216,7 +224,7 @@ export function MobileBatchCopyProvider({
       )
 
       if (result.status === "saved") {
-        publish(result.draft)
+        publish(result.draft, true)
       }
 
       return result
@@ -237,7 +245,7 @@ export function MobileBatchCopyProvider({
       )
 
       if (result.status === "saved") {
-        publish(result.draft)
+        publish(result.draft, false)
       }
 
       return result
@@ -259,7 +267,7 @@ export function MobileBatchCopyProvider({
       const result = await operation(latestDraft)
 
       if (result.status === "saved") {
-        publish(result.draft)
+        publish(result.draft, false)
       }
 
       return result
@@ -297,6 +305,18 @@ export function MobileBatchCopyProvider({
     )
   }
 
+  function continueCollection() {
+    const latestDraft = collectingDraft(draft.current)
+
+    if (latestDraft !== null) {
+      setState({
+        collectionVisible: true,
+        draft: latestDraft,
+        status: "ready",
+      })
+    }
+  }
+
   function resumeCollection() {
     return enqueue(async () => {
       const latestDraft = confirmingDraft(draft.current)
@@ -311,7 +331,7 @@ export function MobileBatchCopyProvider({
       )
 
       if (result.status === "saved") {
-        publish(result.draft)
+        publish(result.draft, true)
       }
 
       return result
@@ -336,7 +356,7 @@ export function MobileBatchCopyProvider({
       const result = await cancelMobileBatchCopy(repository)
 
       if (result.status === "removed") {
-        publish(null)
+        publish(null, false)
       }
 
       return result
@@ -350,6 +370,7 @@ export function MobileBatchCopyProvider({
         add,
         cancel,
         confirm,
+        continueCollection,
         copy,
         duplicate,
         move,

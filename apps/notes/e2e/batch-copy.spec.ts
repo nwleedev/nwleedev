@@ -646,6 +646,17 @@ test.describe("320px 일괄 복사", () => {
     const entry = note.getByRole("button", { name: `${content} 일괄 복사에 추가` })
     await entry.click()
     await entry.click()
+    await page.reload()
+
+    await expect(
+      page.getByRole("button", { name: "일괄 복사 이어가기" }),
+    ).toBeVisible()
+    await expect(page.getByRole("button", { name: "새 메모" })).toBeVisible()
+    await expect(page.getByRole("button", { name: "일괄 복사 끝내기" })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: "초기화" })).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /다음, \d+회 선택/u })).toHaveCount(0)
+
+    await page.getByRole("button", { name: "일괄 복사 이어가기" }).click()
     await page.getByRole("button", { name: "다음, 2회 선택" }).click()
     await expect(page).toHaveURL("/batch-copy/")
     await page.reload()
