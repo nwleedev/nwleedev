@@ -1,10 +1,10 @@
 # apps/notes 아키텍처 리팩토링 실행 계획
 
-이 계획은 `apps/notes` 구현자가 화면과 저장 모듈을 순서대로 정리하고, 검토자가 사용자 동작과 저장 자료의 보존 여부를 확인하는 기준이다. 대상은 [리팩토링 요구사항](requirements.md)의 **현재 사용 동작과 저장 자료**, **모듈 책임과 의존 방향**, **상태마다 기준이 되는 위치**, **반응성과 유지보수성**이다. 화면에서 지킬 행동은 [기존 메모 앱 요구사항](../personal-notes-app-8fd/requirements.md)이 정하며, 현재 코드의 연결 지점은 [구조 조사](references/architecture-baseline.md), [메모 조작 및 Hook 책임 조사](references/geometry-and-hook-responsibility.md)와 [capability 주입 검토](references/capability-injection.md)에 기록되어 있다. U1부터 U13까지는 기존 리팩토링이며, U14부터 U20까지는 메모 조작 실패의 원인을 판별하고 복합 책임 Hook을 분리한다. U21부터는 현재 주입 구조를 서비스 전체에서 검토한 결과와 그에 따른 최소 변경을 다룬다.
+이 계획은 `apps/notes` 구현자가 화면과 저장 모듈을 순서대로 정리하고, 검토자가 사용자 동작과 저장 자료의 보존 여부를 확인하는 기준이다. 대상은 [리팩토링 요구사항](requirements.md)의 **현재 사용 동작과 저장 자료**, **모듈 책임과 의존 방향**, **상태마다 기준이 되는 위치**, **반응성과 유지보수성**이다. 화면에서 지킬 행동은 [기존 메모 앱 요구사항](../personal-notes-app-8fd/requirements.md)이 정하며, 현재 코드의 연결 지점은 [구조 조사](references/architecture-baseline.md), [메모 조작 및 Hook 책임 조사](references/geometry-and-hook-responsibility.md)와 [capability 주입 검토](references/capability-injection.md)에 기록되어 있다. U1부터 U13까지는 기존 리팩토링이며, U14부터 U20까지는 메모 조작 실패의 원인을 판별하고 복합 책임 Hook을 분리한다. U21은 전체 주입 구조를 검토하고, U22부터 U28까지 전체 의존성 객체를 설정, 템플릿, 분석, 일괄 복사와 메모의 조립 모듈로 교체하며, U29에서 사용자 동작을 최종 확인한다.
 
 ## 실행 원칙과 선행 판단
 
-- 작업은 아래 순서로 모듈별로 진행하고, 한 단위의 수정 내용과 다음 단위에 미치는 영향을 계획에 반영한다. 앞 단위에서 자료 형식, 상태 수명이나 사용자 동작이 달라지면 영향을 받는 다음 단위를 진행하기 전에 요구사항과 계획을 다시 확인한다. Props, Hook 또는 파일 수 감소를 완료 기준으로 삼지 않는다. U1부터 U13까지의 검증은 U13에서 수행했고, U14부터 U19까지의 변경 뒤 검토와 검증은 U20에서 한 번 수행한다. U14의 실패 재현과 자료 수집은 원인 판별에 필요한 조사다.
+- 작업은 아래 순서로 모듈별로 진행하고, 한 단위의 수정 내용과 다음 단위에 미치는 영향을 계획에 반영한다. 앞 단위에서 자료 형식, 상태 수명이나 사용자 동작이 달라지면 영향을 받는 다음 단위를 진행하기 전에 요구사항과 계획을 다시 확인한다. Props, Hook 또는 파일 수 감소를 완료 기준으로 삼지 않는다. U1부터 U13까지의 검증은 U13에서 수행했고, U14부터 U19까지의 변경 뒤 검토와 검증은 U20에서 한 번 수행한다. U22부터 U28까지의 변경 뒤 검토와 검증은 U29에서 한 번 수행한다. U14의 실패 재현과 자료 수집은 원인 판별에 필요한 조사다.
 - [현재 React Hook Form 지침](../../dev/personal-notes-app/react-hook-form.md)은 폼 값과 저장 상태를 구분하는 기준이다. [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴 지침](../../dev/personal-notes-app/test-anti-patterns.md)은 기존 검사가 사용자 동작을 확인하는지 판단할 때 적용한다. [기술 안티패턴 지침](../../dev/personal-notes-app/anti-patterns.md)은 FSD에 관한 현재 결정과 그 밖의 제안을 구분해 사용한다.
 - 새 라이브러리나 전역 DI container를 먼저 도입하지 않는다. FSD의 [계층 import 규칙](https://fsd.how/docs/reference/layers/#import-rule-on-layers)과 [public API](https://fsd.how/docs/reference/public-api/)를 기존 ESLint 검사로 유지한다. 각 slice의 UI, 상태, 저장소 구현을 나누는 기준은 실제 변경 이유와 import 방향이다.
 - U4부터 U12까지 수정하는 `.tsx`의 React 기본 Hook 구현은 같은 FSD 모듈의 기존 `.ts` Hook을 활용하거나 그 책임을 맡을 `.ts` 모듈로 옮긴다. `.tsx`에는 JSX와 Provider 조립을 남긴다. Hook 위치를 바꾸려고 상태 수명, Context 구독이나 slice의 public API를 바꾸지 않는다.
@@ -205,18 +205,58 @@ Firefox의 초기 화면 검사 한 건은 기존 Pretendard 폰트에서 다운
 - **설계 기준:** [React Context 구독 규칙](https://react.dev/reference/react/useContext)과 [FSD 계층 import 규칙](https://feature-sliced.design/docs/reference/layers#import-rule-on-layers)을 적용한다. 브라우저 구현을 바꿔 끼우는 기능, Provider가 관리하는 사용자 명령, 화면 인스턴스의 입력, DOM ref를 구분한다. 한 Hook에 함수 인자가 있다는 사실만으로 새 Context를 만들지 않는다.
 - **완료 증거:** 각 영역의 구현 선택 지점, 사용 Hook과 Context, 명령의 순서 및 오류 책임, 그대로 둘 Props와 ref가 문서에서 실제 파일로 추적된다. TanStack Query의 별도 cache와 저장 동작을 추가하지 않았는지도 확인한다.
 
-**검토 결과:** `createLocalApplication`과 기능별 Provider의 직접 주입이 현재 저장 및 분석 작업을 연결한다. `useUsageReader`는 조회 전용 접근자의 기존 사례다. 나머지 저장 및 분석 capability는 현재 각각의 상태 관리 Hook이 직접 사용한다. 이 Hook들을 위해 별도 Provider와 `useRepository()`류의 접근자를 일괄 추가하면 사용처가 늘지 않은 채 Context만 중복된다. `readContent`, `setFailure`, `noteReference`, 목록 ref와 화면 이동 callback은 편집 또는 화면 인스턴스의 값이다. `useNotesDataModel`, `useBatchCopyState`와 `useMobileBatchCopyState`의 저장 명령은 변경 queue와 화면 게시를 함께 담당하므로 원시 repository 조회기로 대체하지 않는다. 이 판단은 정적 코드 조사이며 렌더 감소를 입증하지 않는다.
+**검토 결과:** 기존 Provider의 직접 주입과 `useUsageReader` 접근자는 유지할 수 있다. 그러나 `LocalApplication`은 분석, 메모, 저장 일괄 복사, 설정, 템플릿과 사용 기록의 모든 의존성을 한 타입과 생성 함수에 나열한다. 미사용 `usage.writer` 하나만 삭제하면 이 결합이 남는다. 공통 IndexedDB 연결과 분석 Worker의 종료 시점은 보존하면서 각 Provider의 연결 위치로 옮긴다. `readContent`, `setFailure`, `noteReference`, DOM ref와 화면 이동 callback은 인프라 의존성이 아니므로 새 Provider로 옮기지 않는다. `useNotesDataModel`, `useBatchCopyState`와 `useMobileBatchCopyState`의 저장 명령, 순서, 화면 게시는 유지한다. 이 판단은 정적 코드 조사이며 렌더 감소를 입증하지 않는다.
 
-### U22. 조립 객체에서 사용하지 않는 writer 항목만 제거한다
+U22부터 U28까지는 기존 Provider 계층과 Client Component 경계를 유지하며 `_app`의 조립 코드만 옮긴다. 설정, 템플릿, 분석, 일괄 복사와 메모의 구현체는 각각 독립된 조립 모듈에서 안정적으로 만들어 기존 Provider에 전달한다. React 기본 Hook은 새 `.ts` 모듈에 두고 `.tsx`는 JSX 연결만 맡긴다. 큰 객체를 큰 Hook, 상위 컴포넌트의 의존성 묶음 또는 범용 Context로 옮기지 않는다. 각 단위의 완료 증거는 U29에서 한 번에 검토하고 검증한다.
 
-- **수정 및 제거:** [`create-local-application.ts`](../../../apps/notes/src/_app/composition/create-local-application.ts)의 `LocalApplication.usage.writer` 타입과 반환 객체 속성만 제거한다. 실제 기록에 사용되는 `notes.usageWriter`와 조회에 사용되는 `usage.reader`, 이를 연결하는 [`personal-notes-provider.tsx`](../../../apps/notes/src/_app/providers/personal-notes-provider.tsx)는 유지한다. 새 인터페이스, Provider, 접근자, package와 저장 형식은 추가하지 않는다.
-- **설계 기준:** 조립 객체에서 사용처가 없는 `usage.writer` 속성만 없앤다. [`use-usage-reader.ts`](../../../apps/notes/src/_pages/usage/model/use-usage-reader.ts)는 주입된 읽기 기능을 반환하는 현재 구조를 유지한다. 메모, 일괄 복사, 모바일 초안, 템플릿, 분석 및 설정의 의존성 Props는 `_app`에서 바로 각 Provider에 전달되므로 그대로 둔다. UI 작업마다 전달되는 저장 명령, 폼 함수와 ref를 인프라 DI와 혼동하지 않는다.
-- **완료 증거:** 전체 소스에서 `application.usage.writer` 사용처가 없음을 다시 확인하고 타입 검사와 FSD lint가 통과한다. 메모 본문 복사 뒤 사용 기록이 증가하고 `/usage` 재방문에서 그 기록을 읽으며, 기존 IndexedDB record와 오류 안내가 유지된다.
+### U22. 공유 IndexedDB 연결의 수명을 분리한다
 
-### U23. 의존성 연결과 사용자 동작을 최종 확인한다
+- **추가:** `_app/composition/use-database.ts`에서 `PersonalNotesDatabase`를 Provider 수명 동안 하나만 만들고 종료 시 닫는다.
+- **수정:** [`create-local-application.ts`](../../../apps/notes/src/_app/composition/create-local-application.ts)는 연결을 내부에서 만들거나 닫지 않고 인자로 받는다. [`use-local-application.ts`](../../../apps/notes/src/_app/providers/use-local-application.ts)와 [`personal-notes-provider.tsx`](../../../apps/notes/src/_app/providers/personal-notes-provider.tsx)는 같은 연결을 기존 저장소와 `storageMonitor`에 전달한다. 이때 전체 객체는 다음 단위를 위한 임시 연결로만 남긴다.
+- **설계 기준:** `use-database.ts`가 연결을 닫고 나머지 조립 모듈은 이를 사용하게 한다. [IndexedDB의 버전 변경 규칙](https://www.w3.org/TR/IndexedDB-3/#connection-requests)에 따라 별도 연결이 남아 업그레이드를 막지 않게 한다. 초기화 함수는 외부 연결을 열지 않고, 종료 처리는 [React Effect 수명 규칙](https://react.dev/reference/react/useEffect#connecting-to-an-external-system)에 맞춘다.
+- **완료 증거:** 메모, 초안, 저장 목록, 템플릿과 사용 기록이 같은 연결을 사용한다. `blocked`와 `version-changed` 안내, 연결 종료 후 재시도, 재진입 시 자료 조회가 기존과 같다.
 
-- **대상과 변경:** U22의 운영 코드 수정 및 제거 대상은 `usage.writer` 속성뿐이다. 별도 capability Provider, 범용 Dependencies Context, Query cache나 화면 상태 복제는 만들지 않는다. 다른 주입 변경이 필요하다는 근거가 나오면 수정 대상, 사용 모듈과 저장 순서의 영향을 먼저 이 계획에 기록한다.
-- **완료 증거:** [리팩토링 요구사항의 완료 증거](requirements.md#완료를-확인할-증거)에 따라 타입 검사, lint, 기존 unit, browser와 E2E 결과를 확인한다. 메모 저장 및 복구, 저장 목록과 모바일 초안의 일괄 복사, 템플릿, 분석, 설정, 사용 기록과 탐색에서 화면, URL, 접근성 이름, 저장 자료와 실패 동작이 유지되는지 확인한다. 기존 U20의 Firefox 초기 화면 실패도 구분해 기록하고, 남아 있으면 전체 검증 완료라고 표시하지 않는다. 렌더 횟수 개선을 주장하려면 같은 자료량과 동작에서 React Profiler 측정값을 별도로 확보한다.
+### U23. 설정 저장소를 독립적으로 연결한다
+
+- **추가 및 수정:** `_app/composition/use-preference-adapters.ts`와 `preference.tsx`에서 설정 저장소와 시계를 안정적으로 만들고 기존 `InteractionPreferencesProvider`에 전달한다. [`personal-notes-provider.tsx`](../../../apps/notes/src/_app/providers/personal-notes-provider.tsx)의 설정 Provider 위치를 교체하고 `LocalApplication.preferences` 타입 및 생성 코드를 제거한다.
+- **설계 기준:** 설정 저장소의 구현 선택만 별도 모듈로 옮긴다. 설정 값은 기존 Provider가 관리하며, 다른 Provider가 읽는 설정값과 현재 감싸는 순서를 유지한다. 새 Context나 설정 state 사본은 만들지 않는다.
+- **완료 증거:** 설정을 바꾸고 실패 시 되돌리는 동작, 메모와 일괄 복사에 반영되는 설정값, 재방문 뒤 저장값이 같다.
+
+### U24. 템플릿 의존성을 템플릿 연결 위치로 옮긴다
+
+- **추가 및 수정:** `_app/composition/use-template-adapters.ts`와 `template.tsx`에서 템플릿 저장소, 클립보드, 시계와 식별자 생성기를 안정적으로 만들고 기존 `TemplateDataProvider`에 전달한다. 상위 구성의 템플릿 Provider 위치를 교체하고 `LocalApplication.templates` 타입 및 생성 코드를 제거한다.
+- **설계 기준:** 템플릿 편집과 복사에 필요한 의존성만 모은다. 새 저장 명령이나 조회 Context를 만들지 않고, 기존 편집과 복사 명령이 같은 Provider를 거치게 한다. ID 생성기와 클립보드 구현은 현재 내부 누적 상태가 없으므로 템플릿 전용 인스턴스를 사용할 수 있다.
+- **완료 증거:** 템플릿 작성, 편집, 삭제, 복사와 선택 자료 사용이 기존 저장값 및 화면 결과를 유지한다.
+
+### U25. 분석 Worker의 수명과 조회 연결을 분석 Provider로 옮긴다
+
+- **추가 및 수정:** `_app/composition/use-analysis-adapters.ts`와 `analysis.tsx`에서 같은 IndexedDB 연결을 읽는 메모 저장소와 `WorkerTextAnalyzer`를 만들고 기존 `TextAnalysisProvider`에 전달한다. 분석 연결이 끝날 때 Worker를 종료하고 대기 요청을 정리한다. 상위 구성의 분석 Provider 위치를 교체하고 `LocalApplication.analysis`와 `dispose`를 제거하며, `use-local-application.ts`에서 더는 필요 없는 종료 Effect를 제거한다.
+- **설계 기준:** Worker 수명과 분석 전후의 메모 조회에 필요한 의존성을 함께 관리한다. 메모 revision 비교와 늦은 응답 배제는 기존 `useTextAnalysisState`에 남긴다. 새 연결은 첫 분석 전에는 Worker를 시작하지 않는다.
+- **완료 증거:** 분석 실행, 재실행, 화면 이동과 늦은 응답 처리가 같고 Worker가 종료된다. 사용 기록이나 메모 저장소의 다른 Provider는 분석 상태를 구독하지 않는다.
+
+### U26. 모바일 일괄 복사 초안의 구현을 분리한다
+
+- **추가 및 수정:** `_app/composition/use-mobile-batch-copy-adapters.ts`와 `mobile-batch-copy.tsx`에서 모바일 초안 저장소, 추가 writer, 클립보드, 시계와 식별자 생성기를 만들고 기존 `MobileBatchCopyProvider`에 전달한다. 상위 구성의 모바일 초안 Provider 위치를 교체하고 `LocalApplication.batchCopy`에서 `draftRepository`와 `mobileWriter`를 제거한다.
+- **설계 기준:** 모바일 확인 작업의 자료 수명과 저장 목록 수명을 합치지 않는다. 설정에서 읽은 재정렬 표시값을 기존과 같이 전달하고, 자체 저장 순서와 오류 복원은 `useMobileBatchCopyState`에 남긴다.
+- **완료 증거:** 모바일 초안의 추가, 순서 변경, 복제, 삭제, 확인 및 저장 실패 복원이 기존과 같고 복사 결과와 화면 문구가 유지된다.
+
+### U27. 저장 일괄 복사 목록의 구현을 분리한다
+
+- **추가 및 수정:** `_app/composition/use-batch-copy-adapters.ts`를 추가하고 [`batch-copy-provider.tsx`](../../../apps/notes/src/_app/providers/batch-copy-provider.tsx)가 저장 목록의 저장소, writer, 클립보드, 시계와 식별자 생성기를 그 Hook에서 받도록 한다. 상위 Provider는 공유 연결, 설정 표시값과 `onItemRemoved`만 전달한다. `LocalApplication.batchCopy`의 남은 타입과 생성 코드를 제거한다.
+- **설계 기준:** 기존 `useBatchCopyState`의 변경 queue, 실행 취소 이력과 저장 성공 뒤 메모 선택 해제 연결은 그대로 둔다. 저장 명령을 원시 저장소 접근으로 바꾸거나 모바일 초안의 상태와 합치지 않는다.
+- **완료 증거:** 저장 목록 편집, 재정렬, 개별 제거, 실행 취소, 전체 복사와 메모 선택 해제가 실패 및 재시도까지 기존과 같다.
+
+### U28. 메모와 사용 기록의 구현을 연결하고 전체 객체를 제거한다
+
+- **추가:** `_app/composition/use-usage-adapters.ts`는 메모의 개별 복사 기록과 사용 기록 화면이 함께 쓰는 `IndexedDbUsageRepository`를 공유 연결에서 한 번 만든다. `_app/composition/use-note-adapters.ts`와 `note.tsx`는 메모 저장소, 초안 저장소, 클립보드, 시계와 식별자 생성기를 안정적으로 만들고 기존 `NotesDataProvider`에 사용 기록 writer 및 같은 `PersonalNotesDatabase`를 `storageMonitor`로 전달한다.
+- **수정 및 제거:** [`personal-notes-provider.tsx`](../../../apps/notes/src/_app/providers/personal-notes-provider.tsx)는 사용 기록 reader를 기존 `UsageReaderProvider`에 직접 전달하고 메모 연결 위치를 교체한다. `ApplicationProviders`의 전체 객체 Props를 없애고 설정과 메모 세션의 화면 간 연결만 남긴다. [`create-local-application.ts`](../../../apps/notes/src/_app/composition/create-local-application.ts)와 [`use-local-application.ts`](../../../apps/notes/src/_app/providers/use-local-application.ts)의 남은 타입과 코드를 제거한다. 쓰지 않는 `usage.writer` 속성도 함께 사라진다.
+- **설계 기준:** 공유 자원은 IndexedDB 연결과 실제 양쪽에서 쓰는 사용 기록 저장소로 한정한다. 메모의 저장 queue, revision, 초안 복구와 `blocked` 및 `version-changed` 구독은 기존 `useNotesDataModel`에 남긴다. 사용 기록 읽기 접근자와 기능별 Provider는 유지하고, 범용 의존성 Context 또는 또 다른 전체 의존성 객체는 만들지 않는다.
+- **완료 증거:** 메모 저장, 복구와 개별 복사 기록이 기존 순서로 완료된다. `/usage`에서 같은 기록을 읽고 재방문 뒤에도 보이며, 연결 알림과 오류 안내가 유지된다. 전체 소스에서 `LocalApplication`과 `application.usage.writer` 참조가 사라진다.
+
+### U29. 조립 위치와 사용자 동작을 최종 확인한다
+
+- **대상과 변경:** U22부터 U28까지의 운영 코드와 연결 방향을 한 번 검토한다. 새 저장 형식, Query cache, 전역 DI container와 화면 상태 복제는 추가하지 않는다.
+- **완료 증거:** [리팩토링 요구사항의 완료 증거](requirements.md#완료를-확인할-증거)에 따라 타입 검사, lint, 기존 unit, browser와 E2E 결과를 확인한다. 각 조립 모듈이 연결할 Provider에 필요한 구현체만 만들고, 공통 연결은 하나이며, 분석 Worker가 종료되고, 하위 slice가 `_app`을 import하지 않는지 확인한다. 메모 저장 및 복구, 저장 목록과 모바일 초안의 일괄 복사, 템플릿, 분석, 설정, 사용 기록과 탐색에서 화면, URL, 접근성 이름, 저장 자료와 실패 동작을 비교한다. 기존 U20의 Firefox 초기 화면 실패도 구분해 기록하고, 남아 있으면 전체 검증 완료라고 표시하지 않는다. 렌더 횟수 개선을 주장하려면 같은 자료량과 동작에서 React Profiler 측정값을 별도로 확보한다.
 
 새 외부 의존성을 사용하는 모듈이 생겨 기존 직접 주입이 여러 무관한 중간 계층을 거칠 때만 그 모듈을 포함한 slice의 최소 capability 접근자를 다시 검토한다. 그전에는 저장 명령과 화면 입력의 인자 수 자체를 새 Provider 도입 근거로 사용하지 않는다.
 
@@ -228,3 +268,4 @@ Firefox의 초기 화면 검사 한 건은 기존 Pretendard 폰트에서 다운
 - provider 이동으로 화면 이동 뒤 선택 또는 초안이 사라지거나, Effect 제거로 저장 및 정리 시점이 달라지면 영향을 받는 작업을 멈춘다. U13에서 변경 전과 다른 실패가 확인되면 완료를 보류하고 사용자 동작을 보존하는 수정안을 확인한다. 변경 전에도 재현되는 실패는 별도로 밝힌다.
 - U14에서 저장 완료 전 관찰과 완료 뒤에도 남는 좌표 불일치를 구분하지 못하면 U15에서 바꿀 코드를 정하지 않는다. 실제 저장값이 잘못된 경우 검사 대기만 늘려 실패를 감추지 않는다. Hook 분리로 저장 queue나 사용자 화면의 상태 수명이 달라지면 영향을 받은 단위를 멈추고 이전 동작을 기준으로 다시 설계한다.
 - capability 접근자를 추가하려면 사용 모듈이 현재 Provider의 직접 주입으로는 연결되지 않는지 먼저 확인한다. 저장 명령을 우회하거나 FSD 하위 계층에서 `_app` 구현을 import해야 한다면 그 변경을 진행하지 않는다. Provider 값 변경으로 무관한 화면의 렌더 비용이 증가하거나 Client Component로 실행할 파일이 늘어나는 경우에도 구조를 다시 판단한다.
+- 분리 뒤에도 모든 구현체를 나열하는 새 객체, 단일 Hook 또는 Context가 생기면 다음 단위를 진행하기 전에 각 모듈의 변경 이유에 따라 다시 나눈다. 공유 IndexedDB 연결이 둘 이상 열리거나 분석 Worker 정리가 누락되면 수명 이동을 완료한 것으로 보지 않는다.

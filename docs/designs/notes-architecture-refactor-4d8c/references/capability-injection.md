@@ -1,6 +1,6 @@
 # 메모 서비스의 capability 주입 기준
 
-현재 `apps/notes`는 브라우저 구현을 `_app`에서 선택하고 각 기능의 Provider에 전달한다. 이 방식은 [의존성 조립에 관한 기존 결정](../../personal-notes-app-8fd/decisions/application-package-and-fsd.md#승인된-결정과-이유)과 [리팩토링 요구사항](../requirements.md#모듈-책임과-의존-방향을-분명히-한다)을 충족하는 방향이다. 주입된 읽기 기능을 조회만 하는 Hook은 사용 기록 화면에 이미 있다. 모든 저장소 함수, 화면 callback과 DOM ref를 별도 Provider로 옮길 근거는 현재 코드에서 확인되지 않았다. 이 판단은 코드 연결 관계에 관한 검토이며, 렌더 성능이나 전체 사용자 과업을 다시 측정한 값에 근거하지 않는다.
+`apps/notes`는 브라우저 구현을 `_app`에서 선택해 각 Provider에 전달하지만, 그 전에 분석, 메모, 일괄 복사, 설정, 템플릿과 사용 기록의 의존성을 `LocalApplication` 한 객체에 모은다. Provider에 직접 주입하는 방식은 [기존 FSD 조립 결정](../../personal-notes-app-8fd/decisions/application-package-and-fsd.md#승인된-결정과-이유)에 맞는다. 반면 단일 조립 객체를 계속 확장하는 방식은 [전체 의존성 객체를 피하는 요구사항](../requirements.md#모듈-책임과-의존-방향을-분명히-한다)에 맞게 바꿔야 한다. 이 결론은 코드 연결 관계의 검토이며 렌더 성능이나 전체 사용자 과업을 다시 측정한 값은 아니다.
 
 ## 판단 기준과 외부 근거
 
@@ -10,13 +10,25 @@
 
 [FSD 계층 규칙](https://feature-sliced.design/docs/reference/layers#import-rule-on-layers)은 slice가 더 낮은 계층의 다른 slice만 import하도록 제한한다. [public API 규칙](https://feature-sliced.design/docs/reference/public-api)은 외부 slice가 내부 구현 대신 공개 진입점을 사용하도록 한다. `_app`의 조립 객체를 하위 Hook이 직접 import하는 방식은 이 방향을 뒤집으므로, Context가 필요한 경우에도 하위 slice가 필요한 타입과 접근자를 정의하고 `_app`이 값을 제공해야 한다. [Next.js의 Server 및 Client Component 지침](https://nextjs.org/docs/app/getting-started/server-and-client-components#context-providers)은 Context Provider를 Client Component에 두고 필요한 하위 트리를 감싸도록 안내한다. 브라우저 저장소 객체를 서버 라우트에서 클라이언트로 전달하는 설계는 현재 조립 방식과 맞지 않는다.
 
+[FSD의 App 계층 설명](https://feature-sliced.design/docs/reference/layers#app)은 앱 전체 연결을 그 계층에 둘 수 있음을 설명하지만, 모든 구현체를 하나의 타입에 합치도록 요구하지 않는다. [React의 `useState` 초기화 규칙](https://react.dev/reference/react/useState#avoiding-recreating-the-initial-state)은 초기화 함수를 첫 렌더의 상태 생성에 사용하며, 개발 환경의 Strict Mode에서는 그 함수를 두 번 호출할 수 있다고 설명한다. [Effect의 수명 규칙](https://react.dev/reference/react/useEffect#connecting-to-an-external-system)은 외부 자원을 연결하고 정리하는 시점을 설명한다. 따라서 조립 코드를 옮길 때에도 인스턴스의 안정성과 종료 책임을 함께 옮겨야 한다.
+
 TanStack Query의 [`queryOptions` 설명](https://tanstack.com/query/latest/docs/framework/react/reference/functions/queryOptions)은 query key와 query function을 함께 정의할 수 있음을 보여 준다. [mutation 뒤 무효화 지침](https://tanstack.com/query/latest/docs/framework/react/guides/invalidations-from-mutations)은 저장 이후 변경된 자료를 읽는 query의 cache 일관성을 별도로 관리한다. [`apps/notes/package.json`](../../../../apps/notes/package.json)에는 TanStack Query가 없고, [W3C IndexedDB transaction 수명 규칙](https://www.w3.org/TR/IndexedDB-3/#transaction-lifecycle)은 React Context나 Query가 대신 제공하지 않는다. 따라서 조회 접근자를 만든다는 이유로 Query를 도입하거나 현재 저장 순서를 바꾸지 않는다. 저장 대상별 적용 판단은 [기존 계획 U2](../plan.md#u2-indexeddb-조회마다-query-적용-여부를-판단한다)에 있다.
 
 ## 전체 코드에서 확인한 연결 관계
 
 ### 애플리케이션 조립
 
-[`create-local-application.ts`](../../../../apps/notes/src/_app/composition/create-local-application.ts)는 IndexedDB, 클립보드, 시계, ID 생성기와 분석 Worker를 만들고 [`personal-notes-provider.tsx`](../../../../apps/notes/src/_app/providers/personal-notes-provider.tsx)가 각 Provider에 전달한다. [`use-local-application.ts`](../../../../apps/notes/src/_app/providers/use-local-application.ts)는 그 인스턴스의 수명과 종료를 맡는다. 전체 `LocalApplication` 객체를 하위 화면에 제공하는 Context는 없다. `usage.writer` 속성은 조립 객체에 있으나 앱 코드에서 사용하지 않고, 실제 개별 복사 기록은 `notes.usageWriter`를 통해 전달된다. 이는 기능별 접근자를 늘리는 것과 별개로 제거 가능한 중복 조립 항목이다.
+[`create-local-application.ts`](../../../../apps/notes/src/_app/composition/create-local-application.ts)의 `LocalApplication` 타입과 반환값은 분석, 저장 일괄 복사, 메모, 설정, 템플릿과 사용 기록의 의존성을 한데 나열한다. [`use-local-application.ts`](../../../../apps/notes/src/_app/providers/use-local-application.ts)는 그 객체의 정체성을 유지하고 종료 시 분석 Worker와 IndexedDB 연결을 정리한다. [`personal-notes-provider.tsx`](../../../../apps/notes/src/_app/providers/personal-notes-provider.tsx)는 객체의 각 부분을 기능별 Provider에 직접 전달하며, 전체 객체를 하위 화면에서 조회하는 Context는 없다. 따라서 현재 문제는 전역 조회나 확인된 런타임 오류가 아니라 기능이 추가될 때 한 타입, 생성 함수와 상위 Provider가 함께 커지는 변경 결합이다. `usage.writer`는 사용하지 않는 속성이지만 그것만 제거해서는 이 결합이 사라지지 않는다.
+
+[`PersonalNotesDatabase`](../../../../apps/notes/src/_app/composition/indexed-db/personal-notes-database.ts)는 연결, 연결 중인 Promise, 세대 번호와 `blocked` 및 `version-changed` 구독을 인스턴스별로 관리한다. 메모 저장소와 `storageMonitor`가 같은 연결을 쓰는 현재 관계를 유지해야 한다. 인스턴스를 기능마다 만들면 연결과 알림을 따로 관리하게 되며, 열린 연결을 정리하지 못할 경우 버전 변경이 지연될 수 있다. [IndexedDB 표준의 연결 업그레이드 규칙](https://www.w3.org/TR/IndexedDB-3/#connection-requests)은 이전 버전의 연결이 남으면 업그레이드 요청이 `blocked` 상태로 대기한다고 설명한다.
+
+[`WorkerTextAnalyzer`](../../../../apps/notes/src/_pages/analysis/api/worker-text-analyzer.ts)는 첫 분석 요청 때 Worker를 만들고 `dispose`에서 종료와 대기 중인 요청 거절을 처리한다. 분석 기능의 조립이 독립되어도 이 정리는 분석 Provider의 수명에 남아야 한다. 반면 `CryptoEntityIdGenerator`는 호출마다 `crypto.randomUUID()`를 사용하고 `BrowserClipboardWriter`는 쓰기 시점에 브라우저 API를 조회하며, `now`는 현재 시각을 계산한다. 세 구현은 현재 공유 인스턴스에 상태를 쌓지 않는다. 그러므로 기능별로 만들 수 있으나 각 Provider가 받는 함수와 객체의 정체성은 렌더링 사이에 안정적으로 유지해야 한다.
+
+### 조립 방식 비교
+
+`LocalApplication`을 유지하면 현재의 연결과 종료 시점은 그대로지만, 새 화면의 저장소를 추가할 때 전체 타입과 생성 함수를 다시 수정해야 한다. 생성 코드를 `PersonalNotesProvider`나 `useLocalApplication` 안으로 옮기고 같은 객체를 반환해도 그 결합은 남는다. 각 조립 모듈이 IndexedDB 연결을 열면 모듈 사이에서 서로 다른 연결을 사용하고 `storageMonitor`는 자신이 구독한 연결의 알림만 받으며, 각 연결을 별도로 정리해야 한다.
+
+공통 IndexedDB 연결은 현재 수명으로 유지하고, 설정, 템플릿, 분석, 두 일괄 복사 작업과 메모의 구현체를 각각의 `_app` 조립 모듈에서 만든다. 이 방식은 조립 모듈을 추가하지만 전체 의존성을 나열하는 타입을 제거하며 기존 Provider의 입력과 저장 명령을 재사용할 수 있다. 사용 기록 저장소는 메모 복사 기록과 `/usage` 조회에 함께 전달한다. 분석 Worker는 분석 연결에서 종료한다.
 
 ### 메모와 상세 편집
 
@@ -48,6 +60,8 @@ TanStack Query의 [`queryOptions` 설명](https://tanstack.com/query/latest/docs
 
 ## 적용 조건과 미확인 사항
 
-현재의 직접 Provider 주입과 `useUsageReader` 접근자는 유지하는 편이 적합하다. 단지 Hook의 인자나 컴포넌트 Props가 함수라는 이유로 이를 없애지 않는다. 새로운 독립 모듈이 같은 외부 기능을 여러 단계의 무관한 컴포넌트를 거쳐 받아야 하는 경우에만 그 기능을 사용하는 slice에서 최소 타입과 조회 전용 접근자를 검토한다. 이때도 Provider 값의 수명, FSD 공개 진입점, 기존 명령의 queue와 오류 처리를 먼저 확인한다. `usage.writer`의 미사용 항목은 별도 코드 변경으로 제거할 수 있다.
+`LocalApplication`의 전체 의존성 목록은 없애고 `_app`의 설정, 템플릿, 분석, 일괄 복사와 메모 연결 위치에서 필요한 구현체만 안정적으로 만든다. `PersonalNotesProvider`는 기존 Provider의 순서와 설정 및 메모 세션의 화면 간 연결을 조정하고, 공통 IndexedDB 연결과 메모 작성 및 사용 기록 읽기가 함께 쓰는 저장소만 연결한다. 분석 Worker의 종료는 분석 연결 위치에서 처리한다. 큰 객체를 큰 Hook, 상위 컴포넌트의 단일 의존성 묶음 또는 범용 Dependencies Context로 옮기지는 않는다.
 
-검토는 설치된 React 19.2.8, Next.js 16.3.3, React Hook Form 7.86.0과 현재 소스 및 위 공식 자료를 2026-09-25에 대조했다. Provider를 나눈 뒤의 렌더 횟수, 메모 사용량과 전체 브라우저 동작은 측정하지 않았다. [기존 U20 결과](../plan.md#u20-후속-변경의-사용자-동작과-의존-방향을-확인한다)에는 Firefox 폰트 경고로 실패한 E2E 한 건이 남아 있으므로 이 검토만으로 전체 검증 완료를 주장하지 않는다.
+기존 기능별 Provider와 `useUsageReader` 접근자는 재사용한다. Hook 인자나 컴포넌트 Props가 함수라는 이유만으로 새 Context를 만들지 않는다. 독립 모듈이 같은 외부 기능을 무관한 중간 컴포넌트 여러 개를 거쳐 받아야 할 때만 해당 slice의 최소 접근자를 검토한다. `usage.writer`는 조립 객체 제거와 함께 사라지지만 `notes.usageWriter`와 `usage.reader`의 실제 주입은 유지한다. 기능별 조립 위치, 코드 제거 순서와 완료 증거는 [실행 계획](../plan.md#capability-주입-검토에-따른-후속-단위)에 둔다.
+
+검토는 설치된 React 19.2.8, Next.js 16.3.3, React Hook Form 7.86.0과 현재 소스 및 위 공식 자료를 2026-09-25에 대조했다. 기능별 조립 뒤의 렌더 횟수, 메모리 사용량과 전체 브라우저 동작은 측정하지 않았다. [기존 U20 결과](../plan.md#u20-후속-변경의-사용자-동작과-의존-방향을-확인한다)에는 Firefox 폰트 경고로 실패한 E2E 한 건이 남아 있으므로 이 검토만으로 전체 검증 완료를 주장하지 않는다.
