@@ -15,6 +15,18 @@
 - [`docs/dev/personal-notes-app/react-hook-form.md`](../../../dev/personal-notes-app/react-hook-form.md)는 폼 입력과 저장 및 브라우저 동작의 상태 책임을 나눈 `current` 지침이다. [`docs/dev/personal-notes-app/anti-patterns.md`](../../../dev/personal-notes-app/anti-patterns.md)는 구현 권고를 담은 `proposed` 지침이므로 승인된 현재 규칙과 구분한다.
 - `apps/notes/package.json`과 `pnpm-lock.yaml`에는 TanStack Query가 없다. `docs/dev/personal-notes-app/anti-patterns.md`도 현재 미도입 상태와 IndexedDB 자료를 Query cache에 함께 두려면 별도 적용 근거가 필요하다고 기록한다. 이 문서의 TanStack Query 분석은 아직 승인되지 않은 적용 검토다.
 
+### 사용자 동작과 코드의 연결
+
+사용자가 수행하는 작업의 상세 기준은 [기존 메모 앱 요구사항](../../personal-notes-app-8fd/requirements.md)에 있다. 현재 라우트와 주요 구현을 대조하면 리팩토링 중 다음 동작을 함께 보존해야 한다.
+
+- `/`와 `/notes/[noteId]`: [`notes-start-page.tsx`](../../../../apps/notes/src/_pages/notes/ui/notes-start-page.tsx), [`notes-collection.tsx`](../../../../apps/notes/src/_pages/notes/ui/notes-collection.tsx), [`note-detail-page.tsx`](../../../../apps/notes/src/_pages/notes/ui/note-detail-page.tsx)는 데스크톱 메모 보드, 모바일 목록과 상세 편집, 메모 생성, 복사, 배치, 속성 변경과 삭제 취소를 연결한다. [`use-note-content-autosave.ts`](../../../../apps/notes/src/_pages/notes/model/use-note-content-autosave.ts)와 [`notes-data-provider.tsx`](../../../../apps/notes/src/_pages/notes/model/notes-data-provider.tsx)는 초안 복구와 저장 실패를 포함한 자료 수명을 담당한다.
+- `/batch-copy`: [`batch-copy-start-page.tsx`](../../../../apps/notes/src/_pages/batch-copy/ui/batch-copy-start-page.tsx)는 저장된 목록의 편집, 순서 변경, 실행 취소와 다시 실행, 복사를 표시한다. [`mobile-batch-copy-confirmation.tsx`](../../../../apps/notes/src/_pages/batch-copy/ui/mobile-batch-copy-confirmation.tsx)와 [`mobile-batch-copy-provider.tsx`](../../../../apps/notes/src/features/add-note-to-batch-copy/model/mobile-batch-copy-provider.tsx)는 별도의 모바일 수집 초안, 확인 단계와 복귀를 유지한다.
+- `/analysis`와 `/templates`: [`analysis-start-page.tsx`](../../../../apps/notes/src/_pages/analysis/ui/analysis-start-page.tsx)는 사용자가 실행할 때 분석을 시작하고, [`text-analysis-provider.tsx`](../../../../apps/notes/src/_pages/analysis/model/text-analysis-provider.tsx)는 Worker 응답을 현재 메모 내용과 다시 대조한다. [`templates-start-page.tsx`](../../../../apps/notes/src/_pages/templates/ui/templates-start-page.tsx)는 선택된 분석 문장으로 템플릿을 만들고, 저장된 템플릿을 선택하여 값을 채우고 복사하는 작업을 연결한다.
+- `/usage`와 `/settings`: [`usage-start-page.tsx`](../../../../apps/notes/src/_pages/usage/ui/usage-start-page.tsx)는 복사 기록의 조회와 재시도를 제공한다. [`settings-start-page.tsx`](../../../../apps/notes/src/_pages/settings/ui/settings-start-page.tsx)는 일괄 복사 단축키와 순서 변경 버튼 설정을 저장하고, 실패하면 화면 입력을 저장된 값으로 되돌린다.
+- 모든 화면의 탐색과 실행 환경: [`app/layout.tsx`](../../../../apps/notes/app/layout.tsx), [`personal-notes-provider.tsx`](../../../../apps/notes/src/_app/providers/personal-notes-provider.tsx), [`application-navigation`](../../../../apps/notes/src/widgets/application-navigation/index.ts)은 라우트, 앱 수명과 탐색 UI를 연결한다. [`create-local-application.ts`](../../../../apps/notes/src/_app/composition/create-local-application.ts)는 IndexedDB, 클립보드, 시계, 식별자 생성과 분석 Worker 구현을 선택한다.
+
+화면별 작업은 다른 상태를 요구한다. 메모 저장은 복구 초안과 순차 변경을, 모바일 일괄 복사는 수집 및 확인 단계를, 분석은 명시적인 실행과 이전 분석 무효화를, 설정은 실패 시 복원을 요구한다. 따라서 화면별 상태와 저장 동작을 대조하지 않은 일괄 provider 교체는 현재 동작을 보존하는 방법으로 입증되지 않았다.
+
 ## 공식 자료가 확인한 설계 원칙
 
 FSD의 [계층 안내](https://fsd.how/docs/reference/layers/)는 slice가 더 낮은 계층에 의존하도록 정하고, [`app`과 `shared` 외 계층의 필요 여부는 프로젝트에서 판단할 수 있다](https://fsd.how/docs/reference/layers/#layer-definitions)고 설명한다. [`public API` 안내](https://fsd.how/docs/reference/public-api/)는 외부 모듈이 내부 파일 구조에 기대지 않도록 slice가 진입점에서 다른 모듈에 제공할 항목을 제한하라고 권한다. 현재 저장소에는 그 방향을 검사하는 ESLint 설정이 이미 있다. 따라서 조사만으로 새 아키텍처 도구나 폴더 체계를 추가할 근거는 확인되지 않았다.
@@ -37,6 +49,16 @@ W3C의 [IndexedDB 3.0 표준](https://www.w3.org/TR/IndexedDB/)은 다른 탭이
 
 따라서 Props 개수를 기준으로 일괄 제거하면 카드별 메모와 상태, 이벤트처럼 카드 인스턴스의 모양과 동작을 정하는 입력까지 감출 수 있다. 반대로 보드를 통과하기만 하는 공통 명령은 여러 카드가 실제로 함께 쓰는지 확인한 뒤 명령 전용 Context나 조립 위치 변경과 비교할 수 있다. 이 경우에도 전역 container로 바꾸지 않고, 순수 UI 입력과 이벤트는 Props로 두며 인프라 의존성은 이를 사용하는 작업의 조립 지점에서 제공하는 현재 요구사항을 따른다.
 
+메모 화면 밖에도 서로 다른 Props 전달 구간이 확인된다.
+
+- [`mobile-notes-workspace.tsx`](../../../../apps/notes/src/_pages/notes/ui/mobile-notes-workspace.tsx)는 복사, 일괄 복사 추가와 사용 가능 여부를 [`mobile-note-list.tsx`](../../../../apps/notes/src/_pages/notes/ui/mobile-note-list.tsx)에 주고, 목록은 각 [`mobile-note-card.tsx`](../../../../apps/notes/src/_pages/notes/ui/mobile-note-card.tsx)에 전달한다. 목록은 메모를 순회하는 역할이므로 공통 명령의 전달 방식은 재검토할 수 있다. 카드별 메모와 사용 가능 여부는 각 카드의 실제 입력이다.
+- [`batch-copy-editing-view.tsx`](../../../../apps/notes/src/features/edit-batch-copy/ui/batch-copy-editing-view.tsx)는 명령의 실패 표시와 재시도를 처리하면서 항목, 표시 방식과 일부 동작을 [`batch-copy-list.tsx`](../../../../apps/notes/src/features/edit-batch-copy/ui/batch-copy-list.tsx)에 전달한다. 목록은 포인터 순서 변경과 action sheet를 관리하며 행마다 많은 이벤트와 상태를 계산한다. [`mobile-batch-copy-confirmation-list.tsx`](../../../../apps/notes/src/_pages/batch-copy/ui/mobile-batch-copy-confirmation-list.tsx)에도 목록에서 행으로 전달하는 별도 코드가 있다. 두 목록의 공통 동작과 서로 다른 제스처를 구별해야 하므로 Props 수만으로 통합 여부를 정할 수 없다.
+- [`analysis-start-page.tsx`](../../../../apps/notes/src/_pages/analysis/ui/analysis-start-page.tsx)의 `AnalysisContent`는 분석 상태별 안내를 고른 다음 템플릿 제안 callback을 [`analysis-results.tsx`](../../../../apps/notes/src/_pages/analysis/ui/analysis-results.tsx)에 전달한다. 중간 컴포넌트에서 callback을 쓰지 않지만, 상태에 맞는 안내나 분석 목록을 고르는 책임은 있다. 분석 목록을 조립하는 위치를 바꾸면 전달 단계를 줄일 수 있는지 검토할 수 있다.
+- [`templates-start-page.tsx`](../../../../apps/notes/src/_pages/templates/ui/templates-start-page.tsx)에서 [`saved-templates.tsx`](../../../../apps/notes/src/_pages/templates/ui/saved-templates.tsx)로 내려가는 선택 callback은 저장된 템플릿을 고른다는 실제 사용자 동작이다. `SavedTemplateList`는 이를 각 행에 전달한다. [`template-input-form.tsx`](../../../../apps/notes/src/_pages/templates/ui/template-input-form.tsx)의 필드 목록은 React Hook Form의 `register`와 오류 정보를 각 필드에 전달한다. 폼 하위 구조가 더 깊어지지 않은 현재 구조에서 별도 FormProvider가 반드시 필요한 근거는 확인되지 않았다.
+- [`settings-start-page.tsx`](../../../../apps/notes/src/_pages/settings/ui/settings-start-page.tsx)의 설정 값, 저장 명령과 진행 상태는 바로 하위 폼에서 사용한다. [`usage-start-page.tsx`](../../../../apps/notes/src/_pages/usage/ui/usage-start-page.tsx)의 조회 상태와 재시도 명령도 바로 하위 화면에서 사용한다. 이 Props는 중간 전달만 하는 값이 아니므로 제거 대상으로 세지 않는다.
+
+[React의 Context 안내](https://react.dev/learn/passing-data-deeply-with-context)는 먼저 Props와 `children`을 통해 관계를 명시하고, 깊은 중간 계층이 사용하지 않는 값을 반복 전달하거나 여러 하위 컴포넌트가 같은 값을 공유할 때 Context를 고려하도록 설명한다. 이 앱에서도 중간 전달을 줄이는 이점과 Context 값 변경으로 다시 렌더되는 컴포넌트를 함께 비교해야 한다.
+
 외부 구현 선택은 이미 [`createLocalApplication`](../../../../apps/notes/src/_app/composition/create-local-application.ts)이 IndexedDB, 클립보드, 식별자, 시계와 분석 Worker를 조립하고 provider에 필요한 타입으로 전달한다. 범용 service locator나 전체 의존성 Context는 발견되지 않았다.
 
 메모 삭제 시각은 [`notes-collection.tsx`](../../../../apps/notes/src/_pages/notes/ui/notes-collection.tsx)에서 `new Date()`로 만들고, workspace notice 기본 만료 시각은 [`note-session-provider.tsx`](../../../../apps/notes/src/_pages/notes/model/note-session-provider.tsx)에서 `Date.now()`로 만든다. 저장할 때 조립된 `now`를 사용하는 코드와 달리 두 곳은 시스템 시계를 직접 읽는다. 시계 입력을 같은 방식으로 제공할지 검토할 수 있다. 라벨, URL과 autosave 지연 같은 고정 표현과 설정값까지 의존성으로 만들 근거는 없다.
@@ -47,7 +69,15 @@ W3C의 [IndexedDB 3.0 표준](https://www.w3.org/TR/IndexedDB/)은 다른 탭이
 
 노트, 템플릿, 설정과 일괄 복사 provider에는 읽기, 상태 표시와 재시도 코드가 반복된다. 그러나 노트 provider는 저장소 변경을 구독하고 순차 mutation queue를 사용한다. 설정 provider는 저장 중 상태를 표시하고 실패하면 이전 값을 복원한다. 템플릿 provider는 수정 시각이 최신인 항목부터 보여 주고 복사 동작을 제공한다. 반복 문법만을 근거로 범용 data provider를 만들면 각 provider의 오류, 재시도와 동시성 규칙을 흐릴 수 있다. 같은 저장 처리 방식과 오류 처리 절차를 공유하는 코드가 확인될 때만 그 부분을 모듈화할 근거가 있다.
 
-탐색 항목 이름과 이동 주소는 widget과 app navigation 양쪽에 선언되어 있고, 마지막 `/`를 제거하는 함수도 두 곳에 있다. 화면별 표시 방식과 현재 주소를 표시하는 규칙은 다르므로 UI를 합칠 근거는 없지만, 링크 정보와 주소 정리 규칙은 한곳에서 관리할 중복 후보로 확인됐다.
+현재 상태의 기준과 수명도 작업마다 다르다. [`notes-data-provider.tsx`](../../../../apps/notes/src/_pages/notes/model/notes-data-provider.tsx)는 저장된 메모와 복구 초안을 함께 읽고 저장소 상태 변경을 구독하며, 메모 변경을 순서대로 실행한다. [`note-session-provider.tsx`](../../../../apps/notes/src/_pages/notes/model/note-session-provider.tsx)는 선택, 패널과 삭제 취소처럼 저장 자료가 아닌 화면 작업 상태를 보관한다. [`batch-copy-provider.tsx`](../../../../apps/notes/src/_app/providers/batch-copy-provider.tsx)와 [`mobile-batch-copy-provider.tsx`](../../../../apps/notes/src/features/add-note-to-batch-copy/model/mobile-batch-copy-provider.tsx)는 각각 저장 목록과 모바일 작업 초안에 대해 별도 변경 순서를 관리한다.
+
+[`use-usage-read-state.ts`](../../../../apps/notes/src/_pages/usage/model/use-usage-read-state.ts)는 사용 기록 화면이 열렸을 때만 자료를 읽는다. [`text-analysis-provider.tsx`](../../../../apps/notes/src/_pages/analysis/model/text-analysis-provider.tsx)는 사용자의 분석 실행 상태를 저장하며, 완료한 분석이 현재 메모와 일치하는지 검사한다. 이 상태들을 하나의 전역 cache나 store에 같은 형식으로 넣으면 상태의 의미와 재조회 시점이 달라질 수 있다.
+
+[`template-data-provider.tsx`](../../../../apps/notes/src/_pages/templates/model/template-data-provider.tsx)는 현재 전체 앱 수명 동안 존재하지만, 이를 읽는 코드는 템플릿 화면의 편집, 텍스트 생성과 저장 목록에만 있다. 읽기 시점을 템플릿 화면으로 옮기면 앱 진입 시 조회를 줄일 수 있는지 검토할 수 있다. 화면을 떠났다가 돌아올 때 선택한 템플릿과 분석에서 전달한 문장이 유지되어야 하는지도 확인해야 한다. 반대로 설정 값은 앱 공통 조립 지점이 일괄 복사 단축키와 순서 변경 버튼에 제공하므로 설정 provider를 설정 화면에만 두면 현재 동작이 바뀐다.
+
+탐색 항목 이름과 이동 주소는 활성 [`application-navigation`](../../../../apps/notes/src/widgets/application-navigation/index.ts)과 이전 [`application-frame.tsx`](../../../../apps/notes/src/_app/ui/application-frame.tsx) 아래에 각각 선언되어 있고, 마지막 `/`를 제거하는 함수도 두 곳에 있다. 저장소 전체의 import 검색에서 이전 `ApplicationFrame`을 사용하는 코드는 찾지 못했다. 따라서 탐색 상수를 새 공통 모듈로 옮기기 전에 사용하지 않는 구현을 정리할 수 있는지 확인해야 한다.
+
+[`batch-copy-item-actions.tsx`](../../../../apps/notes/src/_pages/batch-copy/ui/batch-copy-item-actions.tsx)의 `BatchCopyItemActions`도 사용처를 찾지 못했다. 같은 이름의 [`createBatchCopyItemActions`](../../../../apps/notes/src/features/edit-batch-copy/model/batch-copy-item-actions.ts)는 활성 목록 두 곳에서 사용된다. 정적 import 검색만으로 외부 참조나 제거 안전성이 증명된 것은 아니다.
 
 ### Effect와 Hook 사용
 
@@ -57,11 +87,23 @@ W3C의 [IndexedDB 3.0 표준](https://www.w3.org/TR/IndexedDB/)은 다른 탭이
 
 [`note-session-provider.tsx`](../../../../apps/notes/src/_pages/notes/model/note-session-provider.tsx)는 workspace state와 알림, 삭제 기록을 React state로 보관하고, 상태 Context와 명령 Context를 분리한다. 현재 `useMemo` 사용 세 곳은 이 provider의 상태 및 명령 Context value와 [`navigation-guard-provider.tsx`](../../../../apps/notes/src/features/navigation-guard/model/navigation-guard-provider.tsx)의 Context value를 안정화한다. 이들은 비싼 계산을 캐시하기보다 provider가 새 객체를 매 render마다 전달하지 않게 하는 역할이다. Hook을 제거하거나 합치려면 상태와 명령의 구독 차이, 삭제 취소와 알림 만료 동작을 함께 확인해야 한다.
 
+전체 `apps/notes/src`의 운영 코드에서 `useEffect` 호출 36곳을 찾았다. 저장소 조회와 구독에는 메모, 저장 목록, 모바일 초안, 템플릿, 설정, 사용 기록 provider 및 Hook이 포함된다.
+
+외부 시스템 동기화에는 [`use-notes-board-view.ts`](../../../../apps/notes/src/_pages/notes/model/use-notes-board-view.ts)의 보드 관찰, [`use-batch-copy-pointer-reorder.ts`](../../../../apps/notes/src/features/edit-batch-copy/model/use-batch-copy-pointer-reorder.ts)의 포인터 세션 정리, [`use-batch-copy-history-shortcuts.ts`](../../../../apps/notes/src/features/edit-batch-copy/model/use-batch-copy-history-shortcuts.ts)의 키보드 listener가 있다.
+
+[`note-properties-panel.tsx`](../../../../apps/notes/src/_pages/notes/ui/note-properties-panel.tsx)는 포커스와 패널 밖 입력을 처리하고, [`batch-copy-workspace.tsx`](../../../../apps/notes/src/_pages/notes/ui/batch-copy-workspace.tsx)는 화면 크기를 관찰한다. 이들은 저장소 읽기 Effect와 같은 이유로 존재하지 않으므로 각각 연결된 브라우저 API와 정리 동작을 확인해야 한다.
+
+검토 우선 대상은 [`use-note-content-autosave.ts`](../../../../apps/notes/src/_pages/notes/model/use-note-content-autosave.ts)의 최신 메모, callback과 저장 함수를 ref에 복사하는 Effect 여섯 곳, [`use-note-properties-sync.ts`](../../../../apps/notes/src/_pages/notes/model/use-note-properties-sync.ts)의 저장된 도형과 폼 값 동기화, [`text-analysis-provider.tsx`](../../../../apps/notes/src/_pages/analysis/model/text-analysis-provider.tsx)의 분석 화면 진입 시 검증이다. 자동 저장의 마지막 Effect는 `pagehide` 및 `visibilitychange` 등록과 정리를 맡고, 속성 동기화는 사용자가 수정한 dirty 필드를 덮어쓰지 않으며, 분석 검증은 오래된 분석을 숨긴다. 이 동작들을 보존하는 대안을 확인하기 전에는 Effect 호출 수를 목표치로 삼을 수 없다.
+
 계산 가능한 값을 state에 복제하거나 DOM, 타이머, 저장소 같은 외부 대상과 동기화하지 않는 Effect는 React 공식 지침에 따라 제거를 검토할 수 있다.
 
 ### 렌더 비용과 측정 한계
 
 `NotesDataProvider`는 읽기 상태, 노트와 초안, 모든 명령 함수를 하나의 Context value에 넣어 제공한다. `NotesStartPage`, `NoteDetailPage`, `NotePropertiesPanel`은 모두 `useNotesData()`로 이 값을 구독한다. 한 메모를 바꿔 provider value가 달라지면 이 consumer들도 다시 렌더링될 수 있다. 노트 화면은 이후 `NotesBoard`에서 목록 전체를 순회해 `NoteCard`를 만들며, 현재 정적 검색에서는 `memo()` 또는 React `Profiler` 적용을 찾지 못했다. 불필요한 렌더가 확인된 것은 아니지만, 상태와 명령의 구독을 나누고 카드별 렌더 비용을 측정할 위치는 확인됐다.
+
+메모 외에도 [`batch-copy-list.tsx`](../../../../apps/notes/src/features/edit-batch-copy/ui/batch-copy-list.tsx)는 항목마다 순서 변경 상태와 action을 만들어 행을 렌더하고, [`mobile-batch-copy-confirmation-list.tsx`](../../../../apps/notes/src/_pages/batch-copy/ui/mobile-batch-copy-confirmation-list.tsx)는 모바일 초안 항목을 순회한다. [`analysis-results.tsx`](../../../../apps/notes/src/_pages/analysis/ui/analysis-results.tsx), [`saved-templates.tsx`](../../../../apps/notes/src/_pages/templates/ui/saved-templates.tsx), [`usage-table.tsx`](../../../../apps/notes/src/_pages/usage/ui/usage-table.tsx)도 각각 분석 항목, 템플릿과 기록 행을 그린다.
+
+성능 검토는 메모 카드뿐 아니라 위 화면의 대표 자료량과 실제 변경 동작을 기준으로 해야 한다. 정적 검색으로 특정 행이 불필요하게 렌더된다고 단정할 수 없다.
 
 React 문서는 Context value가 바뀌면 그 Context consumer가 다시 렌더링되고 `memo`만으로 새 Context 값을 막을 수 없다고 설명한다([`useContext`](https://react.dev/reference/react/useContext)). [`useMemo`](https://react.dev/reference/react/useMemo)는 비싼 순수 계산이나 값 안정화에 대한 성능 최적화이지 기본 상태 관리 도구가 아니며, React [`Profiler`](https://react.dev/reference/react/Profiler)는 subtree의 `actualDuration`과 `baseDuration`을 비교해 업데이트 비용을 측정한다. 앱 설정에는 React Compiler가 활성화되어 있지 않다. 개발 모드의 Strict Mode는 추가 렌더와 Effect 실행을 일으킬 수 있으므로, 변경 전후 비교는 같은 자료량과 사용자 동작을 정하고 production profiling 환경에서 해야 한다. 현재 조사는 정적 코드만 확인했고 실제 컴포넌트 렌더 횟수, 시간과 사용자 기기 성능은 측정하지 않았다.
 
@@ -76,6 +118,10 @@ TanStack Query v5의 [query function 지침](https://tanstack.com/query/latest/d
 [persistQueryClient plugin](https://tanstack.com/query/latest/docs/framework/react/plugins/persistQueryClient)은 persister를 사용해 Query cache를 여러 저장소에 복원 및 보관하는 방법과 IndexedDB persister 예시를 제공한다. 이는 애플리케이션 메모리나 설정 record의 저장 및 migration과 별개의 cache 보관 수명이다. plugin 문서가 cache 복원은 비동기이며 앱 query와 동시에 실행하면 경합이 날 수 있다고 안내하므로, 영속화까지 검토한다면 초기 복원, cache 만료, 기존 IndexedDB transaction 및 저장 실패 처리를 함께 살펴야 한다.
 
 [query cancellation 지침](https://tanstack.com/query/latest/docs/framework/react/guides/query-cancellation)은 query function에 `AbortSignal`을 전달한다. 이것이 IndexedDB transaction을 자동 취소하는 것은 아니므로, 특정 조회 작업에서 취소를 연결할지와 그 방식은 구현 대상 API를 기준으로 확인해야 한다.
+
+적용 판단은 저장 대상별로 달라야 한다. 메모와 복구 초안은 [`readNotes`](../../../../apps/notes/src/_pages/notes/model/notes-data-provider.tsx)의 묶음 조회, 저장소 구독, 순차 변경과 업그레이드 오류를 함께 보존해야 한다. 저장 일괄 복사 목록과 모바일 초안은 서로 다른 repository와 변경 queue를 갖고, 모바일 초안의 `collecting` 및 `confirming` 단계는 [`use-batch-copy-page.ts`](../../../../apps/notes/src/_pages/batch-copy/model/use-batch-copy-page.ts)의 주소 보정에도 영향을 준다.
+
+템플릿은 저장 직후 수정 시각 순서와 화면의 선택 상태를, 설정은 저장 실패 복원을, 사용 기록은 복사 후 다시 읽는 시점을 비교해야 한다. 분석 Worker의 실행 상태는 IndexedDB의 지속 자료 조회와 성격이 다르다. 이 차이를 검토하지 않고 `useEffect` 조회를 모두 Query로 교체하면 IndexedDB와 cache의 갱신 책임이 불명확해진다.
 
 ## 조사에서 확인한 점과 미확인 사항
 
