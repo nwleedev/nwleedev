@@ -1,10 +1,10 @@
 # apps/notes 아키텍처 리팩토링 실행 계획
 
-이 계획은 `apps/notes` 구현자가 화면과 저장 모듈을 순서대로 정리하고, 검토자가 사용자 동작과 저장 자료의 보존 여부를 확인하는 기준이다. 대상은 [리팩토링 요구사항](requirements.md)의 **현재 사용 동작과 저장 자료**, **모듈 책임과 의존 방향**, **상태마다 기준이 되는 위치**, **반응성과 유지보수성**이다. 화면에서 지킬 행동은 [기존 메모 앱 요구사항](../personal-notes-app-8fd/requirements.md)이 정하며, 현재 코드의 연결 지점은 [구조 조사](references/architecture-baseline.md)에 기록되어 있다.
+이 계획은 `apps/notes` 구현자가 화면과 저장 모듈을 순서대로 정리하고, 검토자가 사용자 동작과 저장 자료의 보존 여부를 확인하는 기준이다. 대상은 [리팩토링 요구사항](requirements.md)의 **현재 사용 동작과 저장 자료**, **모듈 책임과 의존 방향**, **상태마다 기준이 되는 위치**, **반응성과 유지보수성**이다. 화면에서 지킬 행동은 [기존 메모 앱 요구사항](../personal-notes-app-8fd/requirements.md)이 정하며, 현재 코드의 연결 지점은 [구조 조사](references/architecture-baseline.md)와 [메모 조작 및 Hook 책임 조사](references/geometry-and-hook-responsibility.md)에 기록되어 있다. U1부터 U13까지는 기존 리팩토링이며, U14부터 U20까지는 메모 조작 실패의 원인을 판별하고 복합 책임 Hook을 분리한다.
 
 ## 실행 원칙과 선행 판단
 
-- 작업은 아래 순서로 모듈별로 진행하고, 한 단위의 수정 내용과 다음 단위에 미치는 영향을 계획에 반영한다. 앞 단위에서 자료 형식, 상태 수명이나 사용자 동작이 달라지면 영향을 받는 다음 단위를 진행하기 전에 요구사항과 계획을 다시 확인한다. Props, Hook 또는 파일 수 감소를 완료 기준으로 삼지 않는다. 단위별 확인 대상은 기록하되 변경 뒤 검토와 검증은 U13에서 한 번 수행한다.
+- 작업은 아래 순서로 모듈별로 진행하고, 한 단위의 수정 내용과 다음 단위에 미치는 영향을 계획에 반영한다. 앞 단위에서 자료 형식, 상태 수명이나 사용자 동작이 달라지면 영향을 받는 다음 단위를 진행하기 전에 요구사항과 계획을 다시 확인한다. Props, Hook 또는 파일 수 감소를 완료 기준으로 삼지 않는다. U1부터 U13까지의 검증은 U13에서 수행했고, U14부터 U19까지의 변경 뒤 검토와 검증은 U20에서 한 번 수행한다. U14의 실패 재현과 자료 수집은 원인 판별에 필요한 조사다.
 - [현재 React Hook Form 지침](../../dev/personal-notes-app/react-hook-form.md)은 폼 값과 저장 상태를 구분하는 기준이다. [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴 지침](../../dev/personal-notes-app/test-anti-patterns.md)은 기존 검사가 사용자 동작을 확인하는지 판단할 때 적용한다. [기술 안티패턴 지침](../../dev/personal-notes-app/anti-patterns.md)은 FSD에 관한 현재 결정과 그 밖의 제안을 구분해 사용한다.
 - 새 라이브러리나 전역 DI container를 먼저 도입하지 않는다. FSD의 [계층 import 규칙](https://fsd.how/docs/reference/layers/#import-rule-on-layers)과 [public API](https://fsd.how/docs/reference/public-api/)를 기존 ESLint 검사로 유지한다. 각 slice의 UI, 상태, 저장소 구현을 나누는 기준은 실제 변경 이유와 import 방향이다.
 - U4부터 U12까지 수정하는 `.tsx`의 React 기본 Hook 구현은 같은 FSD 모듈의 기존 `.ts` Hook을 활용하거나 그 책임을 맡을 `.ts` 모듈로 옮긴다. `.tsx`에는 JSX와 Provider 조립을 남긴다. Hook 위치를 바꾸려고 상태 수명, Context 구독이나 slice의 public API를 바꾸지 않는다.
@@ -125,10 +125,56 @@ DOM 요소 수는 데스크톱 4878개, 모바일 572개이며, JavaScript heap�
 - **U13에서 확인할 동작:** 두 설정의 저장 및 실패 시 이전 값 복원, 모든 route의 탐색, 현재 위치 표시와 접근성 이름이 유지된다.
 
 
-### U13. 전체 보존 조건을 마지막에 검증한다
+### U13. 기존 리팩토링 범위의 보존 조건을 검증한다
 
 - **대상과 변경:** 새 사용자 동작이나 독립적인 추상화는 추가하지 않는다. 각 단위에서 변경한 코드의 FSD import와 순환 관계, client bundle로 유입되는 모듈, IndexedDB schema 및 저장 자료 형식을 함께 확인한다. 이름을 바꾼 파일의 import, public API, 내부 객체 속성 참조가 모두 갱신됐는지 확인하고, 저장 record와 Worker 메시지의 키는 변경 전과 비교한다.
 - **완료 증거:** [리팩토링 요구사항의 완료 증거](requirements.md#완료를-확인할-증거)에 따라 기존 lint, typecheck, unit, browser, E2E 통과 여부와 실제 브라우저의 일곱 route, 넓은 화면 및 320 CSS px 화면을 확인한다. 이전 schema 자료를 읽은 뒤 메모 원문과 순서, 초안, 일괄 복사, 템플릿, 설정 및 사용 기록을 대조한다. U1과 같은 입력으로 브라우저 표시 시간, DOM 수, heap, IndexedDB 조회와 스크롤 시간을 비교한다. React Profiler의 렌더 횟수를 수집하지 못하면 개선을 주장하지 않고 한계로 남긴다. 값이 나빠졌다면 원인을 찾은 뒤 완료를 판정한다.
+
+## 메모 조작과 Hook 책임을 위한 후속 단위
+
+U1과 U13에서 관찰한 메모 조작 E2E 실패는 [메모 조작 및 Hook 책임 조사](references/geometry-and-hook-responsibility.md#메모-조작-실패에서-확인된-사실)에 따라 원인이 확정되지 않았다. 화면과 IndexedDB의 저장값을 구분하기 전에는 검사 실패를 실제 메모 조작 결함으로 단정하거나, 재시도 시간만 늘려 해결됐다고 판정하지 않는다. 다음 단위는 순서대로 진행한다. 각 단위에서 바꾼 코드와 확인한 불일치를 이 계획에 기록한 뒤 U20에서 변경 전체를 검토한다.
+
+### U14. 메모 조작 실패의 첫 불일치 지점을 찾는다
+
+- **대상과 변경:** 운영 코드, 저장 schema와 검사는 수정하지 않는다. 기존 [`notes-geometry-model.spec.ts`](../../../apps/notes/e2e/notes-geometry-model.spec.ts)의 두 실패를 같은 viewport와 배율 조건에서 재현하고, 입력 좌표와 실제 포인터 전달, 화면 미리보기, 저장 요청, transaction 완료 뒤 record 및 재방문 좌표를 순서대로 관찰한다.
+- **설계 기준:** [Pointer Events의 캡처 규칙](https://www.w3.org/TR/pointerevents/#the-pointercapture-interface), [viewport 좌표 설명](https://developer.mozilla.org/en-US/docs/Web/API/CSSOM_view_API/Coordinate_systems#viewport), [IndexedDB commit 완료](https://www.w3.org/TR/IndexedDB/#transaction-committing)를 입력, 계산과 저장의 서로 다른 시점에 적용한다. 실패한 검사에는 포인터 종료 직후의 단발 읽기가 있으므로 저장 완료 전과 후를 나눠 판단한다.
+- **완료 증거:** 두 실패 각각에 대해 첫 불일치의 위치, 기대값, 관찰값과 재현 조건을 기록한다. 완료 뒤 좌표가 맞으면 검사 시점 경합으로 분류한다. 완료 뒤에도 다르면 실제 사용자 동작 결함으로 분류하고 원인에 맞는 U15 수정 절차를 선택한다. 원인을 구분할 수 없으면 U15를 시작하지 않는다. 독립적인 U16부터 U19까지는 진행할 수 있지만 U20의 완료 판정은 보류한다.
+
+### U15. 확인된 원인에 맞춰 메모 조작을 바로잡는다
+
+- **검사 시점만 다른 경우:** 운영 코드는 추가, 수정 또는 제거하지 않는다. [`notes-geometry-model.spec.ts`](../../../apps/notes/e2e/notes-geometry-model.spec.ts)의 `GeometryReal.inspect`가 기대한 저장 record를 transaction 완료 후까지 재조회하도록 수정하고, 원문, 본문 revision 및 좌표 비교를 모두 유지한다. 새 임의 지연이나 성공 조건 완화는 넣지 않는다. 재방문해 같은 record를 읽는 관찰도 유지하거나 추가한다.
+- **포인터 캡처 또는 계산이 다른 경우:** [`use-note-geometry-gesture.ts`](../../../apps/notes/src/_pages/notes/model/use-note-geometry-gesture.ts)의 첫 불일치 계산 또는 종료 처리를 수정하고, 이벤트 연결이 원인이면 [`note-card.tsx`](../../../apps/notes/src/_pages/notes/ui/note-card.tsx)에서 원인이 된 이벤트 처리기만 수정한다. 현재 한 포인터 제스처의 캡처, 화면 미리보기와 저장은 같은 Hook에 둔다. 이동과 여덟 방향 크기 조절, 중단과 확대 배율 처리를 함께 유지한다.
+- **저장 순서가 다른 경우:** [`use-notes-data-model.ts`](../../../apps/notes/src/_pages/notes/model/use-notes-data-model.ts)의 기존 순차 변경 queue와 [`indexed-db-note-repository.ts`](../../../apps/notes/src/entities/note/api/indexed-db-note-repository.ts)의 transaction 완료 시점을 추적해 처음 어긋나는 구현만 수정한다. 원문, 본문 revision, 메모 revision, 저장 실패 안내와 복구 초안의 의미는 바꾸지 않는다.
+- **완료 증거:** U14에서 고른 원인의 재현 입력으로 화면 좌표, 저장 완료 후 IndexedDB record 및 재방문 좌표가 일치한다. 기존 두 검사의 기대 행동을 삭제하거나 약화하지 않는다. 실패가 검사 시점에만 있었다면 실제 메모 조작 결함을 고쳤다고 주장하지 않는다.
+
+### U16. 메모 세션에서 서로 다른 수명의 상태를 분리한다
+
+- **수정:** [`use-note-session-state.ts`](../../../apps/notes/src/_pages/notes/model/use-note-session-state.ts)의 선택 및 패널 대상 처리를 `use-note-workspace.ts`, 삭제 실행 취소 이력을 `use-note-removal-history.ts`, 만료되는 작업 알림을 `use-workspace-notice.ts`로 옮긴다. `use-note-session-state.ts`에는 Context 접근과 세 Hook의 반환값 조립만 남긴다. [`note-session-provider.tsx`](../../../apps/notes/src/_pages/notes/model/note-session-provider.tsx)의 Provider 위치, 두 Context와 `now` 주입은 유지하고 불필요한 중간 상태 또는 Provider는 추가하지 않는다.
+- **설계 기준:** 상태와 명령을 분리한 기존 Context 구조를 재사용한다. 삭제 이력, 선택과 알림은 서로 다른 시점에 갱신되므로 각 상태를 관리하는 Hook이 자기 명령만 만든다. [React의 Custom Hook 지침](https://react.dev/learn/reusing-logic-with-custom-hooks#keep-your-custom-hooks-focused-on-concrete-high-level-use-cases)에 따라 기존 위치에서 각각 한 번만 호출하고 동일 상태를 새 Context에 복제하지 않는다.
+- **완료 증거:** 선택과 속성 대상, 삭제 취소의 LIFO 및 5초 알림, 알림 교체와 취소 callback, 화면 이동 뒤 세션 수명이 기존과 일치한다. 다른 slice에서 쓰는 접근자 이름과 Context 구독 범위를 유지한다.
+
+### U17. 메모 목록의 URL, 키 입력과 생성 처리를 분리한다
+
+- **수정:** [`use-notes-collection-interactions.ts`](../../../apps/notes/src/_pages/notes/model/use-notes-collection-interactions.ts)의 hash 해석과 포커스를 `use-linked-note.ts`, Command 및 Escape 키 처리를 `use-note-selection-keys.ts`, 생성 진행과 실패 알림을 `use-create-note.ts`로 옮긴 뒤 원래 파일을 제거한다. [`notes-collection.tsx`](../../../apps/notes/src/_pages/notes/ui/notes-collection.tsx)는 세 Hook을 최상위에서 호출하고 메모 생성 및 삭제 복원에 쓰는 `focusNote`를 `use-linked-note.ts`에서 가져온다.
+- **설계 기준:** 각 Hook은 자신이 등록하는 브라우저 listener와 해제를 함께 관리한다. hash 포커스, 키 선택과 새 메모 생성은 서로 다른 사용자 입력에서 시작하므로 상태를 공유하지 않는다. 메모 생성 중 표시 상태를 URL 또는 키 상태에 합치지 않는다.
+- **완료 증거:** hash 진입과 hash 변경 때 대상 선택 및 포커스, Command 키와 Escape의 선택 처리, 새 메모의 생성 중 표시와 실패 안내, 생성 및 삭제 복원 후 포커스가 유지된다. 화면 이동과 재방문에서 중복 listener가 남지 않는다.
+
+### U18. 메모 상세 편집에서 복구 초안과 이탈 확인을 분리한다
+
+- **수정:** [`use-note-detail-editing.ts`](../../../apps/notes/src/_pages/notes/model/use-note-detail-editing.ts)의 800ms 초안 저장 및 `pagehide`와 `visibilitychange` 연결을 `use-note-detail-draft.ts`로, 화면 이동 보호와 변경사항 확인 dialog 상태를 `use-note-detail-navigation.ts`로 옮긴다. 기존 파일은 하나의 `useForm`으로 관리하는 입력과 명시적 저장을 조립한다. [`note-detail-page.tsx`](../../../apps/notes/src/_pages/notes/ui/note-detail-page.tsx)의 JSX, 표시 문구와 Props는 유지한다.
+- **설계 기준:** 하위 Hook은 같은 form의 `getValues`를 받아 읽고 원문 사본을 만들지 않는다. [React의 Effect 수명 규칙](https://react.dev/reference/react/useEffect#usage)에 맞춰 외부 listener의 등록과 해제를 한 책임 안에 둔다. Effect Event를 다른 Hook에 전달하지 않는다.
+- **완료 증거:** 초안 자동 저장과 이탈 저장, 명시적 저장과 저장 실패 재시도, 변경사항을 버리거나 계속 편집하는 동작 및 초안 삭제 실패 안내가 동일하게 동작한다. 기존 편집값을 늦게 온 저장 응답으로 덮지 않는다.
+
+### U19. 일괄 복사 작업 영역의 패널과 복사 후속 처리를 분리한다
+
+- **수정:** [`use-batch-copy-workspace.ts`](../../../apps/notes/src/_pages/notes/model/use-batch-copy-workspace.ts)의 폭 관찰, inline 및 dialog 전환과 포커스 복원을 `use-batch-copy-panel.ts`로 옮긴다. 전체 복사 뒤 알림과 재시도는 `use-batch-copy-feedback.ts`로 옮긴다. 기존 파일은 Context 접근과 두 Hook의 조립만 남기며 [`batch-copy-workspace.tsx`](../../../apps/notes/src/_pages/notes/ui/batch-copy-workspace.tsx)의 표시 구조와 기존 `BatchCopyWorkspaceContext`는 유지한다.
+- **설계 기준:** ResizeObserver와 dialog의 열기 및 닫기 처리는 패널 수명에, Clipboard 성공 및 실패 알림은 복사 동작에 각각 연결한다. 범용 layout Hook이나 복사 service를 새로 만들지 않는다.
+- **완료 증거:** 48rem 및 72rem 경계의 패널 표시, 전환 중 포커스, Escape와 취소, 전체 복사 성공 및 실패 알림과 재시도가 이전과 같다. 알림이 캔버스 이동에 따라 움직이지 않는다.
+
+### U20. 후속 변경의 사용자 동작과 의존 방향을 확인한다
+
+- **대상과 변경:** 새 화면, 저장 schema, 공통 상태 저장소 또는 의존성은 추가하지 않는다. U15에서 실제로 수정한 파일과 U16부터 U19까지의 새 Hook 및 제거 파일에 대해 FSD import, 순환 관계, React Hook 호출 규칙과 Context 수명을 확인한다.
+- **완료 증거:** [리팩토링 요구사항의 완료 증거](requirements.md#완료를-확인할-증거)에 따라 lint, typecheck, unit, browser 및 E2E의 통과 여부를 한 번에 확인한다. 특히 기본 배율과 확대 뒤의 메모 이동 및 여덟 방향 조절을 저장 완료와 재방문 뒤 대조한다. 메모 원문 및 revision, 복구 초안, 삭제 취소, 일괄 복사, 상세 편집과 포커스 이동을 확인하고 U1과 같은 자료량에서 화면 응답과 메모리 비용이 나빠지지 않았는지 비교한다. 실패가 남으면 완료로 기록하지 않는다.
 
 ## 멈추고 다시 판단할 조건
 
@@ -136,3 +182,4 @@ DOM 요소 수는 데스크톱 4878개, 모바일 572개이며, JavaScript heap�
 - 저장 형식이나 DB 버전 변경이 필요해지면 현재 자료를 그대로 읽을 수 있는지와 migration 규칙을 먼저 확정한다. W3C의 [`blocked` 및 `versionchange` 처리](https://www.w3.org/TR/IndexedDB-3/#connection-requests)를 무시하는 변경은 진행하지 않는다.
 - TanStack Query나 다른 외부 의존성이 필요하다는 판단이 나오면 직접 및 전이 의존성, 공식 통합 방식, 현재 구현과의 차이를 조사하고 승인 전에는 추가하지 않는다. 미도입인 저장 대상의 작업은 계속할 수 있다.
 - provider 이동으로 화면 이동 뒤 선택 또는 초안이 사라지거나, Effect 제거로 저장 및 정리 시점이 달라지면 영향을 받는 작업을 멈춘다. U13에서 변경 전과 다른 실패가 확인되면 완료를 보류하고 사용자 동작을 보존하는 수정안을 확인한다. 변경 전에도 재현되는 실패는 별도로 밝힌다.
+- U14에서 저장 완료 전 관찰과 완료 뒤에도 남는 좌표 불일치를 구분하지 못하면 U15에서 바꿀 코드를 정하지 않는다. 실제 저장값이 잘못된 경우 검사 대기만 늘려 실패를 감추지 않는다. Hook 분리로 저장 queue나 사용자 화면의 상태 수명이 달라지면 영향을 받은 단위를 멈추고 이전 동작을 기준으로 다시 설계한다.
