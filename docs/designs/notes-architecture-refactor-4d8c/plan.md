@@ -10,6 +10,13 @@
 - U4부터 U12까지 수정하는 `.tsx`의 React 기본 Hook 구현은 같은 FSD 모듈의 기존 `.ts` Hook을 활용하거나 그 책임을 맡을 `.ts` 모듈로 옮긴다. `.tsx`에는 JSX와 Provider 조립을 남긴다. Hook 위치를 바꾸려고 상태 수명, Context 구독이나 slice의 public API를 바꾸지 않는다.
 - IndexedDB는 저장 자료의 기준으로 유지한다. [TanStack Query의 cache 정책](https://tanstack.com/query/latest/docs/framework/react/guides/important-defaults)과 [mutation 뒤 무효화](https://tanstack.com/query/latest/docs/framework/react/guides/invalidations-from-mutations)를 각 저장 대상에 대조한다. 현재 자료만으로는 추가 cache가 기존 조회, 변경 queue와 저장소 구독보다 단순하다는 근거가 없으므로 미도입을 기본 선택으로 둔다. 특정 대상에서 도입 이점이 확인되면 의존성 조사와 바꿀 파일 및 동작을 먼저 확정하고, 승인 전에는 패키지와 저장 동작을 바꾸지 않는다.
 - Server Component와 Client Component 사이에는 직렬화 가능한 값만 전달한다. 브라우저 저장소와 Worker는 client 조립 지점에 남기며, provider 위치를 바꿀 때는 [Next.js 실행 환경 설명](https://nextjs.org/docs/app/getting-started/server-and-client-components)을 기준으로 import graph를 확인한다.
+- 이름은 상위 폴더가 이미 알려주는 대상만 생략하고, 같은 모듈에 있는 서로 다른 책임을 구분하는 단어는 남긴다. [FSD의 명명 규칙](https://fsd.how/docs/about/understanding/naming/)에 따른 `ui`, `model`, `api`와 Next.js의 `page.tsx`는 유지한다. `repository`, `writer`, `draftRepository`처럼 조립 지점에서 역할이 다른 속성도 일괄 축약하지 않는다. [FSD의 일반적인 파일명 주의 사항](https://fsd.how/docs/guides/issues/desegmented/)을 고려해 `types.ts`, `utils.ts` 같은 이름으로 바꾸지 않는다.
+
+## 이름 검토에서 확인한 변경 대상
+
+- `shared/ui`의 11개와 `shared/lib`의 6개 모듈은 폴더와 구현 파일의 이름이 같고 `index.ts`가 구현만 다시 내보낸다. U12에서 같은 책임의 파일을 합쳐 이름 반복과 재수출 한 단계를 없앤다. 기존 import 지정자와 내보내는 이름은 유지한다.
+- `features/add-note-to-batch-copy/model/add-note-to-batch-copy.ts`, `features/edit-batch-copy/model/edit-batch-copy.ts`, `features/suggest-template/model/suggest-template.ts`는 slice 이름이 파일명에 다시 나온다. U7부터 U9까지 세 파일의 실제 동작을 나타내는 이름으로 바꾼다. 다른 slice에서 쓰는 함수와 타입의 이름은 유지한다.
+- 메모 조회 상태의 `draftContentByNote`는 값이 메모 ID를 키로 하는 본문 문자열인데, 이름에는 키의 종류가 드러나지 않는다. U5에서 내부 상태와 화면 Props 속성을 `draftContentById`로 함께 바꾼다. IndexedDB의 메모 초안 필드, 설정의 `batchCopyShortcutEnabled`와 `batchCopyReorderButtonsEnabled`, Worker의 `lineIndex`처럼 저장 형식이나 메시지에 포함된 키는 이름 정리를 위해 바꾸지 않는다.
 
 ## 실행 단위
 
@@ -40,6 +47,7 @@
 ### U5. 메모 저장과 편집 상태를 다듬는다
 
 - **수정:** [`notes-data-provider.tsx`](../../../apps/notes/src/_pages/notes/model/notes-data-provider.tsx)의 조회, 초안과 변경 명령을 구분해 사용처가 필요한 상태만 구독하게 한다. [`note-properties-form-provider.tsx`](../../../apps/notes/src/_pages/notes/model/note-properties-form-provider.tsx)의 폼 Hook 구현은 같은 메모 model의 `.ts` 모듈로 옮긴다. [`use-note-content-autosave.ts`](../../../apps/notes/src/_pages/notes/model/use-note-content-autosave.ts), [`use-note-detail-editing.ts`](../../../apps/notes/src/_pages/notes/model/use-note-detail-editing.ts), [`use-note-properties-sync.ts`](../../../apps/notes/src/_pages/notes/model/use-note-properties-sync.ts)의 ref와 Effect는 최신 입력 보존, 이탈 저장, dirty 값 보호에 필요한 역할별로 남긴다. 속성 동기화 Hook이 이미 같은 feature의 form 및 session에 접근할 수 있으면 [`notes-collection.tsx`](../../../apps/notes/src/_pages/notes/ui/notes-collection.tsx)에서 전달하는 form 메서드 입력을 없앤다.
+- **이름 정리:** `notes-data-provider.tsx`의 내부 조회 상태 속성 `draftContentByNote`를 `draftContentById`로 바꾼다. 이 값은 메모 ID로 조회한 복구 본문이며 IndexedDB record의 필드는 아니다. 같은 단위에서 `notes-start-page.tsx`, `notes-collection.tsx`, `notes-board.tsx`, `note-detail-page.tsx`의 Props와 참조 및 기존 검사 코드의 참조까지 함께 바꾼다.
 - **유지와 제거:** 저장 queue, IndexedDB 구독, 초안 revision 판정과 `blocked` 및 `version-changed` 상태를 유지한다. 단순 파생값의 중복 state 또는 역할이 사라진 ref 동기화 Effect만 제거하며, `pagehide`와 `visibilitychange` listener를 호출 수를 줄이기 위해 지우지 않는다. React는 [외부 시스템 동기화와 렌더 중 파생 계산](https://react.dev/learn/you-might-not-need-an-effect)을 구분한다.
 - **완료 증거:** 저장 중 추가 입력, 800ms 자동 저장, 이탈 저장, 실패 후 재시도, 초안 복구와 속성 패널의 수정 중 입력 보존을 같은 메모 자료로 확인한다. Context를 나누었다면 메모 변경을 사용하지 않는 카드와 화면의 렌더 비용을 U1과 비교한다.
 
@@ -52,18 +60,21 @@
 ### U7. 저장 일괄 복사 목록을 정리한다
 
 - **수정:** [`batch-copy-provider.tsx`](../../../apps/notes/src/_app/providers/batch-copy-provider.tsx)의 저장 목록과 변경 queue, [`batch-copy-editing-view.tsx`](../../../apps/notes/src/features/edit-batch-copy/ui/batch-copy-editing-view.tsx)의 낙관적 편집과 실패 재시도, [`batch-copy-list.tsx`](../../../apps/notes/src/features/edit-batch-copy/ui/batch-copy-list.tsx)의 행 입력을 각각 실제 사용하는 값에 맞춘다. [`edit-batch-copy-provider.tsx`](../../../apps/notes/src/features/edit-batch-copy/model/edit-batch-copy-provider.tsx)의 기본 Hook 구현은 기존 편집 model의 `.ts` Hook과 책임을 대조해 옮긴다. 포인터 순서 계산이 다른 화면과 같을 때만 기존 [`reorder-pointer-session.ts`](../../../apps/notes/src/features/edit-batch-copy/model/reorder-pointer-session.ts)를 재사용한다.
+- **이름 정리:** `features/edit-batch-copy/model/edit-batch-copy.ts`와 짝인 검사 파일을 `save-changes.ts`, `save-changes.test.ts`로 바꾼다. 복제, 삭제, 순서 변경과 실행 취소의 저장을 맡는 모듈임을 파일명으로 드러내고, public API의 함수와 타입 이름은 유지한다.
 - **유지와 제거:** 이미 공유하는 `createBatchCopyItemActions`를 재사용한다. 실행 취소 기록, 저장 순서와 행별 pointer callback은 유지하고, 목록이나 행에서 쓰지 않는 전달만 제거한다. Props 개수만 줄이려는 큰 객체나 새 범용 목록을 추가하지 않는다.
 - **U13에서 확인할 동작:** 복제, 삭제, 순서 변경, 실행 취소와 다시 실행, 실패 재시도 뒤 화면과 IndexedDB의 항목 순서가 기존 동작을 유지한다.
 
 ### U8. 모바일 일괄 복사 초안을 정리한다
 
 - **수정:** [`mobile-batch-copy-provider.tsx`](../../../apps/notes/src/features/add-note-to-batch-copy/model/mobile-batch-copy-provider.tsx), [`mobile-batch-copy-confirmation-list.tsx`](../../../apps/notes/src/_pages/batch-copy/ui/mobile-batch-copy-confirmation-list.tsx), [`use-mobile-batch-copy-pointer-reorder.ts`](../../../apps/notes/src/_pages/batch-copy/model/use-mobile-batch-copy-pointer-reorder.ts)에서 초안 변경과 화면 제스처의 책임을 분리한다. [`add-note-to-batch-copy-provider.tsx`](../../../apps/notes/src/features/add-note-to-batch-copy/model/add-note-to-batch-copy-provider.tsx)의 기본 Hook 구현도 같은 feature의 `.ts` 모듈로 옮긴다. U7과 동일한 순수 순서 계산이 확인될 때만 기존 entity 명령으로 합친다.
+- **이름 정리:** `features/add-note-to-batch-copy/model/add-note-to-batch-copy.ts`와 짝인 검사 파일을 `add-note.ts`, `add-note.test.ts`로 바꾼다. slice 이름이 이미 대상 목록을 알려주므로 파일명에는 수행하는 동작만 남긴다. public API의 함수와 타입 이름은 유지한다.
 - **유지와 제거:** 모바일 초안의 `collecting` 및 `confirming`, `collectionVisible`, 저장 실패와 변경 queue를 저장 목록 상태에 합치지 않는다. 실제로 중복된 계산만 제거하고 포인터 이벤트와 오류 표현은 모바일 화면에 남긴다.
 - **U13에서 확인할 동작:** 수집, 확인, 수집으로 복귀, 삭제, 복제, 순서 변경, 재진입과 [`use-batch-copy-page.ts`](../../../apps/notes/src/_pages/batch-copy/model/use-batch-copy-page.ts)의 주소 보정이 유지되고, 초안의 화면 순서와 IndexedDB 순서가 일치한다.
 
 ### U9. 분석 실행과 템플릿 제안을 정리한다
 
 - **수정:** [`analysis-start-page.tsx`](../../../apps/notes/src/_pages/analysis/ui/analysis-start-page.tsx)와 [`analysis-results.tsx`](../../../apps/notes/src/_pages/analysis/ui/analysis-results.tsx) 사이의 템플릿 제안 callback 전달은 상태별 안내를 유지하면서 조립 위치를 단순화할 수 있는지 검토한다. [`text-analysis-provider.tsx`](../../../apps/notes/src/_pages/analysis/model/text-analysis-provider.tsx)의 화면 진입 검증과 Worker 호출은 실행과 검증의 책임이 겹치는 부분만 정리한다.
+- **이름 정리:** `features/suggest-template/model/suggest-template.ts`와 짝인 검사 파일을 `suggestion.ts`, `suggestion.test.ts`로 바꾼다. 제안 계산이 이 파일의 책임이며 slice 이름에 대상이 있다. `suggestTemplate` 함수와 `TemplateSuggestion` 타입은 다른 slice가 사용하는 이름 그대로 둔다.
 - **유지와 제거:** Worker 응답의 revision 판정, 실행 중인 요청 순서와 오래된 분석 숨김을 유지한다. 분석 실행 상태를 IndexedDB cache나 템플릿 저장 상태와 합치지 않는다.
 - **U13에서 확인할 동작:** 분석 중 메모 변경, 실패 후 재실행, 원본 메모 이동과 선택한 두 문장의 템플릿 제안이 같고, 운영 Worker가 실제로 메시지를 주고받는다.
 
@@ -82,12 +93,13 @@
 ### U12. 설정과 공통 UI를 정리한다
 
 - **수정:** [`interaction-preferences-provider.tsx`](../../../apps/notes/src/_pages/settings/model/interaction-preferences-provider.tsx)의 저장 실패 복원과 [`settings-start-page.tsx`](../../../apps/notes/src/_pages/settings/ui/settings-start-page.tsx)의 폼 입력 책임을 U2의 판단에 대조한다. [`shared/ui`](../../../apps/notes/src/shared/ui/)와 활성 [`application-navigation`](../../../apps/notes/src/widgets/application-navigation/index.ts)은 서로 같은 동작이 중복된 곳만 수정한다. 앞 단위의 대상이 아닌 [`runtime-access-guard.tsx`](../../../apps/notes/src/_app/ui/runtime-access-guard.tsx), [`navigation-guard-provider.tsx`](../../../apps/notes/src/features/navigation-guard/model/navigation-guard-provider.tsx), [`checkbox.tsx`](../../../apps/notes/src/shared/ui/checkbox/checkbox.tsx)의 기본 Hook 구현도 같은 책임의 `.ts` 모듈로 옮긴다.
+- **이름 정리:** `shared/ui`의 `action-popover`, `action-sheet`, `action-toast`, `button`, `checkbox`, `icon-button`, `icons`, `page-heading`, `status-notice`, `text-field`, `textarea`에서 같은 이름의 `.tsx` 구현과 단순 재수출 `index.ts`를 하나의 `index.tsx`로 합친다. 별도 Hook `.ts`는 남긴다. `shared/lib`의 `algorithm-reference`, `entity-metadata`, `grapheme`, `indexed-db`, `note-model-exploration`, `note-model-settings`에서는 같은 방식으로 구현과 `index.ts`를 하나의 `index.ts`로 합친다. 기존 public API의 export 목록과 필요한 `"use client"` 선언을 보존한다.
 - **유지와 제거:** 바로 하위 폼이 사용하는 설정 Props는 유지한다. 폼 값은 [현재 React Hook Form 지침](../../dev/personal-notes-app/react-hook-form.md#상태-책임)에 남기고 저장값의 불필요한 복제만 제거한다. 단순한 구문 반복을 이유로 공통 provider나 UI wrapper를 추가하지 않는다.
 - **U13에서 확인할 동작:** 두 설정의 저장 및 실패 시 이전 값 복원, 모든 route의 탐색, 현재 위치 표시와 접근성 이름이 유지된다.
 
 ### U13. 전체 보존 조건을 마지막에 검증한다
 
-- **대상과 변경:** 새 사용자 동작이나 독립적인 추상화는 추가하지 않는다. 각 단위에서 변경한 코드의 FSD import와 순환 관계, client bundle로 유입되는 모듈, IndexedDB schema 및 저장 자료 형식을 함께 확인한다.
+- **대상과 변경:** 새 사용자 동작이나 독립적인 추상화는 추가하지 않는다. 각 단위에서 변경한 코드의 FSD import와 순환 관계, client bundle로 유입되는 모듈, IndexedDB schema 및 저장 자료 형식을 함께 확인한다. 이름을 바꾼 파일의 import, public API, 내부 객체 속성 참조가 모두 갱신됐는지 확인하고, 저장 record와 Worker 메시지의 키는 변경 전과 비교한다.
 - **완료 증거:** [리팩토링 요구사항의 완료 증거](requirements.md#완료를-확인할-증거)에 따라 기존 lint, typecheck, unit, browser, E2E 통과 여부와 실제 브라우저의 일곱 route, 넓은 화면 및 320 CSS px 화면을 확인한다. 이전 schema 자료를 읽은 뒤 메모 원문과 순서, 초안, 일괄 복사, 템플릿, 설정 및 사용 기록을 대조한다. U1과 같은 입력으로 렌더 횟수 및 시간을 비교하고, 값이 나빠졌다면 원인을 찾은 뒤 완료를 판정한다.
 
 ## 멈추고 다시 판단할 조건
