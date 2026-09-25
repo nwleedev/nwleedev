@@ -16,11 +16,10 @@ import { useNoteSession } from "../model/note-session-provider"
 import { useNotePropertiesForm } from "../model/note-properties-form-provider"
 import { useNotesData } from "../model/notes-data-provider"
 import { useBatchCopyWorkspace } from "../model/use-batch-copy-workspace"
+import { useCreateNote } from "../model/use-create-note"
+import { focusNote, useLinkedNote } from "../model/use-linked-note"
 import { useNotePropertiesSync } from "../model/use-note-properties-sync"
-import {
-  focusNote,
-  useNotesCollectionInteractions,
-} from "../model/use-notes-collection-interactions"
+import { useNoteSelectionKeys } from "../model/use-note-selection-keys"
 import { useNoteWorkspaceLayout } from "../model/use-note-workspace-layout"
 import { MobileNotesWorkspace } from "./mobile-notes-workspace"
 import { NotesBoard } from "./notes-board"
@@ -70,20 +69,13 @@ export function NotesCollection({
   } = session
   const orderedNotes = [...notes].sort(byTabIndex)
   const {
-    commandPressed,
     createButton,
     createMobileNote,
     createNewNote,
     creationPending,
-    linkedNoteId,
-  } = useNotesCollectionInteractions({
-    clearSelection,
-    clearSelections,
-    createNote,
-    notes,
-    select,
-    showNotice: batchCopyWorkspace.showNotice,
-  })
+  } = useCreateNote(createNote, select, batchCopyWorkspace.showNotice)
+  const linkedNoteId = useLinkedNote(notes, select)
+  const commandPressed = useNoteSelectionKeys(clearSelection, clearSelections)
   const createLabel = creationPending ? "메모 만드는 중" : "새 메모"
   const { container, layout } = useNoteWorkspaceLayout()
   const empty = orderedNotes.length === 0

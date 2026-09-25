@@ -132,7 +132,7 @@ DOM 요소 수는 데스크톱 4878개, 모바일 572개이며, JavaScript heap�
 
 ## 메모 조작과 Hook 책임을 위한 후속 단위
 
-U1과 U13에서 관찰한 메모 조작 E2E 실패는 [메모 조작 및 Hook 책임 조사](references/geometry-and-hook-responsibility.md#메모-조작-실패에서-확인된-사실)에 따라 원인이 확정되지 않았다. 화면과 IndexedDB의 저장값을 구분하기 전에는 검사 실패를 실제 메모 조작 결함으로 단정하거나, 재시도 시간만 늘려 해결됐다고 판정하지 않는다. 다음 단위는 순서대로 진행한다. 각 단위에서 바꾼 코드와 확인한 불일치를 이 계획에 기록한 뒤 U20에서 변경 전체를 검토한다.
+U1과 U13에서 관찰한 메모 조작 E2E 실패는 U14에서 입력 대상이 겹치는 배치 문제로 확인했다. 재시도 시간만 늘려 해결됐다고 판정하지 않는다. 다음 단위는 순서대로 진행한다. 각 단위에서 바꾼 코드와 확인한 불일치를 이 계획에 기록한 뒤 U20에서 변경 전체를 검토한다.
 
 ### U14. 메모 조작 실패의 첫 불일치 지점을 찾는다
 
@@ -140,12 +140,17 @@ U1과 U13에서 관찰한 메모 조작 E2E 실패는 [메모 조작 및 Hook �
 - **설계 기준:** [Pointer Events의 캡처 규칙](https://www.w3.org/TR/pointerevents/#the-pointercapture-interface), [viewport 좌표 설명](https://developer.mozilla.org/en-US/docs/Web/API/CSSOM_view_API/Coordinate_systems#viewport), [IndexedDB commit 완료](https://www.w3.org/TR/IndexedDB/#transaction-committing)를 입력, 계산과 저장의 서로 다른 시점에 적용한다. 실패한 검사에는 포인터 종료 직후의 단발 읽기가 있으므로 저장 완료 전과 후를 나눠 판단한다.
 - **완료 증거:** 두 실패 각각에 대해 첫 불일치의 위치, 기대값, 관찰값과 재현 조건을 기록한다. 완료 뒤 좌표가 맞으면 검사 시점 경합으로 분류한다. 완료 뒤에도 다르면 실제 사용자 동작 결함으로 분류하고 원인에 맞는 U15 수정 절차를 선택한다. 원인을 구분할 수 없으면 U15를 시작하지 않는다. 독립적인 U16부터 U19까지는 진행할 수 있지만 U20의 완료 판정은 보류한다.
 
+**실행 기록:** 1280×900 화면에서 새 메모를 만들면 저장 좌표는 `(32, 32)`이고 왼쪽 위 크기 조절 지점과 이동 핸들 위에 `새 메모` 버튼이 그려진다. 기본 배율의 왼쪽 위 조절과 110% 확대한 뒤 이동 입력 모두 `pointerdown`, `pointermove`, `pointerup`이 메모가 아닌 버튼에 전달됐다. 미리보기, 입력 직후와 4초 뒤의 IndexedDB record, 재방문 좌표가 모두 원래 값이었다. 같은 메모의 X를 속성 패널에서 160으로 바꿔 가림을 없앤 뒤에는 두 동작 모두 미리보기와 저장 record 및 재방문 좌표가 일치했고 본문 revision도 유지됐다. 따라서 첫 불일치는 포인터 입력 대상이며 저장 완료 시점 경합은 이번 실패의 원인이 아니다. 운영 코드와 검사는 이 단위에서 바꾸지 않았다.
+
 ### U15. 확인된 원인에 맞춰 메모 조작을 바로잡는다
 
+- **입력 대상이 제어와 겹치는 경우:** [`note-geometry.ts`](../../../apps/notes/src/entities/note/model/note-geometry.ts)의 새 메모 배치가 `새 메모` 버튼의 조작 영역과 겹치지 않도록 첫 열의 시작 좌표를 조정한다. 기존 메모의 저장 좌표를 바꾸거나 버튼, 카드와 조작 핸들의 표시 구조를 바꾸지 않는다. 기존 두 브라우저 검사의 이동과 여덟 방향 조절 기대 행동은 유지한다. 이미 버튼 아래에 저장된 메모는 속성 패널에서 X를 바꿔 옮길 수 있는지 확인한다.
 - **검사 시점만 다른 경우:** 운영 코드는 추가, 수정 또는 제거하지 않는다. [`notes-geometry-model.spec.ts`](../../../apps/notes/e2e/notes-geometry-model.spec.ts)의 `GeometryReal.inspect`가 기대한 저장 record를 transaction 완료 후까지 재조회하도록 수정하고, 원문, 본문 revision 및 좌표 비교를 모두 유지한다. 새 임의 지연이나 성공 조건 완화는 넣지 않는다. 재방문해 같은 record를 읽는 관찰도 유지하거나 추가한다.
 - **포인터 캡처 또는 계산이 다른 경우:** [`use-note-geometry-gesture.ts`](../../../apps/notes/src/_pages/notes/model/use-note-geometry-gesture.ts)의 첫 불일치 계산 또는 종료 처리를 수정하고, 이벤트 연결이 원인이면 [`note-card.tsx`](../../../apps/notes/src/_pages/notes/ui/note-card.tsx)에서 원인이 된 이벤트 처리기만 수정한다. 현재 한 포인터 제스처의 캡처, 화면 미리보기와 저장은 같은 Hook에 둔다. 이동과 여덟 방향 크기 조절, 중단과 확대 배율 처리를 함께 유지한다.
 - **저장 순서가 다른 경우:** [`use-notes-data-model.ts`](../../../apps/notes/src/_pages/notes/model/use-notes-data-model.ts)의 기존 순차 변경 queue와 [`indexed-db-note-repository.ts`](../../../apps/notes/src/entities/note/api/indexed-db-note-repository.ts)의 transaction 완료 시점을 추적해 처음 어긋나는 구현만 수정한다. 원문, 본문 revision, 메모 revision, 저장 실패 안내와 복구 초안의 의미는 바꾸지 않는다.
 - **완료 증거:** U14에서 고른 원인의 재현 입력으로 화면 좌표, 저장 완료 후 IndexedDB record 및 재방문 좌표가 일치한다. 기존 두 검사의 기대 행동을 삭제하거나 약화하지 않는다. 실패가 검사 시점에만 있었다면 실제 메모 조작 결함을 고쳤다고 주장하지 않는다.
+
+**실행 기록:** 새 메모 첫 열의 X 시작값을 32에서 112로 옮겨 왼쪽 위의 `새 메모` 버튼과 이동 및 크기 조절 입력이 처음부터 겹치지 않게 했다. Y 좌표, 크기, 열 간격, 기존 저장 record, 버튼 및 카드 구성은 유지한다. 포인터 계산, 저장 queue와 IndexedDB 구현은 U14에서 정상으로 확인돼 바꾸지 않았다. 두 브라우저 검사의 기존 기대 동작과 저장 및 재방문 확인은 U20에서 함께 실행한다.
 
 ### U16. 메모 세션에서 서로 다른 수명의 상태를 분리한다
 
@@ -153,11 +158,15 @@ U1과 U13에서 관찰한 메모 조작 E2E 실패는 [메모 조작 및 Hook �
 - **설계 기준:** 상태와 명령을 분리한 기존 Context 구조를 재사용한다. 삭제 이력, 선택과 알림은 서로 다른 시점에 갱신되므로 각 상태를 관리하는 Hook이 자기 명령만 만든다. [React의 Custom Hook 지침](https://react.dev/learn/reusing-logic-with-custom-hooks#keep-your-custom-hooks-focused-on-concrete-high-level-use-cases)에 따라 기존 위치에서 각각 한 번만 호출하고 동일 상태를 새 Context에 복제하지 않는다.
 - **완료 증거:** 선택과 속성 대상, 삭제 취소의 LIFO 및 5초 알림, 알림 교체와 취소 callback, 화면 이동 뒤 세션 수명이 기존과 일치한다. 다른 slice에서 쓰는 접근자 이름과 Context 구독 범위를 유지한다.
 
+**실행 기록:** 선택과 패널 대상, 삭제 이력, 만료되는 알림을 각각 `use-note-workspace.ts`, `use-note-removal-history.ts`, `use-workspace-notice.ts`로 옮겼다. 기존 Hook에는 Context 접근과 반환값 조립만 남겼고 두 Context, Provider 위치, `now` 입력, 접근자 이름과 상태 객체의 수명은 유지했다. 별도 Provider나 복제 state는 만들지 않았다. 연결된 사용자 동작과 5초 알림은 U20에서 함께 확인한다.
+
 ### U17. 메모 목록의 URL, 키 입력과 생성 처리를 분리한다
 
 - **수정:** [`use-notes-collection-interactions.ts`](../../../apps/notes/src/_pages/notes/model/use-notes-collection-interactions.ts)의 hash 해석과 포커스를 `use-linked-note.ts`, Command 및 Escape 키 처리를 `use-note-selection-keys.ts`, 생성 진행과 실패 알림을 `use-create-note.ts`로 옮긴 뒤 원래 파일을 제거한다. [`notes-collection.tsx`](../../../apps/notes/src/_pages/notes/ui/notes-collection.tsx)는 세 Hook을 최상위에서 호출하고 메모 생성 및 삭제 복원에 쓰는 `focusNote`를 `use-linked-note.ts`에서 가져온다.
 - **설계 기준:** 각 Hook은 자신이 등록하는 브라우저 listener와 해제를 함께 관리한다. hash 포커스, 키 선택과 새 메모 생성은 서로 다른 사용자 입력에서 시작하므로 상태를 공유하지 않는다. 메모 생성 중 표시 상태를 URL 또는 키 상태에 합치지 않는다.
 - **완료 증거:** hash 진입과 hash 변경 때 대상 선택 및 포커스, Command 키와 Escape의 선택 처리, 새 메모의 생성 중 표시와 실패 안내, 생성 및 삭제 복원 후 포커스가 유지된다. 화면 이동과 재방문에서 중복 listener가 남지 않는다.
+
+**실행 기록:** URL hash 해석과 포커스, 전역 Command 및 Escape 입력, 새 메모 생성과 실패 안내를 서로 다른 세 Hook으로 옮기고 이전 복합 Hook을 제거했다. `notes-collection.tsx`는 세 Hook을 정적으로 호출하며 삭제와 복원 때의 `focusNote`는 URL 포커스 Hook과 같은 모듈에서 가져온다. listener의 해제와 생성 뒤 화면별 포커스 동작은 원래 구현을 유지했다. URL, 키 입력과 새 메모 생성을 U20에서 확인한다.
 
 ### U18. 메모 상세 편집에서 복구 초안과 이탈 확인을 분리한다
 
@@ -165,16 +174,26 @@ U1과 U13에서 관찰한 메모 조작 E2E 실패는 [메모 조작 및 Hook �
 - **설계 기준:** 하위 Hook은 같은 form의 `getValues`를 받아 읽고 원문 사본을 만들지 않는다. [React의 Effect 수명 규칙](https://react.dev/reference/react/useEffect#usage)에 맞춰 외부 listener의 등록과 해제를 한 책임 안에 둔다. Effect Event를 다른 Hook에 전달하지 않는다.
 - **완료 증거:** 초안 자동 저장과 이탈 저장, 명시적 저장과 저장 실패 재시도, 변경사항을 버리거나 계속 편집하는 동작 및 초안 삭제 실패 안내가 동일하게 동작한다. 기존 편집값을 늦게 온 저장 응답으로 덮지 않는다.
 
+**실행 기록:** 800ms 초안 저장과 숨김 및 이탈 시 저장을 `use-note-detail-draft.ts`로, 화면 이동 보호와 확인 dialog를 `use-note-detail-navigation.ts`로 옮겼다. 입력과 명시적 저장은 기존 Hook의 `useForm`에 남겼으며 두 하위 Hook은 현재 form 값을 읽는 함수와 동일한 최신 메모 참조를 사용한다. 초안 폐기 과정의 타이머 취소와 실패 복원은 초안 Hook이 맡고, 실패 유형은 공통 타입 모듈에 두어 Hook 사이의 순환 import를 피했다. JSX와 화면 Props는 바꾸지 않았으며 동작 검사는 U20에서 진행한다.
+
 ### U19. 일괄 복사 작업 영역의 패널과 복사 후속 처리를 분리한다
 
 - **수정:** [`use-batch-copy-workspace.ts`](../../../apps/notes/src/_pages/notes/model/use-batch-copy-workspace.ts)의 폭 관찰, inline 및 dialog 전환과 포커스 복원을 `use-batch-copy-panel.ts`로 옮긴다. 전체 복사 뒤 알림과 재시도는 `use-batch-copy-feedback.ts`로 옮긴다. 기존 파일은 Context 접근과 두 Hook의 조립만 남기며 [`batch-copy-workspace.tsx`](../../../apps/notes/src/_pages/notes/ui/batch-copy-workspace.tsx)의 표시 구조와 기존 `BatchCopyWorkspaceContext`는 유지한다.
 - **설계 기준:** ResizeObserver와 dialog의 열기 및 닫기 처리는 패널 수명에, Clipboard 성공 및 실패 알림은 복사 동작에 각각 연결한다. 범용 layout Hook이나 복사 service를 새로 만들지 않는다.
 - **완료 증거:** 48rem 및 72rem 경계의 패널 표시, 전환 중 포커스, Escape와 취소, 전체 복사 성공 및 실패 알림과 재시도가 이전과 같다. 알림이 캔버스 이동에 따라 움직이지 않는다.
 
+**실행 기록:** 폭 관찰과 inline 및 dialog 전환, 포커스 복원, Escape와 취소 처리를 `use-batch-copy-panel.ts`로 옮겼다. 전체 복사의 성공 알림과 실패 재시도는 `use-batch-copy-feedback.ts`로 옮겼다. 기존 Hook은 편집기 및 세션 Context를 읽어 두 Hook을 조립하고, 기존 화면 파일과 `BatchCopyWorkspaceContext`를 유지한다. 별도 범용 layout 또는 복사 service는 만들지 않았으며 표시와 복사 동작은 U20에서 확인한다.
+
 ### U20. 후속 변경의 사용자 동작과 의존 방향을 확인한다
 
 - **대상과 변경:** 새 화면, 저장 schema, 공통 상태 저장소 또는 의존성은 추가하지 않는다. U15에서 실제로 수정한 파일과 U16부터 U19까지의 새 Hook 및 제거 파일에 대해 FSD import, 순환 관계, React Hook 호출 규칙과 Context 수명을 확인한다.
 - **완료 증거:** [리팩토링 요구사항의 완료 증거](requirements.md#완료를-확인할-증거)에 따라 lint, typecheck, unit, browser 및 E2E의 통과 여부를 한 번에 확인한다. 특히 기본 배율과 확대 뒤의 메모 이동 및 여덟 방향 조절을 저장 완료와 재방문 뒤 대조한다. 메모 원문 및 revision, 복구 초안, 삭제 취소, 일괄 복사, 상세 편집과 포커스 이동을 확인하고 U1과 같은 자료량에서 화면 응답과 메모리 비용이 나빠지지 않았는지 비교한다. 실패가 남으면 완료로 기록하지 않는다.
+
+**실행 기록:** `notes:typecheck`, `notes:lint`, 단위 검사 196개, 브라우저 구성요소 검사 57개와 운영 빌드는 통과했다. E2E는 215개 중 214개가 통과했다. U1에서 실패한 여덟 방향 크기 조절과 확대 뒤 이동 검사는 Chromium, Firefox, WebKit에서 모두 통과했고 메모 작성, 초안, 삭제 복원, 일괄 복사, 상세 편집과 포커스 과업도 통과했다.
+
+Firefox의 초기 화면 검사 한 건은 기존 Pretendard 폰트에서 다운로드 오류 또는 name record 순서 경고가 발생해 실패했다. 이 검사는 모든 console 경고를 오류로 취급한다. 단독 재실행에서도 name record 순서 경고를 확인했다. 폰트 파일과 검사는 이번 변경에서 수정하지 않았으며 전체 E2E 완료로 기록하지 않는다.
+
+224개 운영 TS 및 TSX 파일의 import graph에서 순환 참조는 없었고 lint의 FSD import 규칙과 React Hook 규칙도 통과했다. U1과 같은 메모 100개 및 복구 초안 10개를 세 번 측정한 중앙값은 표시 완료 시점이 데스크톱 83.7ms, 모바일 51ms, DOM 요소는 각각 4876개와 572개, heap은 18.2MB와 11.9MB였다. U1의 79ms, 48.9ms, 4878개, 572개, 19.3MB, 11.9MB와 비교하면 표시 시점은 각각 4.7ms, 2.1ms 느리고 나머지는 비슷하다. 세 번의 로컬 측정만으로 렌더 개선이나 표시 성능 퇴행을 단정하지 않는다. React Profiler의 렌더 횟수는 계속 수집하지 못했다.
 
 ## 멈추고 다시 판단할 조건
 

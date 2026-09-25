@@ -104,12 +104,13 @@ function clamp(value: number, minimum: number, maximum: number) {
 const newNoteHeight = 240
 const newNoteWidth = 320
 const newNoteGap = 32
+const newNoteStartX = 112
 
-function placementPositions(size: number) {
+function placementPositions(size: number, start = newNoteGap) {
   const positions: number[] = []
 
   for (
-    let position = newNoteGap;
+    let position = start;
     position + size <= NOTE_CANVAS_SIZE;
     position += size + newNoteGap
   ) {
@@ -136,7 +137,7 @@ function overlapsWithGap(
 export function findNewNoteGeometry(
   existingGeometry: readonly NoteGeometry[],
 ): NoteGeometry {
-  const xPositions = placementPositions(newNoteWidth)
+  const xPositions = placementPositions(newNoteWidth, newNoteStartX)
   const yPositions = placementPositions(newNoteHeight)
   const placementCount = xPositions.length * yPositions.length
   const firstPlacement = existingGeometry.length % placementCount

@@ -1,45 +1,15 @@
-import {
-  useCallback,
-  createContext,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
+import { createContext, useContext, useMemo } from "react"
 
-import {
-  createNoteRemovalHistory,
-  dismissNoteRemovalHistory,
-  forgetRemovedNote,
-  rememberRemovedNote,
-  type Note,
-  type NoteReference,
-  type RemovedNoteSnapshot,
-} from "@/entities/note"
+import type { Note, NoteReference, RemovedNoteSnapshot } from "@/entities/note"
 
-import {
-  activateBatchCopyPanel,
-  activateNoteProperties,
-  clearNoteSelection,
-  clearWorkspaceSelections,
-  closeActivePanel,
-  closeNoteProperties,
-  confirmNotePropertiesTarget,
-  createNoteWorkspaceState,
-  forgetBatchCopyItem,
-  forgetNote,
-  restoreNotePropertiesTarget,
-  selectNote,
-  toggleBatchCopyItemSelection,
-  type NotePropertiesFocus,
-  type NoteWorkspaceState,
-} from "./note-workspace-state"
+import type { NotePropertiesFocus, NoteWorkspaceState } from "./note-workspace-state"
+import { useNoteRemovalHistory } from "./use-note-removal-history"
+import { useNoteWorkspace } from "./use-note-workspace"
+import { useWorkspaceNotice } from "./use-workspace-notice"
 import type {
   WorkspaceNotice,
   WorkspaceNoticeInput,
 } from "./workspace-notice"
-
-const WORKSPACE_NOTICE_DURATION_MS = 5_000
 
 type NoteSessionContextValue = {
   removals: readonly RemovedNoteSnapshot[]
@@ -81,166 +51,56 @@ export const NoteSessionCommandsContext =
   createContext<NoteSessionCommands | null>(null)
 
 export function useNoteSessionStateModel(now: () => string) {
-  const [workspace, setWorkspace] = useState(createNoteWorkspaceState)
-  const [removalHistory, setRemovalHistory] = useState(
-    createNoteRemovalHistory,
-  )
-  const [workspaceNotice, setWorkspaceNotice] =
-    useState<WorkspaceNotice | null>(null)
-  const workspaceNoticeRef = useRef<WorkspaceNotice | null>(null)
-  const workspaceNoticeRevision = useRef(0)
-
-  const select = useCallback((noteId: string) => {
-    setWorkspace((current) => selectNote(current, noteId))
-  }, [])
-
-  const clearSelection = useCallback(() => {
-    setWorkspace(clearNoteSelection)
-  }, [])
-
-  const clearSelections = useCallback(() => {
-    setWorkspace(clearWorkspaceSelections)
-  }, [])
-
-  const toggleBatchCopyItem = useCallback((itemId: string) => {
-    setWorkspace((current) =>
-      toggleBatchCopyItemSelection(current, itemId),
-    )
-  }, [])
-
-  const activateProperties = useCallback((
-    note: NoteReference,
-    focus?: NotePropertiesFocus,
-  ) => {
-    setWorkspace((current) =>
-      activateNoteProperties(current, note, focus),
-    )
-  }, [])
-
-  const activateBatchCopy = useCallback(() => {
-    setWorkspace(activateBatchCopyPanel)
-  }, [])
-
-  const closePanel = useCallback(() => {
-    setWorkspace(closeActivePanel)
-  }, [])
-
-  const closeProperties = useCallback((noteId: string) => {
-    setWorkspace((current) => closeNoteProperties(current, noteId))
-  }, [])
-
-  const confirmPropertiesTarget = useCallback((
-    expected: NoteReference,
-    saved: NoteReference,
-  ) => {
-    setWorkspace((current) =>
-      confirmNotePropertiesTarget(current, expected, saved),
-    )
-  }, [])
-
-  const restorePropertiesTarget = useCallback((
-    note: NoteReference,
-  ) => {
-    setWorkspace((current) =>
-      restoreNotePropertiesTarget(current, note),
-    )
-  }, [])
-
-  const rememberRemoval = useCallback((note: Note) => {
-    const removedAt = now()
-    setRemovalHistory((current) =>
-      rememberRemovedNote(current, note, removedAt),
-    )
-    return { note, removedAt }
-  }, [now])
-
-  const forgetRemoval = useCallback((snapshot: RemovedNoteSnapshot) => {
-    setRemovalHistory((current) => forgetRemovedNote(current, snapshot))
-  }, [])
-
-  const dismissRemovalNotice = useCallback(() => {
-    setRemovalHistory(dismissNoteRemovalHistory)
-  }, [])
-
-  const dismissWorkspaceNotice = useCallback(() => {
-    const current = workspaceNoticeRef.current
-
-    workspaceNoticeRef.current = null
-    setWorkspaceNotice(null)
-    current?.onDismiss?.()
-  }, [])
-
-  const showWorkspaceNotice = useCallback((notice: WorkspaceNoticeInput) => {
-    const current = workspaceNoticeRef.current
-
-    if (notice.replacement !== "preserve") {
-      current?.onDismiss?.()
-    }
-    workspaceNoticeRevision.current += 1
-    const nextNotice = {
-      ...notice,
-      expiresAtMs:
-        notice.expiresAtMs ?? Date.parse(now()) + WORKSPACE_NOTICE_DURATION_MS,
-      revision: workspaceNoticeRevision.current,
-    }
-    workspaceNoticeRef.current = nextNotice
-    setWorkspaceNotice(nextNotice)
-  }, [now])
-
-  const forgetRemovedNoteFromWorkspace = useCallback((noteId: string) => {
-    setWorkspace((current) => forgetNote(current, noteId))
-  }, [])
-
-  const forgetBatchCopyItemFromWorkspace = useCallback((itemId: string) => {
-    setWorkspace((current) => forgetBatchCopyItem(current, itemId))
-  }, [])
+  const workspaceModel = useNoteWorkspace()
+  const removalHistory = useNoteRemovalHistory(now)
+  const noticeModel = useWorkspaceNotice(now)
 
   const state = useMemo(
     () => ({
-      removals: removalHistory.entries,
-      workspace,
-      workspaceNotice,
+      removals: removalHistory.removals,
+      workspace: workspaceModel.workspace,
+      workspaceNotice: noticeModel.workspaceNotice,
     }),
-    [removalHistory.entries, workspace, workspaceNotice],
+    [removalHistory.removals, workspaceModel.workspace, noticeModel.workspaceNotice],
   )
   const commands = useMemo<NoteSessionCommands>(
     () => ({
-      activateBatchCopy,
-      activateProperties,
-      clearSelection,
-      clearSelections,
-      closeProperties,
-      closePanel,
-      confirmPropertiesTarget,
-      dismissRemovalNotice,
-      dismissWorkspaceNotice,
-      forgetBatchCopyItem: forgetBatchCopyItemFromWorkspace,
-      forgetNote: forgetRemovedNoteFromWorkspace,
-      forgetRemoval,
-      rememberRemoval,
-      showWorkspaceNotice,
-      restorePropertiesTarget,
-      select,
-      toggleBatchCopyItem,
+      activateBatchCopy: workspaceModel.activateBatchCopy,
+      activateProperties: workspaceModel.activateProperties,
+      clearSelection: workspaceModel.clearSelection,
+      clearSelections: workspaceModel.clearSelections,
+      closeProperties: workspaceModel.closeProperties,
+      closePanel: workspaceModel.closePanel,
+      confirmPropertiesTarget: workspaceModel.confirmPropertiesTarget,
+      dismissRemovalNotice: removalHistory.dismissRemovalNotice,
+      dismissWorkspaceNotice: noticeModel.dismissWorkspaceNotice,
+      forgetBatchCopyItem: workspaceModel.forgetBatchCopyItem,
+      forgetNote: workspaceModel.forgetNote,
+      forgetRemoval: removalHistory.forgetRemoval,
+      rememberRemoval: removalHistory.rememberRemoval,
+      showWorkspaceNotice: noticeModel.showWorkspaceNotice,
+      restorePropertiesTarget: workspaceModel.restorePropertiesTarget,
+      select: workspaceModel.select,
+      toggleBatchCopyItem: workspaceModel.toggleBatchCopyItem,
     }),
     [
-      activateBatchCopy,
-      activateProperties,
-      clearSelection,
-      clearSelections,
-      closePanel,
-      closeProperties,
-      confirmPropertiesTarget,
-      dismissRemovalNotice,
-      dismissWorkspaceNotice,
-      forgetBatchCopyItemFromWorkspace,
-      forgetRemoval,
-      forgetRemovedNoteFromWorkspace,
-      rememberRemoval,
-      showWorkspaceNotice,
-      restorePropertiesTarget,
-      select,
-      toggleBatchCopyItem,
+      workspaceModel.activateBatchCopy,
+      workspaceModel.activateProperties,
+      workspaceModel.clearSelection,
+      workspaceModel.clearSelections,
+      workspaceModel.closePanel,
+      workspaceModel.closeProperties,
+      workspaceModel.confirmPropertiesTarget,
+      removalHistory.dismissRemovalNotice,
+      noticeModel.dismissWorkspaceNotice,
+      workspaceModel.forgetBatchCopyItem,
+      removalHistory.forgetRemoval,
+      workspaceModel.forgetNote,
+      removalHistory.rememberRemoval,
+      noticeModel.showWorkspaceNotice,
+      workspaceModel.restorePropertiesTarget,
+      workspaceModel.select,
+      workspaceModel.toggleBatchCopyItem,
     ],
   )
 
