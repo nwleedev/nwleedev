@@ -1,6 +1,6 @@
 # apps/notes 아키텍처 리팩토링 실행 계획
 
-이 계획은 `apps/notes` 구현자가 화면과 저장 모듈을 순서대로 정리하고, 검토자가 사용자 동작과 저장 자료의 보존 여부를 확인하는 기준이다. 대상은 [리팩토링 요구사항](requirements.md)의 **현재 사용 동작과 저장 자료**, **모듈 책임과 의존 방향**, **상태마다 기준이 되는 위치**, **반응성과 유지보수성**이다. 화면에서 지킬 행동은 [기존 메모 앱 요구사항](../personal-notes-app-8fd/requirements.md)이 정하며, 현재 코드의 연결 지점은 [구조 조사](references/architecture-baseline.md)와 [메모 조작 및 Hook 책임 조사](references/geometry-and-hook-responsibility.md)에 기록되어 있다. U1부터 U13까지는 기존 리팩토링이며, U14부터 U20까지는 메모 조작 실패의 원인을 판별하고 복합 책임 Hook을 분리한다.
+이 계획은 `apps/notes` 구현자가 화면과 저장 모듈을 순서대로 정리하고, 검토자가 사용자 동작과 저장 자료의 보존 여부를 확인하는 기준이다. 대상은 [리팩토링 요구사항](requirements.md)의 **현재 사용 동작과 저장 자료**, **모듈 책임과 의존 방향**, **상태마다 기준이 되는 위치**, **반응성과 유지보수성**이다. 화면에서 지킬 행동은 [기존 메모 앱 요구사항](../personal-notes-app-8fd/requirements.md)이 정하며, 현재 코드의 연결 지점은 [구조 조사](references/architecture-baseline.md), [메모 조작 및 Hook 책임 조사](references/geometry-and-hook-responsibility.md)와 [capability 주입 검토](references/capability-injection.md)에 기록되어 있다. U1부터 U13까지는 기존 리팩토링이며, U14부터 U20까지는 메모 조작 실패의 원인을 판별하고 복합 책임 Hook을 분리한다. U21부터는 현재 주입 구조를 서비스 전체에서 검토한 결과와 그에 따른 최소 변경을 다룬다.
 
 ## 실행 원칙과 선행 판단
 
@@ -162,7 +162,7 @@ U1과 U13에서 관찰한 메모 조작 E2E 실패는 U14에서 입력 대상이
 
 ### U17. 메모 목록의 URL, 키 입력과 생성 처리를 분리한다
 
-- **수정:** [`use-notes-collection-interactions.ts`](../../../apps/notes/src/_pages/notes/model/use-notes-collection-interactions.ts)의 hash 해석과 포커스를 `use-linked-note.ts`, Command 및 Escape 키 처리를 `use-note-selection-keys.ts`, 생성 진행과 실패 알림을 `use-create-note.ts`로 옮긴 뒤 원래 파일을 제거한다. [`notes-collection.tsx`](../../../apps/notes/src/_pages/notes/ui/notes-collection.tsx)는 세 Hook을 최상위에서 호출하고 메모 생성 및 삭제 복원에 쓰는 `focusNote`를 `use-linked-note.ts`에서 가져온다.
+- **수정:** 기존 `use-notes-collection-interactions.ts`의 hash 해석과 포커스를 `use-linked-note.ts`, Command 및 Escape 키 처리를 `use-note-selection-keys.ts`, 생성 진행과 실패 알림을 `use-create-note.ts`로 옮긴 뒤 원래 파일을 제거한다. [`notes-collection.tsx`](../../../apps/notes/src/_pages/notes/ui/notes-collection.tsx)는 세 Hook을 최상위에서 호출하고 메모 생성 및 삭제 복원에 쓰는 `focusNote`를 `use-linked-note.ts`에서 가져온다.
 - **설계 기준:** 각 Hook은 자신이 등록하는 브라우저 listener와 해제를 함께 관리한다. hash 포커스, 키 선택과 새 메모 생성은 서로 다른 사용자 입력에서 시작하므로 상태를 공유하지 않는다. 메모 생성 중 표시 상태를 URL 또는 키 상태에 합치지 않는다.
 - **완료 증거:** hash 진입과 hash 변경 때 대상 선택 및 포커스, Command 키와 Escape의 선택 처리, 새 메모의 생성 중 표시와 실패 안내, 생성 및 삭제 복원 후 포커스가 유지된다. 화면 이동과 재방문에서 중복 listener가 남지 않는다.
 
@@ -195,6 +195,31 @@ Firefox의 초기 화면 검사 한 건은 기존 Pretendard 폰트에서 다운
 
 224개 운영 TS 및 TSX 파일의 import graph에서 순환 참조는 없었고 lint의 FSD import 규칙과 React Hook 규칙도 통과했다. U1과 같은 메모 100개 및 복구 초안 10개를 세 번 측정한 중앙값은 표시 완료 시점이 데스크톱 83.7ms, 모바일 51ms, DOM 요소는 각각 4876개와 572개, heap은 18.2MB와 11.9MB였다. U1의 79ms, 48.9ms, 4878개, 572개, 19.3MB, 11.9MB와 비교하면 표시 시점은 각각 4.7ms, 2.1ms 느리고 나머지는 비슷하다. 세 번의 로컬 측정만으로 렌더 개선이나 표시 성능 퇴행을 단정하지 않는다. React Profiler의 렌더 횟수는 계속 수집하지 못했다.
 
+## capability 주입 검토에 따른 후속 단위
+
+이 단위는 [리팩토링 요구사항의 모듈 책임과 의존 방향](requirements.md#모듈-책임과-의존-방향을-분명히-한다), [상태마다 기준이 되는 위치](requirements.md#상태마다-기준이-되는-위치를-하나-둔다) 및 [반응성과 유지보수성](requirements.md#반응성과-유지보수성을-해치지-않는다)을 확인한다. [전체 연결 관계 검토](references/capability-injection.md)를 기준으로 한다. 기존에 승인된 [FSD 조립 결정](../personal-notes-app-8fd/decisions/application-package-and-fsd.md#승인된-결정과-이유)을 유지하며, [React Hook Form 지침](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴 지침](../../dev/personal-notes-app/test-anti-patterns.md)을 이후 코드 변경과 검증에 적용한다.
+
+### U21. 서비스 전체의 의존성 연결과 사용 위치를 확인한다
+
+- **대상과 변경:** `_app`의 조립, 메모 및 상세 편집, 저장 일괄 복사와 모바일 초안, 템플릿, 분석, 설정, 사용 기록, 탐색과 공통 UI가 의존성을 전달하고 사용하는 방식을 [capability 주입 검토](references/capability-injection.md)에 기록한다. 이 단위의 운영 코드 추가, 제거 및 수정은 없다.
+- **설계 기준:** [React Context 구독 규칙](https://react.dev/reference/react/useContext)과 [FSD 계층 import 규칙](https://feature-sliced.design/docs/reference/layers#import-rule-on-layers)을 적용한다. 브라우저 구현을 바꿔 끼우는 기능, Provider가 관리하는 사용자 명령, 화면 인스턴스의 입력, DOM ref를 구분한다. 한 Hook에 함수 인자가 있다는 사실만으로 새 Context를 만들지 않는다.
+- **완료 증거:** 각 영역의 구현 선택 지점, 사용 Hook과 Context, 명령의 순서 및 오류 책임, 그대로 둘 Props와 ref가 문서에서 실제 파일로 추적된다. TanStack Query의 별도 cache와 저장 동작을 추가하지 않았는지도 확인한다.
+
+**검토 결과:** `createLocalApplication`과 기능별 Provider의 직접 주입이 현재 저장 및 분석 작업을 연결한다. `useUsageReader`는 조회 전용 접근자의 기존 사례다. 나머지 저장 및 분석 capability는 현재 각각의 상태 관리 Hook이 직접 사용한다. 이 Hook들을 위해 별도 Provider와 `useRepository()`류의 접근자를 일괄 추가하면 사용처가 늘지 않은 채 Context만 중복된다. `readContent`, `setFailure`, `noteReference`, 목록 ref와 화면 이동 callback은 편집 또는 화면 인스턴스의 값이다. `useNotesDataModel`, `useBatchCopyState`와 `useMobileBatchCopyState`의 저장 명령은 변경 queue와 화면 게시를 함께 담당하므로 원시 repository 조회기로 대체하지 않는다. 이 판단은 정적 코드 조사이며 렌더 감소를 입증하지 않는다.
+
+### U22. 조립 객체에서 사용하지 않는 writer 항목만 제거한다
+
+- **수정 및 제거:** [`create-local-application.ts`](../../../apps/notes/src/_app/composition/create-local-application.ts)의 `LocalApplication.usage.writer` 타입과 반환 객체 속성만 제거한다. 실제 기록에 사용되는 `notes.usageWriter`와 조회에 사용되는 `usage.reader`, 이를 연결하는 [`personal-notes-provider.tsx`](../../../apps/notes/src/_app/providers/personal-notes-provider.tsx)는 유지한다. 새 인터페이스, Provider, 접근자, package와 저장 형식은 추가하지 않는다.
+- **설계 기준:** 조립 객체에서 사용처가 없는 `usage.writer` 속성만 없앤다. [`use-usage-reader.ts`](../../../apps/notes/src/_pages/usage/model/use-usage-reader.ts)는 주입된 읽기 기능을 반환하는 현재 구조를 유지한다. 메모, 일괄 복사, 모바일 초안, 템플릿, 분석 및 설정의 의존성 Props는 `_app`에서 바로 각 Provider에 전달되므로 그대로 둔다. UI 작업마다 전달되는 저장 명령, 폼 함수와 ref를 인프라 DI와 혼동하지 않는다.
+- **완료 증거:** 전체 소스에서 `application.usage.writer` 사용처가 없음을 다시 확인하고 타입 검사와 FSD lint가 통과한다. 메모 본문 복사 뒤 사용 기록이 증가하고 `/usage` 재방문에서 그 기록을 읽으며, 기존 IndexedDB record와 오류 안내가 유지된다.
+
+### U23. 의존성 연결과 사용자 동작을 최종 확인한다
+
+- **대상과 변경:** U22의 운영 코드 수정 및 제거 대상은 `usage.writer` 속성뿐이다. 별도 capability Provider, 범용 Dependencies Context, Query cache나 화면 상태 복제는 만들지 않는다. 다른 주입 변경이 필요하다는 근거가 나오면 수정 대상, 사용 모듈과 저장 순서의 영향을 먼저 이 계획에 기록한다.
+- **완료 증거:** [리팩토링 요구사항의 완료 증거](requirements.md#완료를-확인할-증거)에 따라 타입 검사, lint, 기존 unit, browser와 E2E 결과를 확인한다. 메모 저장 및 복구, 저장 목록과 모바일 초안의 일괄 복사, 템플릿, 분석, 설정, 사용 기록과 탐색에서 화면, URL, 접근성 이름, 저장 자료와 실패 동작이 유지되는지 확인한다. 기존 U20의 Firefox 초기 화면 실패도 구분해 기록하고, 남아 있으면 전체 검증 완료라고 표시하지 않는다. 렌더 횟수 개선을 주장하려면 같은 자료량과 동작에서 React Profiler 측정값을 별도로 확보한다.
+
+새 외부 의존성을 사용하는 모듈이 생겨 기존 직접 주입이 여러 무관한 중간 계층을 거칠 때만 그 모듈을 포함한 slice의 최소 capability 접근자를 다시 검토한다. 그전에는 저장 명령과 화면 입력의 인자 수 자체를 새 Provider 도입 근거로 사용하지 않는다.
+
 ## 멈추고 다시 판단할 조건
 
 - 기존 요구사항과 실제 화면 또는 저장 자료가 충돌하면 영향받는 단위의 변경을 중단하고 기준을 결정한다. 다른 단위는 그 충돌의 영향을 받지 않을 때만 진행한다.
@@ -202,3 +227,4 @@ Firefox의 초기 화면 검사 한 건은 기존 Pretendard 폰트에서 다운
 - TanStack Query나 다른 외부 의존성이 필요하다는 판단이 나오면 직접 및 전이 의존성, 공식 통합 방식, 현재 구현과의 차이를 조사하고 승인 전에는 추가하지 않는다. 미도입인 저장 대상의 작업은 계속할 수 있다.
 - provider 이동으로 화면 이동 뒤 선택 또는 초안이 사라지거나, Effect 제거로 저장 및 정리 시점이 달라지면 영향을 받는 작업을 멈춘다. U13에서 변경 전과 다른 실패가 확인되면 완료를 보류하고 사용자 동작을 보존하는 수정안을 확인한다. 변경 전에도 재현되는 실패는 별도로 밝힌다.
 - U14에서 저장 완료 전 관찰과 완료 뒤에도 남는 좌표 불일치를 구분하지 못하면 U15에서 바꿀 코드를 정하지 않는다. 실제 저장값이 잘못된 경우 검사 대기만 늘려 실패를 감추지 않는다. Hook 분리로 저장 queue나 사용자 화면의 상태 수명이 달라지면 영향을 받은 단위를 멈추고 이전 동작을 기준으로 다시 설계한다.
+- capability 접근자를 추가하려면 사용 모듈이 현재 Provider의 직접 주입으로는 연결되지 않는지 먼저 확인한다. 저장 명령을 우회하거나 FSD 하위 계층에서 `_app` 구현을 import해야 한다면 그 변경을 진행하지 않는다. Provider 값 변경으로 무관한 화면의 렌더 비용이 증가하거나 Client Component로 실행할 파일이 늘어나는 경우에도 구조를 다시 판단한다.
