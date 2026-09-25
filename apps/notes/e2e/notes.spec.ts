@@ -790,7 +790,8 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/")
 })
 
-test("초기 화면을 hydration 오류 없이 연다", async ({ page }) => {
+test("초기 화면을 hydration 오류 없이 연다", async ({ context }) => {
+  const page = await context.newPage()
   const consoleMessages: string[] = []
   const pageErrors: string[] = []
 
@@ -801,7 +802,7 @@ test("초기 화면을 hydration 오류 없이 연다", async ({ page }) => {
   })
   page.on("pageerror", (error) => pageErrors.push(error.message))
 
-  await page.reload()
+  await page.goto("/")
   await expect(page.getByRole("main")).toBeVisible()
   await expect(
     page.getByRole("region", { name: "메모 작업 영역" }),
@@ -2447,6 +2448,7 @@ test.describe("320px 메모 화면", () => {
     const note = await createMobileNoteThroughUi(page, initialContent)
 
     await note.getByRole("link", { name: / 수정$/u }).click()
+    await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)
     await page.setViewportSize({ height: 800, width: 1280 })
     const editor = page.getByRole("textbox", { name: "메모 내용" })
     await editor.fill(revisedContent)

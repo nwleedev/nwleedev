@@ -1,0 +1,7 @@
+이 파일은 Pretendard Variable v1.3.9 웹폰트의 기능상 동등한 보정본입니다.
+원본: https://github.com/orioncactus/pretendard/releases/tag/v1.3.9
+
+name 테이블에서 키와 내용이 같은 중복 레코드만 제거했습니다.
+글리프, 문자 범위, 글자 모양을 결정하는 테이블과 폰트 이름 및 저작권 정보는 유지했습니다.
+head 테이블의 체크섬 조정 값만 재계산됐습니다.
+원저작권 표시와 라이선스 조건은 OFL.txt에 있습니다.

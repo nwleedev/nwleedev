@@ -530,6 +530,12 @@ async function executeGeometryCommands(
         await page.mouse.up()
       },
       async inspect(expected) {
+        if (defect === "none") {
+          await expect
+            .poll(async () => (await readStoredNote(page, noteId))?.revision)
+            .toBe(expected.revision)
+        }
+
         const stored = await readStoredNote(page, noteId)
         const observed =
           stored === null

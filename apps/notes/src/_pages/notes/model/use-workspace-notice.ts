@@ -10,8 +10,12 @@ export function useWorkspaceNotice(now: () => string) {
   const workspaceNoticeRef = useRef<WorkspaceNotice | null>(null)
   const workspaceNoticeRevision = useRef(0)
 
-  const dismissWorkspaceNotice = useCallback(() => {
+  const dismissWorkspaceNotice = useCallback((revision?: number) => {
     const current = workspaceNoticeRef.current
+
+    if (revision !== undefined && current?.revision !== revision) {
+      return
+    }
 
     workspaceNoticeRef.current = null
     setWorkspaceNotice(null)

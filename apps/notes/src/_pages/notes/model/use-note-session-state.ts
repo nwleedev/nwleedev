@@ -26,7 +26,7 @@ type NoteSessionContextValue = {
   closePanel(): void
   confirmPropertiesTarget(expected: NoteReference, saved: NoteReference): void
   dismissRemovalNotice(): void
-  dismissWorkspaceNotice(): void
+  dismissWorkspaceNotice(revision?: number): void
   forgetBatchCopyItem(itemId: string): void
   forgetNote(noteId: string): void
   forgetRemoval(snapshot: RemovedNoteSnapshot): void

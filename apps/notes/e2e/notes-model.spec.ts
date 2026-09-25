@@ -107,12 +107,18 @@ test("삭제 뒤 순서를 바꾸고 복원한 메모를 새로고침 뒤에도 
   await expect(page.getByRole("article", { exact: true, name: "메모" })).toHaveCount(3)
 
   await page.reload()
-  const editors = await page.getByRole("textbox", { name: "메모 내용" }).all()
-  const contents = await Promise.all(editors.map((editor) => editor.inputValue()))
-
-  expect(contents).toEqual(
-    expect.arrayContaining(["첫 번째 순서 메모", "두 번째 순서 메모", "세 번째 순서 메모"]),
-  )
+  await expect
+    .poll(async () => {
+      const editors = await page.getByRole("textbox", { name: "메모 내용" }).all()
+      return Promise.all(editors.map((editor) => editor.inputValue()))
+    })
+    .toEqual(
+      expect.arrayContaining([
+        "첫 번째 순서 메모",
+        "두 번째 순서 메모",
+        "세 번째 순서 메모",
+      ]),
+    )
 })
 
 test("320px 화면에서는 명시적 저장 뒤 새로고침해도 원문을 유지한다", async ({

@@ -48,7 +48,11 @@ export function useActionToastTimer({
     })
   }
 
-  const dismissOnTimer = useEffectEvent(dismissToast)
+  const dismissOnTimer = useEffectEvent((scheduledRevision: number) => {
+    if (scheduledRevision === revision) {
+      dismissToast()
+    }
+  })
 
   function clearTimer() {
     if (timer.current === null) {
@@ -78,7 +82,7 @@ export function useActionToastTimer({
     startedAtMs.current = Date.now()
     timer.current = window.setTimeout(() => {
       timer.current = null
-      dismissOnTimer()
+      dismissOnTimer(revision)
     }, remainingMs.current)
 
     return clearTimer

@@ -278,6 +278,40 @@ U22부터 U28까지는 기존 Provider 계층과 Client Component 경계를 유�
 
 새 외부 의존성을 사용하는 모듈이 생겨 기존 직접 주입이 여러 무관한 중간 계층을 거칠 때만 그 모듈을 포함한 slice의 최소 capability 접근자를 다시 검토한다. 그전에는 저장 명령과 화면 입력의 인자 수 자체를 새 Provider 도입 근거로 사용하지 않는다.
 
+### U30. 초기 화면의 Firefox 자산 오류를 해소한다
+
+- **원인:** 배포된 폰트의 중복된 이름 레코드는 Firefox의 폰트 검사에서 경고를 낸다. 별도로 초기 화면 검사는 준비 단계에서 `/`를 연 뒤 자산 요청이 끝나기 전에 다시 로드하여 Firefox가 취소된 폰트와 스크립트 요청을 오류로 기록한다. [OpenType 이름 테이블 명세](https://learn.microsoft.com/en-us/typography/opentype/spec/name)와 [Firefox의 요청 취소 코드](https://searchfox.org/mozilla-central/source/tools/%40types/generated/lib.gecko.nsresult.d.ts)를 대조했다.
+- **수정:** `public/fonts/pretendard/PretendardVariable.woff2`에서 키와 문자열이 같은 중복 이름 레코드만 제거한다. 글리프와 치수, 원저작권, 라이선스 정보와 폰트 이름은 유지한다. `FONTLOG.txt`에 원본과 차이를 기록한다. [SIL의 웹폰트 기능 동등성 기준](https://openfontlicense.org/webfonts-and-reserved-font-names/)은 문자 범위, 렌더링 동작, 시각 품질과 원본 메타데이터를 모두 보존할 때 예약 이름을 유지할 수 있는 조건을 설명한다. `e2e/notes.spec.ts`의 초기 화면 검사는 관찰할 새 페이지에서 첫 탐색을 실행하여 검사 준비 과정의 자산 요청 취소를 없앤다. 콘솔 오류, 화면과 hydration에 관한 기존 단언은 유지한다.
+- **완료 증거:** 수정 전후의 폰트 테이블과 WOFF2 메타데이터를 대조하고 Firefox 초기 화면 검사를 반복 실행해 이름 레코드 경고와 요청 취소 오류가 모두 없는지 확인한다. 운영 빌드와 전체 E2E에서도 같은 검사가 통과해야 한다.
+
+### U31. 이전 알림의 타이머가 새 알림을 닫지 않게 한다
+
+- **원인:** 클립보드 권한 거절 뒤 다시 복사할 때 기존 알림의 만료 타이머와 새 알림 상태 갱신이 겹칠 수 있다. 이전 타이머의 닫기 명령이 현재 알림을 식별하지 않고 닫아, 두 번째 복사 직후 오류 안내가 사라지는 간헐적 실패가 발생한다.
+- **수정:** `use-action-toast-timer.ts`는 타이머를 만든 알림의 revision과 현재 revision이 일치할 때만 만료 명령을 실행한다. `use-workspace-notice.ts`는 전달된 revision이 현재 알림과 다르면 닫기 명령을 무시한다. `use-note-session-state.ts`와 `batch-copy-workspace.tsx`는 이 식별자를 알림 만료 경로에 전달한다. 사용자가 직접 닫는 명령과 다른 알림 교체 동작은 유지한다.
+- **완료 증거:** 기존 클립보드 권한 거절 검사를 반복 실행해 재복사 뒤 안내가 정해진 시간 동안 남고, 권한 거절이 사용 횟수를 늘리지 않으며 포커스에 따른 일시 정지와 재시도가 그대로 동작하는지 확인한다. 전체 E2E에서도 통과해야 한다.
+
+### U32. 새로고침 뒤 메모 복원을 비동기 결과로 검사한다
+
+- **원인:** 메모 복원 검사는 새로고침 직후 `locator.all()`로 편집기 목록을 읽는다. 이 API는 렌더링을 기다리지 않아 빈 목록을 반환할 수 있다. 실패 당시 화면 기록에는 세 메모가 모두 나타났다. [Playwright의 locator 목록 지침](https://playwright.dev/docs/api/class-locator#locator-all)과 [재시도 단언 지침](https://playwright.dev/docs/test-assertions#auto-retrying-assertions)을 따른다.
+- **수정:** `e2e/notes-model.spec.ts`에서 기존 세 원문의 복원 조건을 유지하고, 비동기 목록과 값을 `expect.poll`로 관찰한다. 저장 로직과 예상 내용은 바꾸지 않는다.
+- **완료 증거:** Firefox에서 해당 과업을 반복 실행하고 전체 E2E에서 통과한다. 실패 때는 실제 저장값과 화면을 구분해 검사한다.
+
+### U33. 상세 화면 이동이 끝난 뒤 편집 동작을 검사한다
+
+- **원인:** 모바일 메모의 수정 링크를 누른 직후 Next.js 화면 이동이 진행 중인데도 검사가 편집기에 입력했다. 실패 기록에서 편집기가 나타난 동안 URL은 여전히 `/`였고, 이후 이전 화면으로 돌아가거나 탐색 확인창 없이 분석 화면으로 이동했다. [Next.js의 클라이언트 화면 이동 설명](https://nextjs.org/docs/app/getting-started/linking-and-navigating)과 [Playwright의 URL 재시도 단언](https://playwright.dev/docs/api/class-pageassertions#page-assertions-to-have-url)을 확인했다.
+- **수정:** `e2e/notes.spec.ts`에서 수정 링크를 누른 뒤 상세 URL이 확정될 때까지 기다린 다음 화면 크기를 변경하고 편집한다. 입력 보존, 탐색 확인과 최종 목적지에 관한 기존 단언은 유지한다. 별도 화면 상태 동기화는 추가하지 않는다.
+- **완료 증거:** 같은 상세 편집과 화면 크기 변경 과업을 반복 실행하고 전체 E2E에서 통과한다. 메모 상세 화면의 실제 입력, 저장과 탐색 동작은 바꾸지 않는다.
+
+### U34. 위치와 크기 저장을 완료된 record로 검사한다
+
+- **원인:** `use-note-geometry-gesture.ts`는 포인터 종료 뒤 `persist`를 비동기로 시작한다. 모델 검사의 `page.mouse.up()`은 IndexedDB transaction 완료를 기다리지 않으므로, 직후 한 번만 읽은 record가 이전 revision일 수 있다. 전체 Firefox 실행에서 이 모델 과업이 간헐적으로 실패했지만 단독 반복에서는 통과했다. [IndexedDB transaction 완료 규칙](https://www.w3.org/TR/IndexedDB/#transaction-committing)과 [Playwright의 재시도 단언](https://playwright.dev/docs/test-assertions#expectpoll)을 따른다.
+- **수정:** `e2e/notes-geometry-model.spec.ts`의 정상 동작 검사는 기대한 revision이 저장소에 나타날 때까지 기다린 뒤, 기존 좌표, 원문과 content revision의 전체 비교를 그대로 수행한다. 고의로 포인터 종료를 막는 결함 재현의 단발 조회와 축소 경로는 유지한다. 저장 구현, 폰트와 화면은 바꾸지 않는다.
+- **완료 증거:** Firefox 모델 검사와 전체 E2E가 통과하고, 고의 결함을 계속 탐지하는지 확인한다.
+
+**검증 기록:** 폰트의 고유한 이름 값은 모두 같고, 중복 26개를 제거한 뒤 이름 레코드는 167개에서 141개가 됐다. `name` 외에 달라진 폰트 테이블은 체크섬 조정 값이 든 `head`뿐이며 WOFF2 전용 메타데이터는 원본과 보정본 모두 없다. CSS의 Pretendard 이름과 글리프를 포함한 다른 테이블은 그대로다. Firefox 초기 화면 검사 30회, 클립보드 권한 거절 검사 100회, Firefox 메모 복원 검사 30회, Chromium의 상세 편집과 탐색 검사 100회, Firefox 위치와 크기 모델 검사 10회가 통과했다. 위치와 크기 모델의 고의 결함 탐지도 유지됐다.
+
+타입 검사, lint, 단위 검사 196개, 브라우저 구성요소 검사 57개와 운영 빌드가 통과했다. 최종 전체 E2E는 Chromium, Firefox, WebKit, 클립보드 및 터치 환경에서 215개가 모두 통과했다. 화면 문구, CSS, URL과 IndexedDB 저장 형식은 바꾸지 않았다.
+
 ## 멈추고 다시 판단할 조건
 
 - 기존 요구사항과 실제 화면 또는 저장 자료가 충돌하면 영향받는 단위의 변경을 중단하고 기준을 결정한다. 다른 단위는 그 충돌의 영향을 받지 않을 때만 진행한다.

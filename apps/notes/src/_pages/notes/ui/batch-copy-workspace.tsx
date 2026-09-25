@@ -231,7 +231,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
               kind={notice.kind}
               message={notice.message}
               onAction={notice.onAction}
-              onDismiss={session.dismissWorkspaceNotice}
+              onDismiss={() => session.dismissWorkspaceNotice(notice.revision)}
               revision={notice.revision}
             />
           </div>
