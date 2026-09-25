@@ -13,6 +13,7 @@
 - 노트 페이지의 [`notes-data-provider.tsx`](../../../../apps/notes/src/_pages/notes/model/notes-data-provider.tsx)는 저장 자료 조회와 변경 명령을 제공한다. [`note-session-provider.tsx`](../../../../apps/notes/src/_pages/notes/model/note-session-provider.tsx)는 선택, 패널, 삭제 취소 기록과 알림처럼 페이지 이동 중 유지할 상태를 관리한다. 상태와 명령을 분리하는 Context도 이미 일부 사용한다.
 - IndexedDB는 메모, 복구 초안, 일괄 복사 목록과 초안, 템플릿, 설정 및 사용 횟수를 보관한다. [`migrate-personal-notes-database.ts`](../../../../apps/notes/src/_app/composition/indexed-db/migrate-personal-notes-database.ts)는 이전 형식의 저장 자료를 검증하고 현재 형식으로 옮긴다.
 - [`docs/dev/personal-notes-app/react-hook-form.md`](../../../dev/personal-notes-app/react-hook-form.md)는 폼 입력과 저장 및 브라우저 동작의 상태 책임을 나눈 `current` 지침이다. [`docs/dev/personal-notes-app/anti-patterns.md`](../../../dev/personal-notes-app/anti-patterns.md)는 구현 권고를 담은 `proposed` 지침이므로 승인된 현재 규칙과 구분한다.
+- `apps/notes/package.json`과 `pnpm-lock.yaml`에는 TanStack Query가 없다. `docs/dev/personal-notes-app/anti-patterns.md`도 현재 미도입 상태와 IndexedDB 자료를 Query cache에 함께 두려면 별도 적용 근거가 필요하다고 기록한다. 이 문서의 TanStack Query 분석은 아직 승인되지 않은 적용 검토다.
 
 ## 공식 자료가 확인한 설계 원칙
 
@@ -26,9 +27,20 @@ React Hook Form 사용 기준은 설치된 7.86.0 버전에 맞춰 [저장소의
 
 W3C의 [IndexedDB 3.0 표준](https://www.w3.org/TR/IndexedDB/)은 다른 탭이 기존 연결을 해제하지 않으면 IndexedDB 버전 업그레이드가 `blocked`될 수 있고, 기존 연결의 `versionchange` 처리와 업그레이드 transaction 완료가 필요하다고 명시한다. 현재 앱은 이 수명 주기를 사용자에게 알리는 처리를 이미 갖는다. 저장소 접근을 다른 모듈로 옮기거나 migration을 고칠 때에도 오류 안내, 대기와 버전 변경에 대한 기존 화면 처리를 유지해야 한다.
 
+## TanStack Query와 IndexedDB 검토 근거
+
+TanStack Query v5의 [query function 지침](https://tanstack.com/query/latest/docs/framework/react/guides/query-functions)은 Promise를 반환하는 함수를 query function으로 사용할 수 있다고 설명한다. 그러므로 IndexedDB repository의 비동기 조회를 query function에서 호출하는 구조는 가능하지만, API를 연결할 수 있다는 사실만으로 적용 이점이 입증되지는 않는다.
+
+[기본 cache 지침](https://tanstack.com/query/latest/docs/framework/react/guides/important-defaults)은 기본 `staleTime`이 0이고 사용되지 않는 query 자료가 기본 5분 뒤 cache에서 제거된다고 설명한다. [Mutations 지침](https://tanstack.com/query/latest/docs/framework/react/guides/mutations)은 mutation을 주로 자료 생성, 변경과 삭제에 사용한다고 설명하며, [mutation 뒤 query 무효화 지침](https://tanstack.com/query/latest/docs/framework/react/guides/invalidations-from-mutations)은 자료 변경 뒤 연관 query를 무효화하거나 다시 읽도록 안내한다. IndexedDB의 저장 원본과 Query cache를 함께 사용하면 각 읽기와 변경 작업에서 신선도, 무효화, 오류 상태 및 재조회 시점을 정해야 한다.
+
+[persistQueryClient plugin](https://tanstack.com/query/latest/docs/framework/react/plugins/persistQueryClient)은 persister를 사용해 Query cache를 여러 저장소에 복원 및 보관하는 방법과 IndexedDB persister 예시를 제공한다. 이는 애플리케이션 메모리나 설정 record의 저장 및 migration과 별개의 cache 보관 수명이다. plugin 문서가 cache 복원은 비동기이며 앱 query와 동시에 실행하면 경합이 날 수 있다고 안내하므로, 영속화까지 검토한다면 초기 복원, cache 만료, 기존 IndexedDB transaction 및 저장 실패 처리를 함께 살펴야 한다.
+
+[query cancellation 지침](https://tanstack.com/query/latest/docs/framework/react/guides/query-cancellation)은 query function에 `AbortSignal`을 전달한다. 이것이 IndexedDB transaction을 자동 취소하는 것은 아니므로, 특정 조회 작업에서 취소를 연결할지와 그 방식은 구현 대상 API를 기준으로 확인해야 한다.
+
 ## 조사에서 확인한 점과 미확인 사항
 
 - 외부 자료와 현재 코드가 함께 뒷받침하는 결론은 리팩토링이 FSD 계층, 필요한 slice `public API`, 상태마다 한곳에서 관리하는 원칙, 폼 책임과 브라우저 실행 환경의 구분을 계속 지켜야 한다는 점이다.
 - 저장소 조사만으로 특정 화면의 provider가 지나치게 크거나, 상태 라이브러리가 필요하거나, 파일 전체를 재배치해야 한다고 판단할 수는 없다. 실제 구현 계획에서는 변경 이유와 상태 수명에 따라 모듈을 나눌 기준을 확인해야 한다.
+- Query function에서 IndexedDB 비동기 조회를 호출할 수 있지만, Query cache에는 IndexedDB 자료와 별도의 신선도 및 제거 정책이 있다. 현재 Query는 설치되지 않았고 기존 repository가 저장 자료를 관리한다. 따라서 메모, 초안, 설정 등의 저장 대상마다 cache 수명과 저장 뒤 일관성을 비교해 적용 여부를 정해야 한다. 이 평가는 채택 결정이나 새 의존성 승인이 아니다.
 - 이 조사는 현재 코드와 문서, 매니페스트 및 정적 설정을 확인했다. 브라우저 성능이나 전체 사용자 과업을 실행한 것은 아니다. 완료 판정에는 요구사항에 지정한 lint, 타입 검사, 기존 자동화 검사와 브라우저 자료 보존 확인이 필요하다.
-- 공식 자료 확인일은 2026-09-25다. 참고 자료는 React 공식 문서, Next.js 공식 문서, FSD 공식 문서, React Hook Form 공식 문서 저장소와 W3C IndexedDB 표준이다.
+- 공식 자료 확인일은 2026-09-25다. 참고 자료는 React 공식 문서, Next.js 공식 문서, TanStack Query v5 공식 문서, FSD 공식 문서, React Hook Form 공식 문서 저장소와 W3C IndexedDB 표준이다.
