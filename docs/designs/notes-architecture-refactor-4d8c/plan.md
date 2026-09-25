@@ -216,11 +216,15 @@ U22부터 U28까지는 기존 Provider 계층과 Client Component 경계를 유�
 - **설계 기준:** `use-database.ts`가 연결을 닫고 나머지 조립 모듈은 이를 사용하게 한다. [IndexedDB의 버전 변경 규칙](https://www.w3.org/TR/IndexedDB-3/#connection-requests)에 따라 별도 연결이 남아 업그레이드를 막지 않게 한다. 초기화 함수는 외부 연결을 열지 않고, 종료 처리는 [React Effect 수명 규칙](https://react.dev/reference/react/useEffect#connecting-to-an-external-system)에 맞춘다.
 - **완료 증거:** 메모, 초안, 저장 목록, 템플릿과 사용 기록이 같은 연결을 사용한다. `blocked`와 `version-changed` 안내, 연결 종료 후 재시도, 재진입 시 자료 조회가 기존과 같다.
 
+**적용:** `useDatabase`가 Provider 수명에 맞춰 단일 연결을 만들고 닫는다. U22에서는 임시 `createLocalApplication`이 이 연결을 받았고, U28에서 전체 객체를 제거한 뒤 설정, 템플릿, 분석, 일괄 복사와 메모의 조립 모듈이 같은 연결을 받는다.
+
 ### U23. 설정 저장소를 독립적으로 연결한다
 
 - **추가 및 수정:** `_app/composition/use-preference-adapters.ts`와 `preference.tsx`에서 설정 저장소와 시계를 안정적으로 만들고 기존 `InteractionPreferencesProvider`에 전달한다. [`personal-notes-provider.tsx`](../../../apps/notes/src/_app/providers/personal-notes-provider.tsx)의 설정 Provider 위치를 교체하고 `LocalApplication.preferences` 타입 및 생성 코드를 제거한다.
 - **설계 기준:** 설정 저장소의 구현 선택만 별도 모듈로 옮긴다. 설정 값은 기존 Provider가 관리하며, 다른 Provider가 읽는 설정값과 현재 감싸는 순서를 유지한다. 새 Context나 설정 state 사본은 만들지 않는다.
 - **완료 증거:** 설정을 바꾸고 실패 시 되돌리는 동작, 메모와 일괄 복사에 반영되는 설정값, 재방문 뒤 저장값이 같다.
+
+**적용:** 설정 저장소와 시계는 `Preference`에서만 조립하고 기존 설정 Provider에 전달한다. 설정 상태를 관리하는 Provider와 감싸는 순서는 유지했다.
 
 ### U24. 템플릿 의존성을 템플릿 연결 위치로 옮긴다
 
@@ -228,11 +232,15 @@ U22부터 U28까지는 기존 Provider 계층과 Client Component 경계를 유�
 - **설계 기준:** 템플릿 편집과 복사에 필요한 의존성만 모은다. 새 저장 명령이나 조회 Context를 만들지 않고, 기존 편집과 복사 명령이 같은 Provider를 거치게 한다. ID 생성기와 클립보드 구현은 현재 내부 누적 상태가 없으므로 템플릿 전용 인스턴스를 사용할 수 있다.
 - **완료 증거:** 템플릿 작성, 편집, 삭제, 복사와 선택 자료 사용이 기존 저장값 및 화면 결과를 유지한다.
 
+**적용:** 템플릿 구현체의 선택과 안정적인 생성은 `Template`의 Hook으로 이동했다. 템플릿 상태와 명령은 기존 `TemplateDataProvider`에 남겼다.
+
 ### U25. 분석 Worker의 수명과 조회 연결을 분석 Provider로 옮긴다
 
 - **추가 및 수정:** `_app/composition/use-analysis-adapters.ts`와 `analysis.tsx`에서 같은 IndexedDB 연결을 읽는 메모 저장소와 `WorkerTextAnalyzer`를 만들고 기존 `TextAnalysisProvider`에 전달한다. 분석 연결이 끝날 때 Worker를 종료하고 대기 요청을 정리한다. 상위 구성의 분석 Provider 위치를 교체하고 `LocalApplication.analysis`와 `dispose`를 제거하며, `use-local-application.ts`에서 더는 필요 없는 종료 Effect를 제거한다.
 - **설계 기준:** Worker 수명과 분석 전후의 메모 조회에 필요한 의존성을 함께 관리한다. 메모 revision 비교와 늦은 응답 배제는 기존 `useTextAnalysisState`에 남긴다. 새 연결은 첫 분석 전에는 Worker를 시작하지 않는다.
 - **완료 증거:** 분석 실행, 재실행, 화면 이동과 늦은 응답 처리가 같고 Worker가 종료된다. 사용 기록이나 메모 저장소의 다른 Provider는 분석 상태를 구독하지 않는다.
+
+**적용:** 분석의 읽기 저장소와 Worker는 `Analysis`에서 만들며, Worker 종료 Effect도 그 수명에 묶었다. 임시 전체 객체의 종료 Effect는 제거했다.
 
 ### U26. 모바일 일괄 복사 초안의 구현을 분리한다
 
@@ -240,11 +248,15 @@ U22부터 U28까지는 기존 Provider 계층과 Client Component 경계를 유�
 - **설계 기준:** 모바일 확인 작업의 자료 수명과 저장 목록 수명을 합치지 않는다. 설정에서 읽은 재정렬 표시값을 기존과 같이 전달하고, 자체 저장 순서와 오류 복원은 `useMobileBatchCopyState`에 남긴다.
 - **완료 증거:** 모바일 초안의 추가, 순서 변경, 복제, 삭제, 확인 및 저장 실패 복원이 기존과 같고 복사 결과와 화면 문구가 유지된다.
 
+**적용:** 모바일 초안 저장소, 추가 writer와 브라우저 구현은 `MobileBatchCopy`에서만 조립한다. 재정렬 설정은 이전과 같이 상위 설정 상태에서 전달한다.
+
 ### U27. 저장 일괄 복사 목록의 구현을 분리한다
 
 - **추가 및 수정:** `_app/composition/use-batch-copy-adapters.ts`를 추가하고 [`batch-copy-provider.tsx`](../../../apps/notes/src/_app/providers/batch-copy-provider.tsx)가 저장 목록의 저장소, writer, 클립보드, 시계와 식별자 생성기를 그 Hook에서 받도록 한다. 상위 Provider는 공유 연결, 설정 표시값과 `onItemRemoved`만 전달한다. `LocalApplication.batchCopy`의 남은 타입과 생성 코드를 제거한다.
 - **설계 기준:** 기존 `useBatchCopyState`의 변경 queue, 실행 취소 이력과 저장 성공 뒤 메모 선택 해제 연결은 그대로 둔다. 저장 명령을 원시 저장소 접근으로 바꾸거나 모바일 초안의 상태와 합치지 않는다.
 - **완료 증거:** 저장 목록 편집, 재정렬, 개별 제거, 실행 취소, 전체 복사와 메모 선택 해제가 실패 및 재시도까지 기존과 같다.
+
+**적용:** 저장 목록의 구현체는 `BatchCopyProvider`가 `useBatchCopyAdapters`에서 받는다. 상위에서는 공유 연결, 재정렬 표시값과 메모 선택 해제 명령만 전달하며 저장 queue와 실행 취소 상태는 기존 Hook에 남겼다.
 
 ### U28. 메모와 사용 기록의 구현을 연결하고 전체 객체를 제거한다
 
@@ -253,10 +265,16 @@ U22부터 U28까지는 기존 Provider 계층과 Client Component 경계를 유�
 - **설계 기준:** 공유 자원은 IndexedDB 연결과 실제 양쪽에서 쓰는 사용 기록 저장소로 한정한다. 메모의 저장 queue, revision, 초안 복구와 `blocked` 및 `version-changed` 구독은 기존 `useNotesDataModel`에 남긴다. 사용 기록 읽기 접근자와 기능별 Provider는 유지하고, 범용 의존성 Context 또는 또 다른 전체 의존성 객체는 만들지 않는다.
 - **완료 증거:** 메모 저장, 복구와 개별 복사 기록이 기존 순서로 완료된다. `/usage`에서 같은 기록을 읽고 재방문 뒤에도 보이며, 연결 알림과 오류 안내가 유지된다. 전체 소스에서 `LocalApplication`과 `application.usage.writer` 참조가 사라진다.
 
+**적용:** 사용 기록 저장소는 `ConnectedProviders`에서 한 번 만들고 사용 기록 reader와 메모의 개별 복사 writer로 공유한다. 메모 저장소와 초안 저장소는 `Note`에서 공유 DB 연결을 받아 만들고, 같은 연결을 `storageMonitor`로 전달한다. `LocalApplication`과 `useLocalApplication`은 제거했다.
+
 ### U29. 조립 위치와 사용자 동작을 최종 확인한다
 
 - **대상과 변경:** U22부터 U28까지의 운영 코드와 연결 방향을 한 번 검토한다. 새 저장 형식, Query cache, 전역 DI container와 화면 상태 복제는 추가하지 않는다.
 - **완료 증거:** [리팩토링 요구사항의 완료 증거](requirements.md#완료를-확인할-증거)에 따라 타입 검사, lint, 기존 unit, browser와 E2E 결과를 확인한다. 각 조립 모듈이 연결할 Provider에 필요한 구현체만 만들고, 공통 연결은 하나이며, 분석 Worker가 종료되고, 하위 slice가 `_app`을 import하지 않는지 확인한다. 메모 저장 및 복구, 저장 목록과 모바일 초안의 일괄 복사, 템플릿, 분석, 설정, 사용 기록과 탐색에서 화면, URL, 접근성 이름, 저장 자료와 실패 동작을 비교한다. 기존 U20의 Firefox 초기 화면 실패도 구분해 기록하고, 남아 있으면 전체 검증 완료라고 표시하지 않는다. 렌더 횟수 개선을 주장하려면 같은 자료량과 동작에서 React Profiler 측정값을 별도로 확보한다.
+
+**검증 기록:** Node 24.15.0과 pnpm 11.25.0에서 타입 검사, lint, 단위 검사 196개, 브라우저 구성요소 검사 57개 및 운영 빌드가 통과했다. E2E는 215개 중 213개가 통과했다. Chromium, Firefox와 WebKit의 메모 이동 및 여덟 방향 크기 조절, 초안 복구, 저장 목록, 모바일 초안, 템플릿, 분석과 설정 과업은 통과했다. Firefox 초기 화면 검사 한 건은 U20에서 확인한 Pretendard 폰트 다운로드 오류와 name record 순서 경고로 다시 실패했다. Chromium의 클립보드 권한 거절 안내 검사 한 건은 전체 실행에서 실패했으나 단독 1회와 반복 3회에서 통과했다. 간헐적 실패의 원인은 확인하지 못했으며 두 건이 남아 전체 E2E 완료로 기록하지 않는다.
+
+코드 검토에서 `PersonalNotesDatabase` 생성은 `useDatabase` 한곳이며 각 저장소와 `storageMonitor`에 동일 인스턴스가 전달됨을 확인했다. `IndexedDbUsageRepository`는 사용 기록 reader와 메모 개별 복사 writer가 공유한다. 분석 Worker는 첫 분석 때만 시작하고 분석 Provider 수명이 끝나면 정리한다. 하위 FSD 계층에서 `_app`을 import하는 경로와 전체 의존성 객체는 발견되지 않았다. 저장 schema, 화면 파일과 URL은 바꾸지 않았다. React Profiler 및 같은 자료량의 성능 측정은 이번 변경 뒤 수집하지 않았으므로 렌더 횟수나 성능 개선을 주장하지 않는다.
 
 새 외부 의존성을 사용하는 모듈이 생겨 기존 직접 주입이 여러 무관한 중간 계층을 거칠 때만 그 모듈을 포함한 slice의 최소 capability 접근자를 다시 검토한다. 그전에는 저장 명령과 화면 입력의 인자 수 자체를 새 Provider 도입 근거로 사용하지 않는다.
 

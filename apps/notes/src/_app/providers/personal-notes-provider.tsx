@@ -2,35 +2,35 @@
 
 import type { PropsWithChildren } from "react"
 
-import { TextAnalysisProvider } from "@/_pages/analysis/composition"
 import {
-  NotesDataProvider,
   NoteSessionProvider,
   useNoteSessionCommands,
 } from "@/_pages/notes/composition"
-import {
-  InteractionPreferencesProvider,
-  useInteractionPreferences,
-} from "@/_pages/settings/composition"
+import { useInteractionPreferences } from "@/_pages/settings/composition"
 import { UsageReaderProvider } from "@/_pages/usage/composition"
-import { TemplateDataProvider } from "@/_pages/templates/composition"
-import { MobileBatchCopyProvider } from "@/features/add-note-to-batch-copy"
 import { SelectedSourceLinesProvider } from "@/features/suggest-template"
 
-import type { LocalApplication } from "../composition/create-local-application"
+import { Analysis } from "../composition/analysis"
+import type { PersonalNotesDatabase } from "../composition/indexed-db/personal-notes-database"
+import { MobileBatchCopy } from "../composition/mobile-batch-copy"
+import { Note } from "../composition/note"
+import { Preference } from "../composition/preference"
+import { Template } from "../composition/template"
+import { useDatabase } from "../composition/use-database"
+import { useUsageAdapters } from "../composition/use-usage-adapters"
 import { BatchCopyProvider } from "./batch-copy-provider"
-import { useLocalApplication } from "./use-local-application"
 
-type ApplicationProvidersProps = PropsWithChildren<{
-  application: LocalApplication
+type ConnectedProvidersProps = PropsWithChildren<{
+  database: PersonalNotesDatabase
 }>
 
-function ApplicationProviders({
-  application,
+function ConnectedProviders({
   children,
-}: ApplicationProvidersProps) {
+  database,
+}: ConnectedProvidersProps) {
   const { forgetBatchCopyItem } = useNoteSessionCommands()
   const preferenceState = useInteractionPreferences()
+  const usage = useUsageAdapters(database)
   const batchCopyShortcutEnabled =
     "preferences" in preferenceState
       ? preferenceState.preferences.batchCopyShortcutEnabled
@@ -41,70 +41,47 @@ function ApplicationProviders({
       : false
 
   return (
-    <UsageReaderProvider reader={application.usage.reader}>
-      <MobileBatchCopyProvider
-        clipboard={application.notes.clipboard}
-        createId={application.batchCopy.createId}
-        now={application.batchCopy.now}
+    <UsageReaderProvider reader={usage}>
+      <MobileBatchCopy
+        database={database}
         reorderButtonsEnabled={batchCopyReorderButtonsEnabled}
-        repository={application.batchCopy.draftRepository}
-        writer={application.batchCopy.mobileWriter}
       >
         <BatchCopyProvider
-          clipboard={application.notes.clipboard}
-          createId={application.batchCopy.createId}
-          now={application.batchCopy.now}
+          database={database}
           onItemRemoved={forgetBatchCopyItem}
           reorderButtonsEnabled={batchCopyReorderButtonsEnabled}
-          repository={application.batchCopy.repository}
-          writer={application.batchCopy.writer}
         >
-          <TextAnalysisProvider
-            analyzer={application.analysis.analyzer}
-            now={application.analysis.now}
-            reader={application.notes.repository}
-          >
-            <NotesDataProvider
-              clipboard={application.notes.clipboard}
-              createId={application.notes.createId}
-              drafts={application.notes.draftRepository}
+          <Analysis database={database}>
+            <Note
               batchCopyShortcutEnabled={batchCopyShortcutEnabled}
-              now={application.notes.now}
-              repository={application.notes.repository}
-              storageMonitor={application.notes.storageMonitor}
-              usage={application.notes.usageWriter}
+              database={database}
+              usage={usage}
             >
               {children}
-            </NotesDataProvider>
-          </TextAnalysisProvider>
+            </Note>
+          </Analysis>
         </BatchCopyProvider>
-      </MobileBatchCopyProvider>
+      </MobileBatchCopy>
     </UsageReaderProvider>
   )
 }
 
+const now = () => new Date().toISOString()
+
 export function PersonalNotesProvider({ children }: PropsWithChildren) {
-  const application = useLocalApplication()
+  const database = useDatabase()
 
   return (
-    <InteractionPreferencesProvider
-      now={application.preferences.now}
-      repository={application.preferences.repository}
-    >
+    <Preference database={database}>
       <SelectedSourceLinesProvider>
-        <TemplateDataProvider
-          clipboard={application.templates.clipboard}
-          createId={application.templates.createId}
-          now={application.templates.now}
-          repository={application.templates.repository}
-        >
-          <NoteSessionProvider now={application.notes.now}>
-            <ApplicationProviders application={application}>
+        <Template database={database}>
+          <NoteSessionProvider now={now}>
+            <ConnectedProviders database={database}>
               {children}
-            </ApplicationProviders>
+            </ConnectedProviders>
           </NoteSessionProvider>
-        </TemplateDataProvider>
+        </Template>
       </SelectedSourceLinesProvider>
-    </InteractionPreferencesProvider>
+    </Preference>
   )
 }
