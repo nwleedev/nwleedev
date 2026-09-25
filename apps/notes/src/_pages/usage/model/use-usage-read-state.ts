@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 
 import { readUsage, type UsageReadState } from "./read-usage"
-import { useUsageReader } from "./usage-reader-provider"
+import { useUsageReader } from "./use-usage-reader"
 
 export function useUsageReadState() {
   const reader = useUsageReader()

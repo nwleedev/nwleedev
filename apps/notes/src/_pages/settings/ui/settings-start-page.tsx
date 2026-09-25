@@ -1,8 +1,5 @@
 "use client"
 
-import { type ChangeEvent } from "react"
-import { useForm } from "react-hook-form"
-
 import type { InteractionPreferences } from "@/entities/preference"
 
 import { Button } from "@/shared/ui/button"
@@ -11,11 +8,7 @@ import { PageHeading } from "@/shared/ui/page-heading"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
 import { useInteractionPreferences } from "../model/interaction-preferences-provider"
-
-type InteractionPreferenceFields = {
-  batchCopyReorderButtonsEnabled: boolean
-  batchCopyShortcutEnabled: boolean
-}
+import { useInteractionPreferencesForm } from "../model/use-interaction-preferences-form"
 
 type InteractionPreferencesFormProps = {
   preferences: InteractionPreferences
@@ -30,46 +23,16 @@ function InteractionPreferencesForm({
   saveBatchCopyShortcut,
   saving,
 }: InteractionPreferencesFormProps) {
-  const { getValues, register, reset } = useForm<InteractionPreferenceFields>({
-    defaultValues: {
-      batchCopyReorderButtonsEnabled:
-        preferences.batchCopyReorderButtonsEnabled,
-      batchCopyShortcutEnabled: preferences.batchCopyShortcutEnabled,
-    },
+  const {
+    changeReorderButtons,
+    changeShortcut,
+    reorderButtonsRegistration,
+    shortcutRegistration,
+  } = useInteractionPreferencesForm({
+    preferences,
+    saveBatchCopyReorderButtons,
+    saveBatchCopyShortcut,
   })
-  const reorderButtonsRegistration = register(
-    "batchCopyReorderButtonsEnabled",
-  )
-  const shortcutRegistration = register("batchCopyShortcutEnabled")
-
-  async function savePreference(
-    field: keyof InteractionPreferenceFields,
-    enabled: boolean,
-    save: (value: boolean) => Promise<boolean>,
-  ) {
-    const saved = await save(enabled)
-    const storedValue = saved ? enabled : preferences[field]
-
-    reset({ ...getValues(), [field]: storedValue })
-  }
-
-  function changeShortcut(event: ChangeEvent<HTMLInputElement>) {
-    void shortcutRegistration.onChange(event)
-    void savePreference(
-      "batchCopyShortcutEnabled",
-      event.currentTarget.checked,
-      saveBatchCopyShortcut,
-    )
-  }
-
-  function changeReorderButtons(event: ChangeEvent<HTMLInputElement>) {
-    void reorderButtonsRegistration.onChange(event)
-    void savePreference(
-      "batchCopyReorderButtonsEnabled",
-      event.currentTarget.checked,
-      saveBatchCopyReorderButtons,
-    )
-  }
 
   return (
     <div className="grid gap-5">

@@ -1,35 +1,11 @@
 "use client"
 
-import { useSyncExternalStore, type PropsWithChildren } from "react"
+import type { PropsWithChildren } from "react"
 
-import { isSupportedRuntimeAddress } from "../model/runtime-access"
-
-type RuntimeAccess = "checking" | "supported" | "unsupported"
-
-function subscribeToRuntimeAddress() {
-  return () => undefined
-}
-
-function readRuntimeAccess(): RuntimeAccess {
-  return isSupportedRuntimeAddress({
-    hostname: window.location.hostname,
-    protocol: window.location.protocol,
-    secureContext: window.isSecureContext,
-  })
-    ? "supported"
-    : "unsupported"
-}
-
-function readServerRuntimeAccess(): RuntimeAccess {
-  return "checking"
-}
+import { useRuntimeAccess } from "../model/use-runtime-access"
 
 export function RuntimeAccessGuard({ children }: PropsWithChildren) {
-  const access = useSyncExternalStore(
-    subscribeToRuntimeAddress,
-    readRuntimeAccess,
-    readServerRuntimeAccess,
-  )
+  const access = useRuntimeAccess()
 
   if (access === "supported") {
     return children

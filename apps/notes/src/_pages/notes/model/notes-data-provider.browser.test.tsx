@@ -87,7 +87,7 @@ function NotesDataProbe() {
           batchCopyShortcutEnabled={false}
           commandPressed={false}
           initialContent={
-            notesData.draftContentByNote[firstNote.id] ?? firstNote.content
+            notesData.draftContentById[firstNote.id] ?? firstNote.content
           }
           note={firstNote}
           onActivateProperties={() => undefined}

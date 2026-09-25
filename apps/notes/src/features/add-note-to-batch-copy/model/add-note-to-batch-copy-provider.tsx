@@ -1,32 +1,17 @@
 "use client"
 
+import type { PropsWithChildren } from "react"
+
 import {
-  createContext,
-  useContext,
-  type PropsWithChildren,
-} from "react"
-
-import type { Note } from "@/entities/note"
-
-import type { AddNoteToBatchCopyResult } from "./add-note-to-batch-copy"
-
-type AddNoteToBatchCopyContextValue = {
-  ready: boolean
-  add(note: Note): Promise<AddNoteToBatchCopyResult>
-}
-
-const AddNoteToBatchCopyContext =
-  createContext<AddNoteToBatchCopyContextValue | null>(null)
-
-type AddNoteToBatchCopyProviderProps = PropsWithChildren<
-  AddNoteToBatchCopyContextValue
->
+  AddNoteToBatchCopyContext,
+  type AddNoteToBatchCopyContextValue,
+} from "./use-add-note"
 
 export function AddNoteToBatchCopyProvider({
   add,
   children,
   ready,
-}: AddNoteToBatchCopyProviderProps) {
+}: PropsWithChildren<AddNoteToBatchCopyContextValue>) {
   return (
     <AddNoteToBatchCopyContext value={{ add, ready }}>
       {children}
@@ -34,14 +19,4 @@ export function AddNoteToBatchCopyProvider({
   )
 }
 
-export function useAddNoteToBatchCopy() {
-  const context = useContext(AddNoteToBatchCopyContext)
-
-  if (context === null) {
-    throw new Error(
-      "useAddNoteToBatchCopy must be used within AddNoteToBatchCopyProvider",
-    )
-  }
-
-  return context
-}
+export { useAddNoteToBatchCopy } from "./use-add-note"

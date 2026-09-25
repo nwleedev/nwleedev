@@ -6,26 +6,22 @@ import {
   createNoteGeometryDraft,
   noteGeometryDraftFields,
   type Note,
-  type NoteGeometryDraft,
-  type NoteGeometryDraftField,
   type NoteReference,
 } from "@/entities/note"
+
+import { useNotePropertiesForm } from "./use-note-properties-form"
 
 type NotePropertiesSyncOptions = {
   notes: readonly Note[]
   target: NoteReference | null
-  getFieldState(field: NoteGeometryDraftField): { isDirty: boolean }
-  getValues(): NoteGeometryDraft
-  reset(draft: NoteGeometryDraft): void
 }
 
 export function useNotePropertiesSync({
-  getFieldState,
-  getValues,
   notes,
-  reset,
   target,
 }: NotePropertiesSyncOptions) {
+  const { getFieldState, getValues, reset } = useNotePropertiesForm()
+
   useEffect(() => {
     if (target === null) {
       return

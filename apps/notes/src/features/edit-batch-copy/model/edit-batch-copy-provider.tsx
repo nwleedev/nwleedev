@@ -1,50 +1,11 @@
 "use client"
 
+import type { PropsWithChildren } from "react"
+
 import {
-  createContext,
-  useContext,
-  type PropsWithChildren,
-} from "react"
-
-import type {
-  BatchCopyItem,
-  BatchCopyList,
-} from "@/entities/batch-copy"
-
-import type { CopyBatchTextResult } from "./copy-batch-text"
-import type { EditBatchCopyResult } from "./edit-batch-copy"
-
-type ReadyBatchCopyContext = {
-  items: readonly BatchCopyItem[]
-  list: BatchCopyList
-  separator: string
-  status: "ready"
-}
-
-type UnavailableBatchCopyContext = {
-  status: "failure" | "loading"
-}
-
-type BatchCopyCommands = {
-  canRedo: boolean
-  canUndo: boolean
-  pending: boolean
-  reorderButtonsEnabled: boolean
-  copyAll(): Promise<CopyBatchTextResult>
-  duplicateItem(itemId: string): Promise<EditBatchCopyResult>
-  moveItem(itemId: string, index: number): Promise<EditBatchCopyResult>
-  redo(): Promise<EditBatchCopyResult>
-  removeItem(itemId: string): Promise<EditBatchCopyResult>
-  retry(): void
-  undo(): Promise<EditBatchCopyResult>
-}
-
-export type EditBatchCopyContextValue =
-  | (ReadyBatchCopyContext & BatchCopyCommands)
-  | (UnavailableBatchCopyContext & BatchCopyCommands)
-
-const EditBatchCopyContext =
-  createContext<EditBatchCopyContextValue | null>(null)
+  EditBatchCopyContext,
+  type EditBatchCopyContextValue,
+} from "./use-editor"
 
 type EditBatchCopyProviderProps = PropsWithChildren<{
   value: EditBatchCopyContextValue
@@ -61,14 +22,5 @@ export function EditBatchCopyProvider({
   )
 }
 
-export function useBatchCopyEditor() {
-  const context = useContext(EditBatchCopyContext)
-
-  if (context === null) {
-    throw new Error(
-      "useBatchCopyEditor must be used within EditBatchCopyProvider",
-    )
-  }
-
-  return context
-}
+export { useBatchCopyEditor } from "./use-editor"
+export type { EditBatchCopyContextValue } from "./use-editor"

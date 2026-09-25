@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { suggestTemplate } from "./suggest-template"
+import { suggestTemplate } from "./suggestion"
 
 describe("suggestTemplate", () => {
   it("preserves common text and creates a placeholder for every separated difference", () => {

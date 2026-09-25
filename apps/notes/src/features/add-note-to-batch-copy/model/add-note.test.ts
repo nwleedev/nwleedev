@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import type { BatchCopyItem } from "@/entities/batch-copy"
 import type { Note } from "@/entities/note"
 
-import { addNoteToBatchCopy } from "./add-note-to-batch-copy"
+import { addNoteToBatchCopy } from "./add-note"
 import type { BatchCopyItemWriter } from "./batch-copy-item-writer"
 
 const note: Note = {

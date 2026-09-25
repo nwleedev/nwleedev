@@ -4,7 +4,7 @@ import type { BatchCopyItem } from "@/entities/batch-copy"
 import { Button } from "@/shared/ui/button"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
-import type { EditBatchCopyResult } from "../model/edit-batch-copy"
+import type { EditBatchCopyResult } from "../model/save-changes"
 import { useBatchCopyEditing } from "../model/use-batch-copy-editing"
 import { BatchCopyList } from "./batch-copy-list"
 

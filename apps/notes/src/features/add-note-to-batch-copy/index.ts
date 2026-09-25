@@ -13,7 +13,7 @@ export {
 export {
   addNoteToBatchCopy,
   type AddNoteToBatchCopyResult,
-} from "./model/add-note-to-batch-copy"
+} from "./model/add-note"
 export {
   copyMobileBatchText,
   type CopyMobileBatchTextResult,

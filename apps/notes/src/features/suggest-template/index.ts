@@ -7,4 +7,4 @@ export {
 export {
   suggestTemplate,
   type TemplateSuggestion,
-} from "./model/suggest-template"
+} from "./model/suggestion"

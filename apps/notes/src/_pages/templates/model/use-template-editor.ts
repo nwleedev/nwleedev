@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch, type Control } from "react-hook-form"
 
 import {
   findPlaceholderLabelIssues,
@@ -71,6 +71,20 @@ export function draftWithFields(
     })),
     sourceText: fields.sourceText,
   }
+}
+
+export function useTemplateDraftPreview(
+  draft: TemplateDraft,
+  control: Control<TemplateSaveFields>,
+) {
+  const labels = useWatch({ control, name: "labels" })
+  const previewDraft = draftWithFields(draft, {
+    labels,
+    sourceText: draft.sourceText,
+    title: "",
+  })
+
+  return toTemplateSegments(previewDraft)
 }
 
 type UseTemplateEditorOptions = {

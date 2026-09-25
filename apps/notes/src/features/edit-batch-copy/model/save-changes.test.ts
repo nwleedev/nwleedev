@@ -11,7 +11,7 @@ import {
 import {
   redoBatchCopyItemRemoval,
   removeBatchCopyItem,
-} from "./edit-batch-copy"
+} from "./save-changes"
 
 const firstItem = {
   addedAt: "2026-09-02T03:00:00.000Z",

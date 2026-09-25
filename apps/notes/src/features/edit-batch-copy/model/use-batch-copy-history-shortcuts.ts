@@ -2,7 +2,7 @@
 
 import { useEffect, useEffectEvent } from "react"
 
-import type { EditBatchCopyResult } from "./edit-batch-copy"
+import type { EditBatchCopyResult } from "./save-changes"
 
 type BatchCopyHistoryShortcuts = {
   canRedo: boolean

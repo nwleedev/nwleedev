@@ -1,4 +1,4 @@
-import type { EditBatchCopyResult } from "../model/edit-batch-copy"
+import type { EditBatchCopyResult } from "../model/save-changes"
 import { useBatchCopyHistoryShortcuts } from "../model/use-batch-copy-history-shortcuts"
 
 type BatchCopyHistoryShortcutsProps = {

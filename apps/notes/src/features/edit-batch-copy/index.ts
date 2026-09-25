@@ -15,7 +15,7 @@ export {
   undoBatchCopyItemRemoval,
   type EditBatchCopyExecution,
   type EditBatchCopyResult,
-} from "./model/edit-batch-copy"
+} from "./model/save-changes"
 export { BatchCopyEditingView } from "./ui/batch-copy-editing-view"
 export { BatchCopyActionSheet } from "./ui/batch-copy-action-sheet"
 export { createBatchCopyItemActions } from "./model/batch-copy-item-actions"

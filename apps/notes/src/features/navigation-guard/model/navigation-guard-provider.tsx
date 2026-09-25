@@ -1,50 +1,14 @@
 "use client"
 
+import type { PropsWithChildren } from "react"
+
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  type PropsWithChildren,
-} from "react"
+  NavigationGuardContext,
+  useNavigationGuardState,
+} from "./use-guard"
 
-export type NavigationContinuation = () => void
-export type NavigationGuard = (
-  continueNavigation: NavigationContinuation,
-) => boolean
-
-type NavigationGuardContextValue = {
-  registerNavigationGuard(guard: NavigationGuard): () => void
-  requestNavigation(continueNavigation: NavigationContinuation): boolean
-}
-
-const NavigationGuardContext =
-  createContext<NavigationGuardContextValue | null>(null)
-
-export function NavigationGuardProvider({
-  children,
-}: PropsWithChildren) {
-  const guardReference = useRef<NavigationGuard | null>(null)
-
-  const registerNavigationGuard = useCallback((guard: NavigationGuard) => {
-    guardReference.current = guard
-
-    return () => {
-      if (guardReference.current === guard) {
-        guardReference.current = null
-      }
-    }
-  }, [])
-
-  const requestNavigation = useCallback((
-    continueNavigation: NavigationContinuation,
-  ) => guardReference.current?.(continueNavigation) ?? false, [])
-
-  const value = useMemo(
-    () => ({ registerNavigationGuard, requestNavigation }),
-    [registerNavigationGuard, requestNavigation],
-  )
+export function NavigationGuardProvider({ children }: PropsWithChildren) {
+  const value = useNavigationGuardState()
 
   return (
     <NavigationGuardContext value={value}>
@@ -53,14 +17,8 @@ export function NavigationGuardProvider({
   )
 }
 
-export function useNavigationGuard() {
-  const context = useContext(NavigationGuardContext)
-
-  if (context === null) {
-    throw new Error(
-      "useNavigationGuard must be used within NavigationGuardProvider",
-    )
-  }
-
-  return context
-}
+export { useNavigationGuard } from "./use-guard"
+export type {
+  NavigationContinuation,
+  NavigationGuard,
+} from "./use-guard"

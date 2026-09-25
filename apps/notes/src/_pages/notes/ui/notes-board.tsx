@@ -10,7 +10,7 @@ import { NotesBoardControls } from "./notes-board-controls"
 type NotesBoardProps = {
   batchCopyShortcutEnabled: boolean
   commandPressed: boolean
-  draftContentByNote: Readonly<Record<string, string>>
+  draftContentById: Readonly<Record<string, string>>
   focusedNoteId: string | null
   notes: readonly Note[]
   propertiesNoteId: string | null
@@ -34,7 +34,7 @@ type NotesBoardProps = {
 export function NotesBoard({
   batchCopyShortcutEnabled,
   commandPressed,
-  draftContentByNote,
+  draftContentById,
   focusedNoteId,
   notes,
   onActivateProperties,
@@ -95,7 +95,7 @@ export function NotesBoard({
             <NoteCard
               batchCopyShortcutEnabled={batchCopyShortcutEnabled}
               commandPressed={commandPressed}
-              initialContent={draftContentByNote[note.id] ?? note.content}
+              initialContent={draftContentById[note.id] ?? note.content}
               key={note.id}
               note={note}
               onActivateProperties={onActivateProperties}

@@ -231,7 +231,7 @@ export function NoteDetailPage({ noteId }: NoteDetailPageProps) {
     )
   }
 
-  const initialContent = notesData.draftContentByNote[note.id] ?? note.content
+  const initialContent = notesData.draftContentById[note.id] ?? note.content
 
   return (
     <ReadyNoteDetail

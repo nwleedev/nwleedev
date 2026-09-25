@@ -12,9 +12,10 @@ import { clipboardWriteFailureMessage } from "@/shared/lib/clipboard"
 import { Button } from "@/shared/ui/button"
 
 import type { CopyNoteResult } from "../model/copy-note"
-import type { SaveNoteContentResult } from "../model/save-note-content"
 import { useNoteSession } from "../model/note-session-provider"
 import { useNotePropertiesForm } from "../model/note-properties-form-provider"
+import { useNotesData } from "../model/notes-data-provider"
+import { useBatchCopyWorkspace } from "../model/use-batch-copy-workspace"
 import { useNotePropertiesSync } from "../model/use-note-properties-sync"
 import {
   focusNote,
@@ -23,23 +24,11 @@ import {
 import { useNoteWorkspaceLayout } from "../model/use-note-workspace-layout"
 import { MobileNotesWorkspace } from "./mobile-notes-workspace"
 import { NotesBoard } from "./notes-board"
-import { useBatchCopyWorkspace } from "./batch-copy-workspace"
 
 type NotesCollectionProps = {
   batchCopyShortcutEnabled: boolean
-  draftContentByNote: Readonly<Record<string, string>>
+  draftContentById: Readonly<Record<string, string>>
   notes: readonly Note[]
-  copyNote(note: Note): Promise<CopyNoteResult>
-  createNote(): Promise<Note>
-  moveNoteToBack(noteId: string): Promise<readonly Note[]>
-  moveNoteToFront(noteId: string): Promise<readonly Note[]>
-  removeNote(note: Note): Promise<Note>
-  restoreNote(note: Note): Promise<Note>
-  saveContent(noteId: string, content: string): Promise<SaveNoteContentResult>
-  updateNote(
-    note: Note,
-    change: { content?: string; geometry?: NoteGeometry },
-  ): Promise<Note>
 }
 
 function byTabIndex(left: Note, right: Note) {
@@ -48,21 +37,22 @@ function byTabIndex(left: Note, right: Note) {
 
 export function NotesCollection({
   batchCopyShortcutEnabled,
-  copyNote,
-  createNote,
-  draftContentByNote,
-  moveNoteToBack,
-  moveNoteToFront,
+  draftContentById,
   notes,
-  removeNote,
-  restoreNote,
-  saveContent,
-  updateNote,
 }: NotesCollectionProps) {
+  const {
+    copyNote,
+    createNote,
+    moveNoteToBack,
+    moveNoteToFront,
+    removeNote,
+    restoreNote,
+    saveContent,
+    updateNote,
+  } = useNotesData()
   const session = useNoteSession()
   const {
     getFieldState: getNotePropertyFieldState,
-    getValues: getNotePropertyValues,
     reset: resetNoteProperties,
   } = useNotePropertiesForm()
   const batchCopy = useAddNoteToBatchCopy()
@@ -101,10 +91,7 @@ export function NotesCollection({
   const propertiesNoteId = workspace.propertiesTarget?.id ?? null
 
   useNotePropertiesSync({
-    getFieldState: getNotePropertyFieldState,
-    getValues: getNotePropertyValues,
     notes,
-    reset: resetNoteProperties,
     target: workspace.propertiesTarget,
   })
 
@@ -217,11 +204,9 @@ export function NotesCollection({
     const focusTarget = nextNote ?? previousNote ?? null
 
     const removedNote = await removeNote(note)
-    const removedAt = new Date().toISOString()
-    const removal = { note: removedNote, removedAt }
     const previousRemovals = session.removals
 
-    rememberRemoval(removedNote, removedAt)
+    const removal = rememberRemoval(removedNote)
     forgetNoteInSession(removedNote.id)
     showRemovalNotice(removal, previousRemovals)
 
@@ -301,7 +286,7 @@ export function NotesCollection({
           <NotesBoard
             batchCopyShortcutEnabled={batchCopyShortcutEnabled}
             commandPressed={commandPressed}
-            draftContentByNote={draftContentByNote}
+            draftContentById={draftContentById}
             focusedNoteId={linkedNoteId}
             notes={orderedNotes}
             onActivateProperties={activateProperties}

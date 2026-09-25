@@ -1,33 +1,14 @@
 "use client"
 
+import type { PropsWithChildren } from "react"
+
 import {
-  createContext,
-  useContext,
-  type PropsWithChildren,
-} from "react"
-import {
-  useForm,
-  type UseFormReturn,
-} from "react-hook-form"
-
-import type { NoteGeometryDraft } from "@/entities/note"
-
-type NotePropertiesForm = UseFormReturn<NoteGeometryDraft>
-
-const NotePropertiesFormContext =
-  createContext<NotePropertiesForm | null>(null)
-
-const emptyGeometryDraft: NoteGeometryDraft = {
-  height: "",
-  width: "",
-  x: "",
-  y: "",
-}
+  NotePropertiesFormContext,
+  useNotePropertiesFormModel,
+} from "./use-note-properties-form"
 
 export function NotePropertiesFormProvider({ children }: PropsWithChildren) {
-  const form = useForm<NoteGeometryDraft>({
-    defaultValues: emptyGeometryDraft,
-  })
+  const form = useNotePropertiesFormModel()
 
   return (
     <NotePropertiesFormContext value={form}>
@@ -36,14 +17,4 @@ export function NotePropertiesFormProvider({ children }: PropsWithChildren) {
   )
 }
 
-export function useNotePropertiesForm() {
-  const form = useContext(NotePropertiesFormContext)
-
-  if (form === null) {
-    throw new Error(
-      "useNotePropertiesForm must be used within NotePropertiesFormProvider",
-    )
-  }
-
-  return form
-}
+export { useNotePropertiesForm } from "./use-note-properties-form"

@@ -1,8 +1,10 @@
 "use client"
 
-import { useId, type ComponentPropsWithRef } from "react"
+import type { ComponentPropsWithRef } from "react"
 
 import { joinClassNames } from "@/shared/lib/join-class-names"
+
+import { useCheckboxId } from "./use-id"
 
 type CheckboxProps = Omit<
   ComponentPropsWithRef<"input">,
@@ -19,9 +21,7 @@ export function Checkbox({
   label,
   ...props
 }: CheckboxProps) {
-  const generatedId = useId()
-  const inputId = id ?? generatedId
-  const descriptionId = description ? `${inputId}-description` : undefined
+  const { descriptionId, inputId } = useCheckboxId(id, description)
   const labelClassName = joinClassNames(
     "grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-x-3",
     disabled ? "cursor-not-allowed" : "cursor-pointer",

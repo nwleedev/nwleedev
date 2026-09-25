@@ -4,7 +4,7 @@ import { startTransition, useOptimistic, useState } from "react"
 
 import type { BatchCopyItem } from "@/entities/batch-copy"
 
-import type { EditBatchCopyResult } from "./edit-batch-copy"
+import type { EditBatchCopyResult } from "./save-changes"
 
 type OptimisticChange =
   | { itemId: string; kind: "remove" }

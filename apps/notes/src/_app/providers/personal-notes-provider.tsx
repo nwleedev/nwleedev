@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, type PropsWithChildren } from "react"
+import type { PropsWithChildren } from "react"
 
 import { TextAnalysisProvider } from "@/_pages/analysis/composition"
 import {
@@ -17,11 +17,9 @@ import { TemplateDataProvider } from "@/_pages/templates/composition"
 import { MobileBatchCopyProvider } from "@/features/add-note-to-batch-copy"
 import { SelectedSourceLinesProvider } from "@/features/suggest-template"
 
-import {
-  createLocalApplication,
-  type LocalApplication,
-} from "../composition/create-local-application"
+import type { LocalApplication } from "../composition/create-local-application"
 import { BatchCopyProvider } from "./batch-copy-provider"
+import { useLocalApplication } from "./use-local-application"
 
 type ApplicationProvidersProps = PropsWithChildren<{
   application: LocalApplication
@@ -86,11 +84,7 @@ function ApplicationProviders({
 }
 
 export function PersonalNotesProvider({ children }: PropsWithChildren) {
-  const [application] = useState(createLocalApplication)
-
-  useEffect(() => {
-    return () => application.dispose()
-  }, [application])
+  const application = useLocalApplication()
 
   return (
     <InteractionPreferencesProvider
@@ -104,7 +98,7 @@ export function PersonalNotesProvider({ children }: PropsWithChildren) {
           now={application.templates.now}
           repository={application.templates.repository}
         >
-          <NoteSessionProvider>
+          <NoteSessionProvider now={application.notes.now}>
             <ApplicationProviders application={application}>
               {children}
             </ApplicationProviders>

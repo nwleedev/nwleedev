@@ -33,16 +33,8 @@ export function NotesStartPage() {
         </p>
         <NotesCollection
           batchCopyShortcutEnabled={notesData.batchCopyShortcutEnabled}
-          copyNote={notesData.copyNote}
-          createNote={notesData.createNote}
-          draftContentByNote={notesData.draftContentByNote}
-          moveNoteToBack={notesData.moveNoteToBack}
-          moveNoteToFront={notesData.moveNoteToFront}
+          draftContentById={notesData.draftContentById}
           notes={notes}
-          removeNote={notesData.removeNote}
-          restoreNote={notesData.restoreNote}
-          saveContent={notesData.saveContent}
-          updateNote={notesData.updateNote}
         />
       </BatchCopyWorkspace>
     )

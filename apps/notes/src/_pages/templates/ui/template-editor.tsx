@@ -1,21 +1,15 @@
 "use client"
 
-import {
-  useWatch,
-  type Control,
-} from "react-hook-form"
+import type { Control } from "react-hook-form"
 
-import {
-  toTemplateSegments,
-  type TemplateDraft,
-} from "@/entities/template"
+import type { TemplateDraft } from "@/entities/template"
 import { Button } from "@/shared/ui/button"
 import { StatusNotice } from "@/shared/ui/status-notice"
 import { TextField } from "@/shared/ui/text-field"
 import { Textarea } from "@/shared/ui/textarea"
 
 import {
-  draftWithFields,
+  useTemplateDraftPreview,
   useTemplateEditor,
   type TemplateSaveFields,
 } from "../model/use-template-editor"
@@ -31,13 +25,7 @@ function TemplateDraftPreview({
   control,
   draft,
 }: TemplateDraftPreviewProps) {
-  const labels = useWatch({ control, name: "labels" })
-  const previewDraft = draftWithFields(draft, {
-    labels,
-    sourceText: draft.sourceText,
-    title: "",
-  })
-  const segments = toTemplateSegments(previewDraft)
+  const segments = useTemplateDraftPreview(draft, control)
 
   return <TemplateSegmentPreview segments={segments} />
 }

@@ -1,95 +1,29 @@
 "use client"
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type PropsWithChildren,
-  type KeyboardEvent as ReactKeyboardEvent,
-  type RefObject,
-  type SyntheticEvent,
-} from "react"
+import type { PropsWithChildren, RefObject } from "react"
 
 import type { BatchCopyItem } from "@/entities/batch-copy"
 import {
   BatchCopyEditingView,
   BatchCopyHistoryShortcuts,
   CopyBatchTextAction,
-  useBatchCopyEditor,
   type CopyBatchTextResult,
   type EditBatchCopyResult,
 } from "@/features/edit-batch-copy"
-import { clipboardWriteFailureMessage } from "@/shared/lib/clipboard"
 import { joinClassNames } from "@/shared/lib/join-class-names"
 import { ActionToast } from "@/shared/ui/action-toast"
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
 import { CloseIcon } from "@/shared/ui/icons"
 
-import { useNoteSession } from "../model/note-session-provider"
 import { NotePropertiesFormProvider } from "../model/note-properties-form-provider"
-import type { WorkspaceNoticeInput } from "../model/workspace-notice"
+import {
+  BatchCopyWorkspaceContext,
+  INLINE_PANEL_ID,
+  MODAL_PANEL_ID,
+  useBatchCopyWorkspaceState,
+} from "../model/use-batch-copy-workspace"
 import { NotePropertiesPanel } from "./note-properties-panel"
-
-const INLINE_PANEL_THRESHOLD_REM = 72
-const INLINE_PANEL_ID = "workspace-side-panel"
-const MODAL_PANEL_ID = "workspace-dialog"
-
-type BatchCopyWorkspaceContextValue = {
-  revealNewBatchCopyItem(): void
-  dismissNotice(): void
-  showNotice(notice: WorkspaceNoticeInput): void
-}
-
-const BatchCopyWorkspaceContext =
-  createContext<BatchCopyWorkspaceContextValue | null>(null)
-
-export function useBatchCopyWorkspace() {
-  const context = useContext(BatchCopyWorkspaceContext)
-
-  if (context === null) {
-    throw new Error(
-      "useBatchCopyWorkspace must be used within BatchCopyWorkspace",
-    )
-  }
-
-  return context
-}
-
-function canUseInlinePanel(element: HTMLElement | null) {
-  if (element === null) {
-    return false
-  }
-
-  const rootFontSize = Number.parseFloat(
-    getComputedStyle(document.documentElement).fontSize,
-  )
-
-  return element.clientWidth >= INLINE_PANEL_THRESHOLD_REM * rootFontSize
-}
-
-function useInlinePanel(container: RefObject<HTMLElement | null>) {
-  const [inline, setInline] = useState(false)
-
-  useEffect(() => {
-    const element = container.current
-
-    if (element === null || typeof ResizeObserver === "undefined") {
-      return
-    }
-
-    const observer = new ResizeObserver(() => {
-      setInline(canUseInlinePanel(element))
-    })
-    observer.observe(element)
-
-    return () => observer.disconnect()
-  }, [container])
-
-  return inline
-}
 
 type BatchCopyPanelContentProps = {
   headingId: string
@@ -216,28 +150,28 @@ function BatchCopyPanelContent({
 }
 
 function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
-  const batchCopy = useBatchCopyEditor()
-  const session = useNoteSession()
-  const batchCopyItems = batchCopy.status === "ready" ? batchCopy.items : []
-  const batchCopyCount = batchCopyItems.length
-  const batchCopyCountText = `${batchCopyCount.toLocaleString("ko-KR")}개`
-  const notice = session.workspaceNotice
-  const container = useRef<HTMLElement>(null)
-  const dialog = useRef<HTMLDialogElement>(null)
-  const dialogHeading = useRef<HTMLHeadingElement>(null)
-  const trigger = useRef<HTMLButtonElement>(null)
-  const switchingToInline = useRef(false)
-  const inline = useInlinePanel(container)
-  const activePanel = session.workspace.activePanel
-  const selectedBatchCopyItemId =
-    session.workspace.selectedBatchCopyItemId
-  const batchCopyItemSelected = selectedBatchCopyItemId !== null
-  const noteSelected = session.workspace.selectedNoteId !== null
-  const workspaceSelectionActive = batchCopyItemSelected || noteSelected
-  const open = activePanel !== null
-  const batchCopyActive = activePanel === "batch-copy"
-  const propertiesActive = activePanel === "note-properties"
-  const showInlinePanel = open && inline
+  const {
+    batchCopy,
+    batchCopyActive,
+    batchCopyCountText,
+    batchCopyItems,
+    container,
+    controlledPanelId,
+    dialog,
+    dialogHeading,
+    handleDialogCancel,
+    handleDialogClose,
+    handleDialogKeyDown,
+    notice,
+    propertiesActive,
+    selectedBatchCopyItemId,
+    session,
+    showCopyResult,
+    showInlinePanel,
+    toggleBatchCopyPanel,
+    trigger,
+    workspaceContext,
+  } = useBatchCopyWorkspaceState()
   const workspaceLayoutClassName = joinClassNames(
     "h-full min-h-0",
     showInlinePanel ? "grid grid-cols-[minmax(0,1fr)_22rem]" : "block",
@@ -254,117 +188,9 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
     "absolute top-3 z-40 w-[min(24rem,calc(100%-1.5rem))]",
     showInlinePanel ? "right-[22.75rem]" : "right-3",
   )
-  let controlledPanelId: string | undefined = MODAL_PANEL_ID
-
-  function showCopyResult(result: CopyBatchTextResult) {
-    if (result.status === "copied") {
-      session.showWorkspaceNotice({ message: "복사했습니다." })
-      return
-    }
-
-    session.showWorkspaceNotice({
-      actionLabel: "다시 시도",
-      kind: "error",
-      message: clipboardWriteFailureMessage(result.reason),
-      onAction: retryCopyWithoutWaiting,
-    })
-  }
-
-  if (inline) {
-    controlledPanelId = showInlinePanel ? INLINE_PANEL_ID : undefined
-  }
-
-  useEffect(() => {
-    const element = dialog.current
-
-    if (element === null) {
-      return
-    }
-
-    if (open && !inline && !element.open) {
-      element.showModal()
-
-      if (batchCopyActive) {
-        dialogHeading.current?.focus()
-      }
-
-      return
-    }
-
-    if (element.open && (!open || inline)) {
-      switchingToInline.current = open && inline
-      element.close()
-    }
-  }, [batchCopyActive, inline, open])
-
-  function toggleBatchCopyPanel() {
-    if (batchCopyActive) {
-      session.closePanel()
-      return
-    }
-
-    session.activateBatchCopy()
-  }
-
-  function revealNewBatchCopyItem() {
-    if (inline) {
-      session.activateBatchCopy()
-    }
-  }
-
-  async function retryCopy() {
-    try {
-      showCopyResult(await batchCopy.copyAll())
-    } catch {
-      showCopyResult({
-        reason: "write-failed",
-        status: "clipboard-failure",
-      })
-    }
-  }
-
-  function retryCopyWithoutWaiting() {
-    void retryCopy()
-  }
-
-  function handleDialogClose() {
-    if (switchingToInline.current) {
-      switchingToInline.current = false
-      return
-    }
-
-    session.closePanel()
-
-    if (batchCopyActive) {
-      trigger.current?.focus()
-    }
-  }
-
-  function handleDialogKeyDown(
-    event: ReactKeyboardEvent<HTMLDialogElement>,
-  ) {
-    if (event.key === "Escape") {
-      event.stopPropagation()
-    }
-  }
-
-  function handleDialogCancel(event: SyntheticEvent<HTMLDialogElement>) {
-    if (!workspaceSelectionActive) {
-      return
-    }
-
-    event.preventDefault()
-    session.clearSelections()
-  }
 
   return (
-    <BatchCopyWorkspaceContext
-      value={{
-        dismissNotice: session.dismissWorkspaceNotice,
-        revealNewBatchCopyItem,
-        showNotice: session.showWorkspaceNotice,
-      }}
-    >
+    <BatchCopyWorkspaceContext value={workspaceContext}>
       <main
         className="@container/notes-workspace relative h-full min-h-0 overflow-clip"
         id="main-content"
