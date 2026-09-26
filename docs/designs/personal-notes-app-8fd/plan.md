@@ -948,6 +948,7 @@ U11에서는 X와 Y의 음수, 0, 4096 바깥을 각각 이동 및 속성 입력
 - [좁은 화면 메모 표현 결정](decisions/responsive-note-presentation.md)
 - [모바일 메모 목록 높이와 새 메모 제어 조사](references/mobile-note-list-sizing-and-action-overlay.md)
 - [메모 화면 상태와 전체 목록 렌더링 조사](references/notes-screen-state-and-list-loading-research.md)
+- [모바일 일괄 복사 전환과 의존성 전달 조사](references/mobile-batch-copy-transition-and-dependency-research.md)
 
 사용자에게 필요한 결과와 제외 범위는 `requirements.md`에서 관리한다. 상호작용, 자료 수명과 검증 방식의 선택은 `decisions/`에 기록한다. 각 작업 단위는 관찰 가능한 결과를 남긴다. 자동 검사로 결정할 수 없는 읽기 흐름, 조작 가능성과 상태 표현은 시각 및 접근성 검토 기록으로 판정한다. 문서, 계획, 코드와 커밋 문구에는 요구사항에서 행동 주체를 직접 밝힌 경우에만 인칭 표현을 사용하고, 출처가 없는 가상 역할을 요청이나 승인 근거처럼 만들지 않는다.
 
@@ -988,7 +989,7 @@ U11에서는 X와 Y의 음수, 0, 4096 바깥을 각각 이동 및 속성 입력
 - 수정: `apps/notes/src/features/add-note-to-batch-copy/model/mobile-batch-copy-provider.tsx`, `apps/notes/src/features/add-note-to-batch-copy/model/mobile-batch-copy-session.ts`, `apps/notes/src/_pages/notes/ui/mobile-notes-workspace.tsx`, `apps/notes/src/_pages/batch-copy/model/use-mobile-batch-copy-confirmation.ts`, `apps/notes/src/_pages/batch-copy/model/use-batch-copy-page.ts`와 `apps/notes/src/_pages/batch-copy/ui/batch-copy-start-page.tsx`에서 저장 초안, 화면 전환과 브라우저 기록을 함께 확인한다. `useBatchCopyPage`는 확인 화면과 메모 화면으로 복귀하는 두 상태의 페이지 전환을 소유하고, 복귀 중에는 확인 초안의 기존 참조를 유지한다. 확인 화면은 복귀 시작 callback 하나만 직접 받는다. 초안의 `confirming`에서 `collecting` 저장이 끝나도 URL 전환 전까지 확인 화면을 유지한다. `/batch-copy`에서 복귀 중이 아닌 `collecting` 초안이 감지되면 저장 목록 관리 기본 화면을 표시하지 않고 메모 화면으로 경로를 정리한다. 저장 실패에서는 확인 화면 및 항목을 유지하고 재시도할 수 있어야 한다. 전환 상태는 IndexedDB 초안에 추가하지 않고 자료 배열을 복제하지 않는다. 중간 컴포넌트 전달이나 새 Context를 만들지 않는다.
 - 수정: `apps/notes/src/_pages/batch-copy/ui/batch-copy-start-page.tsx`와 `apps/notes/src/features/edit-batch-copy/ui/batch-copy-list.tsx`에서 저장 목록 관리 화면을 현재 디자인 규칙에 맞춘다. 한 줄 작업 헤더와 주요 동작, 평면 구성, 간격 및 중립색 토큰을 사용한다. 페이지 전체를 카드로 감싸지 않는다. 각각 이동 및 조작 대상인 항목 표면은 유지하되 바깥 장식 프레임과 같은 정보 묶음을 중복해서 나누는 선은 두지 않는다. `presentation="panel"`의 캔버스 보조 패널 표현은 유지하고 관리 화면 표현만 바꾼다. 확인 작업의 작업 사본과 저장 관리 목록의 데이터 수명은 섞지 않는다.
 - 제거: `apps/notes/src/_pages/batch-copy/ui/batch-copy-start-page.tsx`에서 `BatchCopyManagementProps`, `BatchCopyManagement` 중간 전달 컴포넌트와 `{...props}` 전달을 제거하고 `BatchCopyPageContent`가 이미 가진 값과 기존 관리 훅을 명시적으로 조합한다. `BatchCopyEditingView` 자체에 필요한 목록 및 동작 입력은 명시적 Props로 유지한다. 일반 저장 목록 관리 화면, 기존 관리 기능과 모바일 확인 화면은 제거하지 않는다.
-- 수정: 메모 초안 전체 조회가 첫 화면을 늦추는 것으로 측정된 경우에만 `apps/notes/src/_pages/notes/model/notes-data-provider.tsx`, `apps/notes/src/entities/note/api/indexed-db-note-draft-repository.ts`를 바꾸고 `apps/notes/src/_pages/notes/model/use-note-detail-read.ts`를 추가해 모바일 상세 메모의 초안만 읽는다. 데스크톱 복구 동작은 그대로 유지한다. 화면 밖 카드 layout 비용은 `apps/notes/src/_pages/notes/ui/mobile-note-list.tsx`에서 CSS로 먼저 줄이고, 측정 뒤에도 React mount나 DOM 수가 주요 병목일 때만 목록 UI를 가상화한다.
+- 수정: 메모 초안 전체 조회가 첫 화면을 늦추는 것으로 측정된 경우에만 `apps/notes/src/_pages/notes/model/notes-data-provider.tsx`, `apps/notes/src/entities/note/api/indexed-db-note-draft-repository.ts`를 바꾸고 `apps/notes/src/_pages/notes/model/use-note-detail-read.ts`를 추가해 모바일 상세 메모의 초안만 읽는다. 데스크톱 복구 동작은 그대로 유지한다. 화면 밖 카드 layout 비용은 모바일 목록을 소유하는 컴포넌트에서 CSS로 먼저 줄이고, 측정 뒤에도 React mount나 DOM 수가 주요 병목일 때만 목록 UI를 가상화한다. U37에서 `mobile-note-list.tsx`를 제거하면 측정과 CSS 적용 위치는 `mobile-notes-workspace.tsx`의 목록 컨테이너로 옮긴다.
 - 수정: `apps/notes/src/_app/ui/runtime-access-guard.tsx`에서 허용된 주소의 진행 문구를 숨기되 주소 판정과 허용하지 않은 주소의 차단 및 안내를 보존한다. `apps/notes/src/_pages/usage/ui/usage-table.tsx`, `apps/notes/src/_pages/usage/ui/usage-start-page.tsx`, `apps/notes/src/_pages/analysis/ui/analysis-results.tsx`, `apps/notes/src/_pages/templates/ui/saved-templates.tsx`, `apps/notes/src/_pages/templates/ui/template-editor.tsx`, `apps/notes/src/_pages/templates/ui/template-input-form.tsx`, `apps/notes/src/_pages/templates/ui/template-authoring.tsx`와 `apps/notes/src/_pages/settings/ui/settings-start-page.tsx`의 구분선을 화면별로 확인하고 실제로 중복되는 선만 줄인다.
 - 제거: `notes-collection.tsx`에서 캔버스 높이를 차지하는 데스크톱 상단 새 메모 행과 지원 주소 판정만을 위해 표시하는 `접속 주소 확인 중` 사용자 화면을 제거한다. 저장 자료 삭제, 테스트 삭제, 기존 사용자 동작 또는 전체 메모 조회를 제거하지 않는다. 현행 main 소스에는 저장소 페이지네이션 코드가 확인되지 않았으므로 제거 대상 페이지네이션 구현은 없다.
 - 테스트 변경: 기존 `apps/notes/e2e/notes.spec.ts`, `apps/notes/e2e/batch-copy.spec.ts`, `apps/notes/e2e/touch-interactions.spec.ts`, `apps/notes/e2e/mobile-navigation.spec.ts` 과업에서 데스크톱 캔버스 전체 크기와 버튼 동작, 모바일 새로고침과 이어가기, 확인 화면의 화면 내 뒤로가기 및 브라우저 뒤로가기, 전체 메모 복사 접근, 보조 화면의 정보 구분을 사용자가 관찰하는 값으로 확인한다. `batch-copy.spec.ts`에는 확인에서 복귀할 때 일반 관리 화면 헤더나 본문이 노출되지 않는지와 저장 목록 관리의 Drawer 진입, 항목 편집, 취소 보존 및 전체 복사를 확인한다. 사용자 검증이 부족한 경우에만 기존 과업 검사를 보강하며 별도 테스트 suite를 내부 구현 확인 용도로 만들지 않는다. UI 구현 세부, React hook, Provider 값, 내부 호출 수와 고정 DOM 경로를 검사하지 않는다. 측정 수치의 임의 합격선을 만들지 않는다.
@@ -1035,6 +1036,126 @@ U11에서는 X와 Y의 음수, 0, 4096 바깥을 각각 이동 및 속성 입력
 - [x] 절차 7: 주소 확인 중에는 진행 문구 없이 동일한 빈 main shell을 서버와 첫 브라우저 렌더에 사용한다. HTTPS와 localhost HTTP에서는 메모 화면이 열리고, 그 밖의 주소 안내와 provider 차단은 유지된다. 첫 화면 hydration 및 주소 안내 Chromium 과업 두 건, 운영 빌드, lint와 타입 검사가 통과했다.
 - [x] 절차 8: 사용 빈도와 분석의 빈 상태 및 목록, 저장 템플릿의 바깥선을 줄이고 표와 목록 행 구분은 유지했다. 템플릿 작성 및 입력과 설정의 장식용 위아래 선을 제거하고 화면 간격으로 내용을 묶었다. 빈 상태, 오류 복구, 입력 및 화면 이동을 확인한 Chromium 과업 29개, 운영 빌드, lint와 타입 검사가 통과했다.
 - [x] 절차 9: 저장 목록 관리의 중간 전달 컴포넌트와 `{...props}`를 없애고 `BatchCopyEditingView`에 필요한 값을 직접 전달했다. 빈 화면은 제목이 아닌 상태 문구로 표시하고, 독립적으로 조작하는 목록 항목 표면과 메모 화면 패널 표현은 바꾸지 않았다. 취소, 복사와 항목 순서 변경을 포함한 Chromium 과업 7개가 320, 640, 900, 1280 CSS px에서 통과했고 운영 빌드, lint와 타입 검사도 통과했다.
+
+## 모바일 일괄 복사 전환과 컴포넌트 책임 보완
+
+[모바일 일괄 복사 전환과 의존성 전달 조사](references/mobile-batch-copy-transition-and-dependency-research.md)에 따라 별도 일괄 복사 내역 URL을 만들지 않는다. `/`는 평상시 메모 목록과 수집 상태를 맡고, `/batch-copy`는 확인 중인 초안이 있으면 확인 화면을, 그렇지 않으면 현재 저장 목록 관리 화면을 맡는다. 새 의존성, 전역 의존성 객체와 범용 Context도 추가하지 않는다.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Normal: / 표시
+  Normal --> Collecting: 시작 또는 이어가기
+  Collecting --> LeavingCollection: 다음
+  LeavingCollection --> Confirming: /batch-copy 표시
+  Confirming --> LeavingConfirmation: 취소
+  LeavingConfirmation --> Normal: / 표시
+  Normal --> Management: Drawer 관리 링크
+  Management --> Normal: 취소
+```
+
+`LeavingCollection`과 `LeavingConfirmation`은 경로 이동 중에 이전 화면을 유지하는 UI 상태다. IndexedDB의 모바일 작업 초안 단계나 저장 목록 자료형에는 추가하지 않는다.
+
+### U36 수집과 확인 화면의 이탈 상태
+
+#### 원인과 목적
+
+- `useMobileBatchCopyState.confirm()`이 `confirming` 초안을 먼저 발행하면 현재 `/`에서 수집 판정이 사라지고, `router.push()`가 끝나기 전에 하단 동작이 먼저 사라진다.
+- 확인 화면의 `cancel()`은 초안을 지운 뒤 `/`로 이동한다. URL이 아직 `/batch-copy`인 동안 확인 화면 조건이 사라져 저장 목록 관리 화면이 잠깐 나타난다.
+- 두 동작 모두 저장 성공과 경로 표시 사이의 화면을 현재 페이지 수명의 이탈 상태로 고정한다. 저장 실패에서는 기존 화면과 자료를 유지하고 다시 시도할 수 있게 한다.
+
+#### 파일 변화와 작업
+
+- 생성: `apps/notes/src/_pages/notes/model/use-mobile-batch-copy-navigation.ts`가 `다음`을 실행하는 즉시 수집 화면 이탈 상태를 시작하고 `confirm()`과 `/batch-copy/` 이동을 조정한다. 초안 저장이 실패하면 `confirm()`을, 저장 뒤 경로 표시가 완료되지 않으면 초안을 다시 바꾸지 않고 이동만 다시 시도한다. `pathname`이 `/batch-copy`로 바뀔 때 이탈 상태를 끝낸다. `router.prefetch("/batch-copy/")`를 사용할 수 있지만 prefetch를 화면 안정성의 전제로 삼지 않는다.
+- 수정: `apps/notes/src/_pages/notes/ui/mobile-notes-workspace.tsx`는 이 hook이 제공하는 이탈 상태와 `다음` 동작을 사용한다. 저장과 경로 이동이 끝날 때까지 수집 헤더, 목록과 하단 동작을 유지하고 중복되는 화면 전이 동작만 막는다. React 기본 Hook은 UI 파일에 추가하지 않는다.
+- 수정: `apps/notes/src/_pages/batch-copy/model/use-batch-copy-page.ts`가 현재 `returningConfirmation`과 같은 책임으로 취소 중 확인 초안 스냅샷을 관리한다. 초안 제거가 실패하면 같은 취소를 다시 시도하고, 제거 뒤 경로 표시가 완료되지 않으면 초안을 다시 지우지 않고 `/` 이동만 다시 시도한다. `pathname`이 `/`로 바뀔 때 스냅샷을 해제한다.
+- 수정: `apps/notes/src/_pages/batch-copy/model/use-mobile-batch-copy-confirmation.ts`에서 `useRouter`와 직접 초안 취소를 제거하고 페이지가 제공한 취소 시작 동작만 호출한다. 항목 편집, 복사와 알림 책임은 유지한다.
+- 수정: `apps/notes/src/_pages/batch-copy/ui/mobile-batch-copy-confirmation.tsx`와 `apps/notes/src/_pages/batch-copy/ui/batch-copy-start-page.tsx`는 취소와 복귀 중 같은 확인 자료를 렌더링하고 두 동작의 중복 실행만 막는다. 저장 목록 관리 화면과 Drawer 진입 규칙은 바꾸지 않는다.
+- 유지: `CollectingMobileBatchCopyDraft`와 `ConfirmingMobileBatchCopyDraft`의 두 저장 단계, `/`와 `/batch-copy`의 두 URL, 브라우저 뒤로가기와 화면 내 복귀 의미를 유지한다. 전환용 IndexedDB 필드, 세 번째 URL과 전역 route 상태는 추가하지 않는다.
+
+#### 검증과 중단 조건
+
+- `apps/notes/e2e/batch-copy.spec.ts`의 기존 모바일 과업에서 `다음` 직후 수집 하단 영역이 유지되는지와 확인 `취소` 직후 관리 화면의 헤더 및 본문이 나타나지 않는지 관찰한다. 저장 실패와 다시 시도에서도 항목, 순서와 클릭 횟수가 유지되어야 한다.
+- 실제 경로가 바뀐 뒤에도 이전 화면이 남거나 브라우저 뒤로가기가 같은 화면을 반복하면 이탈 상태의 종료 조건을 고치기 전 다음 단위로 넘어가지 않는다.
+
+### U37 항목 추가 queue와 화면 차단 분리
+
+#### 원인과 목적
+
+`useMobileBatchCopyState.enqueue()`의 하나뿐인 `pending`이 항목 추가에도 켜지고, `MobileNotesWorkspace`가 이를 모든 메모의 `disabled`와 투명도에 연결한다. 항목마다 전체 목록의 외형과 네이티브 비활성 상태가 바뀌므로 화면이 깜빡이고, 저장 중 후속 누르기도 받을 수 없다. 기존 직렬 queue는 입력 순서와 IndexedDB transaction 순서를 보존하므로 유지한다.
+
+#### 파일 변화와 작업
+
+- 수정: `apps/notes/src/features/add-note-to-batch-copy/model/use-mobile-batch-copy-state.ts`에서 항목 추가는 기존 queue를 사용하되 화면 전체를 막는 전환 `pending`에 포함하지 않는다. `시작`, `초기화`, `다음`, `취소`와 확인 편집처럼 서로 충돌하는 동작은 기존 중복 실행 방지를 유지한다.
+- 수정: `apps/notes/src/_pages/notes/ui/mobile-notes-workspace.tsx`에서 항목 저장 중이라는 이유로 전체 목록을 비활성화하지 않는다. 후속 누르기는 같은 메모를 포함해 queue에 들어가며 성공한 저장마다 클릭 횟수가 갱신된다.
+- 제거: 한 곳에서만 사용되며 값을 그대로 전달하는 `apps/notes/src/_pages/notes/ui/mobile-note-list.tsx`를 제거하고 목록 순회를 `MobileNotesWorkspace`로 옮긴다. `MobileNoteCard`는 실제로 사용하는 메모, 수집 여부와 동작만 받는다.
+- 수정: `apps/notes/src/_pages/notes/ui/mobile-note-card.tsx`에서 목록 전체 `disabled`에 따른 `opacity-60` 표현을 제거한다. 저장 실패의 기존 알림과 항목별 다시 시도는 유지하며 임시 성공 횟수, 항목별 spinner와 별도 optimistic 저장 자료는 만들지 않는다.
+
+#### 검증과 중단 조건
+
+- `apps/notes/e2e/batch-copy.spec.ts`에서 첫 저장이 끝나기 전에 같은 메모와 다른 메모를 연속해서 눌러 입력 순서, 중복과 클릭 횟수를 확인한다. 각 누르기 사이에 목록 전체의 `disabled`, 투명도와 배경이 바뀌지 않아야 한다.
+- 후속 입력을 받기 위해 저장 순서, 원자적 횟수 증가 또는 실패 뒤 다시 시도를 잃으면 queue를 제거하지 말고 차단 상태 분리만 다시 검토한다.
+
+### U38 모바일 아이콘의 시각적 깊이
+
+#### 원인과 목적
+
+새 메모 버튼은 이미 `rounded-full`, `bg-action`, `text-action-ink`와 같은 너비 및 높이를 사용하므로 요구한 원형 색 배경을 소스에서 충족한다. 수정 아이콘에는 `shadow-sm`이 있어 메모와 별도 표면처럼 보인다.
+
+#### 파일 변화와 작업
+
+- 확인: 320 CSS px 브라우저에서 새 메모 버튼의 계산된 너비, 높이, 배경색과 `border-radius`를 확인한다. 현재 토큰이 적용되면 코드를 바꾸지 않고, 결과가 다를 때만 `apps/notes/src/_pages/notes/ui/mobile-notes-workspace.tsx`의 기존 토큰 적용 오류를 수정한다.
+- 수정: `apps/notes/src/_pages/notes/ui/mobile-note-card.tsx`의 수정 아이콘에서 `shadow-sm`을 제거한다. 현재 32 CSS px 조작 영역, 접근 가능한 이름, hover와 `focus-visible` 상태는 유지한다.
+- 제외: 새 아이콘 컴포넌트, 색 토큰, 그림자 토큰과 외부 아이콘 의존성을 추가하지 않는다.
+
+#### 검증과 중단 조건
+
+320 CSS px 실제 화면에서 새 메모 버튼이 다른 아이콘과 구분되고 수정 아이콘이 메모와 같은 깊이로 보이는지 확인한다. 키보드 포커스, 화면 낭독기 이름 또는 수정 화면 이동이 약해지면 시각 변경을 완료하지 않는다.
+
+### U39 최소 동작 단위 의존성 검토
+
+#### 원인과 목적
+
+`temps/dependencies/research-20290926.md`의 적용 가능한 결론은 외부 동작을 호출하는 기능에 필요한 최소 함수 또는 interface로 정의하고 조립 지점에서 구현을 선택하는 것이다. 현재 코드는 `LocalApplication`을 이미 제거하고 기능별 Provider를 사용하므로 전면 재작성하지 않는다. 남은 위반만 고친다.
+
+#### 파일 변화와 작업
+
+- 수정: `docs/dev/personal-notes-app/anti-patterns.md`에서 외부 동작의 최소 동작 단위, 조립 지점과 주입하지 않을 대상을 명시한다. 순수 함수, React 지역 상태, React Hook Form 상태, DOM ref와 단순 UI event는 주입 대상으로 만들지 않는다.
+- 검토: `apps/notes/src/_app/composition/**`, `apps/notes/src/_app/providers/**`, `apps/notes/src/features/**/model/**`, `apps/notes/src/_pages/**/model/**`와 UI import를 따라 IndexedDB, Clipboard, Worker, 시계, 식별자 생성기와 외부 SDK 구현이 실제 기능별 interface를 거치는지 확인한다.
+- 수정: 확인된 위반이 있을 때만 호출하는 기능이 필요한 동작을 기존 interface 또는 기능별 accessor에 추가하고 `_app` 조립 지점에서 구현을 연결한다. 독립적으로 바뀌는 읽기, 변경과 삭제를 하나의 service interface로 합치지 않는다.
+- 제외: 새 전역 의존성 객체, token registry, service locator, TanStack Query wrapper, 범용 Context와 외부 의존성은 추가하지 않는다. 위반이 없으면 운영 코드를 바꾸지 않는다.
+
+#### 검증과 중단 조건
+
+ESLint의 FSD import 검사, TypeScript 검사와 전체 UI import 검토로 아래 계층이 `_app` 구현이나 브라우저 구현을 직접 가져오지 않는지 확인한다. 새 interface가 호출하는 컴포넌트에 필요한 동작보다 넓거나 기존 interface와 같은 책임이면 추가하지 않는다.
+
+### U40 직접 사용하는 컴포넌트 기준 Props 정리
+
+#### 원인과 목적
+
+한두 단계 전달을 허용한 이전 기준 때문에 값을 쓰지 않고 하위 컴포넌트로 넘기는 중간 목록과 화면 컴포넌트가 남아 있다. 컴포넌트가 직접 읽거나 렌더링하거나 변환하는 값과 직접 호출하는 callback만 Props로 받도록 바꾸되, Props 수를 줄이기 위한 범용 Context나 큰 객체는 만들지 않는다.
+
+#### 파일 변화와 작업
+
+- 생성: `apps/notes/src/_pages/notes/model/use-note-card-actions.ts`에 현재 `NotesCollection`의 데스크톱 카드 저장, 이동, 복사, 삭제, 선택 및 속성 열기 조립을 옮긴다. 이 hook은 기존 `useNotesData`, 메모 session, 일괄 복사와 알림 accessor를 사용하고 새 저장 상태나 범용 interface를 만들지 않는다.
+- 수정: `apps/notes/src/_pages/notes/ui/notes-collection.tsx`와 `apps/notes/src/_pages/notes/ui/notes-board.tsx`에서 `NotesBoard`가 `useNoteCardActions`를 호출하고 각 `NoteCard`가 실제로 쓰는 값을 전달한다. `NotesCollection`은 모바일과 생성 및 layout 조립을 유지하고, `NoteCard`로 전달만 하던 callback을 `NotesBoard`의 공개 Props에서 제거한다.
+- 생성: `apps/notes/src/_pages/templates/model/template-workspace-context.ts`에 페이지 전용 Context와 accessor를 둔다. `use-template-workspace.ts`가 선택 ID와 선택 명령을 한 번 관리하고, `apps/notes/src/_pages/templates/ui/templates-start-page.tsx`가 그 값을 Provider에 전달한다. `template-authoring.tsx`, `template-editor.tsx`와 `saved-templates.tsx`에서 실제로 저장하거나 선택하는 컴포넌트는 같은 accessor를 사용한다. 외부 저장소나 SDK를 이 UI Context에 넣지 않는다.
+- 제거: 한 곳에서만 사용되고 값을 행 컴포넌트로 넘기는 `apps/notes/src/_pages/templates/ui/template-input-form.tsx`의 `TemplateValueFieldList`, `template-placeholder-fields.tsx`의 목록 wrapper와 `saved-templates.tsx`의 `SavedTemplateList`를 실제 form 또는 화면 소유자에 합친다. 입력을 직접 관리하는 행 컴포넌트와 React Hook Form의 공식 Context는 유지한다.
+- 수정: `apps/notes/src/_pages/notes/ui/batch-copy-workspace.tsx`와 `apps/notes/src/features/edit-batch-copy/ui/batch-copy-editing-view.tsx`에서 패널 frame이 직접 쓰지 않는 편집 값과 callback 전달을 제거한다. 완성된 편집 목록은 `children` 합성 또는 현재 feature root의 직접 구성 가운데 파일 수와 전달 단계가 적은 방식을 사용한다. 이름 있는 JSX slot과 새 Context는 만들지 않는다.
+- 검토: `apps/notes/src/**/*.tsx`의 애플리케이션 Props를 같은 기준으로 확인한다. DOM 속성 전달, React Hook Form의 `register` 결과와 callback을 실제 버튼, pointer handler 또는 ref에서 호출하는 행 컴포넌트는 제거 대상으로 보지 않는다.
+
+#### 검증과 중단 조건
+
+- 정적 검토에서 전달만 하는 값, callback과 이를 감싼 callback이 남지 않아야 한다. 삭제한 중간 컴포넌트의 public API와 import도 함께 제거한다.
+- 기존 메모 편집, 저장, 이동, 복사, 삭제, 템플릿 저장 및 선택, 일괄 복사 편집 과업을 기존 브라우저 검사로 확인한다. Context, store 또는 큰 Props 객체에 같은 값을 다시 저장해야만 변경할 수 있다면 그 컴포넌트 책임을 다시 나누기 전에는 진행하지 않는다.
+
+### U41 최종 검토와 검증
+
+U36부터 U40까지 모듈 작업을 마친 뒤 전체 검토와 검증을 한 번 수행한다. 구현 중 같은 범위의 중간 리뷰를 반복하지 않는다.
+
+1. 저장소가 요구하는 Node.js 24.15와 pnpm 11.25 환경에서 lint, TypeScript 검사, 관련 단위 검사와 기존 Playwright 과업을 실행한다. 새 외부 의존성, URL, 저장 필드와 전역 Context가 생기지 않았는지 diff로 확인한다.
+2. 320 CSS px 실제 브라우저에서 연속 항목 누르기, `다음` 전환, 확인 `취소`, 브라우저 뒤로가기, Drawer 관리 진입과 두 아이콘의 계산 스타일 및 접근성 상태를 확인한다.
+3. 저장 목록 관리, 원본 메모, 사용 횟수, 확인 초안의 항목 및 순서가 각 동작 뒤 승인된 수명을 유지하는지 확인한다. 실패를 숨기기 위해 테스트를 삭제하거나 약화하지 않는다.
+4. 모든 변경 소스에서 유사한 코드를 찾아 공통화 책임이 실제로 같은지 확인한다. 한 번만 쓰는 추상화, 전달용 컴포넌트와 넓은 interface는 제거한다.
 
 ### 현재 코드 검토 결과에 따른 선행 정리
 
@@ -2609,6 +2730,11 @@ TDD 여부는 파일 종류나 모듈 크기가 아니라 구현 전에 사용�
 - U11은 TDD를 적용하지 않고 end-to-end, 빌드, 접근성 및 시각 검토로 완료를 판정한다.
 - U12는 기존 TDD 대상의 순수 규칙에 행동 순서 탐색을 추가한다. 실제 저장 및 브라우저 Adapter의 증거는 기존 브라우저 검사로 확인한다.
 - U26은 새 자료 규칙이 없으므로 TDD를 적용하지 않는다. U27과 U28에서 새로 만드는 순수 시점 계산에만 TDD를 적용할 수 있으며, 포커스, 숨은 스크롤, 휠 입력과 실제 터치패드 동작은 브라우저에서 확인한다.
+- U36은 새 자료 규칙이 없으므로 TDD를 적용하지 않는다. 저장과 경로 표시 사이의 실제 화면은 기존 Playwright 과업에서 확인한다.
+- U37은 기존 직렬 queue와 원자적 저장 검사를 유지하고, 연속 누르기와 목록 외형은 실제 브라우저에서 확인한다. 내부 `pending` 값이나 호출 횟수를 검사하는 테스트는 만들지 않는다.
+- U38은 TDD를 적용하지 않고 계산 스타일, 키보드 포커스와 접근 가능한 이름을 실제 화면에서 확인한다.
+- U39와 U40은 새 동작을 만들지 않으므로 TDD를 적용하지 않는다. lint, 타입 검사, import 및 Props 정적 검토와 기존 사용자 과업으로 판정한다.
+- U41은 앞선 단위의 검증을 한 번 모아 실행하며 별도 운영 로직이나 테스트 전용 추상화를 추가하지 않는다.
 
 각 자동 검사는 사용자에게 보이는 결과, 저장 불변 조건, 외부 시스템과 주고받기로 정한 동작 또는 순수 알고리즘 결과 가운데 하나를 이름으로 설명해야 한다. 내부 함수명, reducer action 문자열, 호출 횟수, CSS class, DOM 중첩, 구성요소 분리, 무관한 드래그 좌표와 큰 markup snapshot만 확인하는 테스트는 만들지 않는다. 테스트를 위해서만 운영 코드의 추상화를 추가하지 않는다.
 
@@ -2641,7 +2767,7 @@ TDD 여부는 파일 종류나 모듈 크기가 아니라 구현 전에 사용�
 
 ## 계획 완료 판정
 
-이 계획은 문서를 만들었다는 이유로 완료되지 않는다. U1부터 U12까지 요구사항에 연결된 저장 및 기능 증거를 유지하고 U13부터 U35까지 필요한 UI 재구축, 실제 브라우저 과업, 시각 및 접근성 검토가 모두 `pass`여야 로컬 애플리케이션 완성을 주장할 수 있다. 메모 목록과 보조 화면의 Drawer, 화면별 프레임, 우측 하단 새 메모, 메모 누르기 복사와 수정 아이콘 상세 이동 및 토스트 닫기가 구현되지 않았으면 U22부터 U25는 완료가 아니다. U14와 U18의 좁은 화면 탐색도 U23의 실제 동작 증거가 없으면 완료가 아니다.
+이 계획은 문서를 만들었다는 이유로 완료되지 않는다. U1부터 U12까지 요구사항에 연결된 저장 및 기능 증거를 유지하고 U13부터 U41까지 필요한 UI 재구축, 실제 브라우저 과업, 시각 및 접근성 검토가 모두 `pass`여야 로컬 애플리케이션 완성을 주장할 수 있다. 메모 목록과 보조 화면의 Drawer, 화면별 프레임, 우측 하단 새 메모, 메모 누르기 복사와 수정 아이콘 상세 이동 및 토스트 닫기가 구현되지 않았으면 U22부터 U25는 완료가 아니다. U14와 U18의 좁은 화면 탐색도 U23의 실제 동작 증거가 없으면 완료가 아니다.
 
 새 메모의 본문 포커스가 헤더 아래에 별도 붉은 선을 만들거나 화면 밖 메모를 생성한 뒤 왼쪽 아래 보기 제어가 보이지 않으면 U26 및 U27은 완료가 아니다. 핀치와 보조키+휠이 같은 캔버스 시점을 바꾸고 메모 저장 자료와 일반 스크롤을 유지한다는 실제 기기 및 브라우저 증거가 없으면 U28은 완료가 아니다. 화면 높이가 줄 때 카드가 눌리거나 우측 하단 버튼을 위해 상시 빈 행이 남고 마지막 메모의 원문 또는 수정 동작을 사용할 수 없으면 U29와 U30은 완료가 아니다. 평상시와 수집 상태에 같은 하단 여백이 남거나, 모바일 생성 직후 상세 화면에 자동 이동하거나 숨겨진 보드 입력에 포커스가 가면 U30과 U31은 완료가 아니다.
 
@@ -2650,3 +2776,5 @@ TDD 여부는 파일 종류나 모듈 크기가 아니라 구현 전에 사용�
 모바일 주소창이 펼쳐지거나 접힌 뒤 메모 목록, 수집, 상세, 일괄 복사 확인 또는 저장 목록 관리에서 바깥 문서의 빈 영역으로 화면 전체가 스크롤되거나 하단 동작이 함께 이동하면 U33은 완료가 아니다. 사용 빈도, 분석, 템플릿, 설정 및 접속 안내의 짧은 화면에 불필요한 빈 스크롤이 남거나 긴 내용의 끝에 접근할 수 없으면 U34는 완료가 아니다. 고정된 데스크톱 표시 영역의 자동 검사만으로 실제 모바일 주소창과 화면 키보드 동작을 확인했다고 판정하지 않는다.
 
 U35에서 캔버스가 상단 빈 행 때문에 줄어들거나 버튼 바깥 overlay가 메모 입력을 막으면 완료가 아니다. 모바일 새로고침에서 저장된 수집 화면이 자동으로 섞이거나 확인 화면의 뒤로가기 중 일반 관리 화면이 나타나거나 메모 목록과 초안 순서를 복원하지 못해도 완료가 아니다. 저장 목록 관리가 개인 메모 디자인 토큰, 본문 우선순위, 항목별 조작 상태와 일관되지 않거나 메모 화면의 일괄 복사 패널 표현을 약화해도 완료가 아니다. 전체 메모 접근 또는 일괄 복사 대상이 줄어들거나, 측정 증거 없이 저장소 페이지네이션을 적용해도 완료가 아니다. 보조 화면의 중복 구분선은 줄이되 표 행, focus-visible과 오류 상태가 사라지면 완료가 아니다.
+
+U36부터 U41은 `다음`과 확인 `취소`의 경로 이동 중 이전 화면을 유지하고, 연속 항목 입력을 빠짐없이 직렬 저장하며, 목록 전체의 깜빡임을 없애야 완료다. 새 메모 버튼의 원형 색 배경과 수정 아이콘의 그림자 제거를 실제 계산 스타일에서 확인해야 한다. 외부 동작은 기능별 최소 interface를 거쳐야 하고 전달만 하는 Props를 없애되, 이를 위해 새 URL, 저장 단계, 외부 의존성, 범용 Context, service locator, 큰 Props 객체 또는 이름 있는 JSX slot을 추가하면 완료로 판정하지 않는다.
