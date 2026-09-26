@@ -1,8 +1,10 @@
 "use client"
 
-import type { Note, NoteGeometry } from "@/entities/note"
+import type { RefObject } from "react"
 
-import type { SaveNoteContentResult } from "../model/save-note-content"
+import type { Note } from "@/entities/note"
+
+import { useNoteCardActions } from "../model/use-note-card-actions"
 import { useNotesBoardView } from "../model/use-notes-board-view"
 import { NoteCard } from "./note-card"
 import { NotesBoardControls } from "./notes-board-controls"
@@ -14,21 +16,9 @@ type NotesBoardProps = {
   focusedNoteId: string | null
   notes: readonly Note[]
   propertiesNoteId: string | null
+  createButtonRef: RefObject<HTMLButtonElement | null>
   selectedNoteId: string | null
-  onActivateProperties(note: Note, focus: "first-field" | "preserve"): void
-  onAddToBatchCopy(note: Note): Promise<void>
   onClearSelection(): void
-  onCopy(note: Note): Promise<void>
-  onMoveToBack(noteId: string): Promise<readonly Note[]>
-  onMoveToFront(noteId: string): Promise<readonly Note[]>
-  onRemove(note: Note): Promise<void>
-  onSaveContent(
-    noteId: string,
-    content: string,
-  ): Promise<SaveNoteContentResult>
-  onSaveFailure(message: string): void
-  onSaveGeometry(note: Note, geometry: NoteGeometry): Promise<Note>
-  onSelect(noteId: string): void
 }
 
 export function NotesBoard({
@@ -37,20 +27,12 @@ export function NotesBoard({
   draftContentById,
   focusedNoteId,
   notes,
-  onActivateProperties,
-  onAddToBatchCopy,
+  createButtonRef,
   onClearSelection,
-  onCopy,
-  onMoveToBack,
-  onMoveToFront,
-  onRemove,
-  onSaveContent,
-  onSaveFailure,
-  onSaveGeometry,
-  onSelect,
   propertiesNoteId,
   selectedNoteId,
 }: NotesBoardProps) {
+  const actions = useNoteCardActions(notes, createButtonRef)
   const {
     adjustScale,
     boardRef,
@@ -98,17 +80,17 @@ export function NotesBoard({
               initialContent={draftContentById[note.id] ?? note.content}
               key={note.id}
               note={note}
-              onActivateProperties={onActivateProperties}
-              onAddToBatchCopy={onAddToBatchCopy}
-              onCopy={onCopy}
+              onActivateProperties={actions.activateProperties}
+              onAddToBatchCopy={actions.addToBatchCopy}
+              onCopy={actions.copy}
               onFocusNote={revealFocusedNote}
-              onMoveToBack={onMoveToBack}
-              onMoveToFront={onMoveToFront}
-              onRemove={onRemove}
-              onSaveContent={onSaveContent}
-              onSaveFailure={onSaveFailure}
-              onSaveGeometry={onSaveGeometry}
-              onSelect={onSelect}
+              onMoveToBack={actions.moveToBack}
+              onMoveToFront={actions.moveToFront}
+              onRemove={actions.remove}
+              onSaveContent={actions.saveContent}
+              onSaveFailure={actions.saveFailure}
+              onSaveGeometry={actions.saveGeometry}
+              onSelect={actions.select}
               propertiesTarget={propertiesNoteId === note.id}
               renderOriginX={originX}
               renderOriginY={originY}

@@ -107,7 +107,48 @@ dialog::backdrop {
 .notes-action-toast {
   animation: notes-toast-enter var(--notes-motion-panel) ease-out;
   opacity: 1;
+  pointer-events: none;
   transform: translateY(0);
+}
+
+.notes-action-toast > button {
+  pointer-events: auto;
+}
+
+.notes-action-toast-viewport {
+  position: fixed;
+  inset-inline: 0;
+  top: calc(
+    max(var(--notes-mobile-action-inset), env(safe-area-inset-top, 0px)) +
+      var(--notes-action-toast-offset-top)
+  );
+  z-index: 1000;
+  display: grid;
+  justify-items: center;
+  pointer-events: none;
+}
+
+.notes-action-toast-viewport > .notes-action-toast {
+  --notes-action-toast-side-inset: max(
+    var(--notes-mobile-action-inset),
+    env(safe-area-inset-left, 0px),
+    env(safe-area-inset-right, 0px)
+  );
+  inline-size: min(
+    24rem,
+    calc(100% - var(--notes-action-toast-side-inset) - var(--notes-action-toast-side-inset))
+  );
+  max-inline-size: 100%;
+}
+
+@media (min-width: 48rem) {
+  .notes-action-toast-viewport {
+    top: auto;
+    bottom: max(
+      var(--notes-mobile-action-inset),
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

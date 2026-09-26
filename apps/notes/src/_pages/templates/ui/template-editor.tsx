@@ -13,7 +13,7 @@ import {
   useTemplateEditor,
   type TemplateSaveFields,
 } from "../model/use-template-editor"
-import { TemplatePlaceholderFields } from "./template-placeholder-fields"
+import { TemplatePlaceholderField } from "./template-placeholder-fields"
 import { TemplateSegmentPreview } from "./template-segment-preview"
 
 type TemplateDraftPreviewProps = {
@@ -34,14 +34,12 @@ type TemplateEditorProps = {
   draft: TemplateDraft
   heading: string
   onDraftChange(draft: TemplateDraft): void
-  onSaved(templateId: string): void
 }
 
 export function TemplateEditor({
   draft,
   heading,
   onDraftChange,
-  onSaved,
 }: TemplateEditorProps) {
   const {
     changeLabel,
@@ -58,7 +56,7 @@ export function TemplateEditor({
     statusMessage,
     submitTemplate,
     titleRegistration,
-  } = useTemplateEditor({ draft, onDraftChange, onSaved })
+  } = useTemplateEditor({ draft, onDraftChange })
 
   return (
     <section
@@ -94,14 +92,22 @@ export function TemplateEditor({
         <TemplateDraftPreview control={control} draft={draft} />
       ) : null}
       <form className="grid gap-4" noValidate onSubmit={submitTemplate}>
-        <TemplatePlaceholderFields
-          control={control}
-          draft={draft}
-          errors={errors}
-          onLabelChange={changeLabel}
-          onRestore={restore}
-          register={register}
-        />
+        {draft.placeholders.length > 0 ? (
+          <ol className="grid gap-3">
+            {draft.placeholders.map((placeholder) => (
+              <TemplatePlaceholderField
+                control={control}
+                errors={errors}
+                key={placeholder.key}
+                onLabelChange={changeLabel}
+                onRestore={restore}
+                placeholder={placeholder}
+                register={register}
+                sourceText={draft.sourceText}
+              />
+            ))}
+          </ol>
+        ) : null}
         <div className="grid gap-1.5">
           <label className="text-sm font-semibold" htmlFor="template-title">
             템플릿 이름

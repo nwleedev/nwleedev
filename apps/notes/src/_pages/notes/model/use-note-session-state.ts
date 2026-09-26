@@ -5,15 +5,9 @@ import type { Note, NoteReference, RemovedNoteSnapshot } from "@/entities/note"
 import type { NotePropertiesFocus, NoteWorkspaceState } from "./note-workspace-state"
 import { useNoteRemovalHistory } from "./use-note-removal-history"
 import { useNoteWorkspace } from "./use-note-workspace"
-import { useWorkspaceNotice } from "./use-workspace-notice"
-import type {
-  WorkspaceNotice,
-  WorkspaceNoticeInput,
-} from "./workspace-notice"
 
 type NoteSessionContextValue = {
   removals: readonly RemovedNoteSnapshot[]
-  workspaceNotice: WorkspaceNotice | null
   workspace: NoteWorkspaceState
   activateBatchCopy(): void
   activateProperties(
@@ -26,12 +20,10 @@ type NoteSessionContextValue = {
   closePanel(): void
   confirmPropertiesTarget(expected: NoteReference, saved: NoteReference): void
   dismissRemovalNotice(): void
-  dismissWorkspaceNotice(revision?: number): void
   forgetBatchCopyItem(itemId: string): void
   forgetNote(noteId: string): void
   forgetRemoval(snapshot: RemovedNoteSnapshot): void
   rememberRemoval(note: Note): RemovedNoteSnapshot
-  showWorkspaceNotice(notice: WorkspaceNoticeInput): void
   restorePropertiesTarget(note: NoteReference): void
   select(noteId: string): void
   toggleBatchCopyItem(itemId: string): void
@@ -39,11 +31,11 @@ type NoteSessionContextValue = {
 
 type NoteSessionState = Pick<
   NoteSessionContextValue,
-  "removals" | "workspace" | "workspaceNotice"
+  "removals" | "workspace"
 >
 type NoteSessionCommands = Omit<
   NoteSessionContextValue,
-  "removals" | "workspace" | "workspaceNotice"
+  "removals" | "workspace"
 >
 
 export const NoteSessionStateContext = createContext<NoteSessionState | null>(null)
@@ -53,15 +45,13 @@ export const NoteSessionCommandsContext =
 export function useNoteSessionStateModel(now: () => string) {
   const workspaceModel = useNoteWorkspace()
   const removalHistory = useNoteRemovalHistory(now)
-  const noticeModel = useWorkspaceNotice(now)
 
   const state = useMemo(
     () => ({
       removals: removalHistory.removals,
       workspace: workspaceModel.workspace,
-      workspaceNotice: noticeModel.workspaceNotice,
     }),
-    [removalHistory.removals, workspaceModel.workspace, noticeModel.workspaceNotice],
+    [removalHistory.removals, workspaceModel.workspace],
   )
   const commands = useMemo<NoteSessionCommands>(
     () => ({
@@ -73,12 +63,10 @@ export function useNoteSessionStateModel(now: () => string) {
       closePanel: workspaceModel.closePanel,
       confirmPropertiesTarget: workspaceModel.confirmPropertiesTarget,
       dismissRemovalNotice: removalHistory.dismissRemovalNotice,
-      dismissWorkspaceNotice: noticeModel.dismissWorkspaceNotice,
       forgetBatchCopyItem: workspaceModel.forgetBatchCopyItem,
       forgetNote: workspaceModel.forgetNote,
       forgetRemoval: removalHistory.forgetRemoval,
       rememberRemoval: removalHistory.rememberRemoval,
-      showWorkspaceNotice: noticeModel.showWorkspaceNotice,
       restorePropertiesTarget: workspaceModel.restorePropertiesTarget,
       select: workspaceModel.select,
       toggleBatchCopyItem: workspaceModel.toggleBatchCopyItem,
@@ -92,12 +80,10 @@ export function useNoteSessionStateModel(now: () => string) {
       workspaceModel.closeProperties,
       workspaceModel.confirmPropertiesTarget,
       removalHistory.dismissRemovalNotice,
-      noticeModel.dismissWorkspaceNotice,
       workspaceModel.forgetBatchCopyItem,
       removalHistory.forgetRemoval,
       workspaceModel.forgetNote,
       removalHistory.rememberRemoval,
-      noticeModel.showWorkspaceNotice,
       workspaceModel.restorePropertiesTarget,
       workspaceModel.select,
       workspaceModel.toggleBatchCopyItem,

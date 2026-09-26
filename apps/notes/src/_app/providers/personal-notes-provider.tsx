@@ -9,6 +9,7 @@ import {
 import { useInteractionPreferences } from "@/_pages/settings/composition"
 import { UsageReaderProvider } from "@/_pages/usage/composition"
 import { SelectedSourceLinesProvider } from "@/features/suggest-template"
+import { ActionToastProvider } from "@/shared/ui/action-toast"
 
 import { Analysis } from "../composition/analysis"
 import type { PersonalNotesDatabase } from "../composition/indexed-db/personal-notes-database"
@@ -72,16 +73,18 @@ export function PersonalNotesProvider({ children }: PropsWithChildren) {
   const database = useDatabase()
 
   return (
-    <Preference database={database}>
-      <SelectedSourceLinesProvider>
-        <Template database={database}>
-          <NoteSessionProvider now={now}>
-            <ConnectedProviders database={database}>
-              {children}
-            </ConnectedProviders>
-          </NoteSessionProvider>
-        </Template>
-      </SelectedSourceLinesProvider>
-    </Preference>
+    <ActionToastProvider>
+      <Preference database={database}>
+        <SelectedSourceLinesProvider>
+          <Template database={database}>
+            <NoteSessionProvider now={now}>
+              <ConnectedProviders database={database}>
+                {children}
+              </ConnectedProviders>
+            </NoteSessionProvider>
+          </Template>
+        </SelectedSourceLinesProvider>
+      </Preference>
+    </ActionToastProvider>
   )
 }

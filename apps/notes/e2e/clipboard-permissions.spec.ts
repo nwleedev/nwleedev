@@ -4,6 +4,7 @@ import {
   expect,
   test,
   type Browser,
+  type Locator,
   type Page,
 } from "@playwright/test"
 import * as fc from "fast-check"
@@ -17,6 +18,39 @@ import { selectTextRange } from "./support/select-text-range"
 
 const applicationOrigin = "http://localhost:4173"
 const toastLifetimeMs = 5_000
+
+type ScreenPosition = {
+  x: number
+  y: number
+}
+
+async function readStableScreenPosition(locator: Locator) {
+  let previous: ScreenPosition | null = null
+
+  await expect.poll(async () => {
+    const bounds = await locator.boundingBox()
+    if (bounds === null) {
+      previous = null
+      return false
+    }
+
+    const current = {
+      x: Math.round(bounds.x),
+      y: Math.round(bounds.y),
+    }
+    const isStable = previous?.x === current.x && previous.y === current.y
+    previous = current
+
+    return isStable
+  }).toBe(true)
+
+  const bounds = await locator.boundingBox()
+  if (bounds === null) {
+    throw new Error("Expected a stable toast position")
+  }
+
+  return { x: Math.round(bounds.x), y: Math.round(bounds.y) }
+}
 
 async function runIndividualCopyCandidate(
   browser: Browser,
@@ -167,13 +201,29 @@ test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", 
     { origin: applicationOrigin },
   )
   await page.goto("/")
-  const content = "클립보드에 기록할 메모 원문"
+  const content = `클립보드 원문 ${crypto.randomUUID()}`
   const note = await createNoteThroughUi(page, content)
   const editor = note.getByRole("textbox", { name: "메모 내용" })
+  const replacementContent = `알림 교체 원문 ${crypto.randomUUID()}`
+  const replacementNote = await createNoteThroughUi(page, replacementContent)
+  const replacementEditor = replacementNote.getByRole("textbox", {
+    name: "메모 내용",
+  })
+  let originalIndividualCopies = 0
+  let batchCopies = 0
+
+  async function copyIndividual(editorToCopy: Locator) {
+    await editorToCopy.click({ modifiers: ["Meta"] })
+  }
+
+  async function copyOriginalIndividual() {
+    await copyIndividual(editor)
+    originalIndividualCopies += 1
+  }
 
   await editor.focus()
-  await editor.click({ modifiers: ["Meta"] })
-  await editor.click({ modifiers: ["Meta"] })
+  await copyOriginalIndividual()
+  await copyOriginalIndividual()
   const copyNotice = page.getByRole("status").filter({
     hasText: "복사했습니다.",
   })
@@ -184,17 +234,57 @@ test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", 
   await dismissNotice.click()
   await expect(copyNotice).toBeHidden()
   await expect(editor).toBeFocused()
-  await editor.click({ modifiers: ["Meta"] })
+  await copyOriginalIndividual()
   await expect(copyNotice).toBeVisible()
   await dismissNotice.focus()
+  await page.clock.fastForward(toastLifetimeMs / 2)
+  const toastBox = await copyNotice.boundingBox()
+  expect(toastBox).not.toBeNull()
+
+  await page.mouse.move(
+    toastBox!.x + toastBox!.width / 2,
+    toastBox!.y + toastBox!.height / 2,
+  )
+  await page.mouse.move(0, 0)
   await page.clock.fastForward(toastLifetimeMs)
+  await expect(copyNotice).toBeVisible()
+  await editor.focus()
+  await page.clock.fastForward(toastLifetimeMs / 2)
   await expect(copyNotice).toBeHidden()
-  await expect(editor).toBeFocused()
+
+  await copyOriginalIndividual()
+  await expect(copyNotice).toBeVisible()
+  await page.clock.fastForward(toastLifetimeMs / 2)
+  const desktopToastBeforeNavigation = await readStableScreenPosition(copyNotice)
+  await page.getByRole("link", { exact: true, name: "사용 빈도" }).click()
+  await expect(copyNotice).toBeVisible()
+  const desktopToastAfterNavigation = await readStableScreenPosition(copyNotice)
+  expect(desktopToastAfterNavigation).toEqual(desktopToastBeforeNavigation)
+  await page.setViewportSize({ height: 720, width: 320 })
+  const narrowToast = await copyNotice.boundingBox()
+  const narrowViewport = page.viewportSize()
+  expect(narrowToast).not.toBeNull()
+  expect(narrowViewport).not.toBeNull()
+
+  expect(narrowToast!.x).toBeGreaterThanOrEqual(0)
+  expect(narrowToast!.x + narrowToast!.width).toBeLessThanOrEqual(narrowViewport!.width)
+  expect(
+    Math.abs(narrowToast!.x + narrowToast!.width / 2 - narrowViewport!.width / 2),
+  ).toBeLessThanOrEqual(1)
+  await page.goBack()
+  await expect(copyNotice).toBeVisible()
   await expect
     .poll(() => page.evaluate(() => navigator.clipboard.readText()))
     .toBe(content)
-
+  await page.setViewportSize({ height: 720, width: 1280 })
+  await copyIndividual(replacementEditor)
+  await expect(copyNotice).toBeVisible()
+  await page.clock.fastForward(toastLifetimeMs / 2)
+  await expect(copyNotice).toBeVisible()
+  await page.clock.fastForward(toastLifetimeMs / 2)
+  await expect(copyNotice).toBeHidden()
   await editor.click({ modifiers: ["Meta", "Alt"] })
+  batchCopies += 1
   const panel = page.getByRole("complementary", { name: "일괄 복사" })
   await expect(panel).toBeVisible()
   await panel.getByRole("button", { name: "일괄 복사 패널 닫기" }).click()
@@ -202,9 +292,16 @@ test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", 
   await page.setViewportSize({ height: 720, width: 320 })
 
   const usageRow = page.getByRole("row").filter({ hasText: content })
-  await expect(usageRow.getByRole("cell", { name: "개별 복사 3회" })).toBeVisible()
-  await expect(usageRow.getByRole("cell", { name: "일괄 복사 1회" })).toBeVisible()
-  await expect(usageRow.getByRole("cell", { name: "합계 4회" })).toBeVisible()
+  const totalCopies = originalIndividualCopies + batchCopies
+  await expect(
+    usageRow.getByRole("cell", { name: `개별 복사 ${originalIndividualCopies}회` }),
+  ).toBeVisible()
+  await expect(
+    usageRow.getByRole("cell", { name: `일괄 복사 ${batchCopies}회` }),
+  ).toBeVisible()
+  await expect(
+    usageRow.getByRole("cell", { name: `합계 ${totalCopies}회` }),
+  ).toBeVisible()
 })
 
 test("클립보드 권한이 거절되면 원인을 알리고 일반 복사 횟수를 늘리지 않는다", async ({

@@ -15,7 +15,7 @@ export function MobileBatchCopy({
   database,
   reorderButtonsEnabled,
 }: MobileBatchCopyProps) {
-  const { clipboard, createId, now, repository, writer } =
+  const { clipboard, createId, now, writer } =
     useMobileBatchCopyAdapters(database)
 
   return (
@@ -24,7 +24,6 @@ export function MobileBatchCopy({
       createId={createId}
       now={now}
       reorderButtonsEnabled={reorderButtonsEnabled}
-      repository={repository}
       writer={writer}
     >
       {children}

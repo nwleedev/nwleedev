@@ -790,8 +790,10 @@ Webiny는 CMS background task가 request context의 `BulkActionContext` service-
 
 - domain 함수와 use case는 필요한 port를 parameter 또는 constructor로 받는다. 구현을 찾기 위해 전역 registry를 호출하지 않는다.
 - local과 sync 어댑터 선택, 환경 설정 해석과 객체 생성은 모드별 composition root 한 곳에서 수행한다.
-- 한두 단계 전달이 명확한 UI data와 callback은 props로 유지한다. `children` composition으로 중간 component가 알 필요 없는 props를 제거할 수 있는지 먼저 확인한다.
-- 많은 하위 component가 공유하는 안정된 feature dependency만 좁은 React Context로 제공한다. Context는 구체적인 `NoteCommands`처럼 타입이 드러나는 값을 제공하고 `resolve`, `getService` 또는 문자열 token API를 노출하지 않는다.
+- component는 실제로 읽거나 화면에 쓰는 값, 또는 직접 호출하는 함수만 props로 받는다. 쓰지 않고 다음 component로 그대로 넘기는 값과 전달만을 위한 callback wrapper는 전달하지 않는다.
+- 이벤트 callback은 값을 고정해 전달할 때 component가 실제 이벤트에서 호출하는 경우에만 사용한다. 전달 단계를 줄이려는 목적으로 중간 component가 callback을 감싸 다시 props로 전달하지 않는다.
+- 중간 component가 필요하지 않은 값을 받지 않도록 `children` 합성을 먼저 검토한다. 한 곳에서만 쓰는 목록 wrapper는 목록을 표시하는 화면이 순회와 렌더링을 맡도록 합친다. 재사용 UI에는 각 하위 component가 실제로 쓰는 값과 동작만 전달한다.
+- 깊은 subtree에서 여러 하위 component가 같은 안정된 값을 써야 하고 `children` 합성만으로 관계를 나타내기 어려울 때만 feature 계층 안에 Context를 둔다. Context에는 구체적인 `NoteCommands`처럼 타입이 드러나는 값을 담고, `resolve`, `getService` 또는 문자열 token API는 제공하지 않는다.
 - presentational component에는 service 대신 값과 event callback을 전달한다. Context 접근은 feature 경계와 container component에 제한한다.
 - Context provider value는 composition root에서 한 번 만들거나 `useMemo`로 안정화한다. 사용 빈도가 다른 state와 command를 하나의 큰 Context에 합치지 않는다.
 

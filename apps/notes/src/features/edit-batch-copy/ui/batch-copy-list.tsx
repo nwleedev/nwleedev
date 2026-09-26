@@ -12,11 +12,15 @@ import {
   ActionPopover,
   type ActionPopoverAction,
 } from "@/shared/ui/action-popover"
+import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
 import { GripIcon, MoreIcon } from "@/shared/ui/icons"
+import { StatusNotice } from "@/shared/ui/status-notice"
 
 import { createBatchCopyItemActions } from "../model/batch-copy-item-actions"
+import type { EditBatchCopyResult } from "../model/save-changes"
 import { useBatchCopyActionSheet } from "../model/use-batch-copy-action-sheet"
+import { useBatchCopyEditing } from "../model/use-batch-copy-editing"
 import { useBatchCopyPointerReorder } from "../model/use-batch-copy-pointer-reorder"
 import { BatchCopyActionSheet } from "./batch-copy-action-sheet"
 
@@ -27,9 +31,9 @@ type BatchCopyListProps = {
   presentation: "management" | "panel"
   reorderButtonsEnabled: boolean
   selectedItemId?: string | null
-  onDuplicate(itemId: string): void
-  onMove(itemId: string, index: number): Promise<boolean>
-  onRemove(itemId: string): void
+  onDuplicate(itemId: string): Promise<EditBatchCopyResult>
+  onMove(itemId: string, index: number): Promise<EditBatchCopyResult>
+  onRemove(itemId: string): Promise<EditBatchCopyResult>
   onToggleSelection?(itemId: string): void
 }
 
@@ -206,6 +210,7 @@ export function BatchCopyList({
   reorderButtonsEnabled,
   selectedItemId = null,
 }: BatchCopyListProps) {
+  const editing = useBatchCopyEditing({ items, onDuplicate, onMove, onRemove })
   const {
     announcement,
     drag,
@@ -218,29 +223,34 @@ export function BatchCopyList({
     onPointerUp,
     registerHandle,
   } = useBatchCopyPointerReorder({
-    items,
-    onMove,
-    onRemove,
+    items: editing.items,
+    onMove: editing.move,
+    onRemove: editing.remove,
     onToggleSelection,
     pending,
     presentation,
     selectedItemId,
   })
-  const actionSheet = useBatchCopyActionSheet(items.map(({ id }) => id), list)
-  const activePosition = items.findIndex(({ id }) => id === actionSheet.activeItemId)
-  const activeItem = items[activePosition]
+  const actionSheet = useBatchCopyActionSheet(
+    editing.items.map(({ id }) => id),
+    list,
+  )
+  const activePosition = editing.items.findIndex(
+    ({ id }) => id === actionSheet.activeItemId,
+  )
+  const activeItem = editing.items[activePosition]
   const activeLabel = activePosition >= 0
     ? `${(activePosition + 1).toLocaleString("ko-KR")}번째 일괄 복사 항목`
     : "일괄 복사 항목 동작"
 
   function actionsFor(item: BatchCopyItem, position: number) {
     return createBatchCopyItemActions({
-      canMoveDown: reorderButtonsEnabled && position < items.length - 1,
+      canMoveDown: reorderButtonsEnabled && position < editing.items.length - 1,
       canMoveUp: reorderButtonsEnabled && position > 0,
-      onDuplicate: () => onDuplicate(item.id),
+      onDuplicate: () => editing.duplicate(item.id),
       onMoveDown: () => { moveBy(item.id, position, 1) },
       onMoveUp: () => { moveBy(item.id, position, -1) },
-      onRemove: () => onRemove(item.id),
+      onRemove: () => editing.remove(item.id),
     })
   }
 
@@ -250,11 +260,19 @@ export function BatchCopyList({
 
   return (
     <div className="grid gap-3">
+      {editing.failure !== null ? (
+        <StatusNotice kind="error">
+          <p>{editing.failure.message}</p>
+          <Button onClick={editing.failure.retry} tone="quiet">
+            다시 시도
+          </Button>
+        </StatusNotice>
+      ) : null}
       <p aria-live="polite" className="sr-only">
         {announcement}
       </p>
       <ol className="grid gap-2" ref={list} tabIndex={-1}>
-        {items.map((item, position) => {
+        {editing.items.map((item, position) => {
           const dragging = drag?.active === true && drag.itemId === item.id
           const target = drag?.active === true && drag.targetIndex === position
           let dropPlacement: "after" | "before" | null = null
@@ -285,7 +303,11 @@ export function BatchCopyList({
               outside={dragging && drag?.outside === true}
               pending={pending}
               position={position}
-              popoverActions={actionPresentation === "popover" ? actionsFor(item, position) : []}
+              popoverActions={
+                actionPresentation === "popover"
+                  ? actionsFor(item, position)
+                  : []
+              }
               presentation={presentation}
               selected={selectedItemId === item.id}
             />

@@ -1,41 +1,37 @@
 "use client"
 
 import { usePathname, useRouter } from "next/navigation"
-import { startTransition, useEffect, useState } from "react"
+import { startTransition, useEffect, useRef, useState } from "react"
 
 import type { ConfirmingMobileBatchCopyDraft } from "@/entities/batch-copy"
 import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
 import {
   useBatchCopyEditor,
-  type CopyBatchTextResult,
+  useCopyBatchTextFeedback,
 } from "@/features/edit-batch-copy"
-
-type CopyNotice = {
-  result: CopyBatchTextResult
-  revision: number
-}
 
 export function useBatchCopyPage() {
   const batchCopy = useBatchCopyEditor()
   const mobileBatchCopy = useMobileBatchCopy()
   const pathname = usePathname()
   const router = useRouter()
-  const [copyNotice, setCopyNotice] = useState<CopyNotice | null>(null)
   const [returningConfirmation, setReturningConfirmation] =
     useState<ConfirmingMobileBatchCopyDraft | null>(null)
-  const mobileDraft =
-    mobileBatchCopy.status === "ready" ? mobileBatchCopy.draft : null
+  const showCopyResult = useCopyBatchTextFeedback(batchCopy.copyAll)
+  const cancellationCompleted = useRef(false)
+  const collectionReturnCompleted = useRef(false)
+  const transitionPending = useRef(false)
+  const mobileDraft = mobileBatchCopy.draft
   const isBatchCopyRoute =
     pathname === "/batch-copy" || pathname === "/batch-copy/"
   const redirectCollectingDraft =
     isBatchCopyRoute &&
-    mobileBatchCopy.status === "ready" &&
     mobileDraft?.step === "collecting" &&
     returningConfirmation === null
   const routePending =
     isBatchCopyRoute &&
     returningConfirmation === null &&
-    (mobileBatchCopy.status === "loading" || redirectCollectingDraft)
+    redirectCollectingDraft
 
   useEffect(() => {
     if (redirectCollectingDraft) {
@@ -43,55 +39,73 @@ export function useBatchCopyPage() {
     }
   }, [redirectCollectingDraft, router])
 
-  function showCopyResult(result: CopyBatchTextResult) {
-    setCopyNotice((current) => ({
-      result,
-      revision: (current?.revision ?? 0) + 1,
-    }))
-  }
-
-  async function retryCopy() {
-    try {
-      showCopyResult(await batchCopy.copyAll())
-    } catch {
-      showCopyResult({
-        reason: "write-failed",
-        status: "clipboard-failure",
-      })
-    }
-  }
-
   async function returnToCollection() {
-    const draft = mobileDraft?.step === "confirming" ? mobileDraft : null
+    const draft =
+      returningConfirmation ??
+      (mobileDraft?.step === "confirming" ? mobileDraft : null)
 
     if (draft === null) {
       return false
     }
 
+    if (collectionReturnCompleted.current) {
+      router.push("/")
+      return true
+    }
+
+    if (transitionPending.current) {
+      return false
+    }
+
+    transitionPending.current = true
     const confirmingDraft = { ...draft, step: "confirming" as const }
     setReturningConfirmation(confirmingDraft)
-    const result = await mobileBatchCopy.resumeCollection()
+    const resumed = await mobileBatchCopy.resumeCollection()
 
-    if (result.status === "failure") {
+    if (!resumed) {
+      transitionPending.current = false
       return false
     }
 
     startTransition(() => {
       router.push("/")
-      setReturningConfirmation(null)
     })
+    collectionReturnCompleted.current = true
+    return true
+  }
+
+  async function cancelConfirmation() {
+    const draft =
+      returningConfirmation ??
+      (mobileDraft?.step === "confirming" ? mobileDraft : null)
+
+    if (draft === null || transitionPending.current) {
+      return false
+    }
+
+    setReturningConfirmation({ ...draft, step: "confirming" })
+
+    if (cancellationCompleted.current) {
+      router.push("/")
+      return true
+    }
+
+    transitionPending.current = true
+    await mobileBatchCopy.cancel()
+    transitionPending.current = false
+
+    cancellationCompleted.current = true
+    router.push("/")
     return true
   }
 
   return {
     batchCopy,
-    copyNotice,
-    dismissCopyNotice: () => setCopyNotice(null),
+    cancelConfirmation,
     mobileDraft,
     returningConfirmation,
     returnToCollection,
     routePending,
-    retryCopy: () => void retryCopy(),
     showCopyResult,
   }
 }

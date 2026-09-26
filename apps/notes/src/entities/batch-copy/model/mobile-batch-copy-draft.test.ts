@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  MobileBatchCopyDraftSchema,
   addMobileBatchCopyEntry,
   beginMobileBatchCopy,
   confirmMobileBatchCopy,
@@ -75,7 +74,6 @@ describe("모바일 일괄 복사 작업 초안", () => {
       "2026-09-02T03:04:00.000Z",
     )
 
-    expect(MobileBatchCopyDraftSchema.safeParse(collecting).success).toBe(true)
     expect(collecting).toMatchObject({
       clickCount: 1,
       entries: [firstEntry, { ...firstEntry, id: "batch-entry-copy" }],

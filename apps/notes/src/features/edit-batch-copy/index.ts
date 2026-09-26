@@ -16,12 +16,12 @@ export {
   type EditBatchCopyExecution,
   type EditBatchCopyResult,
 } from "./model/save-changes"
-export { BatchCopyEditingView } from "./ui/batch-copy-editing-view"
 export { BatchCopyActionSheet } from "./ui/batch-copy-action-sheet"
+export { BatchCopyList } from "./ui/batch-copy-list"
 export { createBatchCopyItemActions } from "./model/batch-copy-item-actions"
 export { useBatchCopyActionSheet } from "./model/use-batch-copy-action-sheet"
 export { BatchCopyHistoryShortcuts } from "./ui/batch-copy-history-shortcuts"
 export {
   CopyBatchTextAction,
-  CopyBatchTextNotice,
 } from "./ui/copy-batch-text-action"
+export { useCopyBatchTextFeedback } from "./model/use-copy-batch-text-feedback"

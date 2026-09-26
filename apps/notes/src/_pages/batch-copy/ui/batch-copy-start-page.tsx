@@ -3,10 +3,9 @@
 import Link from "next/link"
 
 import {
-  BatchCopyEditingView,
   BatchCopyHistoryShortcuts,
+  BatchCopyList,
   CopyBatchTextAction,
-  CopyBatchTextNotice,
   useBatchCopyEditor,
 } from "@/features/edit-batch-copy"
 import { Button } from "@/shared/ui/button"
@@ -71,7 +70,7 @@ function BatchCopyPageContent() {
     >
       <div className="mx-auto w-full max-w-3xl" ref={container}>
         {emptyState}
-        <BatchCopyEditingView
+        <BatchCopyList
           actionPresentation={presentation}
           items={batchCopy.items}
           onDuplicate={batchCopy.duplicateItem}
@@ -89,13 +88,11 @@ function BatchCopyPageContent() {
 export function BatchCopyStartPage() {
   const {
     batchCopy,
-    copyNotice,
-    dismissCopyNotice,
+    cancelConfirmation,
     mobileDraft,
     returningConfirmation,
     returnToCollection,
     routePending,
-    retryCopy,
     showCopyResult,
   } = useBatchCopyPage()
   const copyDisabled =
@@ -122,10 +119,11 @@ export function BatchCopyStartPage() {
 
   if (confirmingDraft !== null) {
     return (
-      <MobileBatchCopyConfirmation
-        draft={confirmingDraft}
-        onReturnToCollection={returnToCollection}
-      />
+        <MobileBatchCopyConfirmation
+          draft={confirmingDraft}
+          onCancelConfirmation={cancelConfirmation}
+          onReturnToCollection={returnToCollection}
+        />
     )
   }
 
@@ -146,16 +144,6 @@ export function BatchCopyStartPage() {
           일괄 복사
         </h1>
       </header>
-      {copyNotice ? (
-        <div className="absolute right-3 top-16 z-20 w-[min(24rem,calc(100%-1.5rem))] shadow-floating">
-          <CopyBatchTextNotice
-            onDismiss={dismissCopyNotice}
-            onRetry={retryCopy}
-            result={copyNotice.result}
-            revision={copyNotice.revision}
-          />
-        </div>
-      ) : null}
       <BatchCopyPageContent />
       <footer className="flex items-start justify-between gap-3 border-t border-line bg-surface-raised px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-5">
         <Link className={navigationClassName} href="/">

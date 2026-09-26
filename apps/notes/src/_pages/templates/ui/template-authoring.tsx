@@ -6,11 +6,7 @@ import { Button } from "@/shared/ui/button"
 import { useTemplateAuthoring } from "../model/use-template-authoring"
 import { TemplateEditor } from "./template-editor"
 
-type TemplateAuthoringProps = {
-  onSaved(templateId: string): void
-}
-
-export function TemplateAuthoring({ onSaved }: TemplateAuthoringProps) {
+export function TemplateAuthoring() {
   const authoring = useTemplateAuthoring()
 
   if (authoring.draft === null) {
@@ -37,7 +33,6 @@ export function TemplateAuthoring({ onSaved }: TemplateAuthoringProps) {
       draft={authoring.draft}
       heading={authoring.heading}
       onDraftChange={authoring.setDraft}
-      onSaved={onSaved}
     />
   )
 }

@@ -29,21 +29,17 @@ export {
   type BatchCopySession,
 } from "./model/batch-copy-history"
 export {
-  MobileBatchCopyDraftSchema,
-  MobileBatchCopyEntrySchema,
   addMobileBatchCopyEntry,
   beginMobileBatchCopy,
   confirmMobileBatchCopy,
   duplicateMobileBatchCopyEntry,
   moveMobileBatchCopyEntry,
-  parseMobileBatchCopyDraft,
   removeMobileBatchCopyEntry,
   resumeMobileBatchCopyCollection,
   resetMobileBatchCopy,
   type CollectingMobileBatchCopyDraft,
   type ConfirmingMobileBatchCopyDraft,
   type MobileBatchCopyDraft,
-  type MobileBatchCopyDraftRepository,
   type MobileBatchCopyEntry,
 } from "./model/mobile-batch-copy-draft"
 export {
@@ -51,8 +47,3 @@ export {
   IndexedDbBatchCopyRepository,
   PRIMARY_BATCH_COPY_LIST_ID,
 } from "./api/indexed-db-batch-copy-repository"
-export {
-  ACTIVE_MOBILE_BATCH_COPY_DRAFT_KEY,
-  IndexedDbMobileBatchCopyDraftRepository,
-  MOBILE_BATCH_COPY_DRAFT_STORE_NAME,
-} from "./api/indexed-db-mobile-batch-copy-draft-repository"

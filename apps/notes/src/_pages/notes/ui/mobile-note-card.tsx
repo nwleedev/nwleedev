@@ -3,7 +3,6 @@
 import Link from "next/link"
 
 import type { Note } from "@/entities/note"
-import { joinClassNames } from "@/shared/lib/join-class-names"
 import { EditIcon } from "@/shared/ui/icons"
 
 import { useMobileNoteLongPress } from "../model/use-mobile-note-long-press"
@@ -33,10 +32,6 @@ export function MobileNoteCard({
   const actionName = batchCopyActive
     ? `${summary} 일괄 복사에 추가`
     : `${summary} 복사`
-  const previewClassName = joinClassNames(
-    "block max-h-48 min-h-24 w-full touch-pan-y select-none overflow-hidden whitespace-pre-wrap break-words px-4 py-3 pr-14 text-left text-[0.98rem] leading-7 text-ink",
-    disabled && "opacity-60",
-  )
   const longPress = useMobileNoteLongPress({
     disabled,
     longPressEnabled: !batchCopyActive,
@@ -58,7 +53,7 @@ export function MobileNoteCard({
     >
       <button
         aria-label={actionName}
-        className={previewClassName}
+        className="block max-h-48 min-h-24 w-full touch-pan-y select-none overflow-hidden whitespace-pre-wrap break-words px-4 py-3 pr-14 text-left text-[0.98rem] leading-7 text-ink"
         disabled={disabled}
         type="button"
         {...longPress}
@@ -67,7 +62,7 @@ export function MobileNoteCard({
       </button>
       <Link
         aria-label={`${summary} 수정`}
-        className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-control bg-surface-raised/90 text-icon shadow-sm hover:bg-canvas hover:text-text"
+        className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-control bg-surface-raised/90 text-icon hover:bg-canvas hover:text-text"
         href={href}
       >
         <EditIcon />

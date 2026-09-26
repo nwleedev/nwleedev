@@ -1,69 +1,31 @@
 "use client"
 
 import type { ConfirmingMobileBatchCopyDraft } from "@/entities/batch-copy"
-import {
-  CopyBatchTextAction,
-  CopyBatchTextNotice,
-} from "@/features/edit-batch-copy"
-import { ActionToast } from "@/shared/ui/action-toast"
+import { CopyBatchTextAction } from "@/features/edit-batch-copy"
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
 import { NavigateBackIcon } from "@/shared/ui/icons"
 
 import {
   useMobileBatchCopyConfirmation,
-  type ConfirmationNotice,
 } from "../model/use-mobile-batch-copy-confirmation"
 import { MobileBatchCopyConfirmationList } from "./mobile-batch-copy-confirmation-list"
 
 type MobileBatchCopyConfirmationProps = {
   draft: ConfirmingMobileBatchCopyDraft
+  onCancelConfirmation(): Promise<boolean>
   onReturnToCollection(): Promise<boolean>
-}
-
-type ConfirmationNoticeViewProps = {
-  notice: ConfirmationNotice
-  onDismiss(): void
-  onRetryCopy(): void
-  revision: number
-}
-
-function ConfirmationNoticeView({
-  notice,
-  onDismiss,
-  onRetryCopy,
-  revision,
-}: ConfirmationNoticeViewProps) {
-  if (notice.kind === "copy") {
-    return (
-      <CopyBatchTextNotice
-        onDismiss={onDismiss}
-        onRetry={onRetryCopy}
-        result={notice.result}
-        revision={revision}
-      />
-    )
-  }
-
-  return (
-    <ActionToast
-      actionLabel="다시 시도"
-      kind="error"
-      message={notice.message}
-      onAction={notice.retry}
-      onDismiss={onDismiss}
-      revision={revision}
-    />
-  )
 }
 
 export function MobileBatchCopyConfirmation({
   draft,
+  onCancelConfirmation,
   onReturnToCollection,
 }: MobileBatchCopyConfirmationProps) {
   const confirmation = useMobileBatchCopyConfirmation(
     draft,
     onReturnToCollection,
+    onCancelConfirmation,
   )
 
   return (
@@ -83,16 +45,6 @@ export function MobileBatchCopyConfirmation({
         <h1 className="text-center text-base font-semibold">일괄 복사 확인</h1>
         <span aria-hidden="true" className="h-9 w-9" />
       </header>
-      {confirmation.notice ? (
-        <div className="absolute right-3 top-[4.25rem] z-30 w-[min(24rem,calc(100%-1.5rem))]">
-          <ConfirmationNoticeView
-            notice={confirmation.notice}
-            onDismiss={confirmation.dismissNotice}
-            onRetryCopy={confirmation.retryCopy}
-            revision={confirmation.notice.revision}
-          />
-        </div>
-      ) : null}
       <section className="min-h-0 overflow-auto px-4 py-5">
         {confirmation.entries.length === 0 ? (
           <p className="grid min-h-40 place-items-center text-sm text-soft-ink">

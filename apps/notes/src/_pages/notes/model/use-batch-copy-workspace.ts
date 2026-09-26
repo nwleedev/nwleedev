@@ -1,18 +1,17 @@
 import { createContext, useContext } from "react"
 
-import { useBatchCopyEditor } from "@/features/edit-batch-copy"
+import {
+  useBatchCopyEditor,
+  useCopyBatchTextFeedback,
+} from "@/features/edit-batch-copy"
 
-import { useBatchCopyFeedback } from "./use-batch-copy-feedback"
 import { useBatchCopyPanel } from "./use-batch-copy-panel"
 import { useNoteSession } from "./use-note-session-state"
-import type { WorkspaceNoticeInput } from "./workspace-notice"
 
 export { INLINE_PANEL_ID, MODAL_PANEL_ID } from "./use-batch-copy-panel"
 
 type BatchCopyWorkspaceContextValue = {
   revealNewBatchCopyItem(): void
-  dismissNotice(): void
-  showNotice(notice: WorkspaceNoticeInput): void
 }
 
 export const BatchCopyWorkspaceContext =
@@ -35,7 +34,6 @@ export function useBatchCopyWorkspaceState() {
   const session = useNoteSession()
   const batchCopyItems = batchCopy.status === "ready" ? batchCopy.items : []
   const batchCopyCountText = `${batchCopyItems.length.toLocaleString("ko-KR")}개`
-  const notice = session.workspaceNotice
   const selectedBatchCopyItemId = session.workspace.selectedBatchCopyItemId
   const workspaceSelectionActive =
     selectedBatchCopyItemId !== null || session.workspace.selectedNoteId !== null
@@ -46,10 +44,7 @@ export function useBatchCopyWorkspaceState() {
     clearSelections: session.clearSelections,
     closePanel: session.closePanel,
   })
-  const showCopyResult = useBatchCopyFeedback(
-    batchCopy.copyAll,
-    session.showWorkspaceNotice,
-  )
+  const showCopyResult = useCopyBatchTextFeedback(batchCopy.copyAll)
 
   return {
     batchCopy,
@@ -63,7 +58,6 @@ export function useBatchCopyWorkspaceState() {
     handleDialogCancel: panel.handleDialogCancel,
     handleDialogClose: panel.handleDialogClose,
     handleDialogKeyDown: panel.handleDialogKeyDown,
-    notice,
     propertiesActive: panel.propertiesActive,
     selectedBatchCopyItemId,
     session,
@@ -72,9 +66,7 @@ export function useBatchCopyWorkspaceState() {
     toggleBatchCopyPanel: panel.toggleBatchCopyPanel,
     trigger: panel.trigger,
     workspaceContext: {
-      dismissNotice: session.dismissWorkspaceNotice,
       revealNewBatchCopyItem: panel.revealNewBatchCopyItem,
-      showNotice: session.showWorkspaceNotice,
     },
   }
 }

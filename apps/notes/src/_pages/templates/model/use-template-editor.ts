@@ -13,6 +13,7 @@ import {
 } from "@/entities/template"
 
 import { useTemplateData } from "./template-data-provider"
+import { useTemplateSelection } from "./template-workspace-context"
 
 export type TemplateSaveFields = {
   labels: Record<string, string>
@@ -90,15 +91,14 @@ export function useTemplateDraftPreview(
 type UseTemplateEditorOptions = {
   draft: TemplateDraft
   onDraftChange(draft: TemplateDraft): void
-  onSaved(templateId: string): void
 }
 
 export function useTemplateEditor({
   draft,
   onDraftChange,
-  onSaved,
 }: UseTemplateEditorOptions) {
   const templates = useTemplateData()
+  const { selectTemplate } = useTemplateSelection()
   const sourceField = useRef<HTMLTextAreaElement>(null)
   const [status, setStatus] = useState<EditorStatus>("idle")
   const form = useForm<TemplateSaveFields>({
@@ -238,7 +238,7 @@ export function useTemplateEditor({
     }
 
     onDraftChange(namedDraft)
-    onSaved(result.template.id)
+    selectTemplate(result.template.id)
     setStatus("saved")
   }
 

@@ -1,26 +1,21 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { startTransition, useOptimistic, useState } from "react"
+import { startTransition, useOptimistic, useRef } from "react"
 
 import type {
   ConfirmingMobileBatchCopyDraft,
   MobileBatchCopyEntry,
 } from "@/entities/batch-copy"
 import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
-import type { CopyBatchTextResult } from "@/features/edit-batch-copy"
+import {
+  useCopyBatchTextFeedback,
+  type CopyBatchTextResult,
+} from "@/features/edit-batch-copy"
+import { useActionToast } from "@/shared/ui/action-toast"
 
 type OptimisticChange =
   | { entryId: string; kind: "remove" }
   | { entryId: string; index: number; kind: "move" }
-
-export type ConfirmationNoticeInput =
-  | { kind: "copy"; result: CopyBatchTextResult }
-  | { kind: "error"; message: string; retry(): void }
-
-export type ConfirmationNotice = ConfirmationNoticeInput & {
-  revision: number
-}
 
 function applyOptimisticChange(
   entries: readonly MobileBatchCopyEntry[],
@@ -50,47 +45,64 @@ function applyOptimisticChange(
 export function useMobileBatchCopyConfirmation(
   draft: ConfirmingMobileBatchCopyDraft,
   onReturnToCollection: () => Promise<boolean>,
+  onCancelConfirmation: () => Promise<boolean>,
 ) {
   const batchCopy = useMobileBatchCopy()
-  const router = useRouter()
-  const [notice, setNotice] = useState<ConfirmationNotice | null>(null)
+  const toast = useActionToast()
+  const showCopyResult = useCopyBatchTextFeedback(batchCopy.copy)
+  const failureRevision = useRef<number | null>(null)
   const [entries, applyOptimistic] = useOptimistic(
     draft.entries,
     applyOptimisticChange,
   )
 
-  function showNotice(nextNotice: ConfirmationNoticeInput) {
-    setNotice((current) => ({
-      ...nextNotice,
-      revision: (current?.revision ?? 0) + 1,
-    }))
+  function showFailure(message: string, retry: () => void) {
+    let revision = 0
+    revision = toast.show({
+      actionLabel: "다시 시도",
+      kind: "error",
+      message,
+      onAction: retry,
+      onDismiss: () => {
+        if (failureRevision.current === revision) {
+          failureRevision.current = null
+        }
+      },
+    })
+    failureRevision.current = revision
+  }
+
+  function clearFailure() {
+    const revision = failureRevision.current
+
+    if (revision === null) {
+      return
+    }
+
+    toast.dismiss(revision)
+    failureRevision.current = null
   }
 
   async function returnToCollection() {
     if (await onReturnToCollection()) {
+      clearFailure()
       return
     }
 
-    showNotice({
-      kind: "error",
-      message: "메모 선택 화면으로 돌아가지 못했습니다.",
-      retry: () => void returnToCollection(),
-    })
+    showFailure("메모 선택 화면으로 돌아가지 못했습니다.", () =>
+      void returnToCollection(),
+    )
   }
 
   async function cancel() {
-    const result = await batchCopy.cancel()
-
-    if (result.status === "removed") {
-      router.push("/")
+    if (await onCancelConfirmation()) {
+      clearFailure()
       return
     }
 
-    showNotice({
-      kind: "error",
-      message: "이번 일괄 복사 작업을 취소하지 못했습니다.",
-      retry: () => void cancel(),
-    })
+    showFailure("이번 일괄 복사 작업을 취소하지 못했습니다.", () =>
+      void cancel(),
+    )
   }
 
   function move(entryId: string, index: number): Promise<boolean> {
@@ -99,17 +111,15 @@ export function useMobileBatchCopyConfirmation(
         applyOptimistic({ entryId, index, kind: "move" })
         const result = await batchCopy.move(entryId, index)
 
-        if (result.status === "saved") {
-          setNotice(null)
+        if (result) {
+          clearFailure()
           resolve(true)
           return
         }
 
-        showNotice({
-          kind: "error",
-          message: "항목 순서를 저장하지 못했습니다.",
-          retry: () => void move(entryId, index),
-        })
+        showFailure("항목 순서를 변경하지 못했습니다.", () =>
+          void move(entryId, index),
+        )
         resolve(false)
       })
     })
@@ -117,16 +127,12 @@ export function useMobileBatchCopyConfirmation(
 
   function duplicate(entryId: string) {
     void batchCopy.duplicate(entryId).then((result) => {
-      if (result.status === "saved") {
-        setNotice(null)
+      if (result) {
+        clearFailure()
         return
       }
 
-      showNotice({
-        kind: "error",
-        message: "항목을 복제하지 못했습니다.",
-        retry: () => duplicate(entryId),
-      })
+      showFailure("항목을 복제하지 못했습니다.", () => duplicate(entryId))
     })
   }
 
@@ -135,48 +141,31 @@ export function useMobileBatchCopyConfirmation(
       applyOptimistic({ entryId, kind: "remove" })
       const result = await batchCopy.removeEntry(entryId)
 
-      if (result.status === "saved") {
-        setNotice(null)
+      if (result) {
+        clearFailure()
         return
       }
 
-      showNotice({
-        kind: "error",
-        message: "항목을 삭제하지 못했습니다.",
-        retry: () => remove(entryId),
-      })
+      showFailure("항목을 삭제하지 못했습니다.", () => remove(entryId))
     })
   }
 
-  function showCopyResult(result: CopyBatchTextResult) {
-    showNotice({ kind: "copy", result })
-  }
-
-  async function retryCopy() {
-    try {
-      showCopyResult(await batchCopy.copy())
-    } catch {
-      showCopyResult({
-        reason: "write-failed",
-        status: "clipboard-failure",
-      })
-    }
+  function reportCopyResult(result: CopyBatchTextResult) {
+    clearFailure()
+    showCopyResult(result)
   }
 
   return {
     cancel: () => void cancel(),
     copy: batchCopy.copy,
     copyDisabled: batchCopy.pending || entries.length === 0,
-    dismissNotice: () => setNotice(null),
     duplicate,
     entries,
     move,
-    notice,
     pending: batchCopy.pending,
     reorderButtonsEnabled: batchCopy.reorderButtonsEnabled,
     remove,
-    retryCopy: () => void retryCopy(),
     returnToCollection: () => void returnToCollection(),
-    showCopyResult,
+    showCopyResult: reportCopyResult,
   }
 }

@@ -1084,9 +1084,13 @@ stateDiagram-v2
 - `apps/notes/e2e/batch-copy.spec.ts`의 기존 모바일 과업에서 `다음` 직후 수집 하단 영역이 유지되는지와 확인 `취소` 직후 관리 화면의 헤더 및 본문이 나타나지 않는지 관찰한다. 저장 실패와 다시 시도에서도 항목, 순서와 클릭 횟수가 유지되어야 한다.
 - 실제 경로가 바뀐 뒤에도 이전 화면이 남거나 브라우저 뒤로가기가 같은 화면을 반복하면 이탈 상태의 종료 조건을 고치기 전 다음 단위로 넘어가지 않는다.
 
+#### 진행 기록
+
+확인 화면을 떠나거나 취소할 때 URL 이동이 끝날 때까지 확인 화면의 항목을 유지한다. 브라우저 뒤로가기로 같은 실행의 선택 화면에 돌아오면 첫 화면부터 선택 내용을 표시하고, URL 전환 중 일반 관리 화면을 렌더링하지 않는다. 실제 화면 전환과 취소 처리는 U44에서 확인한다.
+
 ### U37 항목 추가 queue와 화면 차단 분리
 
-U41에서 모바일 작업은 메모리로 옮기지만 사용 횟수 저장은 남는다. 이 단위의 직렬 queue는 사용 횟수 저장 순서와 반복 입력을 보존하는 범위로 줄이고 `mobileBatchCopyDrafts` 저장 책임은 제거한다.
+U41에서 모바일 작업은 메모리로 옮기지만 사용 횟수 저장은 남는다. 직렬 queue는 사용 횟수 기록 순서와 반복 입력을 보존하는 데만 쓰고 `mobileBatchCopyDrafts` 저장 책임은 제거한다.
 
 #### 원인과 목적
 
@@ -1104,6 +1108,10 @@ U41에서 모바일 작업은 메모리로 옮기지만 사용 횟수 저장은 
 - `apps/notes/e2e/batch-copy.spec.ts`에서 첫 저장이 끝나기 전에 같은 메모와 다른 메모를 연속해서 눌러 입력 순서, 중복과 클릭 횟수를 확인한다. 각 누르기 사이에 목록 전체의 `disabled`, 투명도와 배경이 바뀌지 않아야 한다.
 - 후속 입력을 받기 위해 저장 순서, 원자적 횟수 증가 또는 실패 뒤 다시 시도를 잃으면 queue를 제거하지 말고 차단 상태 분리만 다시 검토한다.
 
+#### 진행 기록
+
+항목 추가는 사용 횟수 기록 queue를 유지하면서 목록 전체를 막는 pending 상태와 분리했다. 전달만 하던 목록 컴포넌트를 제거하고 카드의 불투명도 변경도 없앴다. 빠른 연속 선택과 화면 상태는 U44에서 확인한다.
+
 ### U38 모바일 아이콘의 시각적 깊이
 
 #### 원인과 목적
@@ -1112,13 +1120,17 @@ U41에서 모바일 작업은 메모리로 옮기지만 사용 횟수 저장은 
 
 #### 파일 변화와 작업
 
-- 확인: 320 CSS px 브라우저에서 새 메모 버튼의 계산된 너비, 높이, 배경색과 `border-radius`를 확인한다. 현재 토큰이 적용되면 코드를 바꾸지 않고, 결과가 다를 때만 `apps/notes/src/_pages/notes/ui/mobile-notes-workspace.tsx`의 기존 토큰 적용 오류를 수정한다.
+- 확인: 320 CSS px 브라우저에서 새 메모 버튼의 계산된 너비, 높이, 배경색과 `border-radius`를 확인한다. 현재 토큰이 적용되면 코드를 바꾸지 않고, 측정값이 다를 때만 `apps/notes/src/_pages/notes/ui/mobile-notes-workspace.tsx`의 토큰 적용 오류를 수정한다.
 - 수정: `apps/notes/src/_pages/notes/ui/mobile-note-card.tsx`의 수정 아이콘에서 `shadow-sm`을 제거한다. 현재 32 CSS px 조작 영역, 접근 가능한 이름, hover와 `focus-visible` 상태는 유지한다.
 - 제외: 새 아이콘 컴포넌트, 색 토큰, 그림자 토큰과 외부 아이콘 의존성을 추가하지 않는다.
 
 #### 검증과 중단 조건
 
 320 CSS px 실제 화면에서 새 메모 버튼이 다른 아이콘과 구분되고 수정 아이콘이 메모와 같은 깊이로 보이는지 확인한다. 키보드 포커스, 화면 낭독기 이름 또는 수정 화면 이동이 약해지면 시각 변경을 완료하지 않는다.
+
+#### 진행 기록
+
+새 메모 버튼에는 원형 배경과 `action` 색 토큰이 적용되어 있어 수정하지 않았다. 메모 수정 버튼에서는 그림자를 제거했다. 계산된 CSS, 버튼의 접근 가능한 이름과 키보드 사용은 U44에서 확인한다.
 
 ### U39 최소 동작 단위 의존성 검토
 
@@ -1130,12 +1142,16 @@ U41에서 모바일 작업은 메모리로 옮기지만 사용 횟수 저장은 
 
 - 수정: `docs/dev/personal-notes-app/anti-patterns.md`에서 외부 동작의 최소 동작 단위, 조립 지점과 주입하지 않을 대상을 명시한다. 순수 함수, React 지역 상태, React Hook Form 상태, DOM ref와 단순 UI event는 주입 대상으로 만들지 않는다.
 - 검토: `apps/notes/src/_app/composition/**`, `apps/notes/src/_app/providers/**`, `apps/notes/src/features/**/model/**`, `apps/notes/src/_pages/**/model/**`와 UI import를 따라 IndexedDB, Clipboard, Worker, 시계, 식별자 생성기와 외부 SDK 구현이 실제 기능별 interface를 거치는지 확인한다.
-- 수정: 확인된 위반이 있을 때만 호출하는 기능이 필요한 동작을 기존 interface 또는 기능별 accessor에 추가하고 `_app` 조립 지점에서 구현을 연결한다. 독립적으로 바뀌는 읽기, 변경과 삭제를 하나의 service interface로 합치지 않는다.
+- 수정: 위반이 확인되면 위반을 보인 기능이 실제 사용하는 동작만 기존 interface 또는 기능별 accessor에 추가하고 `_app` 조립 지점에서 구현을 연결한다. 독립적으로 바뀌는 읽기, 변경과 삭제를 하나의 service interface로 합치지 않는다.
 - 제외: 새 전역 의존성 객체, token registry, service locator, TanStack Query wrapper, 범용 Context와 외부 의존성은 추가하지 않는다. 위반이 없으면 운영 코드를 바꾸지 않는다.
 
 #### 검증과 중단 조건
 
 ESLint의 FSD import 검사, TypeScript 검사와 전체 UI import 검토로 아래 계층이 `_app` 구현이나 브라우저 구현을 직접 가져오지 않는지 확인한다. 새 interface가 호출하는 컴포넌트에 필요한 동작보다 넓거나 기존 interface와 같은 책임이면 추가하지 않는다.
+
+#### 진행 기록
+
+리서치에서 확인한 외부 의존성의 최소 interface와 composition root 원칙을 개발 지침에 추가했다. 각 feature slice의 Provider와 조립 구조를 재사용했으며 범용 의존성 조회 기능은 만들지 않았다. 전체 import 검토는 U44에서 마친다.
 
 ### U40 직접 사용하는 컴포넌트 기준 Props 정리
 
@@ -1146,91 +1162,115 @@ ESLint의 FSD import 검사, TypeScript 검사와 전체 UI import 검토로 아
 #### 파일 변화와 작업
 
 - 생성: `apps/notes/src/_pages/notes/model/use-note-card-actions.ts`에 현재 `NotesCollection`의 데스크톱 카드 저장, 이동, 복사, 삭제, 선택 및 속성 열기 조립을 옮긴다. 이 hook은 기존 `useNotesData`, 메모 session, 일괄 복사와 알림 accessor를 사용하고 새 저장 상태나 범용 interface를 만들지 않는다.
-- 수정: `apps/notes/src/_pages/notes/ui/notes-collection.tsx`와 `apps/notes/src/_pages/notes/ui/notes-board.tsx`에서 `NotesBoard`가 `useNoteCardActions`를 호출하고 각 `NoteCard`가 실제로 쓰는 값을 전달한다. `NotesCollection`은 모바일과 생성 및 layout 조립을 유지하고, `NoteCard`로 전달만 하던 callback을 `NotesBoard`의 공개 Props에서 제거한다.
+- 수정: `apps/notes/src/_pages/notes/ui/notes-collection.tsx`와 `apps/notes/src/_pages/notes/ui/notes-board.tsx`에서 `NotesBoard`가 `useNoteCardActions`를 호출하고 각 `NoteCard`가 실제로 쓰는 값을 전달한다. `NotesCollection`은 모바일과 생성 및 layout 조립을 유지하고, `NoteCard`로 전달만 하던 callback을 `NotesBoard`의 외부 Props에서 제거한다.
 - 생성: `apps/notes/src/_pages/templates/model/template-workspace-context.ts`에 페이지 전용 Context와 accessor를 둔다. `use-template-workspace.ts`가 선택 ID와 선택 명령을 한 번 관리하고, `apps/notes/src/_pages/templates/ui/templates-start-page.tsx`가 그 값을 Provider에 전달한다. `template-authoring.tsx`, `template-editor.tsx`와 `saved-templates.tsx`에서 실제로 저장하거나 선택하는 컴포넌트는 같은 accessor를 사용한다. 외부 저장소나 SDK를 이 UI Context에 넣지 않는다.
-- 제거: 한 곳에서만 사용되고 값을 행 컴포넌트로 넘기는 `apps/notes/src/_pages/templates/ui/template-input-form.tsx`의 `TemplateValueFieldList`, `template-placeholder-fields.tsx`의 목록 wrapper와 `saved-templates.tsx`의 `SavedTemplateList`를 실제 form 또는 화면 소유자에 합친다. 입력을 직접 관리하는 행 컴포넌트와 React Hook Form의 공식 Context는 유지한다.
+- 제거: 한 곳에서만 사용되고 값을 행 컴포넌트로 넘기는 `apps/notes/src/_pages/templates/ui/template-input-form.tsx`의 `TemplateValueFieldList`, `template-placeholder-fields.tsx`의 목록 wrapper와 `saved-templates.tsx`의 `SavedTemplateList`를 실제 form 또는 목록 조립 컴포넌트에 합친다. 입력을 직접 관리하는 행 컴포넌트와 React Hook Form의 공식 Context는 유지한다.
 - 수정: `apps/notes/src/_pages/notes/ui/batch-copy-workspace.tsx`와 `apps/notes/src/features/edit-batch-copy/ui/batch-copy-editing-view.tsx`에서 패널 frame이 직접 쓰지 않는 편집 값과 callback 전달을 제거한다. 완성된 편집 목록은 `children` 합성 또는 현재 feature root의 직접 구성 가운데 파일 수와 전달 단계가 적은 방식을 사용한다. 이름 있는 JSX slot과 새 Context는 만들지 않는다.
-- 검토: `apps/notes/src/**/*.tsx`의 애플리케이션 Props를 같은 기준으로 확인한다. DOM 속성 전달, React Hook Form의 `register` 결과와 callback을 실제 버튼, pointer handler 또는 ref에서 호출하는 행 컴포넌트는 제거 대상으로 보지 않는다.
+- 검토: `apps/notes/src/**/*.tsx`의 애플리케이션 Props를 같은 기준으로 확인한다. DOM 속성, React Hook Form `register`가 반환한 값과 callback을 실제 버튼, pointer handler 또는 ref에서 사용하는 행 컴포넌트는 제거 대상으로 보지 않는다.
 
 #### 검증과 중단 조건
 
 - 정적 검토에서 전달만 하는 값, callback과 이를 감싼 callback이 남지 않아야 한다. 삭제한 중간 컴포넌트의 public API와 import도 함께 제거한다.
 - 기존 메모 편집, 저장, 이동, 복사, 삭제, 템플릿 저장 및 선택, 일괄 복사 편집 과업을 기존 브라우저 검사로 확인한다. Context, store 또는 큰 Props 객체에 같은 값을 다시 저장해야만 변경할 수 있다면 그 컴포넌트 책임을 다시 나누기 전에는 진행하지 않는다.
 
+#### 진행 기록
+
+메모 카드 event handler는 보드 hook으로 옮겨 실제 동작을 사용하는 지점에 연결했다. 템플릿 선택 Context는 선택과 저장을 수행하는 하위 컴포넌트만 사용한다. 템플릿과 모바일 메모의 중간 wrapper, 일괄 복사 전달 전용 컴포넌트를 제거했다. Props 전달 검토와 기존 과업 검증은 U44에서 마친다.
+
 ### U41 모바일 일괄 복사 작업을 실행 중 메모리로 전환
 
 #### 원인과 목적
 
-`mobileBatchCopyDrafts`는 새로고침 뒤 수집 및 확인 작업을 복원하기 위해 존재한다. 최신 요구사항은 선택 상태를 현재 앱 실행에서만 유지하고 새로고침 또는 브라우저 재실행에서 초기화하므로 이 object store와 이어가기 UI가 맡을 결과가 없어졌다. 저장소를 유지하면 항목마다 불필요한 IndexedDB 쓰기, 초기 불러오기 상태, 확인 및 관리 화면 판정과 migration 부담만 남는다.
+`mobileBatchCopyDrafts`는 새로고침 뒤 수집 및 확인 작업을 복원하기 위해 존재한다. 최신 요구사항은 선택 상태를 현재 앱 실행에서만 유지하고 새로고침 또는 브라우저 재실행에서 초기화하므로 이 object store와 이어가기 UI는 더 이상 필요하지 않다. 저장소를 유지하면 항목마다 불필요한 IndexedDB 쓰기, 초기 불러오기 상태, 확인 및 관리 화면 판정과 migration 부담만 남는다.
 
 같은 앱 실행의 내부 경로 이동과 브라우저 뒤로가기에서는 `PersonalNotesProvider` 아래의 상태를 유지한다. 저장된 일괄 복사 목록, 메모 복구용 `noteDrafts`와 항목 추가에 따른 사용 횟수는 계속 IndexedDB에 둔다.
 
 #### 파일 변화와 작업
 
 - 제거: `apps/notes/src/entities/batch-copy/api/indexed-db-mobile-batch-copy-draft-repository.ts`와 `MobileBatchCopyDraftRepository` 공개 API를 제거한다. 저장 자료 검증만을 위한 `MobileBatchCopyDraftSchema`, 활성 draft key와 store 이름도 제거하고, 수집 및 확인 단계와 항목 전이 타입은 실행 중 작업을 나타내는 이름으로 유지한다.
-- 수정: `apps/notes/src/features/add-note-to-batch-copy/model/mobile-batch-copy-session.ts`에서 시작, 초기화, 확인 전환, 수집 복귀, 재정렬, 복제, 삭제와 취소를 순수한 실행 중 상태 전이로 바꾼다. 저장소 성공 및 실패 결과와 load, save, remove 명령은 제거한다. 항목 추가만 사용 횟수 기록이 완료된 뒤 메모리 작업에 반영한다.
-- 수정: `apps/notes/src/features/add-note-to-batch-copy/model/mobile-batch-copy-entry-writer.ts`와 `api/indexed-db-mobile-batch-copy-entry-writer.ts`는 작업 전체를 저장하지 않고 해당 원문 상태의 일괄 복사 사용 횟수만 기록하는 최소 동작으로 이름과 입력을 바꾼다. `usage` object store 하나만 쓰며, 기록 실패에서는 항목과 클릭 횟수를 메모리 작업에 추가하지 않는다.
-- 수정: `apps/notes/src/features/add-note-to-batch-copy/model/use-mobile-batch-copy-state.ts`는 저장소 load, retry, 이어가기 표시와 draft ref를 제거하고 처음부터 준비된 빈 실행 상태를 사용한다. 공통 provider가 유지되는 내부 경로 이동에서는 상태를 보존하고 전체 새로고침에서는 React 상태 초기화만으로 작업을 없앤다. 반복 누르기의 사용 횟수 저장은 기존 직렬 queue를 사용하되 목록 전체를 비활성화하지 않는다.
-- 수정: `apps/notes/src/_app/composition/use-mobile-batch-copy-adapters.ts`, `mobile-batch-copy.tsx`와 관련 public API에서 draft repository 조립을 제거한다. Clipboard, 식별자, 시계와 사용 횟수 기록 동작만 실제 사용하는 feature에 전달한다.
+- 수정: `apps/notes/src/features/add-note-to-batch-copy/model/mobile-batch-copy-session.ts`에서 시작, 초기화, 확인 전환, 수집 복귀, 재정렬, 복제, 삭제와 취소를 순수한 실행 중 상태 전이로 바꾼다. 저장소 성공 및 실패 반환값과 load, save, remove 명령은 제거한다. 항목 추가만 사용 횟수 기록이 완료된 뒤 메모리 작업에 반영한다.
+- 수정: `apps/notes/src/features/add-note-to-batch-copy/model/mobile-batch-copy-entry-writer.ts`와 `api/indexed-db-mobile-batch-copy-entry-writer.ts`는 작업 전체를 저장하지 않고 선택한 메모의 원문 상태별 일괄 복사 사용 횟수만 기록하도록 이름과 입력을 바꾼다. `usage` object store 하나만 쓰며, 기록 실패에서는 항목과 클릭 횟수를 메모리 작업에 추가하지 않는다.
+- 수정: `apps/notes/src/features/add-note-to-batch-copy/model/use-mobile-batch-copy-state.ts`는 저장소 load, retry, 이어가기 표시와 draft ref를 제거하고 처음부터 준비된 빈 실행 상태를 사용한다. 공통 provider가 유지되는 내부 페이지 이동에서는 상태를 보존하고 전체 새로고침에서는 React 상태 초기화만으로 작업을 없앤다. 반복 누르기의 사용 횟수 저장은 기존 직렬 queue를 사용하되 목록 전체를 비활성화하지 않는다.
+- 수정: `apps/notes/src/_app/composition/use-mobile-batch-copy-adapters.ts`, `mobile-batch-copy.tsx`와 일괄 복사 feature의 public API에서 draft repository 조립을 제거한다. Clipboard, 식별자, 시계와 사용 횟수 기록 동작만 실제 사용하는 feature에 전달한다.
 - 수정: `apps/notes/src/_app/composition/indexed-db/open-personal-notes-database.ts`와 `migrate-personal-notes-database.ts`는 새 데이터베이스에 `mobileBatchCopyDrafts`를 만들지 않고 다음 schema version에서 기존 store를 삭제한다. 기존 모바일 작업 레코드는 다른 store로 옮기지 않으며 `notes`, `noteDrafts`, `batchCopyLists`, `usage`, `templates`와 `preferences`는 그대로 보존한다.
 - 수정: `apps/notes/src/_pages/notes/ui/mobile-notes-workspace.tsx`, `apps/notes/src/_pages/batch-copy/model/use-batch-copy-page.ts`와 확인 화면 model에서 이어가기 UI 및 저장소 오류 분기를 제거한다. `다음`, 화면 안 뒤로가기와 브라우저 뒤로가기는 현재 실행의 작업을 유지하고, 확인 `취소`는 `/`가 표시될 때까지 확인 화면을 유지한 뒤 작업을 버린다. `/batch-copy`를 직접 열거나 새로고침해 현재 실행 작업이 없으면 저장 목록 관리 화면을 표시한다.
-- 제거 및 수정: `apps/notes/src/_app/composition/indexed-db/personal-notes-database.indexeddb.test.ts`, `apps/notes/e2e/batch-copy.spec.ts`와 관련 단위 검사에서 새로고침 뒤 이어가기 기대를 제거한다. 새 schema와 이전 schema 모두에서 모바일 draft store가 없고 다른 저장 자료가 보존되는지, 내부 뒤로가기는 작업을 유지하지만 새로고침은 수집 및 확인 작업을 초기화하는지 기존 검사 파일에서 확인한다.
+- 제거 및 수정: `apps/notes/src/_app/composition/indexed-db/personal-notes-database.indexeddb.test.ts`, `apps/notes/e2e/batch-copy.spec.ts`와 단위 검사에서 새로고침 뒤 이어가기 기대를 제거한다. 이전 schema 자료를 연 뒤 앱에서 사용하는 저장소 API로 메모, 메모 초안, 저장 목록, 사용 횟수, 템플릿과 설정이 유지되는지 확인한다. IndexedDB store 이름과 내부 schema 열거를 완료 기준으로 삼지 않고, 앱 동작에서 내부 뒤로가기는 작업을 유지하며 새로고침은 수집 및 확인 작업을 초기화하는지 확인한다.
 
 #### 검증과 중단 조건
 
 - 같은 앱 실행에서 수집, 확인, 화면 안 뒤로가기와 브라우저 뒤로가기를 반복해 항목, 순서와 클릭 횟수가 유지되어야 한다. `/` 새로고침에서는 평상시 메모 목록, `/batch-copy` 새로고침에서는 저장 목록 관리가 나타나고 이어가기 UI가 없어야 한다.
-- 기존 데이터베이스를 새 version으로 연 뒤 `mobileBatchCopyDrafts`만 없어지고 메모, 메모 초안, 저장 목록, 사용 횟수, 템플릿과 설정이 동일해야 한다.
+- 이전 schema 자료를 새 version으로 연 뒤 앱 동작에서 모바일 작업이 복원되지 않아야 한다. 앱에서 사용하는 저장소 API로 메모, 메모 초안, 저장 목록, 사용 횟수, 템플릿과 설정이 그대로 남는지도 확인한다.
 - 사용 횟수 기록 실패에서 항목을 추가한 것처럼 표시하거나, 저장 복원을 제거하면서 같은 실행의 브라우저 뒤로가기까지 초기화하면 완료하지 않는다.
 
-### U42 애플리케이션 범위 알림 상태와 화면 기준 영역
+#### 진행 기록
+
+모바일 수집 및 확인 상태를 React 메모리로 옮겼다. IndexedDB 버전을 올려 이전 `mobileBatchCopyDrafts` 저장소만 제거하고 다른 자료는 유지하도록 했다. 반복 작업 명령에서 저장 성공 반환값과 저장소 전용 오류 상태를 제거했다. 새로고침 초기화, 같은 실행 안에서 뒤로가기 복원과 자료 보존은 U44에서 확인한다.
+
+### U42 앱 전체 알림 상태와 화면 기준 배치
 
 #### 원인과 목적
 
-현재 알림 값은 일부 공통 상태와 일부 페이지 상태에 나뉘고 실제 `ActionToast`는 페이지 안에서 렌더링된다. 페이지 이동은 알림 컴포넌트와 타이머를 제거하지만 상태는 남길 수 있어, 돌아왔을 때 닫힌 알림처럼 보였던 값이 다시 나타난다. 페이지별 `absolute` wrapper는 오른쪽 패널과 헤더를 기준으로 서로 다른 위치를 만든다.
+현재 알림 값은 일부 공통 상태와 일부 페이지 상태에 나뉘고 실제 `ActionToast`는 페이지 안에서 렌더링된다. 페이지 이동 때 알림 컴포넌트와 타이머는 사라지지만 상태는 남을 수 있어, 돌아오면 이미 사라진 알림이 다시 나타난다. 페이지별 `absolute` wrapper는 오른쪽 패널과 헤더를 기준으로 서로 다른 위치를 만든다.
 
 [토스트 알림 수명, 배치와 구현 방식 조사](references/toast-lifecycle-placement-and-library-research.md)에 따라 기존 표현과 타이머를 유지하고 상태 및 배치 책임만 공통 layout 수명으로 옮긴다. Sonner, Radix Toast, React Aria Components와 React-Toastify는 현재 한 건의 알림에 필요하지 않은 queue, gesture, hotkey 또는 넓은 의존성을 더하므로 추가하지 않는다.
 
+브라우저 확인에서 데스크톱 위쪽 중앙의 실행 취소 버튼이 메모 카드의 동작 버튼 위에 놓여 포인터 입력을 가로채는 문제가 확인됐다. 같은 화면 고정 배치를 유지하면서 데스크톱은 아래쪽 중앙, 모바일은 위쪽 중앙을 사용하고, 위치는 화면 크기 구간으로만 나누어 페이지 구성요소와 분리한다.
+
 #### 파일 변화와 작업
 
-- 생성 또는 수정: `apps/notes/src/shared/ui/action-toast/`에 현재 알림 한 건, revision, 절대 만료 시각, 표시, 교체와 닫기를 관리하는 전용 model hook과 Context accessor를 둔다. hook 구현은 `.ts`에 두고 UI 파일은 상태 model의 공개 동작만 사용한다. 알림이 바뀌면 이전 알림의 `onDismiss` 규칙을 한 번 실행하고, revision이 다른 이전 timer가 새 알림을 닫지 못하게 한다.
-- 생성: 같은 segment에 `ActionToastViewport`를 두어 provider의 현재 알림을 한 번 렌더링한다. 영역은 `position: fixed`, `inset-inline: 0`과 화면 위쪽 safe area를 사용하고 grid 또는 flex의 가운데 정렬로 inline 중심을 정한다. 양쪽 padding은 디자인 간격과 `env(safe-area-inset-left/right)`를 비교하고, 토스트에는 사용 가능한 너비와 최대 inline size를 함께 적용한다. `left: 50%`, 음수 transform, 페이지별 `right`와 임의 퍼센트 너비는 사용하지 않는다.
+- 생성 또는 수정: `apps/notes/src/shared/ui/action-toast/`에 현재 알림 한 건, revision, 절대 만료 시각, 표시, 교체와 닫기를 관리하는 전용 model hook과 Context accessor를 둔다. hook 구현은 `.ts`에 두고 UI 파일은 상태 model의 공개 API만 사용한다. 알림이 바뀌면 이전 알림의 `onDismiss` 규칙을 한 번 실행하고, revision이 다른 이전 timer가 새 알림을 제거하지 못하게 한다.
+- 생성: 같은 segment에 `ActionToastViewport`를 두어 provider의 현재 알림을 한 번 렌더링한다. 영역은 `position: fixed`, `inset-inline: 0`과 safe area를 사용하고 grid 또는 flex의 가운데 정렬로 inline 중심을 정한다. 모바일은 위쪽, 데스크톱은 아래쪽의 고정 위치를 사용하되 페이지 구성에 따라 달라지지 않게 한다. 양쪽 padding은 디자인 간격과 `env(safe-area-inset-left/right)`를 비교하고, 토스트에는 사용 가능한 너비와 최대 inline size를 함께 적용한다. `left: 50%`, 음수 transform, 페이지별 `right`와 임의 퍼센트 너비는 사용하지 않는다.
 - 수정: `apps/notes/src/_app/providers/personal-notes-provider.tsx`가 알림 provider와 viewport를 페이지 콘텐츠와 같은 공통 layout 수명에서 한 번 조립한다. 현재 조상에는 fixed containing block이나 clipping이 없으므로 portal은 추가하지 않는다. 포트폴리오 연결에서 그런 조상이 생긴 경우에만 `createPortal`을 다시 검토한다.
 - 수정: `apps/notes/src/shared/ui/action-toast/index.tsx`, `use-action-toast-timer.ts`와 `apps/notes/src/_app/styles/globals.css`는 기존 `status` 및 `alert`, 닫기, action, 5초 수명, hover 및 `focus-within` 일시정지, 포커스 복원과 reduced motion을 유지하면서 공통 viewport에서만 쓰는 class를 추가한다. 외부 토스트 CSS, 테마와 새 디자인 토큰은 추가하지 않는다.
 
 #### 검증과 중단 조건
 
 - 활성 알림 상태에서 내부 페이지를 이동해도 같은 메시지와 동작이 화면 위쪽 중앙에 남고 원래 만료 시각에서 시간이 이어져야 한다. 만료 또는 닫기 뒤 이전 페이지로 돌아와도 알림이 다시 나타나지 않아야 한다.
-- 넓은 메모 화면의 오른쪽 패널 표시 여부, 320 CSS px, 200% 글자 확대와 safe area에서 inline 중심이 같고 화면 밖으로 잘리지 않아야 한다. 토스트가 주요 헤더 동작을 계속 가리거나 fixed 기준이 페이지 컨테이너로 바뀌면 배치 영역의 조립 위치를 고치기 전 다음 단위로 넘어가지 않는다.
+- 메모 화면의 오른쪽 패널 표시 여부와 다른 route에서 각 화면 크기 구간의 고정 위치가 같아야 한다. 320 CSS px와 safe area에서 inline 중심이 같고 화면 밖으로 잘리지 않아야 한다. 데스크톱 토스트의 실행 취소 버튼이 메모 동작을 가리거나 모바일 토스트가 주요 헤더 또는 하단 작업을 가리면 배치 위치를 다시 조정하기 전 다음 단위로 넘어가지 않는다.
+
+#### 진행 기록
+
+앱 공통 provider에서 알림 상태와 화면 기준 고정 영역을 조립했다. 기존 토스트 UI와 timer를 재사용해 새 라이브러리를 추가하지 않았고, 좌우 safe area 가운데 큰 값을 반영해 토스트 너비를 계산한다. 실제 화면 확인에서 데스크톱 상단 중앙 위치가 메모 동작 버튼을 가리는 원인을 확인해 데스크톱은 화면 아래쪽 중앙, 모바일은 위쪽 중앙으로 정리했다. 두 위치가 화면 가장자리 안에 있고 페이지 이동 전후 같은 자리에 남는지, 원래 만료 시각을 지키는지 U44에서 확인한다.
 
 ### U43 페이지별 알림 상태와 위치 제거
 
 #### 원인과 목적
 
-공통 알림 영역을 추가한 뒤 페이지별 알림 state와 wrapper를 남기면 두 알림 수명과 두 좌표계가 계속 경쟁한다. 알림을 발생시키는 기능은 공통 accessor를 직접 호출하고, 페이지 frame은 알림 값과 callback을 전달하거나 렌더링하지 않아야 한다.
+공통 알림 영역을 추가한 뒤 페이지별 알림 state와 wrapper를 남기면 두 알림 수명과 두 좌표계가 계속 경쟁한다. 알림을 표시하는 각 기능은 공통 accessor를 직접 호출하고, 페이지 frame은 알림 값과 callback을 전달하거나 렌더링하지 않아야 한다.
 
 #### 파일 변화와 작업
 
 - 수정: `apps/notes/src/_pages/notes/model/use-note-session-state.ts`, `use-workspace-notice.ts`, `workspace-notice.ts`와 관련 public API에서 알림 값 및 명령을 제거한다. 메모 선택, 패널 상태와 삭제 복구 이력은 유지하고 알림 종료가 삭제 이력 자체를 지우지 않는 현재 규칙도 유지한다.
-- 수정: `apps/notes/src/_pages/notes/ui/notes-collection.tsx`, `model/use-batch-copy-feedback.ts`와 실제 복사, 생성 및 삭제 결과를 만드는 model이 공통 알림 accessor를 사용한다. 알림을 실제로 만들지 않는 중간 컴포넌트에는 알림 값이나 `showNotice` callback을 전달하지 않는다.
+- 수정: `apps/notes/src/_pages/notes/ui/notes-collection.tsx`, `model/use-batch-copy-feedback.ts`와 복사, 생성 및 삭제 동작의 성공 또는 실패를 알리는 model이 공통 알림 accessor를 사용한다. 알림을 실제로 만들지 않는 중간 컴포넌트에는 알림 값이나 `showNotice` callback을 전달하지 않는다.
 - 수정: `apps/notes/src/_pages/notes/ui/batch-copy-workspace.tsx`에서 `noticeClassName`, 페이지 안의 `ActionToast` 렌더링과 알림 Props 전달을 제거한다. 패널 열림 여부에 따른 오른쪽 위치 계산은 남기지 않는다.
-- 수정: `apps/notes/src/_pages/batch-copy/model/use-mobile-batch-copy-confirmation.ts`, `ui/mobile-batch-copy-confirmation.tsx`와 `apps/notes/src/features/edit-batch-copy/ui/copy-batch-text-action.tsx`에서 페이지 지역 알림 상태와 `ConfirmationNoticeView`를 제거하고 공통 알림에 복사 성공, 실패와 다시 시도를 발행한다. 저장 목록 관리 화면의 복사 결과도 같은 알림 영역을 사용한다.
+- 수정: `apps/notes/src/_pages/batch-copy/model/use-mobile-batch-copy-confirmation.ts`, `ui/mobile-batch-copy-confirmation.tsx`와 `apps/notes/src/features/edit-batch-copy/ui/copy-batch-text-action.tsx`에서 페이지 지역 알림 상태와 `ConfirmationNoticeView`를 제거하고 공통 알림에 복사 성공, 실패와 다시 시도를 발행한다. 저장 목록 관리 화면의 복사 알림도 같은 영역을 사용한다.
 - 제거: 페이지 위치만 다르게 만들던 `absolute` 알림 wrapper와 더 이상 쓰지 않는 notice type, state 및 전달 Props를 제거한다. 지속해서 확인해야 하는 저장 및 자료 불러오기 실패는 공통 토스트로 옮기지 않고 기존 작업 가까이의 오류 상태를 유지한다.
 
 #### 검증과 중단 조건
 
-- 메모 개별 복사, 전체 복사, 메모 삭제와 확인 화면의 복사 실패가 모두 한 알림 영역을 갱신하고 동시에 둘 이상 나타나지 않아야 한다. 새 결과는 표시 시간을 다시 세되 이전 timer가 새 결과를 닫지 않아야 한다.
+- 메모 개별 복사, 전체 복사, 메모 삭제와 확인 화면의 복사 실패가 모두 한 알림 영역을 갱신하고 동시에 둘 이상 나타나지 않아야 한다. 새 알림은 표시 시간을 처음부터 다시 세되 이전 timer가 새 알림을 만료시키지 않아야 한다.
 - 삭제 `실행 취소`와 복사 `다시 시도`는 키보드로 실행할 수 있고 hover 및 `focus-within`에서 남은 시간이 멈춰야 한다. 자동 저장, 화면 자료 불러오기와 저장하지 않은 변경처럼 지속 또는 선택이 필요한 상태를 토스트로 바꾸면 완료하지 않는다.
+
+#### 진행 기록
+
+페이지별 알림 state와 위치 wrapper를 제거하고 메모 복사, 생성, 삭제와 일괄 복사의 성공 또는 오류 알림을 공통 accessor에 연결했다. 삭제 복원은 기존 LIFO 순서를 유지한다. 알림 표시를 끝낼 때와 action 버튼에 포커스를 돌려줄 때의 처리는 공통 토스트가 맡는다. 전체 상호작용은 U44에서 확인한다.
 
 ### U44 최종 검토와 검증
 
-U36부터 U40까지의 남은 모듈 작업과 U41부터 U43까지의 변경을 마친 뒤 전체 검토와 검증을 한 번 수행한다. 구현 중 같은 범위의 중간 리뷰를 반복하지 않는다.
+U36부터 U40까지의 남은 모듈 작업과 U41부터 U43까지의 변경을 마친 뒤 전체 검토와 검증을 한 번 수행한다. 구현 중 같은 변경 묶음에 대한 중간 검토를 반복하지 않는다.
 
-1. 저장소가 요구하는 Node.js 24.15와 pnpm 11.25 환경에서 lint, TypeScript 검사, 관련 단위 검사와 기존 Playwright 과업을 실행한다. 새 외부 의존성, URL, 영속 모바일 작업 필드, 범용 Context와 service locator가 생기지 않았는지 diff와 lockfile로 확인한다.
+1. 저장소가 요구하는 Node.js 24.15와 pnpm 11.25 환경에서 lint, TypeScript 검사, 단위 검사와 기존 Playwright 과업을 실행한다. 새 외부 의존성, URL, 영속 모바일 작업 필드, 범용 Context와 service locator가 생기지 않았는지 diff와 lockfile로 확인한다.
 2. 320 CSS px 실제 브라우저에서 연속 항목 누르기, `다음` 전환, 확인 `취소`, 같은 실행의 브라우저 뒤로가기, 두 URL의 새로고침, Drawer 관리 진입과 두 아이콘의 계산 스타일 및 접근성 상태를 확인한다.
-3. `apps/notes/src/_app/composition/indexed-db/personal-notes-database.indexeddb.test.ts`에서 새 데이터베이스와 이전 version migration 뒤 `mobileBatchCopyDrafts`가 없고 나머지 저장 자료가 보존되는지 확인한다. `apps/notes/e2e/batch-copy.spec.ts`에서 내부 이동은 모바일 작업을 유지하지만 새로고침은 초기화하며 사용 횟수와 저장 목록은 유지하는지 확인한다.
-4. `apps/notes/e2e/clipboard-permissions.spec.ts`와 `apps/notes/e2e/notes-removal-model.spec.ts`의 기존 과업을 확장해 활성 알림 중 페이지 왕복, 원래 만료 시각, 닫기 뒤 비복원, 다음 알림 교체와 action 포커스를 확인한다. 별도 토스트 전용 검사 파일은 만들지 않는다.
-5. 넓은 화면의 오른쪽 패널 표시 전후, 320 CSS px, 200% 글자 확대, safe area와 모바일 화면 키보드에서 알림의 계산 위치, 최대 너비와 가림을 확인한다. DOM class나 wrapper 구조가 아니라 viewport와 알림의 화면 사각형 및 사용 가능한 동작을 관찰한다.
+3. `apps/notes/src/_app/composition/indexed-db/personal-notes-database.indexeddb.test.ts`에서 이전 version 자료를 연 뒤 앱에서 사용하는 저장소 API로 메모, 메모 초안, 저장 목록, 사용 횟수, 템플릿과 설정이 보존되는지 확인한다. `apps/notes/e2e/batch-copy.spec.ts`에서 내부 이동은 모바일 작업을 유지하지만 새로고침은 초기화하며 사용 횟수와 저장 목록은 유지하는지 확인한다. IndexedDB store 이름이나 내부 schema 열거는 검사하지 않는다.
+4. `apps/notes/e2e/clipboard-permissions.spec.ts`와 `apps/notes/e2e/notes-removal-model.spec.ts`의 기존 과업을 확장해 알림이 표시된 동안 페이지를 오간 뒤 남은 시간, 사용자가 닫은 알림이 다시 나타나지 않는지, 다음 알림 교체와 action 포커스를 확인한다. 별도 토스트 전용 검사 파일은 만들지 않는다.
+5. 넓은 화면의 오른쪽 패널 표시 전후와 320 CSS px에서 화면 아래쪽 중앙 및 위쪽 중앙 토스트가 각각 페이지 이동 전후 같은 화면 위치를 유지하는지 확인한다. 200% 글자 확대, safe area와 모바일 화면 키보드에서 최대 너비, 화면 가장자리와 겹침을 확인한다. DOM class나 wrapper 구조가 아니라 viewport와 알림의 화면 사각형 및 사용 가능한 동작을 관찰한다.
 6. 모든 변경 소스에서 유사한 코드를 찾아 공통화 책임이 실제로 같은지 확인한다. 한 번만 쓰는 추상화, 전달용 컴포넌트와 넓은 interface는 제거하고 실패를 숨기기 위해 테스트를 삭제하거나 약화하지 않는다.
+
+#### 진행 기록
+
+Node.js 24.15와 pnpm 11.25에서 `pnpm notes:lint`, `pnpm notes:typecheck`, `pnpm notes:test`를 실행해 통과했다. 단위 검사는 36개 파일과 191개 검사를 통과했다. `pnpm --filter notes-app test:browser`는 15개 파일과 60개 검사를 통과했고, `pnpm notes:test:e2e`는 앱 빌드 뒤 218개 브라우저 검사를 통과했다. 브라우저 과업에서 모바일 화면 이동, 새로고침, 확인 취소, IndexedDB 자료 보존과 토스트 위치를 확인했다.
+
+실제 기기에서 200% 글자 확대, safe area와 모바일 화면 키보드가 토스트와 하단 조작에 미치는 영향은 확인하지 않았다. U4 시각 및 접근성 승인도 기록되지 않아 전체 설계 완료 판정은 `needs human input`으로 유지한다.
 
 ### 현재 코드 검토 결과에 따른 선행 정리
 

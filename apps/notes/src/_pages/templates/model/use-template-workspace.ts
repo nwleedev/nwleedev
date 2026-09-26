@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
 import { useSelectedSourceLines } from "@/features/suggest-template"
 
@@ -13,11 +13,14 @@ export function useTemplateWorkspace() {
   const selectedTemplate = templateState.status === "ready"
     ? templateState.templates.find(({ id }) => id === selectedTemplateId)
     : undefined
+  const selection = useMemo(
+    () => ({ selectTemplate, selectedTemplateId }),
+    [selectTemplate, selectedTemplateId],
+  )
 
   return {
-    selectTemplate,
+    selection,
     selectedTemplate,
-    selectedTemplateId,
     sourceSelection: sourceLines.selection,
   }
 }

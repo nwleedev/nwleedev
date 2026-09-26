@@ -1,7 +1,6 @@
 import { useState } from "react"
 
-import { IndexedDbMobileBatchCopyDraftRepository } from "@/entities/batch-copy"
-import { IndexedDbMobileBatchCopyEntryWriter } from "@/features/add-note-to-batch-copy"
+import { IndexedDbMobileBatchCopyUsageWriter } from "@/features/add-note-to-batch-copy"
 import { BrowserClipboardWriter } from "@/shared/lib/clipboard"
 import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
 
@@ -15,8 +14,7 @@ export function useMobileBatchCopyAdapters(database: PersonalNotesDatabase) {
       clipboard: new BrowserClipboardWriter(),
       createId: () => identifiers.create(),
       now: () => new Date().toISOString(),
-      repository: new IndexedDbMobileBatchCopyDraftRepository(database),
-      writer: new IndexedDbMobileBatchCopyEntryWriter(
+      writer: new IndexedDbMobileBatchCopyUsageWriter(
         database,
         identifiers,
       ),

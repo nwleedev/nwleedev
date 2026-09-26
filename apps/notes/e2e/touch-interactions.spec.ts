@@ -143,14 +143,17 @@ test("메모를 길게 눌러 복사하고 확인 항목을 길게 누른 뒤 �
   const firstHandle = firstEntry.getByRole("button", {
     name: "1번째 일괄 복사 항목 이동",
   })
+  const reorderStatus = page.getByRole("status").filter({
+    hasText: /(?:번째 위치로 이동 중|놓을 수 없는 위치)/u,
+  })
   const dragStart = await center(firstHandle)
   const dragEnd = await center(secondEntry)
 
   await startTouch(session, dragStart)
   await page.clock.fastForward(500)
-  await expect(page.getByRole("status")).toContainText("1번째 위치로 이동 중")
+  await expect(reorderStatus).toContainText("1번째 위치로 이동 중")
   await moveTouch(session, dragEnd)
-  await expect(page.getByRole("status")).toContainText("2번째 위치로 이동 중")
+  await expect(reorderStatus).toContainText("2번째 위치로 이동 중")
   await endTouch(session)
 
   await expect(
@@ -170,16 +173,16 @@ test("메모를 길게 눌러 복사하고 확인 항목을 길게 누른 뒤 �
   await startTouch(session, outsideDragStart)
   await page.clock.fastForward(500)
   await moveTouch(session, { x: outsideDragStart.x, y: 20 })
-  await expect(page.getByRole("status")).toContainText("놓을 수 없는 위치")
+  await expect(reorderStatus).toContainText("놓을 수 없는 위치")
   await endTouch(session)
   await expect(reorderedEntries).toContainText([secondContent, firstContent])
 
   const cancellationPoint = await center(cancellationHandle)
   await startTouch(session, cancellationPoint)
   await page.clock.fastForward(500)
-  await expect(page.getByRole("status")).toContainText("1번째 위치로 이동 중")
+  await expect(reorderStatus).toContainText("1번째 위치로 이동 중")
   await cancelTouch(session)
-  await expect(page.getByRole("status")).not.toContainText("이동 중")
+  await expect(reorderStatus).toHaveCount(0)
   await expect(reorderedEntries).toContainText([secondContent, firstContent])
 
   const capturePoint = await center(cancellationHandle)
@@ -188,7 +191,7 @@ test("메모를 길게 눌러 복사하고 확인 항목을 길게 누른 뒤 �
   await page.clock.fastForward(500)
   await releasePointerCapture(page)
   await endTouch(session)
-  await expect(page.getByRole("status")).not.toContainText("이동 중")
+  await expect(reorderStatus).toHaveCount(0)
   await expect(reorderedEntries).toContainText([secondContent, firstContent])
 
   const scrollPoint = await center(cancellationHandle)
@@ -196,7 +199,7 @@ test("메모를 길게 눌러 복사하고 확인 항목을 길게 누른 뒤 �
   await moveTouch(session, { x: scrollPoint.x, y: scrollPoint.y + 20 })
   await page.clock.fastForward(500)
   await endTouch(session)
-  await expect(page.getByRole("status")).not.toContainText("이동 중")
+  await expect(reorderStatus).toHaveCount(0)
   await expect(reorderedEntries).toContainText([secondContent, firstContent])
 })
 

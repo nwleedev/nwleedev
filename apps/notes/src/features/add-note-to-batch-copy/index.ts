@@ -1,7 +1,7 @@
 export { IndexedDbBatchCopyItemWriter } from "./api/indexed-db-batch-copy-item-writer"
-export { IndexedDbMobileBatchCopyEntryWriter } from "./api/indexed-db-mobile-batch-copy-entry-writer"
+export { IndexedDbMobileBatchCopyUsageWriter } from "./api/indexed-db-mobile-batch-copy-usage-writer"
 export type { BatchCopyItemWriter } from "./model/batch-copy-item-writer"
-export type { MobileBatchCopyEntryWriter } from "./model/mobile-batch-copy-entry-writer"
+export type { MobileBatchCopyUsageWriter } from "./model/mobile-batch-copy-usage-writer"
 export {
   AddNoteToBatchCopyProvider,
   useAddNoteToBatchCopy,
@@ -20,16 +20,12 @@ export {
 } from "./model/copy-mobile-batch-text"
 export {
   addNoteToMobileBatchCopy,
-  cancelMobileBatchCopy,
   confirmMobileBatchCopySession,
   duplicateMobileBatchCopySessionEntry,
-  loadMobileBatchCopy,
   moveMobileBatchCopySessionEntry,
   removeMobileBatchCopySessionEntry,
   resetMobileBatchCopySession,
   resumeMobileBatchCopySession,
   startMobileBatchCopy,
-  type MobileBatchCopyLoadResult,
-  type MobileBatchCopyRemoveResult,
-  type MobileBatchCopySaveResult,
+  type AddMobileBatchCopyResult,
 } from "./model/mobile-batch-copy-session"

@@ -62,34 +62,6 @@ function TemplateValueField({
   )
 }
 
-type TemplateValueFieldListProps = {
-  errors: FieldErrors<TemplateValueFields>
-  placeholders: readonly Extract<
-    TemplateSegment,
-    { kind: "placeholder" }
-  >[]
-  register: UseFormRegister<TemplateValueFields>
-}
-
-function TemplateValueFieldList({
-  errors,
-  placeholders,
-  register,
-}: TemplateValueFieldListProps) {
-  return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {placeholders.map((placeholder) => (
-        <TemplateValueField
-          errors={errors}
-          key={placeholder.key}
-          placeholder={placeholder}
-          register={register}
-        />
-      ))}
-    </div>
-  )
-}
-
 const outputCopyFailureMessages: Record<
   ClipboardWriteFailureReason,
   string
@@ -173,11 +145,16 @@ export function TemplateInputForm({ template }: TemplateInputFormProps) {
         {template.title}
       </h2>
       <form className="grid gap-4" noValidate onSubmit={generated.submitValues}>
-        <TemplateValueFieldList
-          errors={generated.errors}
-          placeholders={generated.placeholders}
-          register={generated.register}
-        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          {generated.placeholders.map((placeholder) => (
+            <TemplateValueField
+              errors={generated.errors}
+              key={placeholder.key}
+              placeholder={placeholder}
+              register={generated.register}
+            />
+          ))}
+        </div>
         <div className="flex justify-end">
           <Button type="submit">텍스트 생성</Button>
         </div>

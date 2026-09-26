@@ -1,66 +1,27 @@
-import { z } from "zod"
-
 import type { NoteContentReference } from "@/entities/note/@x/batch-copy"
-import {
-  EntityIdSchema,
-  IsoDateTimeSchema,
-  RevisionSchema,
-} from "@/shared/lib/entity-metadata"
+import { EntityIdSchema } from "@/shared/lib/entity-metadata"
 
-const BatchCopySourceNoteSchema: z.ZodType<NoteContentReference> = z
-  .object({
-    contentRevision: RevisionSchema,
-    id: EntityIdSchema,
-  })
-  .strict()
+export type MobileBatchCopyEntry = {
+  id: string
+  sourceNote: NoteContentReference
+  textSnapshot: string
+}
 
-export const MobileBatchCopyEntrySchema = z
-  .object({
-    id: EntityIdSchema,
-    sourceNote: BatchCopySourceNoteSchema,
-    textSnapshot: z.string(),
-  })
-  .strict()
+export type MobileBatchCopyDraft = {
+  clickCount: number
+  entries: MobileBatchCopyEntry[]
+  id: string
+  startedAt: string
+  step: "collecting" | "confirming"
+  updatedAt: string
+}
 
-export const MobileBatchCopyDraftSchema = z
-  .object({
-    clickCount: z.number().int().nonnegative().safe(),
-    entries: z.array(MobileBatchCopyEntrySchema),
-    id: EntityIdSchema,
-    startedAt: IsoDateTimeSchema,
-    step: z.enum(["collecting", "confirming"]),
-    updatedAt: IsoDateTimeSchema,
-  })
-  .strict()
-  .superRefine((draft, context) => {
-    const identifiers = new Set(draft.entries.map(({ id }) => id))
-
-    if (identifiers.size !== draft.entries.length) {
-      context.addIssue({
-        code: "custom",
-        message: "Mobile batch copy entry identifiers must be unique",
-        path: ["entries"],
-      })
-    }
-  })
-
-export type MobileBatchCopyEntry = z.infer<
-  typeof MobileBatchCopyEntrySchema
->
-export type MobileBatchCopyDraft = z.infer<
-  typeof MobileBatchCopyDraftSchema
->
 export type CollectingMobileBatchCopyDraft = MobileBatchCopyDraft & {
   step: "collecting"
 }
+
 export type ConfirmingMobileBatchCopyDraft = MobileBatchCopyDraft & {
   step: "confirming"
-}
-
-export interface MobileBatchCopyDraftRepository {
-  get(): Promise<MobileBatchCopyDraft | null>
-  remove(): Promise<void>
-  save(draft: MobileBatchCopyDraft): Promise<MobileBatchCopyDraft>
 }
 
 export function beginMobileBatchCopy(input: {
@@ -182,10 +143,4 @@ export function removeMobileBatchCopyEntry(
   }
 
   return { ...draft, entries, updatedAt }
-}
-
-export function parseMobileBatchCopyDraft(
-  value: unknown,
-): MobileBatchCopyDraft {
-  return MobileBatchCopyDraftSchema.parse(value)
 }

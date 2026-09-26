@@ -633,7 +633,10 @@ async function executeRemovalCommands(
         const removalNotice = page.getByRole("status").filter({
           hasText: "메모를 삭제했습니다.",
         })
-        await removalNotice.getByRole("button", { name: "실행 취소" }).click()
+        const undo = removalNotice.getByRole("button", { name: "실행 취소" })
+        await undo.focus()
+        await expect(undo).toBeFocused()
+        await page.keyboard.press("Enter")
         await expect.poll(() => readStoredNote(page, expected.id)).not.toBeNull()
         const stored = await readStoredNote(page, expected.id)
         if (stored === null) {
@@ -759,7 +762,10 @@ test("삭제 실패를 줄이고 스냅샷, 포커스와 만료 시각으로 재
 }) => {
   test.slow()
   const normal = await checkRemovalExploration(browser, "none")
-  expect(normal.details.failed).toBe(false)
+  expect(
+    normal.details.failed,
+    fc.defaultReportMessage(normal.details),
+  ).toBe(false)
   expect(normal.details.interrupted).toBe(false)
   console.info(
     JSON.stringify({

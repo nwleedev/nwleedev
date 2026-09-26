@@ -1,12 +1,11 @@
 "use client"
 
-import { useCallback, useEffect, useEffectEvent, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 
 type UseActionToastTimerOptions = {
   durationMs: number
   expiresAtMs?: number
   onDismiss(): void
-  pausable: boolean
   revision: number
 }
 
@@ -14,13 +13,13 @@ export function useActionToastTimer({
   durationMs,
   expiresAtMs,
   onDismiss,
-  pausable,
   revision,
 }: UseActionToastTimerOptions) {
   const remainingMs = useRef(durationMs)
   const startedAtMs = useRef(0)
   const timer = useRef<number | null>(null)
   const paused = useRef(false)
+  const pointerInside = useRef(false)
   const closeButton = useRef<HTMLButtonElement | null>(null)
   const toast = useRef<HTMLDivElement | null>(null)
   const returnFocusTarget = useRef<HTMLElement | null>(null)
@@ -29,7 +28,7 @@ export function useActionToastTimer({
     closeButton.current = element
   }, [])
 
-  function dismissToast() {
+  const dismissToast = useCallback(() => {
     const restoreFocus = document.activeElement === closeButton.current
     const target = returnFocusTarget.current
 
@@ -46,13 +45,7 @@ export function useActionToastTimer({
 
       target.focus()
     })
-  }
-
-  const dismissOnTimer = useEffectEvent((scheduledRevision: number) => {
-    if (scheduledRevision === revision) {
-      dismissToast()
-    }
-  })
+  }, [onDismiss])
 
   function clearTimer() {
     if (timer.current === null) {
@@ -77,19 +70,26 @@ export function useActionToastTimer({
     remainingMs.current = expiresAtMs === undefined
       ? durationMs
       : Math.max(0, expiresAtMs - Date.now())
-    paused.current = false
+    paused.current = (
+      pointerInside.current ||
+      (document.activeElement instanceof Node &&
+        toast.current?.contains(document.activeElement) === true)
+    )
     clearTimer()
     startedAtMs.current = Date.now()
-    timer.current = window.setTimeout(() => {
-      timer.current = null
-      dismissOnTimer(revision)
-    }, remainingMs.current)
+
+    if (!paused.current) {
+      timer.current = window.setTimeout(() => {
+        timer.current = null
+        dismissToast()
+      }, remainingMs.current)
+    }
 
     return clearTimer
-  }, [durationMs, expiresAtMs, revision])
+  }, [dismissToast, durationMs, expiresAtMs, revision])
 
-  function pause() {
-    if (!pausable || paused.current || timer.current === null) {
+  const pause = useCallback(() => {
+    if (paused.current || timer.current === null) {
       return
     }
 
@@ -98,10 +98,18 @@ export function useActionToastTimer({
     remainingMs.current = Math.max(0, remainingMs.current - elapsedMs)
     paused.current = true
     clearTimer()
-  }
+  }, [])
 
-  function resume() {
-    if (!pausable || !paused.current) {
+  const resume = useCallback(() => {
+    if (!paused.current) {
+      return
+    }
+
+    const focusWithin =
+      document.activeElement instanceof Node &&
+      toast.current?.contains(document.activeElement) === true
+
+    if (pointerInside.current || focusWithin) {
       return
     }
 
@@ -112,7 +120,32 @@ export function useActionToastTimer({
       timer.current = null
       dismissToast()
     }, remainingMs.current)
-  }
+  }, [dismissToast])
+
+  useEffect(() => {
+    function trackPointer(event: PointerEvent) {
+      if (event.pointerType === "touch") {
+        return
+      }
+
+      const bounds = toast.current?.getBoundingClientRect()
+      pointerInside.current = bounds !== undefined &&
+        event.clientX >= bounds.left &&
+        event.clientX <= bounds.right &&
+        event.clientY >= bounds.top &&
+        event.clientY <= bounds.bottom
+
+      if (pointerInside.current) {
+        pause()
+      } else {
+        resume()
+      }
+    }
+
+    window.addEventListener("pointermove", trackPointer)
+
+    return () => window.removeEventListener("pointermove", trackPointer)
+  }, [pause, resume])
 
   return { closeButtonRef, dismiss: dismissToast, pause, resume, toastRef: toast }
 }

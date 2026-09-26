@@ -2,16 +2,12 @@
 
 import type { PropsWithChildren, RefObject } from "react"
 
-import type { BatchCopyItem } from "@/entities/batch-copy"
 import {
-  BatchCopyEditingView,
+  BatchCopyList,
   BatchCopyHistoryShortcuts,
   CopyBatchTextAction,
-  type CopyBatchTextResult,
-  type EditBatchCopyResult,
 } from "@/features/edit-batch-copy"
 import { joinClassNames } from "@/shared/lib/join-class-names"
-import { ActionToast } from "@/shared/ui/action-toast"
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
 import { CloseIcon } from "@/shared/ui/icons"
@@ -28,20 +24,8 @@ import { NotePropertiesPanel } from "./note-properties-panel"
 type BatchCopyPanelContentProps = {
   headingId: string
   headingRef?: RefObject<HTMLHeadingElement | null>
-  items: readonly BatchCopyItem[]
-  pending: boolean
-  reorderButtonsEnabled: boolean
-  selectedItemId: string | null
-  status: "failure" | "loading" | "ready"
   onClose(): void
-  onCopy(): Promise<CopyBatchTextResult>
-  onCopyResult(result: CopyBatchTextResult): void
-  onDuplicate(itemId: string): Promise<EditBatchCopyResult>
-  onMove(itemId: string, index: number): Promise<EditBatchCopyResult>
-  onRemove(itemId: string): Promise<EditBatchCopyResult>
-  onRetry(): void
-  onToggleSelection(itemId: string): void
-}
+} & PropsWithChildren
 
 type EmptyBatchCopyContentProps = {
   status: "failure" | "loading" | "ready"
@@ -80,21 +64,10 @@ function EmptyBatchCopyContent({
 }
 
 function BatchCopyPanelContent({
+  children,
   headingId,
   headingRef,
-  items,
   onClose,
-  onCopy,
-  onCopyResult,
-  onDuplicate,
-  onMove,
-  onRemove,
-  onRetry,
-  onToggleSelection,
-  pending,
-  reorderButtonsEnabled,
-  selectedItemId,
-  status,
 }: BatchCopyPanelContentProps) {
   return (
     <div
@@ -118,33 +91,7 @@ function BatchCopyPanelContent({
           <CloseIcon />
         </IconButton>
       </header>
-      {items.length === 0 ? (
-        <EmptyBatchCopyContent onRetry={onRetry} status={status} />
-      ) : (
-        <>
-          <div className="min-h-0 flex-1 overflow-auto p-4">
-            <BatchCopyEditingView
-              actionPresentation="popover"
-              items={items}
-              onDuplicate={onDuplicate}
-              onMove={onMove}
-              onRemove={onRemove}
-              onToggleSelection={onToggleSelection}
-              pending={pending}
-              presentation="panel"
-              reorderButtonsEnabled={reorderButtonsEnabled}
-              selectedItemId={selectedItemId}
-            />
-          </div>
-          <div className="flex shrink-0 justify-end border-t border-line p-3">
-            <CopyBatchTextAction
-              disabled={pending}
-              onCopy={onCopy}
-              onResult={onCopyResult}
-            />
-          </div>
-        </>
-      )}
+      {children}
     </div>
   )
 }
@@ -162,7 +109,6 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
     handleDialogCancel,
     handleDialogClose,
     handleDialogKeyDown,
-    notice,
     propertiesActive,
     selectedBatchCopyItemId,
     session,
@@ -184,10 +130,37 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
     "absolute top-3 z-20 hidden @3xl/notes-workspace:block",
     showInlinePanel ? "right-[22.75rem]" : "right-3 sm:right-4",
   )
-  const noticeClassName = joinClassNames(
-    "absolute top-3 z-40 w-[min(24rem,calc(100%-1.5rem))]",
-    showInlinePanel ? "right-[22.75rem]" : "right-3",
-  )
+  const batchCopyBody =
+    batchCopy.status === "ready" && batchCopyItems.length > 0 ? (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 overflow-auto p-4">
+          <BatchCopyList
+            actionPresentation="popover"
+            items={batchCopyItems}
+            onDuplicate={batchCopy.duplicateItem}
+            onMove={batchCopy.moveItem}
+            onRemove={batchCopy.removeItem}
+            onToggleSelection={session.toggleBatchCopyItem}
+            pending={batchCopy.pending}
+            presentation="panel"
+            reorderButtonsEnabled={batchCopy.reorderButtonsEnabled}
+            selectedItemId={selectedBatchCopyItemId}
+          />
+        </div>
+        <div className="flex shrink-0 justify-end border-t border-line p-3">
+          <CopyBatchTextAction
+            disabled={batchCopy.pending}
+            onCopy={batchCopy.copyAll}
+            onResult={showCopyResult}
+          />
+        </div>
+      </div>
+    ) : (
+      <EmptyBatchCopyContent
+        onRetry={batchCopy.retry}
+        status={batchCopy.status}
+      />
+    )
 
   return (
     <BatchCopyWorkspaceContext value={workspaceContext}>
@@ -223,19 +196,6 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
             </span>
           </Button>
         </div>
-        {notice ? (
-          <div className={noticeClassName}>
-            <ActionToast
-              actionLabel={notice.actionLabel}
-              expiresAtMs={notice.expiresAtMs}
-              kind={notice.kind}
-              message={notice.message}
-              onAction={notice.onAction}
-              onDismiss={() => session.dismissWorkspaceNotice(notice.revision)}
-              revision={notice.revision}
-            />
-          </div>
-        ) : null}
         <div className={workspaceLayoutClassName}>
           <section
             aria-label="메모 작업 영역"
@@ -253,20 +213,10 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
               {batchCopyActive ? (
                 <BatchCopyPanelContent
                   headingId="batch-copy-inline-title"
-                  items={batchCopyItems}
                   onClose={session.closePanel}
-                  onCopy={batchCopy.copyAll}
-                  onCopyResult={showCopyResult}
-                  onDuplicate={batchCopy.duplicateItem}
-                  onMove={batchCopy.moveItem}
-                  onRemove={batchCopy.removeItem}
-                  onRetry={batchCopy.retry}
-                  onToggleSelection={session.toggleBatchCopyItem}
-                  pending={batchCopy.pending}
-                  reorderButtonsEnabled={batchCopy.reorderButtonsEnabled}
-                  selectedItemId={selectedBatchCopyItemId}
-                  status={batchCopy.status}
-                />
+                >
+                  {batchCopyBody}
+                </BatchCopyPanelContent>
               ) : null}
               {propertiesActive ? <NotePropertiesPanel /> : null}
             </div>
@@ -285,20 +235,10 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
             <BatchCopyPanelContent
               headingId="batch-copy-dialog-title"
               headingRef={dialogHeading}
-              items={batchCopyItems}
               onClose={session.closePanel}
-              onCopy={batchCopy.copyAll}
-              onCopyResult={showCopyResult}
-              onDuplicate={batchCopy.duplicateItem}
-              onMove={batchCopy.moveItem}
-              onRemove={batchCopy.removeItem}
-              onRetry={batchCopy.retry}
-              onToggleSelection={session.toggleBatchCopyItem}
-              pending={batchCopy.pending}
-              reorderButtonsEnabled={batchCopy.reorderButtonsEnabled}
-              selectedItemId={selectedBatchCopyItemId}
-              status={batchCopy.status}
-            />
+            >
+              {batchCopyBody}
+            </BatchCopyPanelContent>
           ) : null}
           {propertiesActive && !showInlinePanel ? (
             <NotePropertiesPanel />

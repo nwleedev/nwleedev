@@ -1,17 +1,9 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
+import { createContext, useContext, useRef, useState } from "react"
 
 import type {
   CollectingMobileBatchCopyDraft,
   ConfirmingMobileBatchCopyDraft,
   MobileBatchCopyDraft,
-  MobileBatchCopyDraftRepository,
 } from "@/entities/batch-copy"
 import type { Note } from "@/entities/note"
 import type { ClipboardWriter } from "@/shared/lib/clipboard"
@@ -20,45 +12,37 @@ import {
   copyMobileBatchText,
   type CopyMobileBatchTextResult,
 } from "./copy-mobile-batch-text"
-import type { MobileBatchCopyEntryWriter } from "./mobile-batch-copy-entry-writer"
+import type { MobileBatchCopyUsageWriter } from "./mobile-batch-copy-usage-writer"
 import {
   addNoteToMobileBatchCopy,
-  cancelMobileBatchCopy,
   confirmMobileBatchCopySession,
   duplicateMobileBatchCopySessionEntry,
-  loadMobileBatchCopy,
   moveMobileBatchCopySessionEntry,
   removeMobileBatchCopySessionEntry,
   resetMobileBatchCopySession,
   resumeMobileBatchCopySession,
   startMobileBatchCopy,
-  type MobileBatchCopyRemoveResult,
-  type MobileBatchCopySaveResult,
+  type AddMobileBatchCopyResult,
 } from "./mobile-batch-copy-session"
 
-type MobileBatchCopyState =
-  | { status: "failure" | "loading" }
-  | {
-      collectionVisible: boolean
-      draft: MobileBatchCopyDraft | null
-      status: "ready"
-    }
+type MobileBatchCopyState = {
+  collectionVisible: boolean
+  draft: MobileBatchCopyDraft | null
+}
 
 type MobileBatchCopyContextValue = MobileBatchCopyState & {
   pending: boolean
   reorderButtonsEnabled: boolean
-  add(note: Note): Promise<MobileBatchCopySaveResult>
-  cancel(): Promise<MobileBatchCopyRemoveResult>
-  confirm(): Promise<MobileBatchCopySaveResult>
-  continueCollection(): void
+  add(note: Note): Promise<AddMobileBatchCopyResult>
+  cancel(): Promise<void>
+  confirm(): Promise<boolean>
   copy(): Promise<CopyMobileBatchTextResult>
-  duplicate(entryId: string): Promise<MobileBatchCopySaveResult>
-  move(entryId: string, index: number): Promise<MobileBatchCopySaveResult>
-  removeEntry(entryId: string): Promise<MobileBatchCopySaveResult>
-  reset(): Promise<MobileBatchCopySaveResult>
-  resumeCollection(): Promise<MobileBatchCopySaveResult>
-  retry(): void
-  start(): Promise<MobileBatchCopySaveResult>
+  duplicate(entryId: string): Promise<boolean>
+  move(entryId: string, index: number): Promise<boolean>
+  removeEntry(entryId: string): Promise<boolean>
+  reset(): Promise<boolean>
+  resumeCollection(): Promise<boolean>
+  start(): Promise<void>
 }
 
 export type MobileBatchCopyDependencies = {
@@ -66,8 +50,7 @@ export type MobileBatchCopyDependencies = {
   createId(): string
   now(): string
   reorderButtonsEnabled: boolean
-  repository: MobileBatchCopyDraftRepository
-  writer: MobileBatchCopyEntryWriter
+  writer: MobileBatchCopyUsageWriter
 }
 
 export const MobileBatchCopyContext =
@@ -98,29 +81,34 @@ export function useMobileBatchCopyState({
   createId,
   now,
   reorderButtonsEnabled,
-  repository,
   writer,
 }: MobileBatchCopyDependencies) {
   const [state, setState] = useState<MobileBatchCopyState>({
-    status: "loading",
+    collectionVisible: false,
+    draft: null,
   })
   const [pending, setPending] = useState(false)
   const activeOperations = useRef(0)
   const draft = useRef<MobileBatchCopyDraft | null>(null)
-  const loadSequence = useRef(0)
   const queue = useRef<Promise<void>>(Promise.resolve())
 
-  const publish = useCallback((
+  function publish(
     nextDraft: MobileBatchCopyDraft | null,
     collectionVisible: boolean,
-  ) => {
+  ) {
     draft.current = nextDraft
-    setState({ collectionVisible, draft: nextDraft, status: "ready" })
-  }, [])
+    setState({ collectionVisible, draft: nextDraft })
+  }
 
-  function enqueue<Result>(operation: () => Promise<Result>) {
-    activeOperations.current += 1
-    setPending(true)
+  function enqueue<Result>(
+    operation: () => Promise<Result>,
+    blocksActions = true,
+  ) {
+    if (blocksActions) {
+      activeOperations.current += 1
+      setPending(true)
+    }
+
     const result = queue.current.then(operation)
     queue.current = result.then(
       () => undefined,
@@ -128,6 +116,10 @@ export function useMobileBatchCopyState({
     )
 
     return result.finally(() => {
+      if (!blocksActions) {
+        return
+      }
+
       activeOperations.current -= 1
 
       if (activeOperations.current === 0) {
@@ -136,51 +128,9 @@ export function useMobileBatchCopyState({
     })
   }
 
-  const load = useCallback((sequence: number, active: () => boolean) => {
-    void loadMobileBatchCopy(repository).then((result) => {
-      if (!active() || loadSequence.current !== sequence) {
-        return
-      }
-
-      if (result.status === "failure") {
-        draft.current = null
-        setState({ status: "failure" })
-        return
-      }
-
-      publish(result.draft, false)
-    })
-  }, [publish, repository])
-
-  useEffect(() => {
-    let active = true
-    const sequence = ++loadSequence.current
-    load(sequence, () => active)
-
-    return () => {
-      active = false
-    }
-  }, [load])
-
-  function retry() {
-    const sequence = ++loadSequence.current
-    setState({ status: "loading" })
-    load(sequence, () => true)
-  }
-
   function start() {
     return enqueue(async () => {
-      const result = await startMobileBatchCopy({
-        createId,
-        now,
-        repository,
-      })
-
-      if (result.status === "saved") {
-        publish(result.draft, true)
-      }
-
-      return result
+      publish(startMobileBatchCopy({ createId, now }), true)
     })
   }
 
@@ -198,12 +148,12 @@ export function useMobileBatchCopyState({
         note,
       )
 
-      if (result.status === "saved") {
+      if (result.status === "added") {
         publish(result.draft, true)
       }
 
       return result
-    })
+    }, false)
   }
 
   function reset() {
@@ -211,19 +161,11 @@ export function useMobileBatchCopyState({
       const latestDraft = collectingDraft(draft.current)
 
       if (latestDraft === null) {
-        return { status: "failure" } as const
+        return false
       }
 
-      const result = await resetMobileBatchCopySession(
-        { now, repository },
-        latestDraft,
-      )
-
-      if (result.status === "saved") {
-        publish(result.draft, true)
-      }
-
-      return result
+      publish(resetMobileBatchCopySession(latestDraft, now), true)
+      return true
     })
   }
 
@@ -232,59 +174,41 @@ export function useMobileBatchCopyState({
       const latestDraft = collectingDraft(draft.current)
 
       if (latestDraft === null) {
-        return { status: "failure" } as const
+        return false
       }
 
-      const result = await confirmMobileBatchCopySession(
-        { now, repository },
-        latestDraft,
-      )
-
-      if (result.status === "saved") {
-        publish(result.draft, false)
-      }
-
-      return result
+      publish(confirmMobileBatchCopySession(latestDraft, now), false)
+      return true
     })
   }
 
   function runConfirmationEdit(
     operation: (
       current: ConfirmingMobileBatchCopyDraft,
-    ) => Promise<MobileBatchCopySaveResult<ConfirmingMobileBatchCopyDraft>>,
+    ) => ConfirmingMobileBatchCopyDraft,
   ) {
     return enqueue(async () => {
       const latestDraft = confirmingDraft(draft.current)
 
       if (latestDraft === null) {
-        return { status: "failure" } as const
+        return false
       }
 
-      const result = await operation(latestDraft)
-
-      if (result.status === "saved") {
-        publish(result.draft, false)
-      }
-
-      return result
+      publish(operation(latestDraft), false)
+      return true
     })
   }
 
   function move(entryId: string, index: number) {
     return runConfirmationEdit((latestDraft) =>
-      moveMobileBatchCopySessionEntry(
-        { now, repository },
-        latestDraft,
-        entryId,
-        index,
-      ),
+      moveMobileBatchCopySessionEntry(latestDraft, entryId, index, now),
     )
   }
 
   function duplicate(entryId: string) {
     return runConfirmationEdit((latestDraft) =>
       duplicateMobileBatchCopySessionEntry(
-        { createId, now, repository },
+        { createId, now },
         latestDraft,
         entryId,
       ),
@@ -293,24 +217,8 @@ export function useMobileBatchCopyState({
 
   function removeEntry(entryId: string) {
     return runConfirmationEdit((latestDraft) =>
-      removeMobileBatchCopySessionEntry(
-        { now, repository },
-        latestDraft,
-        entryId,
-      ),
+      removeMobileBatchCopySessionEntry(latestDraft, entryId, now),
     )
-  }
-
-  function continueCollection() {
-    const latestDraft = collectingDraft(draft.current)
-
-    if (latestDraft !== null) {
-      setState({
-        collectionVisible: true,
-        draft: latestDraft,
-        status: "ready",
-      })
-    }
   }
 
   function resumeCollection() {
@@ -318,19 +226,11 @@ export function useMobileBatchCopyState({
       const latestDraft = confirmingDraft(draft.current)
 
       if (latestDraft === null) {
-        return { status: "failure" } as const
+        return false
       }
 
-      const result = await resumeMobileBatchCopySession(
-        { now, repository },
-        latestDraft,
-      )
-
-      if (result.status === "saved") {
-        publish(result.draft, true)
-      }
-
-      return result
+      publish(resumeMobileBatchCopySession(latestDraft, now), true)
+      return true
     })
   }
 
@@ -349,13 +249,7 @@ export function useMobileBatchCopyState({
 
   function cancel() {
     return enqueue(async () => {
-      const result = await cancelMobileBatchCopy(repository)
-
-      if (result.status === "removed") {
-        publish(null, false)
-      }
-
-      return result
+      publish(null, false)
     })
   }
 
@@ -364,7 +258,6 @@ export function useMobileBatchCopyState({
     add,
     cancel,
     confirm,
-    continueCollection,
     copy,
     duplicate,
     move,
@@ -373,7 +266,6 @@ export function useMobileBatchCopyState({
     removeEntry,
     reset,
     resumeCollection,
-    retry,
     start,
   }
 }

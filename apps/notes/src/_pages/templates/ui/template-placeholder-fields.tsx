@@ -6,16 +6,13 @@ import type {
 } from "react-hook-form"
 import { useWatch } from "react-hook-form"
 
-import type {
-  TemplateDraft,
-  TemplatePlaceholderRange,
-} from "@/entities/template"
+import type { TemplatePlaceholderRange } from "@/entities/template"
 import { Button } from "@/shared/ui/button"
 import { TextField } from "@/shared/ui/text-field"
 
 import type { TemplateSaveFields } from "../model/use-template-editor"
 
-type PlaceholderNameFieldProps = {
+type TemplatePlaceholderFieldProps = {
   control: Control<TemplateSaveFields>
   errors: FieldErrors<TemplateSaveFields>
   placeholder: TemplatePlaceholderRange
@@ -25,7 +22,7 @@ type PlaceholderNameFieldProps = {
   onRestore(key: string): void
 }
 
-function PlaceholderNameField({
+export function TemplatePlaceholderField({
   control,
   errors,
   onLabelChange,
@@ -33,7 +30,7 @@ function PlaceholderNameField({
   placeholder,
   register,
   sourceText,
-}: PlaceholderNameFieldProps) {
+}: TemplatePlaceholderFieldProps) {
   const fieldName = `labels.${placeholder.key}` as const
   const error = errors.labels?.[placeholder.key]
   const errorId = `placeholder-${placeholder.key}-error`
@@ -90,44 +87,5 @@ function PlaceholderNameField({
         일반 텍스트로 되돌리기
       </Button>
     </li>
-  )
-}
-
-type TemplatePlaceholderFieldsProps = {
-  control: Control<TemplateSaveFields>
-  draft: TemplateDraft
-  errors: FieldErrors<TemplateSaveFields>
-  register: UseFormRegister<TemplateSaveFields>
-  onLabelChange(key: string, label: string): void
-  onRestore(key: string): void
-}
-
-export function TemplatePlaceholderFields({
-  control,
-  draft,
-  errors,
-  onLabelChange,
-  onRestore,
-  register,
-}: TemplatePlaceholderFieldsProps) {
-  if (draft.placeholders.length === 0) {
-    return null
-  }
-
-  return (
-    <ol className="grid gap-3">
-      {draft.placeholders.map((placeholder) => (
-        <PlaceholderNameField
-          control={control}
-          errors={errors}
-          key={placeholder.key}
-          onLabelChange={onLabelChange}
-          onRestore={onRestore}
-          placeholder={placeholder}
-          register={register}
-          sourceText={draft.sourceText}
-        />
-      ))}
-    </ol>
   )
 }

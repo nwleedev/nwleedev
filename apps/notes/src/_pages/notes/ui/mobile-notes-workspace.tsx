@@ -1,52 +1,43 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-
 import type { Note } from "@/entities/note"
 import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
 import { useBatchCopyEditor } from "@/features/edit-batch-copy"
+import { useActionToast } from "@/shared/ui/action-toast"
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
 import { BatchCopyIcon, NavigateBackIcon, PlusIcon } from "@/shared/ui/icons"
-import { StatusNotice } from "@/shared/ui/status-notice"
 import { MobileNavigation, type SavedBatchCopyLink } from "@/widgets/application-navigation"
 
-import { MobileNoteList } from "./mobile-note-list"
+import { useNoteCopyAction } from "../model/use-note-copy-action"
+import { useMobileBatchCopyNavigation } from "../model/use-mobile-batch-copy-navigation"
+import { MobileNoteCard } from "./mobile-note-card"
 
 type MobileNotesWorkspaceProps = {
   creationPending: boolean
   notes: readonly Note[]
-  onCopy(note: Note): Promise<void>
   onCreate(): Promise<void>
-  onFailure(message: string, retry?: () => void): void
 }
 
 export function MobileNotesWorkspace({
   creationPending,
   notes,
-  onCopy,
   onCreate,
-  onFailure,
 }: MobileNotesWorkspaceProps) {
+  const toast = useActionToast()
   const batchCopy = useMobileBatchCopy()
+  const copy = useNoteCopyAction()
+  const batchCopyNavigation = useMobileBatchCopyNavigation()
   const savedBatchCopy = useBatchCopyEditor()
-  const router = useRouter()
-  const draft = batchCopy.status === "ready" ? batchCopy.draft : null
+  const draft = batchCopy.draft
   const collectingDraft = draft?.step === "collecting"
   const collecting =
-    batchCopy.status === "ready" &&
-    batchCopy.collectionVisible &&
-    collectingDraft
+    (batchCopy.collectionVisible && collectingDraft) ||
+    (batchCopyNavigation.leavingCollection && draft?.step === "confirming") ||
+    (batchCopyNavigation.restoringCollection && draft?.step === "confirming")
   const count = collecting ? draft.clickCount : 0
   const countText = count.toLocaleString("ko-KR")
   const nextAccessibleName = `다음, ${countText}회 선택`
-  const continueBatchCopy = draft?.step === "confirming"
-  const batchCopyButtonName =
-    continueBatchCopy
-      ? "일괄 복사 계속하기"
-      : collectingDraft
-        ? "일괄 복사 이어가기"
-        : "일괄 복사 시작"
   let savedBatchCopyLink: SavedBatchCopyLink = null
 
   if (!collecting && draft === null && savedBatchCopy.status === "ready") {
@@ -64,65 +55,40 @@ export function MobileNotesWorkspace({
   }
 
   async function startBatchCopy() {
-    if (continueBatchCopy) {
-      router.push("/batch-copy/")
-      return
-    }
-
-    if (collectingDraft) {
-      batchCopy.continueCollection()
-      return
-    }
-
-    const result = await batchCopy.start()
-
-    if (result.status === "failure") {
-      onFailure("일괄 복사를 시작하지 못했습니다. 다시 시도하세요.", () => {
-        void startBatchCopy()
-      })
-    }
+    await batchCopy.start()
   }
 
   async function cancelBatchCopy() {
-    const result = await batchCopy.cancel()
-
-    if (result.status === "failure") {
-      onFailure("일괄 복사를 끝내지 못했습니다. 다시 시도하세요.", () => {
-        void cancelBatchCopy()
-      })
-    }
+    await batchCopy.cancel()
   }
 
   async function resetBatchCopy() {
-    const result = await batchCopy.reset()
-
-    if (result.status === "failure") {
-      onFailure("일괄 복사 항목을 초기화하지 못했습니다. 다시 시도하세요.", () => {
-        void resetBatchCopy()
-      })
-    }
+    await batchCopy.reset()
   }
 
   async function addToBatchCopy(note: Note) {
     const result = await batchCopy.add(note)
 
     if (result.status === "failure") {
-      onFailure("일괄 복사 항목을 추가하지 못했습니다. 다시 시도하세요.", () => {
-        void addToBatchCopy(note)
+      toast.show({
+        actionLabel: "다시 시도",
+        kind: "error",
+        message: "일괄 복사 항목을 추가하지 못했습니다. 다시 시도하세요.",
+        onAction: () => void addToBatchCopy(note),
       })
     }
   }
 
   async function proceedToConfirmation() {
-    const result = await batchCopy.confirm()
-
-    if (result.status === "saved") {
-      router.push("/batch-copy/")
+    if (await batchCopyNavigation.confirm()) {
       return
     }
 
-    onFailure("일괄 복사 확인 화면으로 이동하지 못했습니다. 다시 시도하세요.", () => {
-      void proceedToConfirmation()
+    toast.show({
+      actionLabel: "다시 시도",
+      kind: "error",
+      message: "일괄 복사 확인 화면으로 이동하지 못했습니다. 다시 시도하세요.",
+      onAction: () => void proceedToConfirmation(),
     })
   }
 
@@ -132,7 +98,7 @@ export function MobileNotesWorkspace({
         {collecting ? (
           <IconButton
             aria-label="일괄 복사 끝내기"
-            disabled={batchCopy.pending}
+            disabled={batchCopy.pending || batchCopyNavigation.leavingCollection}
             onClick={cancelBatchCopy}
             size="compact"
           >
@@ -148,8 +114,8 @@ export function MobileNotesWorkspace({
           <MobileNavigation pathname="/" />
         ) : (
           <IconButton
-            aria-label={batchCopyButtonName}
-            disabled={batchCopy.pending || batchCopy.status !== "ready"}
+            aria-label="일괄 복사 시작"
+            disabled={batchCopy.pending}
             onClick={startBatchCopy}
             size="compact"
           >
@@ -157,23 +123,18 @@ export function MobileNotesWorkspace({
           </IconButton>
         )}
       </header>
-      {batchCopy.status === "failure" ? (
-        <div className="absolute left-3 right-3 top-[4.25rem] z-30">
-          <StatusNotice kind="error">
-            <p>일괄 복사 작업을 불러오지 못했습니다.</p>
-            <Button onClick={batchCopy.retry} tone="quiet">
-              다시 시도
-            </Button>
-          </StatusNotice>
-        </div>
-      ) : null}
-      <MobileNoteList
-        batchCopyActive={collecting}
-        disabled={batchCopy.pending}
-        notes={notes}
-        onAddToBatchCopy={addToBatchCopy}
-        onCopy={onCopy}
-      />
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-4">
+        {notes.map((note) => (
+          <MobileNoteCard
+            batchCopyActive={collecting}
+            disabled={batchCopy.pending}
+            key={note.id}
+            note={note}
+            onAddToBatchCopy={addToBatchCopy}
+            onCopy={copy}
+          />
+        ))}
+      </div>
       {!collecting ? (
         <IconButton
           aria-label={creationPending ? "메모 만드는 중" : "새 메모"}
@@ -195,7 +156,7 @@ export function MobileNotesWorkspace({
           </Button>
           <Button
             aria-label={nextAccessibleName}
-            disabled={batchCopy.pending || count === 0}
+            disabled={batchCopy.pending || batchCopyNavigation.leavingCollection || count === 0}
             onClick={proceedToConfirmation}
           >
             <span>다음</span>

@@ -2,7 +2,6 @@ import { z } from "zod"
 
 import {
   BATCH_COPY_LIST_STORE_NAME,
-  MOBILE_BATCH_COPY_DRAFT_STORE_NAME,
 } from "@/entities/batch-copy"
 import {
   NOTE_DRAFT_STORE_NAME,
@@ -26,6 +25,7 @@ import {
 } from "@/shared/lib/entity-metadata"
 
 const PREVIOUS_BATCH_COPY_LIST_STORE_NAME = "accumulators"
+const PREVIOUS_MOBILE_BATCH_COPY_DRAFT_STORE_NAME = "mobileBatchCopyDrafts"
 const INTERACTION_PREFERENCE_KEY = "interaction"
 
 const PreviousNoteRecordSchema = z
@@ -242,11 +242,13 @@ export function migratePersonalNotesDatabase(
     })
   }
 
-  if (!database.objectStoreNames.contains(MOBILE_BATCH_COPY_DRAFT_STORE_NAME)) {
-    database.createObjectStore(MOBILE_BATCH_COPY_DRAFT_STORE_NAME)
-  }
-
   migrateNotes(transaction)
   migrateUsage(transaction)
   migratePreferences(transaction)
+}
+
+export function migrateMobileBatchCopyDraftStore(database: IDBDatabase) {
+  if (database.objectStoreNames.contains(PREVIOUS_MOBILE_BATCH_COPY_DRAFT_STORE_NAME)) {
+    database.deleteObjectStore(PREVIOUS_MOBILE_BATCH_COPY_DRAFT_STORE_NAME)
+  }
 }
