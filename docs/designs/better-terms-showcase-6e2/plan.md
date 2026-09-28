@@ -18,6 +18,7 @@
    - 중단: 두 문서의 차이를 누락 없이 연결할 수 없거나 게재할 수 없는 정보가 발견되면 보고서 게시를 멈추고 무엇을 수정하거나 제외할지 결정한다.
 
 2. **쇼케이스 진입과 화면 구성**
+   - 진행 상태: 완료. 한국어와 영어 소개 화면에서 새 쇼케이스 주소로 이동하는 링크를 제공하고, 별도 페이지에 보고서와 수정 목록을 세로로 배치했다. 정적 빌드에서 세 주소가 생성됨을 확인했다.
    - 선행 조건: 1번의 게시 콘텐츠.
    - 생성 대상: `apps/entry/src/pages/better-terms.astro`와 `apps/entry/src/_pages/better-terms/ui/ShowcasePage.astro`. 수정 대상: `apps/entry/src/_pages/home/ui/IndependentWorkSection.astro`, `apps/entry/src/shared/terms/ko.json`, `en.json`, `types.ts`. 기존 독립 작업 항목에서 별도 페이지로 이동하게 하고, 쇼케이스의 아티클과 예시 목록을 한 페이지에 세로로 배치한다.
    - 확인: 두 언어의 소개 화면에서 링크를 따라 사례에 도달한다. 소개 화면의 영역 순서, 기존 항목의 내용과 배치, 언어 전환 및 본문 바로가기는 그대로 작동한다. 쇼케이스는 별도 주소에서 직접 열 수 있다.

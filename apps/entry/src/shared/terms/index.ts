@@ -1,4 +1,4 @@
-export { getTerms } from "./get-terms";
+export { getShowcaseTerms, getTerms } from "./get-terms";
 export type {
   BackgroundItem,
   CompanyExperience,

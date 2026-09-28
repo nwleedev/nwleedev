@@ -1,0 +1,66 @@
+---
+import { getShowcaseTerms } from "@/shared/terms";
+import { BaseLayout, PageFooter } from "@/shared/ui";
+import afterReport from "../content/report.after.md?raw";
+import beforeReport from "../content/report.before.md?raw";
+import { changeSections } from "../model/changes";
+
+const { showcase, footer, skipLink } = getShowcaseTerms();
+const beforeLines = beforeReport.split("\n");
+const afterLines = afterReport.split("\n");
+
+const changes = changeSections.map((change) => ({
+  ...change,
+  beforeText: beforeLines.slice(change.before[0] - 1, change.before[1]).join("\n"),
+  afterText: afterLines.slice(change.after[0] - 1, change.after[1]).join("\n"),
+}));
+---
+
+<BaseLayout locale="ko" title={showcase.title} description={showcase.description}>
+  <a
+    href="#main-content"
+    class="fixed start-4 top-4 z-50 -translate-y-24 bg-text-primary px-4 py-2 text-surface-default focus:translate-y-0"
+  >
+    {skipLink}
+  </a>
+  <main id="main-content" class="mx-auto max-w-page px-(--page-gutter)" tabindex="-1">
+    <header class="pt-16">
+      <a class="inline-flex min-h-6 items-center text-brand-strong underline" href="/">
+        {showcase.backLabel}
+      </a>
+      <h1 class="mt-8 text-display font-semibold text-text-primary">{showcase.title}</h1>
+      <p class="mt-4 text-base text-text-secondary">{showcase.description}</p>
+    </header>
+
+    <section aria-labelledby="article-title" class="mt-16">
+      <h2 id="article-title" class="text-section font-semibold">{showcase.articleTitle}</h2>
+      <article class="mt-8" aria-label={showcase.articleTitle}>
+        <pre class="whitespace-pre-wrap break-words font-mono text-base leading-7">{beforeReport}</pre>
+      </article>
+    </section>
+
+    <section aria-labelledby="changes-title" class="mt-16 pb-24">
+      <h2 id="changes-title" class="text-section font-semibold">{showcase.changesTitle}</h2>
+      <ol class="mt-8">
+        {changes.map((change, index) => (
+          <li class="border-t border-border-default py-9 first:border-t-0 first:pt-0">
+            <h3 class="text-item font-semibold">{showcase.changeLabel} {index + 1}</h3>
+            <div class="mt-4">
+              <p class="text-sm font-medium text-text-muted">{showcase.beforeLabel}</p>
+              <p class="mt-2 whitespace-pre-wrap text-base text-text-secondary">{change.beforeText}</p>
+            </div>
+            <div class="mt-6">
+              <p class="text-sm font-medium text-text-muted">{showcase.afterLabel}</p>
+              <p class="mt-2 whitespace-pre-wrap text-base text-text-secondary">{change.afterText}</p>
+            </div>
+            <div class="mt-6">
+              <p class="text-sm font-medium text-text-muted">{showcase.reasonLabel}</p>
+              <p class="mt-2 text-base text-text-secondary">{change.reason}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </main>
+  <PageFooter text={footer.text} topLabel={footer.topLabel} />
+</BaseLayout>

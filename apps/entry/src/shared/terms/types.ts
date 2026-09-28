@@ -54,6 +54,10 @@ export type IndependentWork = {
   period: string;
   summary: string;
   technologies: readonly string[];
+  link?: {
+    label: string;
+    href: string;
+  };
 };
 
 export type BackgroundItem = {
@@ -111,5 +115,16 @@ export type HomeTerms = {
   footer: {
     text: string;
     topLabel: string;
+  };
+  showcase: {
+    title: string;
+    description: string;
+    backLabel: string;
+    articleTitle: string;
+    changesTitle: string;
+    changeLabel: string;
+    beforeLabel: string;
+    afterLabel: string;
+    reasonLabel: string;
   };
 };

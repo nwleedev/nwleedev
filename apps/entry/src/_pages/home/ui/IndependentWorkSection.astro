@@ -18,6 +18,14 @@ const { independentWork } = Astro.props;
       <li class="border-t border-border-default py-9 first:border-t-0 first:pt-0 md:py-10 md:first:pt-0">
         <h3 class="text-item font-semibold text-text-primary">{item.title}</h3>
         <p class="mt-4 text-base leading-7 text-text-secondary">{item.summary}</p>
+        {item.link && (
+          <a
+            class="mt-4 inline-flex min-h-6 items-center font-medium text-brand-strong underline"
+            href={item.link.href}
+          >
+            {item.link.label}
+          </a>
+        )}
         <div class="mt-7">
           <MetadataLine period={item.period} technologies={item.technologies} />
         </div>

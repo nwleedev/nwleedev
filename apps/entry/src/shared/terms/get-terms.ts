@@ -124,9 +124,12 @@ function isOpenSourceContribution(value: unknown): boolean {
 }
 
 function isIndependentWork(value: unknown): boolean {
+  const link = field(value, "link");
+
   return (
     hasStrings(value, ["title", "period", "summary"]) &&
-    isStringArray(field(value, "technologies"))
+    isStringArray(field(value, "technologies")) &&
+    (link === undefined || hasStrings(link, ["label", "href"]))
   );
 }
 
@@ -145,6 +148,7 @@ function isHomeTerms(value: unknown): value is HomeTerms {
   const background = field(value, "background");
   const contact = field(value, "contact");
   const footer = field(value, "footer");
+  const showcase = field(value, "showcase");
 
   return (
     hasStrings(meta, ["title", "description"]) &&
@@ -164,7 +168,18 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     isArrayOf(field(background, "items"), isBackgroundItem) &&
     hasStrings(contact, ["id", "title"]) &&
     isArrayOf(field(contact, "links"), isExternalLink) &&
-    hasStrings(footer, ["text", "topLabel"])
+    hasStrings(footer, ["text", "topLabel"]) &&
+    hasStrings(showcase, [
+      "title",
+      "description",
+      "backLabel",
+      "articleTitle",
+      "changesTitle",
+      "changeLabel",
+      "beforeLabel",
+      "afterLabel",
+      "reasonLabel",
+    ])
   );
 }
 
@@ -206,4 +221,13 @@ export function getTerms(locale: Locale, runtimeTerms: RuntimeTerms): HomeTerms 
       links: [...terms.contact.links, resumeLink],
     },
   };
+}
+
+export function getShowcaseTerms(): Pick<
+  HomeTerms,
+  "showcase" | "footer" | "skipLink"
+> {
+  const { showcase, footer, skipLink } = termsByLocale.ko;
+
+  return { showcase, footer, skipLink };
 }

@@ -156,6 +156,7 @@
         "title": "AI Agent Workflow",
         "period": "2026 — Present",
         "summary": "요구사항, 조사, 결정과 구현을 나눠 변경 이유와 기준을 추적할 수 있도록 저장소 규칙과 Skill을 구성했습니다. 모호한 한국어 문구를 저장 전에 찾는 검사 절차와 함께 여러 저장소에 적용했습니다.",
+        "link": { "label": "문구 개선 사례 보기", "href": "/better-terms/" },
         "technologies": ["Node.js", "Repository Rules", "Text Validation"]
       },
       {
@@ -184,6 +185,17 @@
       { "label": "Blog", "href": "https://blog.nwlee.com", "context": "문제 해결 과정과 기술 기록" },
       { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "경력 프로필" }
     ]
+  },
+  "showcase": {
+    "title": "use-better-terms",
+    "description": "AI 테스트 코드 작성 보고서에서 표현을 다듬기 전과 후를 비교합니다.",
+    "backLabel": "개발자 소개로 돌아가기",
+    "articleTitle": "보고서",
+    "changesTitle": "수정한 표현",
+    "changeLabel": "수정",
+    "beforeLabel": "수정 전",
+    "afterLabel": "수정 후",
+    "reasonLabel": "수정 이유"
   },
   "footer": {
     "text": "이노원, Frontend Engineer",

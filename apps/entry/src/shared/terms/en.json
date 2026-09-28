@@ -156,6 +156,7 @@
         "title": "AI Agent Workflow",
         "period": "2026 — Present",
         "summary": "I created repository rules and skills that separate requirements, research, decisions, and implementation so the reasons and criteria behind changes remain traceable. I paired them with a pre-save check for ambiguous Korean copy and applied the workflow across multiple repositories.",
+        "link": { "label": "View wording changes", "href": "/better-terms/" },
         "technologies": ["Node.js", "Repository Rules", "Text Validation"]
       },
       {
@@ -184,6 +185,17 @@
       { "label": "Blog", "href": "https://blog.nwlee.com", "context": "Technical notes and problem-solving process" },
       { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "Professional profile" }
     ]
+  },
+  "showcase": {
+    "title": "use-better-terms",
+    "description": "Compare wording before and after editing an AI testing report.",
+    "backLabel": "Back to developer profile",
+    "articleTitle": "Report",
+    "changesTitle": "Wording changes",
+    "changeLabel": "Change",
+    "beforeLabel": "Before",
+    "afterLabel": "After",
+    "reasonLabel": "Reason"
   },
   "footer": {
     "text": "Nowon Lee, Frontend Engineer",
