@@ -36,6 +36,7 @@
   --text-lead--line-height: 1.75;
 
   --container-page: 42rem;
+  --container-showcase: 60rem;
 }
 
 :root {

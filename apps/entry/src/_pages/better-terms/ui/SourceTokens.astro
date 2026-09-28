@@ -1,0 +1,30 @@
+---
+import type { SourcePart } from "../model/source";
+
+interface Props {
+  tokens: Extract<SourcePart, { kind: "text" }>["tokens"];
+  highlighted?: boolean;
+}
+
+const { tokens, highlighted = false } = Astro.props;
+---
+
+{tokens.map((token) => (
+  <span class="source-token" data-syntax={token.kind} data-highlighted={highlighted}>
+    {token.text}
+  </span>
+))}
+
+<style>
+  .source-token[data-syntax="heading"] {
+    font-weight: 600;
+  }
+
+  .source-token[data-syntax="marker"] {
+    color: var(--color-text-muted);
+  }
+
+  .source-token[data-highlighted="true"] {
+    font-weight: 500;
+  }
+</style>

@@ -1,7 +1,9 @@
 ---
 import { getShowcaseTerms } from "@/shared/terms";
 import { BaseLayout, PageFooter } from "@/shared/ui";
-import { articleParts, examples } from "../model/article";
+import { examples } from "../model/article";
+import { sourceParts } from "../model/source";
+import SourceTokens from "./SourceTokens.astro";
 
 const { showcase, footer, skipLink } = getShowcaseTerms();
 ---
@@ -13,6 +15,7 @@ const { showcase, footer, skipLink } = getShowcaseTerms();
   >
     {skipLink}
   </a>
+  <div class="showcase-page">
   <main id="main-content" class="mx-auto max-w-page px-(--page-gutter)" tabindex="-1" data-showcase>
     <header class="pt-16">
       <a class="inline-flex min-h-6 items-center text-brand-strong underline" href="/">
@@ -22,9 +25,9 @@ const { showcase, footer, skipLink } = getShowcaseTerms();
       <p class="mt-4 text-base text-text-secondary">{showcase.description}</p>
     </header>
 
-    <section aria-labelledby="article-title" class="mt-16">
+    <section aria-labelledby="article-title" class="mt-16 hidden sm:block">
       <h2 id="article-title" class="text-section font-semibold">{showcase.articleTitle}</h2>
-      <div class="mt-8 flex justify-end">
+      <div class="sticky top-0 z-10 mt-8 flex justify-end bg-surface-default py-2">
         <button
           type="button"
           role="switch"
@@ -43,8 +46,8 @@ const { showcase, footer, skipLink } = getShowcaseTerms();
           </span>
         </button>
       </div>
-      <article class="mt-8" aria-label={showcase.articleTitle}>
-        <pre class="whitespace-pre-wrap break-words font-mono text-base leading-7">{articleParts.map((part) => part.kind === "text" ? part.text : <button type="button" class="inline whitespace-pre-wrap border-0 bg-change-before p-0 text-left font-mono font-medium text-text-primary data-[state=after]:bg-change-after" data-change data-state="before" aria-pressed="false"><span data-before>{part.before}</span><span data-after hidden>{part.after}</span></button>)}</pre>
+      <article aria-label={showcase.articleTitle} data-article>
+        <pre class="m-0 whitespace-pre-wrap break-words font-mono text-base leading-7">{sourceParts.map((part) => part.kind === "text" ? <SourceTokens tokens={part.tokens} /> : <button type="button" class="inline whitespace-pre-wrap border-0 bg-change-before p-0 text-left font-mono font-medium text-text-primary data-[state=after]:bg-change-after" data-change data-state="before" aria-pressed="false"><span data-before><SourceTokens tokens={part.beforeTokens} highlighted /></span><span data-after hidden><SourceTokens tokens={part.afterTokens} highlighted /></span></button>)}</pre>
       </article>
     </section>
 
@@ -72,14 +75,22 @@ const { showcase, footer, skipLink } = getShowcaseTerms();
     </section>
   </main>
   <PageFooter text={footer.text} topLabel={footer.topLabel} />
+  </div>
 </BaseLayout>
+
+<style>
+  .showcase-page {
+    --container-page: var(--container-showcase);
+  }
+</style>
 
 <script>
   const showcase = document.querySelector<HTMLElement>("[data-showcase]");
   const toggle = showcase?.querySelector<HTMLButtonElement>("[data-toggle-all]");
+  const article = showcase?.querySelector<HTMLElement>("[data-article]");
   const changes = Array.from(showcase?.querySelectorAll<HTMLButtonElement>("[data-change]") ?? []);
 
-  if (toggle && changes.length > 0) {
+  if (toggle && article && changes.length > 0) {
     const track = toggle.querySelector<HTMLElement>("[data-toggle-track]");
     const thumb = toggle.querySelector<HTMLElement>("[data-toggle-thumb]");
 
@@ -102,12 +113,15 @@ const { showcase, footer, skipLink } = getShowcaseTerms();
       change.setAttribute("aria-pressed", String(after));
     };
 
-    for (const change of changes) {
-      change.addEventListener("click", () => {
-        setChange(change, change.dataset.state !== "after");
-        syncToggle();
-      });
-    }
+    article.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element)) return;
+
+      const change = event.target.closest<HTMLButtonElement>("[data-change]");
+      if (!change) return;
+
+      setChange(change, change.dataset.state !== "after");
+      syncToggle();
+    });
 
     toggle.addEventListener("click", () => {
       const allAfter = toggle.getAttribute("aria-checked") === "true";
