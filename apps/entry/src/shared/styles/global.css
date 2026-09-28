@@ -23,6 +23,8 @@
   --color-text-muted: #71717a;
   --color-border-default: #e4e4e7;
   --color-border-strong: #8b8b95;
+  --color-change-before: #fde4e8;
+  --color-change-after: #e2f2e8;
 
   --text-display: 1.5rem;
   --text-display--line-height: 1.4;

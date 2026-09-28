@@ -191,6 +191,7 @@
     "description": "AI 테스트 코드 작성 보고서에서 표현을 다듬기 전과 후를 비교합니다.",
     "backLabel": "개발자 소개로 돌아가기",
     "articleTitle": "보고서",
+    "toggleLabel": "전체 표현 개선",
     "changesTitle": "수정한 표현",
     "changeLabel": "수정",
     "beforeLabel": "수정 전",

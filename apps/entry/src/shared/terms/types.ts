@@ -121,6 +121,7 @@ export type HomeTerms = {
     description: string;
     backLabel: string;
     articleTitle: string;
+    toggleLabel: string;
     changesTitle: string;
     changeLabel: string;
     beforeLabel: string;

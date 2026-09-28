@@ -174,6 +174,7 @@ function isHomeTerms(value: unknown): value is HomeTerms {
       "description",
       "backLabel",
       "articleTitle",
+      "toggleLabel",
       "changesTitle",
       "changeLabel",
       "beforeLabel",

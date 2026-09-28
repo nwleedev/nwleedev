@@ -191,6 +191,7 @@
     "description": "Compare wording before and after editing an AI testing report.",
     "backLabel": "Back to developer profile",
     "articleTitle": "Report",
+    "toggleLabel": "Improve all wording",
     "changesTitle": "Wording changes",
     "changeLabel": "Change",
     "beforeLabel": "Before",
