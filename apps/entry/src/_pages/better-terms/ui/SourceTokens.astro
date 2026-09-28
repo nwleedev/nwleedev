@@ -3,14 +3,14 @@ import type { SourcePart } from "../model/source";
 
 interface Props {
   tokens: Extract<SourcePart, { kind: "text" }>["tokens"];
-  highlighted?: boolean;
+  tone?: "before" | "after";
 }
 
-const { tokens, highlighted = false } = Astro.props;
+const { tokens, tone } = Astro.props;
 ---
 
 {tokens.map((token) => (
-  <span class="source-token" data-syntax={token.kind} data-highlighted={highlighted}>
+  <span class="source-token" data-syntax={token.kind} data-tone={tone} data-marked={token.text.trim().length > 0}>
     {token.text}
   </span>
 ))}
@@ -24,7 +24,15 @@ const { tokens, highlighted = false } = Astro.props;
     color: var(--color-text-muted);
   }
 
-  .source-token[data-highlighted="true"] {
+  .source-token[data-tone] {
     font-weight: 500;
+  }
+
+  .source-token[data-tone="before"][data-marked="true"] {
+    background: var(--color-change-before);
+  }
+
+  .source-token[data-tone="after"][data-marked="true"] {
+    background: var(--color-change-after);
   }
 </style>

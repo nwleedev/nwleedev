@@ -47,7 +47,19 @@ const { showcase, footer, skipLink } = getShowcaseTerms();
         </button>
       </div>
       <article aria-label={showcase.articleTitle} data-article>
-        <pre class="m-0 whitespace-pre-wrap break-words font-mono text-base leading-7">{sourceParts.map((part) => part.kind === "text" ? <SourceTokens tokens={part.tokens} /> : <button type="button" class="inline whitespace-pre-wrap border-0 bg-change-before p-0 text-left font-mono font-medium text-text-primary data-[state=after]:bg-change-after" data-change data-state="before" aria-pressed="false"><span data-before><SourceTokens tokens={part.beforeTokens} highlighted /></span><span data-after hidden><SourceTokens tokens={part.afterTokens} highlighted /></span></button>)}</pre>
+        <pre class="m-0 whitespace-pre-wrap break-words font-mono text-base leading-7">{sourceParts.map((part) => {
+          if (part.kind === "text") return <SourceTokens tokens={part.tokens} />;
+
+          return (
+            <button
+              type="button"
+              class="inline scroll-mt-16 whitespace-pre-wrap border-0 bg-transparent p-0 text-left font-mono font-medium text-text-primary"
+              data-change
+              data-state="before"
+              aria-pressed="false"
+            ><span data-before><SourceTokens tokens={part.beforeTokens} tone="before" /></span><span data-after hidden><SourceTokens tokens={part.afterTokens} tone="after" /></span></button>
+          );
+        })}</pre>
       </article>
     </section>
 

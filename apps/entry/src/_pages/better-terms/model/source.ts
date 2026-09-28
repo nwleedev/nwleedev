@@ -59,10 +59,13 @@ function tokensOf(text: string, source: string, offset: number): SourceToken[] {
       const isHeadingMarker = markdownMarker.startsWith("#") && atHeadingStart;
       const isTableDivider = markdownMarker.startsWith("-") && tableDivider;
       const isListMarker = absolute + matchStart === listStart;
-      const isPunctuationMarker = !/^#|-|\+|\d/u.test(markdownMarker);
+      const isPunctuationMarker = !/^(?:#|-|\+|\d)/u.test(markdownMarker);
       const isSyntaxMarker = (isHeadingMarker || isTableDivider) || (isListMarker || isPunctuationMarker);
+      let kind: SourceToken["kind"] = heading ? "heading" : "plain";
 
-      addToken(tokens, markdownMarker, isSyntaxMarker ? "marker" : heading ? "heading" : "plain");
+      if (isSyntaxMarker) kind = "marker";
+
+      addToken(tokens, markdownMarker, kind);
       local = matchStart + markdownMarker.length;
     }
 
