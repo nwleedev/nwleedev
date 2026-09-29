@@ -71,8 +71,8 @@ function combineNearbyChanges(parts: DraftPart[]): void {
       bridge?.kind !== "text" ||
       following?.kind !== "change" ||
       bridge.text.includes("\n") ||
-      bridge.text.trim().length > 0 ||
-      bridge.text.length > 8
+      bridge.text.includes(".") ||
+      bridge.text.length > 18
     ) {
       continue;
     }
@@ -201,6 +201,41 @@ function diffSection(before: string, after: string): DraftPart[] {
   return parts.filter((part) => part.kind === "change" || part.text.length > 0);
 }
 
+function sentenceParts(parts: readonly ArticlePart[]): ArticlePart[] {
+  const firstChange = parts.findIndex((part) => part.kind === "change");
+  const lastChange = parts.findLastIndex((part) => part.kind === "change");
+
+  if (firstChange < 0 || lastChange < 0) {
+    throw new Error("A report example has no changed expression.");
+  }
+
+  const leading = parts[firstChange - 1];
+  const trailing = parts[lastChange + 1];
+  const last = parts[lastChange];
+  const selected: ArticlePart[] = [];
+
+  if (leading?.kind === "text") {
+    const boundary = leading.text.lastIndexOf(". ");
+    const sentenceStart = boundary < 0 ? 0 : boundary + 2;
+    const prefix = leading.text.slice(sentenceStart);
+    if (prefix) selected.push({ kind: "text", text: prefix });
+  }
+
+  selected.push(...parts.slice(firstChange, lastChange + 1));
+
+  const endsAtChange = last?.kind === "change"
+    && /[.!?]\s*$/u.test(last.before)
+    && /[.!?]\s*$/u.test(last.after);
+
+  if (!endsAtChange && trailing?.kind === "text") {
+    const period = trailing.text.search(/[.!?](?=\s|$)/u);
+    const suffix = period < 0 ? trailing.text : trailing.text.slice(0, period + 1);
+    if (suffix) selected.push({ kind: "text", text: suffix });
+  }
+
+  return selected;
+}
+
 const beforeLines = linesOf(beforeReport);
 const afterLines = linesOf(afterReport);
 const articleParts: ArticlePart[] = [];
@@ -235,7 +270,7 @@ for (const section of changeSections) {
   });
 
   articleParts.push(...parts);
-  examples.push({ section, parts });
+  examples.push({ section, parts: sentenceParts(parts) });
   beforeLine = section.before[1];
   afterLine = section.after[1];
 }

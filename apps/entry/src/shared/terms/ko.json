@@ -188,9 +188,9 @@
   },
   "showcase": {
     "title": "use-better-terms",
-    "description": "AI 테스트 코드 작성 보고서에서 표현을 다듬기 전과 후를 비교합니다.",
+    "description": "프론트엔드 보고서 다섯 편에서 고른 문단의 표현을 수정 전후로 비교합니다.",
     "backLabel": "개발자 소개로 돌아가기",
-    "articleTitle": "보고서",
+    "articleTitle": "보고서 발췌문",
     "toggleLabel": "전체 표현 개선",
     "changesTitle": "수정한 표현",
     "changeLabel": "수정",
