@@ -156,7 +156,7 @@
         "title": "AI Agent Workflow",
         "period": "2026 — Present",
         "summary": "요구사항, 조사, 결정과 구현을 나눠 변경 이유와 기준을 추적할 수 있도록 저장소 규칙과 Skill을 구성했습니다. 모호한 한국어 문구를 저장 전에 찾는 검사 절차와 함께 여러 저장소에 적용했습니다.",
-        "link": { "label": "문구 개선 사례 보기", "href": "/better-terms/" },
+        "link": { "label": "문구 개선 사례 보기", "href": "/projects/use-better-terms" },
         "technologies": ["Node.js", "Repository Rules", "Text Validation"]
       },
       {
@@ -187,10 +187,10 @@
     ]
   },
   "showcase": {
-    "title": "use-better-terms",
-    "description": "React와 TypeScript 프론트엔드 보고서 전체의 수정 전후를 비교합니다. 표현뿐 아니라 기술 설명과 예시 코드의 변경도 포함합니다.",
-    "backLabel": "개발자 소개로 돌아가기",
-    "articleTitle": "보고서 전체",
+    "title": "Use Better Terms",
+    "description": "AI가 작성한 문서의 표현을 더 자연스럽고 이해하기 쉽게 개선할 수 있습니다.",
+    "homeLabel": "홈으로 이동",
+    "articleTitle": "문서 비교",
     "toggleLabel": "전체 수정본 보기",
     "changesTitle": "수정한 부분과 이유",
     "changeLabel": "변경",

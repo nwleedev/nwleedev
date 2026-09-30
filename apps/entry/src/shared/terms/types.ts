@@ -119,7 +119,7 @@ export type HomeTerms = {
   showcase: {
     title: string;
     description: string;
-    backLabel: string;
+    homeLabel: string;
     articleTitle: string;
     toggleLabel: string;
     changesTitle: string;

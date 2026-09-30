@@ -56,7 +56,7 @@ export const changeSections = [
     groupId: "approach",
     before: [49, 50],
     after: [45, 46],
-    reason: "표현 수정: 중간 컴포넌트가 전달하는 값과 불필요한 전달 단계를 직접 적었습니다.",
+    reason: "표현 수정: 중간 컴포넌트가 전달하는 값과 불필요한 전달 단계를 명시했습니다.",
   },
   {
     id: "change-6",
@@ -91,14 +91,14 @@ export const changeSections = [
     groupId: "injection",
     before: [96, 96],
     after: [92, 92],
-    reason: "표현 수정: 인터페이스를 도메인이 관리한다고 단정한 주석 대신 그 인터페이스를 쓰는 코드를 적었습니다.",
+    reason: "표현 수정: 인터페이스를 도메인이 관리한다고 단정한 주석 대신 이를 사용하는 코드를 주석에 명시했습니다.",
   },
   {
     id: "change-11",
     groupId: "injection",
     before: [128, 129],
     after: [124, 125],
-    reason: "기술 설명 보정: Context 기반 의존성 전달을 React가 정한 표준 DI 형식으로 소개하지 않도록 고쳤습니다.",
+    reason: "기술 설명 보정: Context 기반 의존성 전달을 React가 정한 표준 DI 형식으로 소개하지 않도록 수정했습니다.",
   },
   {
     id: "change-12",
@@ -133,7 +133,7 @@ export const changeSections = [
     groupId: "injection",
     before: [182, 185],
     after: [183, 186],
-    reason: "기술 설명 보정: 커뮤니티 라이브러리의 유지보수와 React 19 호환성을 확인하지 않은 채 평가하지 않도록 고쳤습니다.",
+    reason: "기술 설명 보정: 커뮤니티 라이브러리의 유지보수와 React 19 호환성을 확인하지 않은 채 평가하지 않도록 수정했습니다.",
   },
   {
     id: "change-17",
@@ -210,7 +210,7 @@ export const changeSections = [
     groupId: "environments",
     before: [300, 300],
     after: [302, 302],
-    reason: "기술 설명 보정: 서버 QueryClient 생성과 브라우저 재사용 방식을 공식 예시에 맞춰 적었습니다.",
+    reason: "기술 설명 보정: 서버 QueryClient 생성과 브라우저 재사용 방식을 공식 예시에 맞게 수정했습니다.",
   },
   {
     id: "change-28",
@@ -245,14 +245,14 @@ export const changeSections = [
     groupId: "selection",
     before: [339, 349],
     after: [341, 347],
-    reason: "표현 수정: 일률적인 선택 지시 대신 필요한 값과 실행 환경에 따라 검토할 순서를 적었습니다.",
+    reason: "표현 수정: 일률적인 선택 지시 대신 필요한 값과 실행 환경에 따라 검토할 순서를 제시했습니다.",
   },
   {
     id: "change-33",
     groupId: "conditions",
     before: [353, 361],
     after: [351, 359],
-    reason: "기술 설명 보정: 특정 파일 배치와 모든 Context 훅의 예외 처리를 필수 규칙으로 제시하지 않도록 고쳤습니다.",
+    reason: "기술 설명 보정: 특정 파일 배치와 모든 Context 훅의 예외 처리를 필수 규칙으로 제시하지 않도록 수정했습니다.",
   },
   {
     id: "change-34",

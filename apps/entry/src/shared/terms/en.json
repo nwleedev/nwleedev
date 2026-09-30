@@ -156,7 +156,7 @@
         "title": "AI Agent Workflow",
         "period": "2026 — Present",
         "summary": "I created repository rules and skills that separate requirements, research, decisions, and implementation so the reasons and criteria behind changes remain traceable. I paired them with a pre-save check for ambiguous Korean copy and applied the workflow across multiple repositories.",
-        "link": { "label": "View wording changes", "href": "/better-terms/" },
+        "link": { "label": "View wording changes", "href": "/projects/use-better-terms" },
         "technologies": ["Node.js", "Repository Rules", "Text Validation"]
       },
       {
@@ -187,10 +187,10 @@
     ]
   },
   "showcase": {
-    "title": "use-better-terms",
-    "description": "Compare the full React and TypeScript frontend report before and after editing, including technical explanations and code examples.",
-    "backLabel": "Back to developer profile",
-    "articleTitle": "Full report",
+    "title": "Use Better Terms",
+    "description": "Improve the wording in AI-written documents to make it more natural and easier to understand.",
+    "homeLabel": "Go to home",
+    "articleTitle": "Document comparison",
     "toggleLabel": "Show all revisions",
     "changesTitle": "Changes and reasons",
     "changeLabel": "Change",

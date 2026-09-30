@@ -1,6 +1,7 @@
 ---
 import { getShowcaseTerms } from "@/shared/terms";
 import { BaseLayout, PageFooter } from "@/shared/ui";
+import House from "phosphor-astro/House.astro";
 import { examples } from "../model/article";
 import { groups } from "../model/changes";
 import { sourceParts } from "../model/source";
@@ -23,8 +24,8 @@ const groupedExamples = groups.map((group) => ({
   <div class="showcase-page">
   <main id="main-content" class="mx-auto max-w-page px-(--page-gutter)" tabindex="-1" data-showcase>
     <header class="pt-16">
-      <a class="inline-flex min-h-6 items-center text-brand-strong underline" href="/">
-        {showcase.backLabel}
+      <a class="home-link inline-flex size-8 items-center justify-center" href="/" aria-label={showcase.homeLabel}>
+        <House aria-hidden="true" class="size-6" />
       </a>
       <h1 class="mt-8 text-display font-semibold text-text-primary">{showcase.title}</h1>
       <p class="mt-4 text-base text-text-secondary">{showcase.description}</p>
@@ -56,13 +57,15 @@ const groupedExamples = groups.map((group) => ({
           if (part.kind === "text") return <SourceTokens tokens={part.tokens} />;
 
           return (
-            <button
-              type="button"
-              class="inline scroll-mt-16 whitespace-pre-wrap border-0 bg-transparent p-0 text-left font-mono font-medium text-text-primary"
+            <span
+              role="button"
+              tabindex="0"
+              aria-label={`${showcase.beforeLabel}: ${part.before} ${showcase.afterLabel}: ${part.after}`}
+              class="inline cursor-pointer scroll-mt-16 whitespace-pre-wrap font-mono font-medium text-text-primary"
               data-change
               data-state="before"
               aria-pressed="false"
-            ><span data-before><SourceTokens tokens={part.beforeTokens} tone="before" /></span><span data-after hidden><SourceTokens tokens={part.afterTokens} tone="after" /></span></button>
+            ><span data-before><SourceTokens tokens={part.beforeTokens} tone="before" /></span><span data-after hidden><SourceTokens tokens={part.afterTokens} tone="after" /></span></span>
           );
         })}</pre>
       </article>
@@ -107,6 +110,17 @@ const groupedExamples = groups.map((group) => ({
     --container-page: var(--container-showcase);
   }
 
+  .home-link {
+    color: var(--color-brand-strong);
+  }
+
+  @media (hover: hover) {
+    .home-link:hover {
+      background: var(--color-brand-strong);
+      color: var(--color-surface-default);
+    }
+  }
+
   .change-example {
     overflow-wrap: anywhere;
   }
@@ -116,7 +130,7 @@ const groupedExamples = groups.map((group) => ({
   const showcase = document.querySelector<HTMLElement>("[data-showcase]");
   const toggle = showcase?.querySelector<HTMLButtonElement>("[data-toggle-all]");
   const article = showcase?.querySelector<HTMLElement>("[data-article]");
-  const changes = Array.from(showcase?.querySelectorAll<HTMLButtonElement>("[data-change]") ?? []);
+  const changes = Array.from(showcase?.querySelectorAll<HTMLElement>("[data-change]") ?? []);
 
   if (toggle && article && changes.length > 0) {
     const track = toggle.querySelector<HTMLElement>("[data-toggle-track]");
@@ -129,7 +143,7 @@ const groupedExamples = groups.map((group) => ({
       if (thumb) thumb.dataset.checked = String(allAfter);
     };
 
-    const setChange = (change: HTMLButtonElement, after: boolean) => {
+    const setChange = (change: HTMLElement, after: boolean) => {
       const beforeText = change.querySelector<HTMLElement>("[data-before]");
       const afterText = change.querySelector<HTMLElement>("[data-after]");
 
@@ -141,15 +155,24 @@ const groupedExamples = groups.map((group) => ({
       change.setAttribute("aria-pressed", String(after));
     };
 
-    article.addEventListener("click", (event) => {
+    const activateChange = (event: MouseEvent | KeyboardEvent) => {
       if (!(event.target instanceof Element)) return;
 
-      const change = event.target.closest<HTMLButtonElement>("[data-change]");
+      const change = event.target.closest<HTMLElement>("[data-change]");
       if (!change) return;
+
+      if (event instanceof KeyboardEvent) {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        if (event.repeat) return;
+      }
 
       setChange(change, change.dataset.state !== "after");
       syncToggle();
-    });
+    };
+
+    article.addEventListener("click", activateChange);
+    article.addEventListener("keydown", activateChange);
 
     toggle.addEventListener("click", () => {
       const allAfter = toggle.getAttribute("aria-checked") === "true";

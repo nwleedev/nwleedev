@@ -172,7 +172,7 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     hasStrings(showcase, [
       "title",
       "description",
-      "backLabel",
+      "homeLabel",
       "articleTitle",
       "toggleLabel",
       "changesTitle",
