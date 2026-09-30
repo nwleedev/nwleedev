@@ -2,14 +2,14 @@
 import { getShowcaseTerms } from "@/shared/terms";
 import { BaseLayout, PageFooter } from "@/shared/ui";
 import { examples } from "../model/article";
-import { reports } from "../model/changes";
+import { groups } from "../model/changes";
 import { sourceParts } from "../model/source";
 import SourceTokens from "./SourceTokens.astro";
 
 const { showcase, footer, skipLink } = getShowcaseTerms();
-const reportExamples = reports.map((report) => ({
-  ...report,
-  examples: examples.filter((example) => example.section.reportId === report.id),
+const groupedExamples = groups.map((group) => ({
+  ...group,
+  examples: examples.filter((example) => example.section.groupId === group.id),
 }));
 ---
 
@@ -71,20 +71,20 @@ const reportExamples = reports.map((report) => ({
     <section aria-labelledby="changes-title" class="mt-16 pb-24">
       <h2 id="changes-title" class="text-section font-semibold">{showcase.changesTitle}</h2>
       <div class="mt-8">
-        {reportExamples.map((report) => (
-          <section aria-labelledby={`report-${report.id}`}>
-            <h3 id={`report-${report.id}`} class="text-item font-semibold">{report.title}</h3>
+        {groupedExamples.map((group) => (
+          <section aria-labelledby={`group-${group.id}`}>
+            <h3 id={`group-${group.id}`} class="text-item font-semibold">{group.title}</h3>
             <ol class="mt-4">
-              {report.examples.map((example, index) => (
+              {group.examples.map((example, index) => (
                 <li class="border-t border-border-default py-9 first:border-t-0 first:pt-0">
                   <h4 class="text-base font-semibold">{showcase.changeLabel} {index + 1}</h4>
                   <div class="mt-4">
                     <p class="text-sm font-medium text-text-muted">{showcase.beforeLabel}</p>
-                    <p class="mt-2 whitespace-pre-wrap text-base text-text-secondary">{example.parts.map((part) => part.kind === "text" ? part.text : <span class="bg-change-before font-medium text-text-primary">{part.before}</span>)}</p>
+                    <p class="change-example mt-2 whitespace-pre-wrap text-base text-text-secondary">{example.parts.map((part) => part.kind === "text" ? part.text : <span class="bg-change-before font-medium text-text-primary">{part.before}</span>)}</p>
                   </div>
                   <div class="mt-6">
                     <p class="text-sm font-medium text-text-muted">{showcase.afterLabel}</p>
-                    <p class="mt-2 whitespace-pre-wrap text-base text-text-secondary">{example.parts.map((part) => part.kind === "text" ? part.text : <span class="bg-change-after font-medium text-text-primary">{part.after}</span>)}</p>
+                    <p class="change-example mt-2 whitespace-pre-wrap text-base text-text-secondary">{example.parts.map((part) => part.kind === "text" ? part.text : <span class="bg-change-after font-medium text-text-primary">{part.after}</span>)}</p>
                   </div>
                   <div class="mt-6">
                     <p class="text-sm font-medium text-text-muted">{showcase.reasonLabel}</p>
@@ -105,6 +105,10 @@ const reportExamples = reports.map((report) => ({
 <style>
   .showcase-page {
     --container-page: var(--container-showcase);
+  }
+
+  .change-example {
+    overflow-wrap: anywhere;
   }
 </style>
 

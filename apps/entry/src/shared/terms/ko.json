@@ -188,12 +188,12 @@
   },
   "showcase": {
     "title": "use-better-terms",
-    "description": "프론트엔드 보고서 다섯 편에서 고른 문단의 표현을 수정 전후로 비교합니다.",
+    "description": "React와 TypeScript 프론트엔드 보고서 전체의 수정 전후를 비교합니다. 표현뿐 아니라 기술 설명과 예시 코드의 변경도 포함합니다.",
     "backLabel": "개발자 소개로 돌아가기",
-    "articleTitle": "보고서 발췌문",
-    "toggleLabel": "전체 표현 개선",
-    "changesTitle": "수정한 표현",
-    "changeLabel": "수정",
+    "articleTitle": "보고서 전체",
+    "toggleLabel": "전체 수정본 보기",
+    "changesTitle": "수정한 부분과 이유",
+    "changeLabel": "변경",
     "beforeLabel": "수정 전",
     "afterLabel": "수정 후",
     "reasonLabel": "수정 이유"
