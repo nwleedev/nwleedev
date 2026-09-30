@@ -120,7 +120,7 @@ export type HomeTerms = {
     title: string;
     description: string;
     homeLabel: string;
-    articleTitle: string;
+    articleLabel: string;
     toggleLabel: string;
     changesTitle: string;
     changeLabel: string;

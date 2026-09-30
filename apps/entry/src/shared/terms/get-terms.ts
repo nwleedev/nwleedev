@@ -173,7 +173,7 @@ function isHomeTerms(value: unknown): value is HomeTerms {
       "title",
       "description",
       "homeLabel",
-      "articleTitle",
+      "articleLabel",
       "toggleLabel",
       "changesTitle",
       "changeLabel",

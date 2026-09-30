@@ -31,9 +31,8 @@ const groupedExamples = groups.map((group) => ({
       <p class="mt-4 text-base text-text-secondary">{showcase.description}</p>
     </header>
 
-    <section aria-labelledby="article-title" class="mt-16 hidden sm:block">
-      <h2 id="article-title" class="text-section font-semibold">{showcase.articleTitle}</h2>
-      <div class="sticky top-0 z-10 mt-8 flex justify-end bg-surface-default py-2">
+    <div class="mt-6 hidden sm:block">
+      <div class="sticky top-0 z-10 flex justify-end bg-surface-default py-2">
         <button
           type="button"
           role="switch"
@@ -52,7 +51,7 @@ const groupedExamples = groups.map((group) => ({
           </span>
         </button>
       </div>
-      <article aria-label={showcase.articleTitle} data-article>
+      <article aria-label={showcase.articleLabel} data-article>
         <pre class="m-0 whitespace-pre-wrap break-words font-mono text-base leading-7">{sourceParts.map((part) => {
           if (part.kind === "text") return <SourceTokens tokens={part.tokens} />;
 
@@ -69,7 +68,7 @@ const groupedExamples = groups.map((group) => ({
           );
         })}</pre>
       </article>
-    </section>
+    </div>
 
     <section aria-labelledby="changes-title" class="mt-16 pb-24">
       <h2 id="changes-title" class="text-section font-semibold">{showcase.changesTitle}</h2>
