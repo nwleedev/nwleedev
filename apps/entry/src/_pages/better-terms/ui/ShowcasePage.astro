@@ -24,10 +24,10 @@ const groupedExamples = groups.map((group) => ({
   <div class="showcase-page">
   <main id="main-content" class="mx-auto max-w-page px-(--page-gutter)" tabindex="-1" data-showcase>
     <header class="pt-16">
-      <a class="home-link inline-flex size-8 items-center justify-center" href="/" aria-label={showcase.homeLabel}>
+      <a class="home-link inline-flex size-10 rounded-xl items-center justify-center" href="/" aria-label={showcase.homeLabel}>
         <House aria-hidden="true" class="size-6" />
       </a>
-      <h1 class="mt-8 text-display font-semibold text-text-primary">{showcase.title}</h1>
+      <h1 class="mt-4 text-display font-semibold text-text-primary">{showcase.title}</h1>
       <p class="mt-4 text-base text-text-secondary">{showcase.description}</p>
     </header>
 
@@ -51,7 +51,7 @@ const groupedExamples = groups.map((group) => ({
           </span>
         </button>
       </div>
-      <article aria-label={showcase.articleLabel} data-article>
+      <article aria-label={showcase.articleLabel} data-article class="mt-4">
         <pre class="m-0 whitespace-pre-wrap break-words font-mono text-base leading-7">{sourceParts.map((part) => {
           if (part.kind === "text") return <SourceTokens tokens={part.tokens} />;
 
