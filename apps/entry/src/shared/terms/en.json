@@ -164,6 +164,16 @@
         "period": "2025",
         "summary": "With language models saved ahead of time, users can translate between Korean and English or Korean and Japanese without a network connection and keep interacting with the page while the model runs. I used browser caching, Web Workers, and IndexedDB to keep the required files and processing in the browser, and automated repeated deployment steps with GitHub Actions.",
         "technologies": ["Web Worker", "IndexedDB", "Offline", "GitHub Actions"]
+      },
+      {
+        "title": "Personal Notes Workspace",
+        "period": "2026",
+        "summary": "I started this project to avoid repeatedly entering instructions for AI agents and creating a new Python command note for every set of parameters. I chose to reuse notes by separating text I use repeatedly from values that change. I improved the layout and ease of use based on problems I encountered while using the app on mobile.",
+        "link": {
+          "label": "View source",
+          "href": "https://github.com/nwleedev/nwleedev/tree/a06bfc94c64232581742792a9834b82f5963f225/apps/notes"
+        },
+        "technologies": ["TypeScript", "React", "Next.js", "IndexedDB"]
       }
     ]
   },

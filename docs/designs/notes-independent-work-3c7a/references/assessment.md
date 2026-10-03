@@ -67,7 +67,7 @@ Worker와 IndexedDB라는 기술 이름은 기존 번역 앱과 회사 경력에
 
 영어 설명 제안:
 
-> I started this project to address repeatedly entering instructions for AI agents and creating a new Python command note whenever its parameters changed. I chose to reuse existing notes by distinguishing reusable text from values that change. I improved the layout and ease of use based on issues I encountered while using it on mobile.
+> I started this project to avoid repeatedly entering instructions for AI agents and creating a new Python command note for every set of parameters. I chose to reuse notes by separating text I use repeatedly from values that change. I improved the layout and ease of use based on problems I encountered while using the app on mobile.
 
 이력서에서는 직접 내린 판단을 먼저 적고, 지원할 직무에 맞는 문제 해결 사례를 보충한다. 개별 오류 분석과 코드 수정의 개인 역할은 확인된 만큼 덧붙인다.
 
