@@ -2,7 +2,7 @@
 
 반복 입력과 늘어나는 명령어 메모의 원인을 정리하고, 기존 내용을 재사용하는 해결 방향을 직접 정한 기여를 근거로 Independent Work에 메모 앱을 추가했다. 짧은 소개는 시작한 이유, 선택한 방향과 직접 사용하며 개선한 점을 전달한다. 커밋별 기록은 그 판단을 뒷받침하는 근거다.
 
-기준은 [선정 요구사항의 필요한 결과와 완료 자료](requirements.md)와 [사이트의 Independent Work 요구사항](../developer-portfolio-f4b7/requirements.md#independent-work)이다. 사이트 반영에는 [개발 지침](../../dev/README.md)과 [Astro 구현 지침](../../dev/frontend/astro-fsd-tailwind.md)을 적용한다.
+기준은 [선정 요구사항의 필요한 결과와 완료 자료](requirements.md)와 [사이트의 Projects 요구사항](../developer-portfolio-f4b7/requirements.md#projects)이다. 사이트 반영에는 [개발 지침](../../dev/README.md)과 [Astro 구현 지침](../../dev/frontend/astro-fsd-tailwind.md)을 적용한다.
 
 ## 평가 단위와 완료 근거
 
@@ -21,7 +21,7 @@
 소개 문구 선택, 선정 기록, 소개 내용, 화면 확인 순서로 진행한다. 변경 대상은 아래 문서와 두 언어의 소개 내용이며, 새 파일과 테스트 코드는 필요하지 않다. 정적 소개 내용을 반영하는 작업이므로 TDD를 적용하지 않는다.
 
 1. 소개 문구와 링크를 선택한다. 완료: [소개안](references/assessment.md#independent-work에-실을-문구-제안)의 반복 입력, 메모 재사용을 선택한 이유와 직접 사용하며 개선한 경험을 담은 문구를 선택했다. 제목은 `Personal Notes Workspace`, 기간은 `2026`이다. 외부에서 열람할 수 있는 평가 버전의 소스를 연결하고 `소스 코드 보기`와 `View source`로 표시한다. 기술 정보는 `TypeScript`, `React`, `Next.js`, `IndexedDB`다.
-2. 사이트 선정 기록을 반영한다. 완료: [사이트 요구사항](../developer-portfolio-f4b7/requirements.md#independent-work)과 [선정 결정](../developer-portfolio-f4b7/decisions/project-availability.md)에 목적과 직접 정한 기여를 반영했다. 처음에는 목적과 기능만 확인돼 우선순위가 낮았던 이유와, 실제 불편 및 선택 이유가 확인돼 추가하는 근거를 구분했다.
+2. 사이트 선정 기록을 반영한다. 완료: [사이트 요구사항](../developer-portfolio-f4b7/requirements.md#projects)과 [선정 결정](../developer-portfolio-f4b7/decisions/project-availability.md)에 목적과 직접 정한 기여를 반영했다. 처음에는 목적과 기능만 확인돼 우선순위가 낮았던 이유와, 실제 불편 및 선택 이유가 확인돼 추가하는 근거를 구분했다.
 3. 소개 내용을 반영한다. 완료: [한국어 소개](../../../apps/entry/src/shared/terms/ko.json)와 [영어 소개](../../../apps/entry/src/shared/terms/en.json)에 같은 목적, 확인된 기여, 기간과 소스 링크를 담았다. 기존 두 항목 다음에 추가했으며 다른 소개 내용과 화면 구성은 유지했다.
 4. 소개 화면을 확인한다. 완료: 타입 검사 33개 파일에서 오류, 경고와 힌트가 없고 정적 빌드가 통과했다. 한국어와 영어의 320px, 390px, 768px, 1440px 화면에서 세 항목과 소스 링크를 확인했다. 320px와 1440px의 200% 글자 확대에서도 새 항목을 읽을 수 있으며, 링크의 키보드 포커스 표시와 JavaScript 없이 표시되는 소개를 확인했다.
 

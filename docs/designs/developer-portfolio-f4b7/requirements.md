@@ -49,11 +49,11 @@
 1. Identity
 2. Experience
 3. Open Source
-4. Independent Work
+4. Projects
 5. Background
 6. Contact와 Footer
 
-별도의 `Selected Work`, `Skills`, `Projects` 영역과 경력 또는 프로젝트의 내부 상세 페이지를 만들지 않는다. `use-better-terms`의 수정 사례는 [쇼케이스 요구사항](../better-terms-showcase-6e2/requirements.md)에 따라 별도 페이지에서 보여준다. About은 Identity가 대신한다. 개발자 소개 화면은 모든 화면 폭에서 같은 순서로 세로 스크롤하며 읽는다.
+기존 `Independent Work`의 제목을 두 언어에서 `Projects`로 바꾼다. 별도의 `Selected Work`, `Skills` 영역이나 프로젝트 목록을 중복해서 만들지 않는다. 경력과 프로젝트의 내부 상세 페이지도 추가하지 않는다. `use-better-terms`의 수정 사례는 [쇼케이스 요구사항](../better-terms-showcase-6e2/requirements.md)에 따라 별도 페이지에서 보여준다. About은 Identity가 대신한다. 개발자 소개 화면은 모든 화면 폭에서 같은 순서로 세로 스크롤하며 읽는다.
 
 네비게이션 바, 고정 목차, 메뉴 버튼과 Drawer를 만들지 않는다. 데스크톱에서는 외부 자료 링크를 소개 본문에 유지하고 언어 선택은 화면 오른쪽 상단에 둔다. 모바일에서는 외부 자료 링크를 같은 본문 위치의 아이콘 목록으로 바꾸고 현재 화면과 다른 언어 하나만 이름 오른쪽에 표시한다. 키보드 사용을 위한 본문 바로가기와 기존 영역 id를 통한 직접 이동은 유지한다.
 
@@ -99,15 +99,21 @@ React Router와 Outline 기여를 회사 경력과 구분된 외부 확인 자�
 
 실시간 별 수, 기여 횟수나 저장소 로고 모음을 추가하지 않는다.
 
-## Independent Work
+## Projects
 
-독립 작업은 별도 제목으로 회사 Experience와 구분하고 실제 작업 단위로 소개한다. `회사 프로젝트 밖에서 문제를 정의하고 구현한 작업입니다.`처럼 영역을 편집하거나 사이트를 구성한 방식을 설명하는 도입 문구는 두지 않는다. 제목 다음의 첫 작업 앞에는 구분선을 넣지 않고 32px 뒤에 내용을 시작한다. 작업을 옆으로 배치하거나 한쪽을 어긋나게 놓지 않는다.
+`Projects`에는 회사 Experience와 구분한 개인 프로젝트를 소개한다. `회사 프로젝트 밖에서 문제를 정의하고 구현한 작업입니다.`처럼 사이트의 편집 방식을 설명하는 도입 문구는 두지 않는다. 제목 다음의 첫 프로젝트 앞에는 구분선을 넣지 않고 32px 뒤에 내용을 시작한다. 프로젝트를 옆으로 배치하거나 한쪽을 어긋나게 놓지 않는다. 기존 `#independent-work` 주소를 통한 직접 이동은 유지한다.
+
+프로젝트 설명은 여러 문단으로 구성한다. 시작한 이유와 사용자가 얻는 이점, 직접 발견하고 해결한 문제를 내용에 맞게 나눈다. 같은 사실을 되풀이하거나 문단 수를 맞추려고 설명을 늘리지 않는다. 한국어와 영어에서 같은 사실을 읽을 수 있어야 하며, 코드 작성 방법과 상세한 구현 순서를 중심으로 설명하지 않는다.
 
 - **AI Agent Workflow:** 요구사항, 조사, 결정과 구현이 섞이지 않도록 만든 저장소 규칙과 Skill을 소개한다. 한국어 문구를 저장하기 전에 검사하는 절차와 여러 저장소에 적용한 사실을 함께 설명하되 효과를 측정한 것처럼 표현하지 않는다.
 - **Offline Translation Web App:** 사용할 언어의 모델을 미리 저장한 뒤 네트워크 연결 없이 한국어와 영어, 한국어와 일본어 사이를 번역하는 사용 방식을 먼저 설명한다. Web Worker, IndexedDB, 브라우저 캐시와 GitHub Actions 배포 자동화를 그 방식을 구현한 기술 정보로 제공한다. `30초 이내 배포`는 근거와 조건을 확인한 경우에만 사용한다.
-- **Personal Notes Workspace:** AI 지침을 반복해서 입력하고 Python 실행 조건마다 명령어 메모가 늘어나는 불편, 기존 내용을 재사용하기로 정한 이유와 모바일에서 직접 사용하며 개선한 경험을 소개한다. 기간은 `2026`이며, 링크는 실행 서비스와 혼동하지 않도록 `소스 코드 보기` 또는 `View source`로 표시한다. 상세 구현 설명이나 확인되지 않은 수치를 더하지 않는다.
+- **Personal Notes Workspace:** AI 지침을 반복해서 입력하고 Python 실행 조건마다 명령어 메모가 늘어나는 불편, 기존 내용을 재사용하기로 정한 이유와 직접 사용하며 개선한 경험을 소개한다. 메모 이동과 일괄 복사 순서 변경 문제를 개선한 사실, 모바일 페이지 구성을 조사한 경험을 구분해 설명한다. 기간은 현재 문구의 `2026 - 현재`와 `2026 — Present`를 유지한다. 상세 구현 설명이나 확인되지 않은 수치를 더하지 않는다.
 
-일기 관리 및 분석 팀 프로젝트는 홈페이지의 필수 소개 항목이 아니다. 개인 메모 앱의 선정 근거는 [독립 작업 선정](decisions/project-availability.md)에 있다. 이후 새로운 독립 작업을 추가할 때에는 개발자의 판단과 확인 가능한 결과를 보태는지 먼저 확인한다.
+AI Agent Workflow에는 GitHub 저장소와 문구 개선 사례로 이동하는 링크를 각각 제공한다. Personal Notes Workspace에는 GitHub 저장소와 실제 애플리케이션으로 이동하는 링크를 각각 제공한다. 두 링크는 목적이 드러나는 이름으로 구분하고, 각 프로젝트 안에 둔다.
+
+링크를 어디에 둘지는 [프로젝트 링크와 문단 구성 조사](references/project-links-and-paragraphs.md)의 실제 화면 비교를 바탕으로 정한다. 링크 위치와 AI Agent Workflow의 저장소 주소, Personal Notes Workspace의 이용 주소는 아직 확정되지 않았다.
+
+일기 관리 및 분석 팀 프로젝트는 홈페이지의 필수 소개 항목이 아니다. 개인 메모 앱의 선정 근거는 [프로젝트 선정](decisions/project-availability.md)에 있다. 이후 새로운 개인 프로젝트를 추가할 때에는 개발자의 판단과 확인 가능한 결과를 보태는지 먼저 확인한다.
 
 ## Background와 Contact
 
@@ -218,7 +224,9 @@ Drawer, modal, toast, table, tab, filter, search, pagination, carousel, tooltip,
 - 한 페이지를 읽는 것만으로 개발자가 해결해 온 문제, 기술적 판단과 확인된 기여를 설명할 수 있다.
 - Identity에서 Experience로 이어지며 사용자가 얻은 변화, 개발자의 기여와 이를 뒷받침하는 근거를 본문만으로 이해할 수 있다. 수치는 비교 대상과 조건을 같은 문단에서 읽을 수 있다.
 - React Router와 Outline 기여를 실제 PR 및 공식 릴리스에서 확인할 수 있다.
-- AI Agent Workflow, Offline Translation Web App과 Personal Notes Workspace가 회사 경력과 다른 독립 작업으로 구분된다.
+- 두 언어에서 `Projects` 제목 아래에 AI Agent Workflow, Personal Notes Workspace와 Offline Translation Web App이 회사 경력과 구분되어 표시된다.
+- 프로젝트 설명의 문단이 화면에서 구분되고, 한국어와 영어가 같은 목적과 기여 사실을 전달한다.
+- AI Agent Workflow의 저장소와 문구 개선 사례, Personal Notes Workspace의 저장소와 애플리케이션을 각각 구분된 링크로 열 수 있다. 기존 `#independent-work` 직접 이동도 유지된다.
 - 네비게이션 바와 다중 칼럼이 없고, 숫자와 소개 문구를 대형 글자로 강조하지 않는다.
 - Experience와 Open Source 제목 다음에 편집 방식을 설명하는 도입 문구, 첫 항목 구분선과 그 자리를 대신하는 빈 여백이 없다.
 - 데스크톱에서 외부 링크가 소개 본문에 있고 KO와 EN이 화면 오른쪽 상단에 있다. 모바일에서는 같은 위치에 네 외부 링크의 아이콘이 한 행으로 보이고 한국어 화면에는 EN, 영어 화면에는 KO만 이름 오른쪽에 보인다.
@@ -233,6 +241,7 @@ Drawer, modal, toast, table, tab, filter, search, pagination, carousel, tooltip,
 
 ## 구현 전에 정할 사항
 
+- Projects 링크의 배치와 두 미확정 주소. 배치 후보와 확인할 주소는 [프로젝트 링크와 문단 구성 조사](references/project-links-and-paragraphs.md)에 있다.
 - 배포 방식과 지원 브라우저의 최종 목록.
 - `30초 이내 배포` 수치를 홈페이지에 사용할 수 있는 근거와 비교 조건.
 

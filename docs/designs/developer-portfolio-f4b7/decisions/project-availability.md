@@ -1,8 +1,8 @@
-# 독립 작업 선정
+# 프로젝트 선정
 
-**AI Agent Workflow**, **Offline Translation Web App**과 **Personal Notes Workspace**를 Independent Work로 소개한다. 별도 제목과 설명으로 회사 경력과 구분하고 작업의 목적, 확인된 기여와 기술 정보를 제공한다. 같은 칼럼에서 세로로 이어지며 카드 격자나 어긋난 배치를 사용하지 않는다.
+**AI Agent Workflow**, **Offline Translation Web App**과 **Personal Notes Workspace**를 Projects로 소개한다. 별도 제목과 여러 문단의 설명으로 회사 경력과 구분하고 프로젝트의 목적, 확인된 기여와 기술 정보를 제공한다. 같은 칼럼에서 세로로 이어지며 카드 격자나 어긋난 배치를 사용하지 않는다.
 
-이 결정은 [Independent Work](../requirements.md#independent-work)와 [한 페이지의 정보 순서](../requirements.md#한-페이지의-정보-순서)에 적용한다. 일기 관리 및 분석 팀 프로젝트는 홈페이지의 필수 소개 항목에서 제외한다.
+이 결정은 [Projects](../requirements.md#projects)와 [한 페이지의 정보 순서](../requirements.md#한-페이지의-정보-순서)에 적용한다. 일기 관리 및 분석 팀 프로젝트는 홈페이지의 필수 소개 항목에서 제외한다.
 
 ## 비교한 구성과 선택
 
@@ -20,6 +20,8 @@ AI Agent Workflow는 요구사항, 조사, 결정과 구현을 나누는 작업 
 
 Offline Translation Web App의 `30초 이내 배포`는 비교 조건과 근거를 확인한 뒤에만 사용한다. 확인하기 전에는 작업 목적과 구현 내용만 소개한다. AI Agent Workflow는 실제로 적용한 저장소 규칙, Skill과 검사 도구만 설명하고 효과를 측정한 것처럼 표현하지 않는다.
 
-Personal Notes Workspace는 외부에서 열람할 수 있는 [평가 버전의 소스](https://github.com/nwleedev/nwleedev/tree/a06bfc94c64232581742792a9834b82f5963f225/apps/notes)를 연결한다. 소개는 시작한 이유, 재사용을 선택한 판단과 직접 쓰며 개선한 점을 담는다. 시간 절감, 이용자 수와 개별 코드 수정의 개인 역할은 확인된 근거가 없어 소개에 포함하지 않는다.
+AI Agent Workflow에는 저장소와 문구 개선 사례 링크를, Personal Notes Workspace에는 저장소와 실제 애플리케이션 링크를 제공한다. 주소와 배치가 정해지면 각 프로젝트 안에서 두 링크를 구분해 표시한다. Personal Notes Workspace의 기존 [평가 버전 소스 링크](https://github.com/nwleedev/nwleedev/tree/a06bfc94c64232581742792a9834b82f5963f225/apps/notes)는 유지한다. 미확정 주소와 배치 비교는 [프로젝트 링크와 문단 구성 조사](../references/project-links-and-paragraphs.md)에 있다.
+
+소개는 시작한 이유, 재사용을 선택한 판단과 직접 쓰며 개선한 점을 담는다. 시간 절감, 이용자 수와 개별 코드 수정의 개인 역할은 확인된 근거가 없어 소개에 포함하지 않는다.
 
 새로운 독립 작업을 추가할 때에는 기존 항목과 다른 판단 또는 확인 가능한 결과를 보태는지 먼저 검토한다. 프로젝트 수를 맞추기 위해 항목을 추가하지 않는다.
