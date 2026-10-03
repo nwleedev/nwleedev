@@ -109,9 +109,11 @@ React Router와 Outline 기여를 회사 경력과 구분된 외부 확인 자�
 - **Offline Translation Web App:** 사용할 언어의 모델을 미리 저장한 뒤 네트워크 연결 없이 한국어와 영어, 한국어와 일본어 사이를 번역하는 사용 방식을 먼저 설명한다. Web Worker, IndexedDB, 브라우저 캐시와 GitHub Actions 배포 자동화를 그 방식을 구현한 기술 정보로 제공한다. `30초 이내 배포`는 근거와 조건을 확인한 경우에만 사용한다.
 - **Personal Notes Workspace:** AI 지침을 반복해서 입력하고 Python 실행 조건마다 명령어 메모가 늘어나는 불편, 기존 내용을 재사용하기로 정한 이유와 직접 사용하며 개선한 경험을 소개한다. 메모 이동과 일괄 복사 순서 변경 문제를 개선한 사실, 모바일 페이지 구성을 조사한 경험을 구분해 설명한다. 기간은 현재 문구의 `2026 - 현재`와 `2026 — Present`를 유지한다. 상세 구현 설명이나 확인되지 않은 수치를 더하지 않는다.
 
-AI Agent Workflow에는 GitHub 저장소와 문구 개선 사례로 이동하는 링크를 각각 제공한다. Personal Notes Workspace에는 GitHub 저장소와 실제 애플리케이션으로 이동하는 링크를 각각 제공한다. 두 링크는 목적이 드러나는 이름으로 구분하고, 각 프로젝트 안에 둔다.
+실제 서비스로 이동하는 링크는 프로젝트 제목에 둔다. Personal Notes Workspace는 제목을 누르면 메모 앱으로 이동하고, 제목 끝에 외부 링크 아이콘을 표시한다. 제목과 아이콘은 함께 누를 수 있어야 하며, 같은 앱 링크를 설명 아래에 반복하지 않는다.
 
-링크를 어디에 둘지는 [프로젝트 링크와 문단 구성 조사](references/project-links-and-paragraphs.md)의 실제 화면 비교를 바탕으로 정한다. 링크 위치와 AI Agent Workflow의 저장소 주소, Personal Notes Workspace의 이용 주소는 아직 확정되지 않았다.
+저장소와 문구 개선 사례 링크는 설명의 마지막 문단 아래, 기간 및 기술 정보 앞에 둔다. AI Agent Workflow에는 GitHub 저장소와 문구 개선 사례 링크를, Personal Notes Workspace에는 GitHub 저장소 링크를 제공한다. 개발자가 아닌 방문자도 목적을 알 수 있도록 링크 이름을 텍스트로 표시한다.
+
+서비스 주소가 없는 AI Agent Workflow와 Offline Translation Web App의 제목은 일반 제목으로 유지한다. 저장소나 문구 개선 사례를 서비스 링크로 대신 연결하지 않는다. 연결할 주소와 배치 근거는 [프로젝트 링크와 문단 구성 조사](references/project-links-and-paragraphs.md)에 있다.
 
 일기 관리 및 분석 팀 프로젝트는 홈페이지의 필수 소개 항목이 아니다. 개인 메모 앱의 선정 근거는 [프로젝트 선정](decisions/project-availability.md)에 있다. 이후 새로운 개인 프로젝트를 추가할 때에는 개발자의 판단과 확인 가능한 결과를 보태는지 먼저 확인한다.
 
@@ -226,7 +228,7 @@ Drawer, modal, toast, table, tab, filter, search, pagination, carousel, tooltip,
 - React Router와 Outline 기여를 실제 PR 및 공식 릴리스에서 확인할 수 있다.
 - 두 언어에서 `Projects` 제목 아래에 AI Agent Workflow, Personal Notes Workspace와 Offline Translation Web App이 회사 경력과 구분되어 표시된다.
 - 프로젝트 설명의 문단이 화면에서 구분되고, 한국어와 영어가 같은 목적과 기여 사실을 전달한다.
-- AI Agent Workflow의 저장소와 문구 개선 사례, Personal Notes Workspace의 저장소와 애플리케이션을 각각 구분된 링크로 열 수 있다. 기존 `#independent-work` 직접 이동도 유지된다.
+- Personal Notes Workspace의 제목과 외부 링크 아이콘을 누르면 실제 메모 앱이 열린다. AI Agent Workflow의 저장소와 문구 개선 사례, Personal Notes Workspace의 저장소는 설명 아래에서 열 수 있다. 기존 `#independent-work` 직접 이동도 유지된다.
 - 네비게이션 바와 다중 칼럼이 없고, 숫자와 소개 문구를 대형 글자로 강조하지 않는다.
 - Experience와 Open Source 제목 다음에 편집 방식을 설명하는 도입 문구, 첫 항목 구분선과 그 자리를 대신하는 빈 여백이 없다.
 - 데스크톱에서 외부 링크가 소개 본문에 있고 KO와 EN이 화면 오른쪽 상단에 있다. 모바일에서는 같은 위치에 네 외부 링크의 아이콘이 한 행으로 보이고 한국어 화면에는 EN, 영어 화면에는 KO만 이름 오른쪽에 보인다.
@@ -241,7 +243,6 @@ Drawer, modal, toast, table, tab, filter, search, pagination, carousel, tooltip,
 
 ## 구현 전에 정할 사항
 
-- Projects 링크의 배치와 두 미확정 주소. 배치 후보와 확인할 주소는 [프로젝트 링크와 문단 구성 조사](references/project-links-and-paragraphs.md)에 있다.
 - 배포 방식과 지원 브라우저의 최종 목록.
 - `30초 이내 배포` 수치를 홈페이지에 사용할 수 있는 근거와 비교 조건.
 

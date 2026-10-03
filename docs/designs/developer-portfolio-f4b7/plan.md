@@ -1,6 +1,6 @@
 # 단일 칼럼 개발자 소개 웹사이트 변경 플랜
 
-다음 변경은 기존 Independent Work를 Projects로 바꾸고, 프로젝트 설명을 여러 문단으로 나누며 AI Agent Workflow와 Personal Notes Workspace에 두 종류의 링크를 제공하는 것이다. 기존 단일 칼럼, 프로젝트 순서와 한국어 및 영어 화면을 유지한다. 링크 배치와 일부 주소가 정해지기 전에는 그 선택에 따라 달라지는 구현을 시작하지 않는다.
+다음 변경은 기존 Independent Work를 Projects로 바꾸고, 프로젝트 설명을 여러 문단으로 나누며 저장소와 결과물을 열 수 있게 하는 것이다. Personal Notes Workspace는 제목과 외부 링크 아이콘에서 메모 앱으로 이동하고, 저장소 및 문구 개선 사례는 설명 아래에서 연다. 기존 단일 칼럼, 프로젝트 순서와 한국어 및 영어 화면을 유지한다.
 
 ## 기준과 유지할 구현
 
@@ -12,7 +12,7 @@
 - [모바일 프로필 아이콘 조사](references/mobile-profile-icons.md): 아이콘 패키지, 한 행 배치, 조작 영역과 접근 가능한 이름.
 - [모바일 Drawer 조사](references/mobile-drawer.md): 교체 전 판단을 보존한 기록.
 - [문구 저장](decisions/terms-storage.md), [프로젝트 선정](decisions/project-availability.md), [개발자 소개 기준](decisions/developer-positioning.md).
-- [Projects 요구사항](requirements.md#projects)과 [링크 및 문단 구성 조사](references/project-links-and-paragraphs.md): 새 제목, 여러 문단, 두 프로젝트의 링크 목적과 배치 후보.
+- [Projects 요구사항](requirements.md#projects)과 [링크 및 문단 구성 조사](references/project-links-and-paragraphs.md): 새 제목, 여러 문단, 서비스 제목 링크와 설명 아래 자료 링크.
 - [디자인 체계](../../../DESIGN.md): 현재 구현과 구별한 다음 적용값.
 - [Astro, FSD와 Tailwind CSS 지침](../../dev/frontend/astro-fsd-tailwind.md): 정적 렌더링, 참조 방향, 타입과 CSS 작성 규칙.
 
@@ -338,14 +338,13 @@ Background는 제목과 첫 항목 사이가 32px이며 첫 항목의 위쪽 구
 
 ### 22. Projects 요구사항과 배치 검토
 
-상태: 조사와 문서 반영 완료. 링크 배치는 미결정이다. AI Agent Workflow의 대표 저장소 주소와 Personal Notes Workspace의 실제 이용 주소도 확인을 기다린다.
+상태: 조사와 문서 반영 완료. 서비스는 제목에서 열고 저장소 및 문구 개선 사례는 설명 아래에 두는 구성을 반영했다. AI Agent Workflow의 저장소, Notes 이용 주소와 현재 소스 주소를 확인했다. 화면 변경은 아직 진행하지 않았다.
 
-적용 기준은 [Projects](requirements.md#projects), [한 페이지의 정보 순서](requirements.md#한-페이지의-정보-순서)와 [글과 언어 관리](requirements.md#글과-언어-관리)다. 제목 변경, 여러 문단과 두 프로젝트에 각각 제공할 링크의 목적을 요구사항과 선정 기록에 반영했다. [배치 조사](references/project-links-and-paragraphs.md)에는 실제 서비스 세 곳의 화면, 배치 비교와 문단 구성을 정리했다. 설명 아래에 두 링크를 모으는 안은 제안이며 확정된 배치가 아니다.
+적용 기준은 [Projects](requirements.md#projects), [한 페이지의 정보 순서](requirements.md#한-페이지의-정보-순서)와 [글과 언어 관리](requirements.md#글과-언어-관리)다. [배치 조사](references/project-links-and-paragraphs.md)에는 실제 서비스 세 곳의 배치 비교, 제목 링크의 접근성 조건과 연결할 자료를 정리했다. Notes 제목에는 외부 링크 아이콘을 표시하고, 앱 링크를 설명 아래에 반복하지 않는다. AI Agent Workflow와 Offline Translation Web App의 제목은 일반 제목으로 유지한다.
 
-- 수정: `requirements.md`, `decisions/project-availability.md`와 `references/homepage-copy.md`.
-- 추가: `references/project-links-and-paragraphs.md`.
+- 수정: `requirements.md`, `decisions/project-availability.md`, `references/homepage-copy.md`와 `references/project-links-and-paragraphs.md`.
 - 확인: 제목 변경과 링크 목적이 문서마다 일치하고, 기존 설명의 목적과 기여를 문단을 나눈 뒤에도 그대로 읽을 수 있는지 확인한다.
-- 다음 시작: 배치 선택과 두 주소 확인 결과를 반영한다. 배치와 주소가 정해지기 전에는 단위 24를 시작하지 않는다.
+- 다음 시작: 단위 23에서 제목과 문단 표시를 준비한 뒤 단위 24에서 정해진 자료를 연결한다.
 
 ### 23. 프로젝트 문구와 여러 문단 표시
 
@@ -358,18 +357,19 @@ Background는 제목과 첫 항목 사이가 32px이며 첫 항목의 위쪽 구
 - 제거 대상: 여러 문단 표시로 대체되어 더 이상 사용하지 않는 프로젝트의 한 문단 필드와 그 필드를 확인하는 검사. 이전 형식과 새 형식을 함께 쓰기 위한 필드는 남기지 않는다.
 - 확인: 두 언어의 생성 HTML에서 Projects 제목과 각 문단이 독립된 본문으로 표시되는지, 기존 문장이 누락되거나 뜻이 달라지지 않았는지 확인한다.
 
-이 단위는 정적 문구와 표시 구조를 바꾼다. 새 테스트나 TDD를 추가할 대상이 아니며, 기존 문구 검사와 타입 검사 및 생성 HTML에서 문구와 문단 표시를 확인한다. 링크 배치가 정해지지 않아도 문구와 여러 문단 표시는 준비할 수 있다.
+이 단위는 정적 문구와 표시 구조를 바꾼다. 새 테스트나 TDD를 추가할 대상이 아니며, 기존 문구 검사와 타입 검사 및 생성 HTML에서 문구와 문단 표시를 확인한다.
 
 ### 24. 저장소와 결과물 링크 제공
 
-상태: 배치 및 주소 확인 대기. 단위 23과 링크 배치 선택, 두 미확정 주소 확인을 마친 뒤 시작한다.
+상태: 미진행. 링크 배치와 주소는 단위 22에 반영했으며, 단위 23을 마친 뒤 시작한다.
 
-AI Agent Workflow에는 저장소와 문구 개선 사례를, Personal Notes Workspace에는 저장소와 메모 앱을 연결한다. 링크 이름과 보조 기술에 전달할 설명으로 각 링크의 목적 및 프로젝트를 구분한다. 두 언어의 문구가 같은 자료를 가리키는지도 확인한다. 기존 문구 개선 사례와 Notes 소스는 계속 연결한다.
+AI Agent Workflow의 설명 아래에는 Docs System 저장소와 기존 문구 개선 사례를 연결한다. Personal Notes Workspace의 제목과 외부 링크 아이콘에서는 실제 메모 앱을 열고, 설명 아래에는 현재 Notes 저장소를 연결한다. 주소는 [연결할 자료](references/project-links-and-paragraphs.md#연결할-자료)를 따른다. 링크 이름과 보조 기술에 전달할 설명으로 목적 및 프로젝트를 구분하고, 두 언어가 같은 자료를 가리키게 한다.
 
 - 수정 대상: 프로젝트 링크를 제공하는 `apps/entry/src/shared/terms`의 문구, 타입 및 검사와 프로젝트 표시 컴포넌트.
 - 재사용 검토 대상: `apps/entry/src/shared/ui/ExternalTextLink.astro`. 기존 링크와 의미 및 접근성 처리가 같은 경우에 활용한다. 새 라이브러리와 브라우저 스크립트는 필요하지 않다.
+- 제공할 표시: Notes 제목 끝의 외부 링크 아이콘과 제목을 함께 누를 수 있는 링크. 아이콘만 따로 키보드 이동 대상으로 만들지 않고, 메모 앱 링크를 설명 아래에 반복하지 않는다.
 - 유지: 기본 HTML 링크, 기존 명암비와 키보드 포커스, 새 창으로 이동을 강제하지 않는 원칙. 다른 영역의 링크는 바꾸지 않는다.
-- 확인: 네 링크가 각각 의도한 자료를 열고, 저장소와 결과물을 링크 이름으로 구분할 수 있는지 확인한다. 미확정 주소를 추정하거나 접속할 수 없는 링크로 채우지 않는다.
+- 확인: Notes 제목 링크 한 개와 설명 아래 자료 링크 세 개가 각각 의도한 자료를 연다. Notes 소스는 현재 `main`의 `apps/notes`로 연결하고, 문구 개선 사례는 두 언어에서 기존 한국어 사례 페이지를 연다. 서비스 주소가 없는 두 프로젝트의 제목에는 링크를 추가하지 않는다.
 
 ### 25. 두 언어 화면과 링크 확인
 
@@ -377,7 +377,7 @@ AI Agent Workflow에는 저장소와 문구 개선 사례를, Personal Notes Wor
 
 [완료 기준](requirements.md#완료-기준)과 [접근성](requirements.md#접근성)에 따라 저장소 최상위에서 `pnpm entry:check`와 `pnpm entry:build`를 실행한다. 한국어 `/`와 영어 `/en/`에서 제목, 문단, 링크와 기존 직접 이동을 확인한다.
 
-320px, 390px와 1440px에서 두 링크의 줄바꿈, 문단 간격과 가로 스크롤 여부를 확인한다. 200% 글자 확대, 키보드 포커스 및 각 링크를 누를 수 있는 영역도 확인한다. 링크 목록만 읽어도 어느 프로젝트의 어떤 자료인지 구분할 수 있어야 한다. 검사 명령의 성공만으로 화면 확인을 대신하지 않는다.
+320px, 390px와 1440px에서 Notes 제목과 외부 링크 아이콘, 설명 아래 자료 링크의 줄바꿈, 문단 간격과 가로 스크롤 여부를 확인한다. 아이콘만 다음 줄에 남지 않아야 한다. 200% 글자 확대, 제목 링크의 키보드 포커스 및 각 링크를 누를 수 있는 영역도 확인한다. 링크 목록만 읽어도 어느 프로젝트의 어떤 자료인지 구분할 수 있어야 한다. 검사 명령의 성공만으로 화면 확인을 대신하지 않는다.
 
 수정된 문구 전체를 `use-better-terms`로 점검하고, 경고가 나온 문장의 뜻을 확인해 필요한 수정을 반영한다. 코드와 화면이 바뀐 부분만 확인하며 기존 단위의 검사를 형식적으로 반복하지 않는다. 검사와 화면에서 확인한 내용 및 남은 미확인 사항을 이 플랜에 기록한 뒤 완료를 판단한다.
 
@@ -387,4 +387,4 @@ AI Agent Workflow에는 저장소와 문구 개선 사례를, Personal Notes Wor
 
 두 언어의 단일 칼럼 화면, 구체적인 기여 본문과 단위 5~17의 추가 요구사항은 구현 및 확인을 완료했다. 단위 1~4에서 남긴 실제 200% 브라우저 확대 확인은 사용한 브라우저의 제어 제한으로 수행하지 못했으며, 이 미확인 항목을 완료로 바꾸지 않는다.
 
-Projects 후속 변경의 완료 여부는 단위 23~25에서 확인한 내용으로 판단한다. 링크 배치와 두 주소가 정해지기 전에는 링크 추가를 보류하며, 문서 갱신을 화면 반영 완료로 표시하지 않는다.
+Projects 후속 변경의 완료 여부는 단위 23~25에서 확인한 내용으로 판단한다. 문서 갱신과 주소 확인을 화면 반영 완료로 표시하지 않는다.

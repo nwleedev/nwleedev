@@ -20,7 +20,9 @@ AI Agent Workflow는 요구사항, 조사, 결정과 구현을 나누는 작업 
 
 Offline Translation Web App의 `30초 이내 배포`는 비교 조건과 근거를 확인한 뒤에만 사용한다. 확인하기 전에는 작업 목적과 구현 내용만 소개한다. AI Agent Workflow는 실제로 적용한 저장소 규칙, Skill과 검사 도구만 설명하고 효과를 측정한 것처럼 표현하지 않는다.
 
-AI Agent Workflow에는 저장소와 문구 개선 사례 링크를, Personal Notes Workspace에는 저장소와 실제 애플리케이션 링크를 제공한다. 주소와 배치가 정해지면 각 프로젝트 안에서 두 링크를 구분해 표시한다. Personal Notes Workspace의 기존 [평가 버전 소스 링크](https://github.com/nwleedev/nwleedev/tree/a06bfc94c64232581742792a9834b82f5963f225/apps/notes)는 유지한다. 미확정 주소와 배치 비교는 [프로젝트 링크와 문단 구성 조사](../references/project-links-and-paragraphs.md)에 있다.
+Personal Notes Workspace는 제목에서 메모 앱을 열고, 제목 끝에 외부 링크 아이콘을 표시한다. 제목과 아이콘은 하나의 링크로 제공하며, 앱으로 이동하는 링크를 설명 아래에 다시 두지 않는다.
+
+AI Agent Workflow의 저장소와 문구 개선 사례, Personal Notes Workspace의 저장소는 설명 아래에 둔다. 연결할 주소와 배치 근거는 [프로젝트 링크와 문단 구성 조사](../references/project-links-and-paragraphs.md#연결할-자료)에 있다. Notes 저장소 링크는 평가 당시의 고정 버전에서 현재 `main`의 `apps/notes`로 바꾼다. 평가 문서에서 사용하는 당시 버전의 근거는 유지한다.
 
 소개는 시작한 이유, 재사용을 선택한 판단과 직접 쓰며 개선한 점을 담는다. 시간 절감, 이용자 수와 개별 코드 수정의 개인 역할은 확인된 근거가 없어 소개에 포함하지 않는다.
 
