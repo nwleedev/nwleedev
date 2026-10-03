@@ -18,8 +18,8 @@
   "identity": {
     "name": "Nowon Lee",
     "role": "Frontend Engineer",
-    "lead": "I trace service issues to their causes so users can trust the information they see and keep track of work in progress.",
-    "supporting": "Across TypeScript and React services, I have improved real-time information, long-running tasks, operational dashboards, and authentication, then verified behavior after deployment.",
+    "lead": "I observe how services behave, trace problems to their causes, and fix them. I want to help make web services easier to use and their information more accurate.",
+    "supporting": "In TypeScript and React services, I have addressed issues with real-time information, long-running tasks, dashboard data accuracy, and authentication. I continue to check the user experience after deployment.",
     "links": [
       { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "Code and open source contributions", "icon": "github" },
       { "label": "Blog", "href": "https://blog.nwlee.com", "context": "Technical notes and problem-solving process", "icon": "article" },
@@ -34,12 +34,12 @@
         "company": "AI Factory",
         "period": "2025 — Present",
         "role": "Frontend Engineer",
-        "summary": "For public-sector web services, I improved operational information accuracy, visibility into long-running tasks, responsiveness on data-heavy screens, and release reliability.",
+        "summary": "I handled frontend development for public-sector web services. I improved data accuracy, progress updates for long-running tasks, and deployment reliability, and resolved UI issues caused by API responses.",
         "contributions": [
           {
-            "title": "Improving dashboard accuracy and transfer efficiency",
+            "title": "Fixing incorrect dashboard values and improving transfer efficiency",
             "paragraphs": [
-              "I corrected missing values, incorrect usage ratios, and omitted time series so operators could rely on the PC status shown in the dashboard. I aligned metric names and labels with actual responses, corrected usage-ratio calculations, and separated time series that shared the same label.",
+              "I fixed missing and incorrect time-series values so dashboard users could accurately check computer resource usage. I aligned metric names and labels with actual responses and corrected ratio calculations. I also traced why separate time series were being combined and updated how they are identified.",
               "I changed queries to fetch only values after the previous request time, reducing data transferred over 10 minutes from 96.5 MB to 41 KB. I compared the deployed dashboard with actual responses to verify the displayed values."
             ],
             "metadata": {
@@ -48,10 +48,10 @@
             }
           },
           {
-            "title": "Improving wait experience and status accuracy for 5–10 minute document generation",
+            "title": "Improving progress updates and status accuracy during long-running document generation",
             "paragraphs": [
-              "Users can see the current stage and elapsed time during 5–10 minute document generation and decide whether to leave or cancel with the relevant status in view. If they continue, status tracking remains active so they can keep following progress.",
-              "The client confirms server status after SSE events, so the UI reflects actual processing even when events arrive during a request or the connection fails. Status checks stayed at 10 or fewer per task, compared with an estimated 100–200 checks at three-second intervals. After deployment, I verified that the server-side generation and cancellation states matched the displayed progress."
+              "I designed the frontend so users could keep track of the current stage and elapsed time during document generation, which takes 5–10 minutes. I added a confirmation step before leaving the page or canceling generation.",
+              "After SSE events, the client checks the server status again so the page reflects the actual state even if events arrive out of order or the connection fails. Status checks stayed at 10 or fewer per task, compared with an estimated 100–200 checks at three-second intervals. After deployment, I verified that generation and cancellation states matched the progress shown on the page."
             ],
             "metadata": {
               "period": "For 5–10 minute tasks",
@@ -61,19 +61,19 @@
           {
             "title": "Eliminating 3–4 second UI freezes and keeping real-time charts continuous",
             "paragraphs": [
-              "I restored interaction on run-history and detail screens that froze for 3–4 seconds while processing API responses of about 5 MB. I applied a shared approach that moved API requests and transformation into a SharedWorker, then verified after deployment that the freezes were resolved.",
+              "I fixed pages that froze for 3–4 seconds while processing API responses. I moved API requests and response processing into a SharedWorker, used the same approach on run-history and detail pages, and confirmed the fix in the deployed service.",
               "I merged historical values loaded after refresh with new streamed values on the same time basis, keeping the chart continuous without duplicates. I recombined split JSON fragments with the next chunk so real-time updates could continue."
             ],
             "metadata": {
               "period": "Response size and format retained",
-              "technologies": ["SharedWorker", "REST", "Streaming"]
+              "technologies": ["SharedWorker", "REST", "Server Sent Event"]
             }
           },
           {
             "title": "Validating 70+ key flows with consistent authentication recovery",
             "paragraphs": [
               "I made more than 70 key authenticated-user flows repeatably testable before release. This coverage surfaced a mismatch between credentials retained in the browser and an expired server session.",
-              "I applied one recovery behavior both before entering protected screens and when authentication failed during use, giving users a consistent response. I handled root-cause analysis and deployment of the shared recovery behavior to the QA environment."
+              "I applied the same recovery behavior before users accessed pages that require login and when authentication failed during use, so users received a consistent response. I handled root-cause analysis and deployed the shared recovery behavior to the QA environment."
             ],
             "metadata": {
               "period": "Pre-deployment verification",
@@ -86,12 +86,12 @@
         "company": "Crust Universe / Quarkonix",
         "period": "2022 — 2024",
         "role": "Frontend Engineer",
-        "summary": "I improved immediate feedback after user actions, initial load times, and real-time information updates, then documented the loading approach for reuse across frontend projects.",
+        "summary": "I made pages reflect user requests immediately, reduced the time it took for the first page to appear, and addressed issues that prevented real-time information from being shown. I documented the loading improvements so other projects could use the same approach.",
         "contributions": [
           {
-            "title": "Keeping immediate UI feedback aligned with server values",
+            "title": "Showing requested changes immediately and accurately",
             "paragraphs": [
-              "I used optimistic updates on periodically refreshed screens so user changes appeared immediately while reducing mismatches after refetches and duplicate requests."
+              "I made the page respond to user requests immediately, without waiting for a server response. I addressed mismatches between information on the page and server values, and reduced the request count by removing duplicate requests."
             ],
             "metadata": {
               "period": "Production service",
@@ -101,7 +101,7 @@
           {
             "title": "Shortening initial load and sharing a reusable setup",
             "paragraphs": [
-              "I shortened initial load with Vite configuration and React lazy loading, then documented the setup for reuse across other frontend projects."
+              "I reduced the time it took for pages to become visible to users. I documented the steps so other frontend projects could apply the same improvements."
             ],
             "metadata": {
               "period": "Service delivery",
@@ -130,7 +130,7 @@
         "project": "React Router",
         "release": "v7.13.1",
         "summary": "Fixed optional URL parameters incorrectly matching paths that lacked a `/` separator.",
-        "verification": "Added regression coverage while preserving existing dot-suffix behavior.",
+        "verification": "I added tests to check that URLs with a suffix beginning with \".\" still match as before.",
         "links": [
           { "label": "PR #14689", "href": "https://github.com/remix-run/react-router/pull/14689", "context": "Change and review history" },
           { "label": "Release v7.13.1", "href": "https://github.com/remix-run/react-router/releases/tag/react-router@7.13.1", "context": "Official release" }
@@ -155,25 +155,25 @@
       {
         "title": "AI Agent Workflow",
         "period": "2026 — Present",
-        "summary": "I created repository rules and skills that separate requirements, research, decisions, and implementation so the reasons and criteria behind changes remain traceable. I paired them with a pre-save check for ambiguous Korean copy and applied the workflow across multiple repositories.",
+        "summary": "I created rules and skills to help AI agents clarify the work, research what they need, and carry out implementation. Decisions and the reasons for changes remain available when work resumes. I also built a check for ambiguous Korean wording before documents are saved and used it across multiple repositories.",
         "link": { "label": "View wording changes", "href": "/projects/use-better-terms" },
         "technologies": ["Node.js", "Repository Rules", "Text Validation"]
       },
       {
-        "title": "Offline Translation Web App",
-        "period": "2025",
-        "summary": "With language models saved ahead of time, users can translate between Korean and English or Korean and Japanese without a network connection and keep interacting with the page while the model runs. I used browser caching, Web Workers, and IndexedDB to keep the required files and processing in the browser, and automated repeated deployment steps with GitHub Actions.",
-        "technologies": ["Web Worker", "IndexedDB", "Offline", "GitHub Actions"]
-      },
-      {
         "title": "Personal Notes Workspace",
-        "period": "2026",
-        "summary": "I started this project to avoid repeatedly entering instructions for AI agents and creating a new Python command note for every set of parameters. I chose to reuse notes by separating text I use repeatedly from values that change. I improved the layout and ease of use based on problems I encountered while using the app on mobile.",
+        "period": "2026 — Present",
+        "summary": "I started this project because I had to re-enter AI agent instructions and keep adding command notes whenever script parameters changed. Users can select instructions from multiple notes and copy them together, or reuse a command by changing only values such as input filenames. While using the app myself, I traced and fixed problems that prevented notes from moving to the intended position or batch-copy items from being reordered as expected. I also researched how to design mobile pages to make selecting and reordering text easier.",
         "link": {
           "label": "View source",
           "href": "https://github.com/nwleedev/nwleedev/tree/a06bfc94c64232581742792a9834b82f5963f225/apps/notes"
         },
         "technologies": ["TypeScript", "React", "Next.js", "IndexedDB"]
+      },
+      {
+        "title": "Offline Translation Web App",
+        "period": "2025",
+        "summary": "With language models saved ahead of time, users can translate between Korean and English or Korean and Japanese without a network connection and keep entering text on the page while the model runs. I used browser caching and IndexedDB to store the files and information needed for translation, and automated repeated deployment steps with GitHub Actions.",
+        "technologies": ["Web Worker", "IndexedDB", "Offline", "GitHub Actions"]
       }
     ]
   },
