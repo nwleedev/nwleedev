@@ -123,14 +123,19 @@ function isOpenSourceContribution(value: unknown): boolean {
   );
 }
 
-function isIndependentWork(value: unknown): boolean {
-  const link = field(value, "link");
-
-  return (
-    hasStrings(value, ["title", "period", "summary"]) &&
+function isProject(value: unknown): boolean {
+  const serviceLink = field(value, "serviceLink");
+  const hasContent =
+    hasStrings(value, ["title", "period"]) &&
+    isNonEmptyStringArray(field(value, "paragraphs"));
+  const hasResources =
     isStringArray(field(value, "technologies")) &&
-    (link === undefined || hasStrings(link, ["label", "href"]))
-  );
+    isArrayOf(field(value, "links"), isExternalLink);
+  const hasService =
+    serviceLink === undefined || hasStrings(serviceLink, ["href", "context"]);
+  const hasRequiredFields = hasContent && hasResources;
+
+  return hasRequiredFields && hasService;
 }
 
 function isBackgroundItem(value: unknown): boolean {
@@ -144,7 +149,7 @@ function isHomeTerms(value: unknown): value is HomeTerms {
   const identity = field(value, "identity");
   const experience = field(value, "experience");
   const openSource = field(value, "openSource");
-  const independentWork = field(value, "independentWork");
+  const projects = field(value, "projects");
   const background = field(value, "background");
   const contact = field(value, "contact");
   const footer = field(value, "footer");
@@ -162,8 +167,8 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     isArrayOf(field(experience, "companies"), isCompanyExperience) &&
     hasStrings(openSource, ["id", "title"]) &&
     isArrayOf(field(openSource, "contributions"), isOpenSourceContribution) &&
-    hasStrings(independentWork, ["id", "title"]) &&
-    isArrayOf(field(independentWork, "items"), isIndependentWork) &&
+    hasStrings(projects, ["id", "title"]) &&
+    isArrayOf(field(projects, "items"), isProject) &&
     hasStrings(background, ["id", "title"]) &&
     isArrayOf(field(background, "items"), isBackgroundItem) &&
     hasStrings(contact, ["id", "title"]) &&

@@ -5,7 +5,7 @@ export type {
   Contribution,
   ExternalLink,
   HomeTerms,
-  IndependentWork,
+  Project,
   LanguageLink,
   Locale,
   Metadata,

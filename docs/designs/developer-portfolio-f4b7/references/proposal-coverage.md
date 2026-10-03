@@ -6,7 +6,7 @@
 
 제안서의 기술 프로필 목적과 개발자 포지셔닝은 [사이트의 역할과 자료 활용](../requirements.md#사이트의-역할과-자료-활용), [개발자 소개와 편집 기준](../requirements.md#개발자-소개와-편집-기준) 및 [개발자 소개 결정](../decisions/developer-positioning.md)에 반영했다.
 
-Header, Identity, Experience, Open Source, Independent Work, Background, Contact 순서는 [한 페이지의 정보 순서](../requirements.md#한-페이지의-정보-순서)에 반영했다. 개인 프로젝트와 글 목록을 먼저 보여주는 이전 구성은 더 이상 현재 기준이 아니다.
+Header, Identity, Experience, Open Source, Projects, Background, Contact 순서는 [한 페이지의 정보 순서](../requirements.md#한-페이지의-정보-순서)에 반영했다. 개인 프로젝트와 글 목록을 먼저 보여주는 이전 구성은 더 이상 현재 기준이 아니다.
 
 인공지능팩토리의 네 Engineering Contribution과 이전 회사의 압축된 설명은 [Experience](../requirements.md#experience)와 [기여 선정 결정](../decisions/featured-cases.md)에 반영했다. AI Agent Workflow 및 Offline Translation Web App의 현재 기준은 [Projects](../requirements.md#projects)와 [프로젝트 선정](../decisions/project-availability.md)에 있다.
 

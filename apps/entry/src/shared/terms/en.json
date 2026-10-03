@@ -148,31 +148,59 @@
       }
     ]
   },
-  "independentWork": {
-    "id": "independent-work",
-    "title": "Independent Work",
+  "projects": {
+    "id": "projects",
+    "title": "Projects",
     "items": [
       {
         "title": "AI Agent Workflow",
         "period": "2026 — Present",
-        "summary": "I created rules and skills to help AI agents clarify the work, research what they need, and carry out implementation. Decisions and the reasons for changes remain available when work resumes. I also built a check for ambiguous Korean wording before documents are saved and used it across multiple repositories.",
-        "link": { "label": "View wording changes", "href": "/projects/use-better-terms" },
+        "paragraphs": [
+          "I created rules and skills to help AI agents clarify the work, research what they need, and carry out implementation. Decisions and the reasons for changes remain available when work resumes.",
+          "I also built a check for ambiguous Korean wording before documents are saved and used it across multiple repositories."
+        ],
+        "links": [
+          {
+            "label": "GitHub repository",
+            "context": "AI Agent Workflow source code",
+            "href": "https://github.com/nwleedev/docs-system"
+          },
+          {
+            "label": "View wording examples",
+            "context": "AI Agent Workflow wording changes (in Korean)",
+            "href": "/projects/use-better-terms"
+          }
+        ],
         "technologies": ["Node.js", "Repository Rules", "Text Validation"]
       },
       {
         "title": "Personal Notes Workspace",
         "period": "2026 — Present",
-        "summary": "I started this project because I had to re-enter AI agent instructions and keep adding command notes whenever script parameters changed. Users can select instructions from multiple notes and copy them together, or reuse a command by changing only values such as input filenames. While using the app myself, I traced and fixed problems that prevented notes from moving to the intended position or batch-copy items from being reordered as expected. I also researched how to design mobile pages to make selecting and reordering text easier.",
-        "link": {
-          "label": "View source",
-          "href": "https://github.com/nwleedev/nwleedev/tree/a06bfc94c64232581742792a9834b82f5963f225/apps/notes"
+        "paragraphs": [
+          "I started this project because I had to re-enter AI agent instructions and keep adding command notes whenever script parameters changed. Users can select instructions from multiple notes and copy them together, or reuse a command by changing only values such as input filenames.",
+          "While using the app myself, I traced and fixed problems that prevented notes from moving to the intended position or batch-copy items from being reordered as expected. I also researched how to design mobile pages to make selecting and reordering text easier."
+        ],
+        "serviceLink": {
+          "context": "Open the notes app",
+          "href": "https://notes.nwlee.com"
         },
+        "links": [
+          {
+            "label": "GitHub repository",
+            "context": "Personal Notes Workspace source code",
+            "href": "https://github.com/nwleedev/nwleedev/tree/main/apps/notes"
+          }
+        ],
         "technologies": ["TypeScript", "React", "Next.js", "IndexedDB"]
       },
       {
         "title": "Offline Translation Web App",
         "period": "2025",
-        "summary": "With language models saved ahead of time, users can translate between Korean and English or Korean and Japanese without a network connection and keep entering text on the page while the model runs. I used browser caching and IndexedDB to store the files and information needed for translation, and automated repeated deployment steps with GitHub Actions.",
+        "paragraphs": [
+          "With language models saved ahead of time, users can translate between Korean and English or Korean and Japanese without a network connection and keep entering text on the page while the model runs.",
+          "I used browser caching and IndexedDB to store the files and information needed for translation, and automated repeated deployment steps with GitHub Actions."
+        ],
+        "links": [],
         "technologies": ["Web Worker", "IndexedDB", "Offline", "GitHub Actions"]
       }
     ]

@@ -1,6 +1,6 @@
 # 단일 칼럼 개발자 소개 웹사이트 변경 플랜
 
-다음 변경은 기존 Independent Work를 Projects로 바꾸고, 프로젝트 설명을 여러 문단으로 나누며 저장소와 결과물을 열 수 있게 하는 것이다. Personal Notes Workspace는 제목과 외부 링크 아이콘에서 메모 앱으로 이동하고, 저장소 및 문구 개선 사례는 설명 아래에서 연다. 기존 단일 칼럼, 프로젝트 순서와 한국어 및 영어 화면을 유지한다.
+개인 프로젝트 영역의 제목과 직접 이동 주소를 `Projects` 및 `#projects`로 맞추고, 설명을 여러 문단으로 나누며 저장소와 문구 개선 사례를 열 수 있게 한다. Personal Notes Workspace는 제목과 외부 링크 아이콘에서 메모 앱으로 이동하고, 저장소 및 문구 개선 사례는 설명 아래에서 연다. 기존 단일 칼럼, 프로젝트 순서와 한국어 및 영어 화면을 유지한다.
 
 ## 기준과 유지할 구현
 
@@ -22,13 +22,13 @@ Pretendard 1.3.9 자체 제공과 라이선스, 기존 색상 역할, 외부 링
 
 ## 변경 영향
 
-단위 1~21은 기존 화면과 문구 변경 기록이다. 새 요구사항은 Projects 제목, 설명과 링크에 적용하며, Identity, Experience, Open Source, Background와 Contact의 내용이나 배치를 바꾸지 않는다. 현재 프로젝트 설명은 한 문단이고 링크는 최대 하나다. 두 링크와 여러 문단을 표시하려면 프로젝트 문구, 타입, 문구 검사와 표시 컴포넌트를 함께 바꿔야 한다.
+단위 1~21은 기존 화면과 문구 변경 기록이다. 새 요구사항은 Projects 제목, 설명과 링크에 적용하며, Identity, Experience, Open Source, Background와 Contact의 내용이나 배치를 바꾸지 않는다. 변경 전 프로젝트 설명은 한 문단이고 링크는 최대 하나였다. 여러 문단과 자료 링크를 표시하도록 프로젝트 문구, 타입, 문구 검사와 표시 컴포넌트를 함께 바꿨다.
 
 ## 실행 순서와 상태 기록
 
 기존 단위 1~21의 완료 기록을 보존하고 단위 22부터 새 요구사항을 진행한다. 각 단위가 끝나면 상태, 실제 변경 파일과 다음 시작 위치를 갱신한다. 문구와 정보 구조, 링크 제공, 화면 확인을 구분해 진행하며 같은 변경의 리뷰를 반복하지 않는다.
 
-현재 상태: 기존 구현 단위 1~21 완료. 단위 22의 조사와 요구사항 갱신 완료, 링크 배치와 두 주소 확인 대기. 단위 23~25는 미진행이며 새 제목, 여러 문단과 추가 링크는 아직 화면에 반영하지 않았다.
+현재 상태: 단위 1~25 완료. 두 언어의 Projects 제목과 `#projects`, 여러 문단 및 네 자료 링크를 제공하며 화면과 실제 이동을 확인했다. 글자 확대 시 상단 프로필 아이콘이 넘치는 기존 문제는 단위 25에 별도로 기록했다.
 
 ### 1. 기여 본문과 언어 선택 구조 교체
 
@@ -70,12 +70,12 @@ Pretendard 1.3.9 자체 제공과 라이선스, 기존 색상 역할, 외부 링
 
 ### 3. 나머지 영역도 세로 본문으로 통합
 
-상태: 완료. `OpenSourceSection`, `IndependentWorkSection`, `BackgroundSection`과 `ContactSection`에서 두 열 및 세 열 전환, container query, 카드 배경과 항목별 위치 이동을 제거했다. 모든 항목은 제목, 설명, 확인 정보와 링크 순서로 이어진다. `PageFooter`는 끝 정보와 맨 위 이동만 남겼다. `pnpm check`와 `pnpm build`가 통과했다.
+상태: 완료. `OpenSourceSection`, `ProjectsSection`, `BackgroundSection`과 `ContactSection`에서 두 열 및 세 열 전환, container query, 카드 배경과 항목별 위치 이동을 제거했다. 모든 항목은 제목, 설명, 확인 정보와 링크 순서로 이어진다. `PageFooter`는 끝 정보와 맨 위 이동만 남겼다. `pnpm check`와 `pnpm build`가 통과했다.
 
-적용 요구사항: 「Open Source」, 「Independent Work」, 「Background와 Contact」, 「조작과 움직임」.
+적용 요구사항: 「Open Source」, 「Projects」, 「Background와 Contact」, 「조작과 움직임」.
 
 - 수정: `OpenSourceSection.astro`의 프로젝트명, 변경 설명, 회귀 확인, 릴리스 및 PR 링크를 세로로 배열한다. `@min-[36rem]` 두 열 배치와 미사용 `@container`를 제거한다.
-- 수정: `IndependentWorkSection.astro`의 두 작업을 세로 목록으로 배치한다. `md:grid-cols-2`, 홀수 항목의 `translate-y`, 인덱스 기반 스타일 분기와 카드 배경을 제거한다. 회사와 구분하는 제목 및 작업 설명은 유지한다.
+- 수정: `ProjectsSection.astro`의 두 작업을 세로 목록으로 배치한다. `md:grid-cols-2`, 홀수 항목의 `translate-y`, 인덱스 기반 스타일 분기와 카드 배경을 제거한다. 회사와 구분하는 제목 및 작업 설명은 유지한다.
 - 수정: `BackgroundSection.astro`의 학력, 자격 및 어학 정보를 한 묶음씩 위에서 아래로 읽게 한다. 세 열 정의와 오른쪽 날짜 정렬을 제거한다.
 - 수정: `ContactSection.astro`의 링크를 한 목록으로 정리한다. 두 열, 세 열 전환과 `md:ms-[25%]`를 제거한다. `ExternalTextLink`의 링크 목적과 포커스 표시를 유지한다.
 - 수정: `PageFooter.astro`는 기존의 끝 정보와 맨 위 이동만 유지한다. 섹션 메뉴, 언어 선택 중복과 별도 CTA 막대를 추가하지 않는다.
@@ -114,12 +114,12 @@ Pretendard 1.3.9 자체 제공과 라이선스, 기존 색상 역할, 외부 링
 
 적용 요구사항: 「Experience」와 「Open Source」.
 
-- 제거: 두 언어 JSON의 `experience.introduction`과 `openSource.introduction`, `HomeTerms`의 해당 필드 및 `get-terms.ts`의 필수 값 검사.
+- 제거: 두 언어 JSON의 `experience.introduction`과 `openSource.introduction`, `HomeTerms.projects`의 `introduction` 필드 및 `get-terms.ts`의 필수 값 검사.
 - 수정: `ExperienceSection.astro`와 `OpenSourceSection.astro`에서 도입 문구 전달을 제거한다.
 - 수정: `CompanyExperience.astro`와 `OpenSourceSection.astro`의 첫 항목에 적용되던 위쪽 구분선을 없앤다. 뒤 항목을 구분하는 선은 유지한다.
 - 수정: 제목과 첫 항목 사이는 32px을 사용하고, 삭제한 문구와 선의 상하 여백이 남지 않게 첫 항목의 위쪽 padding을 제거한다.
 
-새 파일과 호환용 JSON 필드는 추가하지 않는다. `SectionHeader`의 선택적 도입 문구는 Independent Work와 Contact가 계속 사용하므로 제거하지 않는다.
+새 파일과 호환용 JSON 필드는 추가하지 않는다. `SectionHeader`의 선택적 도입 문구는 Projects와 Contact가 계속 사용하므로 제거하지 않는다.
 
 확인: 두 언어의 Experience와 Open Source 제목 다음에 도입 문구 및 첫 구분선이 없고, 첫 회사 및 첫 기여가 32px 뒤에 시작하는지 생성 HTML과 실제 화면에서 확인한다.
 
@@ -158,13 +158,13 @@ Pretendard 1.3.9 자체 제공과 라이선스, 기존 색상 역할, 외부 링
 
 ### 8. 편집 설명과 겹치는 영역 구분선 제거
 
-상태: 완료. 두 언어의 Independent Work 도입 문구와 연결된 타입 및 검사를 제거했다. 첫 작업은 제목에서 32px 뒤에 구분선 없이 시작하며, Open Source, Independent Work, Background와 Contact의 목록 끝 선을 제거해 다음 영역 또는 Footer의 위쪽 선만 남겼다.
+상태: 완료. 두 언어의 Projects 도입 문구와 연결된 타입 및 검사를 제거했다. 첫 작업은 제목에서 32px 뒤에 구분선 없이 시작하며, Open Source, Projects, Background와 Contact의 목록 끝 선을 제거해 다음 영역 또는 Footer의 위쪽 선만 남겼다.
 
-적용 요구사항: 「Independent Work」와 「편집형 시각 규칙」.
+적용 요구사항: 「Projects」와 「편집형 시각 규칙」.
 
-- 제거: 두 언어 JSON의 `independentWork.introduction`, `HomeTerms`의 해당 필드와 `get-terms.ts`의 필수 값 검사.
-- 수정: `IndependentWorkSection.astro`에서 도입 문구 전달을 제거하고 첫 작업의 위쪽 구분선 및 padding을 없앤다. 제목에서 32px 뒤에 첫 작업을 시작한다.
-- 제거: `OpenSourceSection.astro`, `IndependentWorkSection.astro`, `BackgroundSection.astro`와 `ContactSection.astro`의 목록 끝 구분선. 다음 영역 또는 Footer의 위쪽 구분선과 사이에 내용이 없으므로 다음 구분선만 남긴다.
+- 제거: 두 언어 JSON의 `projects.introduction`, `HomeTerms.projects`의 `introduction` 필드와 `get-terms.ts`의 필수 값 검사.
+- 수정: `ProjectsSection.astro`에서 도입 문구 전달을 제거하고 첫 작업의 위쪽 구분선 및 padding을 없앤다. 제목에서 32px 뒤에 첫 작업을 시작한다.
+- 제거: `OpenSourceSection.astro`, `ProjectsSection.astro`, `BackgroundSection.astro`와 `ContactSection.astro`의 목록 끝 구분선. 다음 영역 또는 Footer의 위쪽 구분선과 사이에 내용이 없으므로 다음 구분선만 남긴다.
 - 유지: 두 번째 이후 항목의 위쪽 구분선, Section 제목 위의 강한 구분선과 Contact의 실제 연락 안내.
 
 새 소개 문구, 빈 여백용 요소와 이전 JSON 구조를 읽는 호환 코드는 추가하지 않는다.
@@ -186,14 +186,14 @@ Pretendard 1.3.9 자체 제공과 라이선스, 기존 색상 역할, 외부 링
 
 ### 10. 추가 요구사항 통합 확인과 문서 일치
 
-상태: 완료. `pnpm check`는 오류, 경고 및 안내 없이 통과했고 `pnpm build`는 `/`와 `/en/`을 생성했다. 두 언어에서 Independent Work의 편집 설명이 제거됐고 첫 작업의 위쪽 구분선 및 padding과 각 영역 목록 끝 구분선이 0px인 것을 확인했다.
+상태: 완료. `pnpm check`는 오류, 경고 및 안내 없이 통과했고 `pnpm build`는 `/`와 `/en/`을 생성했다. 두 언어에서 Projects의 편집 설명이 제거됐고 첫 작업의 위쪽 구분선 및 padding과 각 영역 목록 끝 구분선이 0px인 것을 확인했다.
 
 실제 브라우저에서 320px, 390px, 768px와 1440px 화면을 확인했다. 모든 너비에서 이름과 오른쪽 조작 요소의 세로 중심 차이는 0px이었고 가로 오버플로우가 없었다. 320px과 390px에서는 메뉴 버튼만, 768px과 1440px에서는 KO와 EN만 표시됐다. Drawer의 Links 제목과 닫기 아이콘의 세로 중심 차이도 0px이었다. 닫기 버튼은 44×44px 조작 영역, 0px padding과 현재 언어의 `닫기` 또는 `Close` 이름을 제공했다.
 
 메뉴 버튼으로 Drawer를 연 뒤 Escape와 닫기 아이콘으로 종료했으며 두 경우 모두 `aria-expanded`가 `false`로 돌아가고 포커스가 메뉴 버튼으로 복귀했다. 열려 있는 동안 문서 스크롤은 막혔다. 외부 링크 다음에 KO와 EN이 나타났고 한국어와 영어 화면의 브라우저 오류 및 경고는 없었다. `DESIGN.md`는 확인한 구현과 일치하도록 갱신했다.
 
 - `pnpm check`와 `pnpm build`를 실행하고 `/`와 `/en/` 생성 결과를 확인한다.
-- 생성 HTML과 소스에서 Independent Work의 편집 설명, 제거한 JSON 필드, 영역 목록 끝 구분선과 `ProfileNavigation`의 absolute 위치 지정이 남지 않았는지 확인한다.
+- 생성 HTML과 소스에서 Projects의 편집 설명, 제거한 JSON 필드, 영역 목록 끝 구분선과 `ProfileNavigation`의 absolute 위치 지정이 남지 않았는지 확인한다.
 - 320px, 390px, 768px와 1440px에서 이름과 오른쪽 조작 요소, Drawer 제목과 닫기 아이콘이 각 Flex 행의 세로축 중앙에 맞는지 확인한다.
 - 모바일에서 메뉴 열기, 닫기 아이콘, Escape, 포커스 복귀, 외부 링크와 언어 선택 순서를 확인한다. 데스크톱에서는 외부 링크와 KO 및 EN이 그대로 표시되어야 한다.
 - 44px 조작 영역, 화면 낭독기용 이름, 포커스 표시와 가로 오버플로우를 확인한다.
@@ -316,7 +316,7 @@ Background는 제목과 첫 항목 사이가 32px이며 첫 항목의 위쪽 구
 
 상태: 완료. 회사 요약은 제공한 가치, 기여 제목은 달라진 결과, 본문은 그 결과를 뒷받침하는 문제와 근거를 맡도록 편집 기준을 바꿨다. 문서 생성 속도가 줄지 않았다는 방어적 설명은 제거하되, 상태 API 요청 수가 3초 간격 조회의 예상치와 비교한 값이라는 조건은 유지했다. 이력서와 포트폴리오에서 확인되지 않은 성과는 추가하지 않았다.
 
-적용 요구사항: 「사이트의 역할과 자료 활용」, 「개발자 소개와 편집 기준」, 「Identity」, 「Experience」와 「Independent Work」.
+적용 요구사항: 「사이트의 역할과 자료 활용」, 「개발자 소개와 편집 기준」, 「Identity」, 「Experience」와 「Projects」.
 
 - 수정: [요구사항](requirements.md)에서 사용자와 운영자가 얻은 변화를 먼저 설명하고 구현 방식은 근거에 필요한 정도만 남기도록 한다.
 - 수정: [홈페이지 한국어 문구](references/homepage-copy.md)에서 회사 요약, 기여 제목과 본문의 역할을 나누고 같은 문제, 확인 행위와 기술 설명이 반복되지 않게 한다.
@@ -329,7 +329,7 @@ Background는 제목과 첫 항목 사이가 32px이며 첫 항목의 위쪽 구
 
 `use-better-terms` 검사에서 방문자에게 보이는 한국어 JSON에는 표현 및 문단 경고가 없었다. `pnpm check`는 오류, 경고 및 안내 없이 통과했고 `pnpm build`는 `/`와 `/en/` 정적 페이지를 생성했다. 실제 브라우저에서 두 언어의 새 문구와 제거 대상 문장의 부재를 확인했다. 모바일 화면에서는 프로필 아이콘 네 개가 한 줄을 유지하고 한국어에는 EN, 영어에는 KO만 표시됐으며, 모바일과 데스크톱 화면에서 가로 오버플로우가 없었다.
 
-- 수정: `src/shared/terms/ko.json`과 `src/shared/terms/en.json`의 Identity, 회사 요약, 기여 제목과 본문 및 Independent Work 문구를 단위 20의 기준에 맞춘다.
+- 수정: `src/shared/terms/ko.json`과 `src/shared/terms/en.json`의 Identity, 회사 요약, 기여 제목과 본문 및 Projects 문구를 단위 20의 기준에 맞춘다.
 - 제거: 문서 생성 속도를 부정하는 문장, 같은 확인 결과를 반복하는 문장과 구현 순서만 설명하는 문장을 제거한다.
 - 유지: JSON 구조, 배열과 링크 순서, 수치의 단위 및 비교 조건, 기술 이름과 두 언어의 의미 대응. UI 컴포넌트와 스타일은 수정하지 않는다.
 - 확인: 두 JSON의 schema 검사, `pnpm check`, `pnpm build`와 `/` 및 `/en/` 정적 생성을 실행한다.
@@ -348,12 +348,13 @@ Background는 제목과 첫 항목 사이가 32px이며 첫 항목의 위쪽 구
 
 ### 23. 프로젝트 문구와 여러 문단 표시
 
-상태: 미진행. 구현을 시작할 때 [Astro, FSD와 Tailwind CSS 지침](../../dev/frontend/astro-fsd-tailwind.md)을 적용한다.
+상태: 완료. 두 언어의 문구 키는 `projects`, 항목 타입은 `Project`, 표시 컴포넌트는 `ProjectsSection.astro`로 맞췄다. 제목과 직접 이동 주소는 `Projects` 및 `#projects`다. 기존 설명을 프로젝트마다 두 문단으로 나눴으며, 두 문단을 합쳐도 이전 설명과 같았다. 기간, 기술 정보와 항목 순서도 같다. `pnpm entry:check`와 `pnpm entry:build`가 통과했고 두 언어의 생성 HTML에서 여섯 본문 문단을 확인했다.
 
 [Projects](requirements.md#projects)의 제목과 여러 문단, [글과 언어 관리](requirements.md#글과-언어-관리)의 한국어 및 영어 문구를 맡는다. 두 언어의 제목을 Projects로 바꾸고, 세 프로젝트의 기존 목적과 기여를 여러 문단으로 표시한다. 문구와 이를 표시하는 항목 구성을 함께 바꾸되, 문단을 늘리려고 성과나 상세 구현 설명을 보태지 않는다.
 
-- 수정 대상: `apps/entry/src/shared/terms/ko.json`, `en.json`, `types.ts`, `get-terms.ts`와 `apps/entry/src/_pages/home/ui/IndependentWorkSection.astro`. 호출부와 외부 제공 타입이 바뀌면 `HomePage.astro` 및 `apps/entry/src/shared/terms/index.ts`도 함께 수정한다.
-- 유지: AI Agent Workflow, Personal Notes Workspace와 Offline Translation Web App의 현재 순서, 기간, 기술 정보 및 `#independent-work` 직접 이동.
+- 수정 대상: `apps/entry/src/shared/terms/ko.json`, `en.json`, `types.ts`, `get-terms.ts`, `index.ts`와 `apps/entry/src/_pages/home/ui/HomePage.astro`. 프로젝트 표시 컴포넌트는 `ProjectsSection.astro`로 이름을 바꾸고 문서의 파일 참조도 맞춘다.
+- 변경: 문구 키는 `projects`, 항목 타입은 `Project`, 직접 이동 주소는 `#projects`를 사용한다.
+- 유지: AI Agent Workflow, Personal Notes Workspace와 Offline Translation Web App의 현재 순서, 기간과 기술 정보.
 - 제거 대상: 여러 문단 표시로 대체되어 더 이상 사용하지 않는 프로젝트의 한 문단 필드와 그 필드를 확인하는 검사. 이전 형식과 새 형식을 함께 쓰기 위한 필드는 남기지 않는다.
 - 확인: 두 언어의 생성 HTML에서 Projects 제목과 각 문단이 독립된 본문으로 표시되는지, 기존 문장이 누락되거나 뜻이 달라지지 않았는지 확인한다.
 
@@ -361,7 +362,7 @@ Background는 제목과 첫 항목 사이가 32px이며 첫 항목의 위쪽 구
 
 ### 24. 저장소와 결과물 링크 제공
 
-상태: 미진행. 링크 배치와 주소는 단위 22에 반영했으며, 단위 23을 마친 뒤 시작한다.
+상태: 완료. Notes 제목과 외부 링크 아이콘은 메모 앱으로 연결하고, 설명 아래에는 현재 Notes 저장소를 연결했다. AI Agent Workflow 설명 아래에는 저장소와 기존 한국어 문구 개선 사례가 있다. 두 언어의 생성 HTML에서 네 목적지와 프로젝트를 구분하는 링크 이름을 확인했고, 메모 앱 링크는 한 번만 제공한다. `ExternalTextLink.astro`를 재사용하며 제목이 줄바꿈될 때 마지막 단어와 아이콘이 함께 남도록 했다. 다른 영역은 기존 링크 표시를 유지한다. `pnpm entry:check`와 `pnpm entry:build`가 통과했다.
 
 AI Agent Workflow의 설명 아래에는 Docs System 저장소와 기존 문구 개선 사례를 연결한다. Personal Notes Workspace의 제목과 외부 링크 아이콘에서는 실제 메모 앱을 열고, 설명 아래에는 현재 Notes 저장소를 연결한다. 주소는 [연결할 자료](references/project-links-and-paragraphs.md#연결할-자료)를 따른다. 링크 이름과 보조 기술에 전달할 설명으로 목적 및 프로젝트를 구분하고, 두 언어가 같은 자료를 가리키게 한다.
 
@@ -373,9 +374,17 @@ AI Agent Workflow의 설명 아래에는 Docs System 저장소와 기존 문구 
 
 ### 25. 두 언어 화면과 링크 확인
 
-상태: 미진행. 단위 23~24가 끝나면 변경된 화면을 한 번 통합 검토한다.
+상태: 완료. `pnpm entry:check`는 오류, 경고와 안내 없이 통과했고 `pnpm entry:build`는 한국어와 영어 정적 페이지를 생성했다. 두 언어에서 Projects 제목, `#projects` 직접 이동과 프로젝트마다 두 문단이 표시되는 것을 확인했다. 저장소 두 곳, 메모 앱과 기존 한국어 사례 페이지도 링크를 눌러 열었다.
 
-[완료 기준](requirements.md#완료-기준)과 [접근성](requirements.md#접근성)에 따라 저장소 최상위에서 `pnpm entry:check`와 `pnpm entry:build`를 실행한다. 한국어 `/`와 영어 `/en/`에서 제목, 문단, 링크와 기존 직접 이동을 확인한다.
+320px, 390px, 768px와 1440px에서 페이지의 가로 넘침이 없었으며, 문단 사이는 16px이었다. Notes 제목과 아이콘은 한 링크이고 아이콘은 마지막 단어와 같은 줄에 있었다. 자료 링크는 28px 높이, 제목 링크는 24px 높이였다. 두 언어의 Tab 이동 순서와 2px 포커스 표시, 프로젝트를 구분하는 접근 가능한 이름도 확인했다. 새 브라우저 스크립트는 없다.
+
+글자 확대는 루트 글자 크기를 바꿔 본문이 16px에서 32px로 커진 상태에서 확인했다. 320px에서 Projects의 문구와 링크는 잘리거나 영역 밖으로 넘치지 않았다. 1440px에서는 전체 페이지에도 가로 넘침이 없었다. 320px과 390px에서는 변경하지 않은 `MobileProfileLinks.astro`의 한 줄 아이콘 목록이 화면 밖으로 나왔다. 모바일 전체 화면의 글자 확대 확인은 통과로 기록하지 않으며, 기존 단위의 실제 브라우저 배율 200% 미확인 상태도 유지한다.
+
+로컬 화면의 콘솔에는 `favicon.ico`의 404만 있었고 이번 변경으로 추가된 오류는 없었다.
+
+최종 문구 점검에서는 자료 이름과 확인 문장의 대상을 명확히 했다. 수정한 문구와 커밋 문안의 표현 및 긴 문단 경고는 없었다.
+
+[완료 기준](requirements.md#완료-기준)과 [접근성](requirements.md#접근성)에 따라 저장소 최상위에서 `pnpm entry:check`와 `pnpm entry:build`를 실행한다. 한국어 `/`와 영어 `/en/`에서 제목, 문단, 링크와 `#projects` 직접 이동을 확인한다.
 
 320px, 390px와 1440px에서 Notes 제목과 외부 링크 아이콘, 설명 아래 자료 링크의 줄바꿈, 문단 간격과 가로 스크롤 여부를 확인한다. 아이콘만 다음 줄에 남지 않아야 한다. 200% 글자 확대, 제목 링크의 키보드 포커스 및 각 링크를 누를 수 있는 영역도 확인한다. 링크 목록만 읽어도 어느 프로젝트의 어떤 자료인지 구분할 수 있어야 한다. 검사 명령의 성공만으로 화면 확인을 대신하지 않는다.
 
@@ -387,4 +396,4 @@ AI Agent Workflow의 설명 아래에는 Docs System 저장소와 기존 문구 
 
 두 언어의 단일 칼럼 화면, 구체적인 기여 본문과 단위 5~17의 추가 요구사항은 구현 및 확인을 완료했다. 단위 1~4에서 남긴 실제 200% 브라우저 확대 확인은 사용한 브라우저의 제어 제한으로 수행하지 못했으며, 이 미확인 항목을 완료로 바꾸지 않는다.
 
-Projects 후속 변경의 완료 여부는 단위 23~25에서 확인한 내용으로 판단한다. 문서 갱신과 주소 확인을 화면 반영 완료로 표시하지 않는다.
+Projects 후속 변경은 단위 23~25에서 코드, 생성 HTML과 실제 화면을 확인해 완료했다. 모바일 상단 프로필 링크의 글자 확대 문제는 이번 변경에 포함하지 않은 별도 수정 대상이다.

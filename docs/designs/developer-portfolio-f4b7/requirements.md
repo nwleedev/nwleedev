@@ -53,7 +53,9 @@
 5. Background
 6. Contact와 Footer
 
-기존 `Independent Work`의 제목을 두 언어에서 `Projects`로 바꾼다. 별도의 `Selected Work`, `Skills` 영역이나 프로젝트 목록을 중복해서 만들지 않는다. 경력과 프로젝트의 내부 상세 페이지도 추가하지 않는다. `use-better-terms`의 수정 사례는 [쇼케이스 요구사항](../better-terms-showcase-6e2/requirements.md)에 따라 별도 페이지에서 보여준다. About은 Identity가 대신한다. 개발자 소개 화면은 모든 화면 폭에서 같은 순서로 세로 스크롤하며 읽는다.
+개인 프로젝트 영역은 두 언어에서 `Projects`로 표시하고, 직접 이동 주소는 `#projects`를 사용한다. 문구 키, 타입과 컴포넌트도 프로젝트라는 뜻에 맞춰 이름을 정한다.
+
+별도의 `Selected Work`, `Skills` 영역이나 프로젝트 목록을 중복해서 만들지 않는다. 경력과 프로젝트의 내부 상세 페이지도 추가하지 않는다. `use-better-terms`의 수정 사례는 [쇼케이스 요구사항](../better-terms-showcase-6e2/requirements.md)에 따라 별도 페이지에서 보여준다. About은 Identity가 대신한다. 개발자 소개 화면은 모든 화면 폭에서 같은 순서로 세로 스크롤하며 읽는다.
 
 네비게이션 바, 고정 목차, 메뉴 버튼과 Drawer를 만들지 않는다. 데스크톱에서는 외부 자료 링크를 소개 본문에 유지하고 언어 선택은 화면 오른쪽 상단에 둔다. 모바일에서는 외부 자료 링크를 같은 본문 위치의 아이콘 목록으로 바꾸고 현재 화면과 다른 언어 하나만 이름 오른쪽에 표시한다. 키보드 사용을 위한 본문 바로가기와 기존 영역 id를 통한 직접 이동은 유지한다.
 
@@ -101,7 +103,7 @@ React Router와 Outline 기여를 회사 경력과 구분된 외부 확인 자�
 
 ## Projects
 
-`Projects`에는 회사 Experience와 구분한 개인 프로젝트를 소개한다. `회사 프로젝트 밖에서 문제를 정의하고 구현한 작업입니다.`처럼 사이트의 편집 방식을 설명하는 도입 문구는 두지 않는다. 제목 다음의 첫 프로젝트 앞에는 구분선을 넣지 않고 32px 뒤에 내용을 시작한다. 프로젝트를 옆으로 배치하거나 한쪽을 어긋나게 놓지 않는다. 기존 `#independent-work` 주소를 통한 직접 이동은 유지한다.
+`Projects`에는 회사 Experience와 구분한 개인 프로젝트를 소개한다. `회사 프로젝트 밖에서 문제를 정의하고 구현한 작업입니다.`처럼 사이트의 편집 방식을 설명하는 도입 문구는 두지 않는다. 제목 다음의 첫 프로젝트 앞에는 구분선을 넣지 않고 32px 뒤에 내용을 시작한다. 프로젝트를 옆으로 배치하거나 한쪽을 어긋나게 놓지 않는다. `#projects` 주소에서 이 영역으로 바로 이동할 수 있어야 한다.
 
 프로젝트 설명은 여러 문단으로 구성한다. 시작한 이유와 사용자가 얻는 이점, 직접 발견하고 해결한 문제를 내용에 맞게 나눈다. 같은 사실을 되풀이하거나 문단 수를 맞추려고 설명을 늘리지 않는다. 한국어와 영어에서 같은 사실을 읽을 수 있어야 하며, 코드 작성 방법과 상세한 구현 순서를 중심으로 설명하지 않는다.
 
@@ -228,7 +230,7 @@ Drawer, modal, toast, table, tab, filter, search, pagination, carousel, tooltip,
 - React Router와 Outline 기여를 실제 PR 및 공식 릴리스에서 확인할 수 있다.
 - 두 언어에서 `Projects` 제목 아래에 AI Agent Workflow, Personal Notes Workspace와 Offline Translation Web App이 회사 경력과 구분되어 표시된다.
 - 프로젝트 설명의 문단이 화면에서 구분되고, 한국어와 영어가 같은 목적과 기여 사실을 전달한다.
-- Personal Notes Workspace의 제목과 외부 링크 아이콘을 누르면 실제 메모 앱이 열린다. AI Agent Workflow의 저장소와 문구 개선 사례, Personal Notes Workspace의 저장소는 설명 아래에서 열 수 있다. 기존 `#independent-work` 직접 이동도 유지된다.
+- Personal Notes Workspace의 제목과 외부 링크 아이콘을 누르면 실제 메모 앱이 열린다. AI Agent Workflow의 저장소와 문구 개선 사례, Personal Notes Workspace의 저장소는 설명 아래에서 열 수 있다. `#projects`에서 Projects로 바로 이동할 수 있다.
 - 네비게이션 바와 다중 칼럼이 없고, 숫자와 소개 문구를 대형 글자로 강조하지 않는다.
 - Experience와 Open Source 제목 다음에 편집 방식을 설명하는 도입 문구, 첫 항목 구분선과 그 자리를 대신하는 빈 여백이 없다.
 - 데스크톱에서 외부 링크가 소개 본문에 있고 KO와 EN이 화면 오른쪽 상단에 있다. 모바일에서는 같은 위치에 네 외부 링크의 아이콘이 한 행으로 보이고 한국어 화면에는 EN, 영어 화면에는 KO만 이름 오른쪽에 보인다.

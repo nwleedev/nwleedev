@@ -6,7 +6,7 @@
 
 ## 현재 사이트에서 바꿔야 할 부분
 
-현재 프로젝트 항목은 설명 한 문단과 링크 하나를 제공한다. 두 프로젝트에 서로 다른 목적의 링크를 함께 제공하고 설명을 여러 문단으로 나누려면, 문구뿐 아니라 이를 표시하는 항목 구성도 바뀌어야 한다. 근거는 [프로젝트 표시 컴포넌트](../../../../apps/entry/src/_pages/home/ui/IndependentWorkSection.astro), [문구 타입](../../../../apps/entry/src/shared/terms/types.ts)과 [한국어 문구](../../../../apps/entry/src/shared/terms/ko.json)다.
+변경 전 프로젝트 항목은 설명 한 문단과 링크 하나를 제공했다. 두 프로젝트에 서로 다른 목적의 링크를 함께 제공하고 설명을 여러 문단으로 나누려면, 문구뿐 아니라 이를 표시하는 항목 구성도 바뀌어야 한다. 근거는 [프로젝트 표시 컴포넌트](../../../../apps/entry/src/_pages/home/ui/ProjectsSection.astro), [문구 타입](../../../../apps/entry/src/shared/terms/types.ts)과 [한국어 문구](../../../../apps/entry/src/shared/terms/ko.json)다.
 
 회사 경력에는 이미 여러 문단을 표시하는 기여 본문이 있고, Open Source에는 여러 링크가 있다. [공통 링크 컴포넌트](../../../../apps/entry/src/shared/ui/ExternalTextLink.astro)는 링크 이름, 목적 설명과 대각선 화살표 표시를 제공한다. Projects에서도 같은 링크 표시와 접근성 처리를 재사용할 수 있는지 확인해야 한다. 비슷하게 보인다는 이유만으로 회사 경력과 프로젝트를 하나의 컴포넌트로 합치지는 않는다.
 
@@ -74,6 +74,6 @@ AI Agent Workflow의 저장소 링크는 [Docs System](https://github.com/nwleed
 
 Personal Notes Workspace의 제목은 [메모 앱](https://notes.nwlee.com)으로 연결한다. 이용 주소에서 메모 화면이 표시됐다. 확인한 대상은 주소와 첫 화면이다.
 
-설명 아래 저장소 링크는 [현재 Notes 소스](https://github.com/nwleedev/nwleedev/tree/main/apps/notes)로 연결한다. GitHub의 `main`에서 `apps/notes`와 애플리케이션 파일을 확인했다. 현재 홈페이지 문구의 평가 버전 링크는 이 주소로 교체하며, 과거 평가의 근거로 남긴 고정 버전 링크와 구분한다.
+설명 아래 저장소 링크는 [현재 Notes 소스](https://github.com/nwleedev/nwleedev/tree/main/apps/notes)로 연결한다. GitHub의 `main`에서 `apps/notes`와 애플리케이션 파일을 확인했다. 홈페이지의 저장소 링크는 이 주소로 연결하며, 과거 평가의 근거로 남긴 고정 버전 링크와 구분한다.
 
 링크 배치와 주소는 후속 플랜에 반영할 수 있다. 한국어와 영어 화면에서 제목 및 아이콘의 줄바꿈, 키보드 포커스와 클릭 영역은 [화면 확인 단계](../plan.md#25-두-언어-화면과-링크-확인)에서 확인한다.

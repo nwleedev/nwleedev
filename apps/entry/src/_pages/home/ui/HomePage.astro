@@ -5,7 +5,7 @@ import BackgroundSection from "./BackgroundSection.astro";
 import ContactSection from "./ContactSection.astro";
 import ExperienceSection from "./ExperienceSection.astro";
 import IdentityBlock from "./IdentityBlock.astro";
-import IndependentWorkSection from "./IndependentWorkSection.astro";
+import ProjectsSection from "./ProjectsSection.astro";
 import OpenSourceSection from "./OpenSourceSection.astro";
 
 interface Props {
@@ -51,7 +51,7 @@ const terms = getTerms(locale, { resumeUrl: parsedResumeUrl.href });
     />
     <ExperienceSection experience={terms.experience} />
     <OpenSourceSection openSource={terms.openSource} />
-    <IndependentWorkSection independentWork={terms.independentWork} />
+    <ProjectsSection projects={terms.projects} />
     <BackgroundSection background={terms.background} />
     <ContactSection contact={terms.contact} />
   </main>

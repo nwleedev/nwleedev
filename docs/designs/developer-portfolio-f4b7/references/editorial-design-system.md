@@ -82,7 +82,7 @@ WCAG 2.2의 [Focus Not Obscured](https://www.w3.org/WAI/WCAG22/Understanding/foc
 ## 제안서에서 요구사항으로 채택한 내용
 
 - `Technical Publication / Career Index / Evidence-driven` 편집 방향
-- Header, Identity, Experience, Open Source, Independent Work, Background, Contact 순서
+- Header, Identity, Experience, Open Source, Projects, Background, Contact 순서
 - 회사별 Engineering Contribution과 문맥 안의 수치 강조
 - Pretendard와 밝은 바탕, `#EE5166`을 시작점으로 한 색상 역할
 - 카드 그림자를 사용하지 않는 하나의 페이지 바탕

@@ -1,6 +1,6 @@
 # 개발자 소개를 뒷받침할 프로젝트와 글
 
-이 문서는 이전 프로젝트 및 글 후보를 비교한 조사 기록이다. 현재 첫 버전은 [Independent Work 결정](../decisions/project-availability.md)에 따라 AI Agent Workflow와 Offline Translation Web App을 소개하고, 홈페이지에는 개별 글 목록 대신 Blog 링크를 제공한다. 아래 개인 메모 앱, Issnuta와 글 후보는 현재 게재 목록이 아니다.
+이 문서는 이전 프로젝트 및 글 후보를 비교한 조사 기록이다. 현재 첫 버전은 [Projects 결정](../decisions/project-availability.md)에 따라 AI Agent Workflow와 Offline Translation Web App을 소개하고, 홈페이지에는 개별 글 목록 대신 Blog 링크를 제공한다. 아래 개인 메모 앱, Issnuta와 글 후보는 현재 게재 목록이 아니다.
 
 프로젝트와 글은 **사용자의 목적을 이해하고, 실제로 사용할 수 있는 서비스로 구체화하는 개발자**라는 소개를 뒷받침할 때 선별한다. 방문자가 개발자의 관심과 함께 개발할 때 기대할 가치를 이해하는 것이 목적이다. 기술 분야별로 경험을 하나씩 채우거나 구현 방법을 많이 설명하는 것을 선정 기준으로 삼지 않는다.
 

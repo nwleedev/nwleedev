@@ -49,15 +49,13 @@ export type OpenSourceContribution = {
   links: readonly ExternalLink[];
 };
 
-export type IndependentWork = {
+export type Project = {
   title: string;
   period: string;
-  summary: string;
+  paragraphs: readonly string[];
   technologies: readonly string[];
-  link?: {
-    label: string;
-    href: string;
-  };
+  serviceLink?: Omit<ExternalLink, "label">;
+  links: readonly ExternalLink[];
 };
 
 export type BackgroundItem = {
@@ -97,10 +95,10 @@ export type HomeTerms = {
     title: string;
     contributions: readonly OpenSourceContribution[];
   };
-  independentWork: {
+  projects: {
     id: string;
     title: string;
-    items: readonly IndependentWork[];
+    items: readonly Project[];
   };
   background: {
     id: string;

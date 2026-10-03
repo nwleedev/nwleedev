@@ -179,34 +179,59 @@
       }
     ]
   },
-  "independentWork": {
-    "id": "independent-work",
-    "title": "Independent Work",
+  "projects": {
+    "id": "projects",
+    "title": "Projects",
     "items": [
       {
         "title": "AI Agent Workflow",
         "period": "2026 — 현재",
-        "summary": "무슨 작업을 진행할지 파악하고, 필요한 자료를 조사한 뒤 구현을 순조롭게 진행할 수 있도록 AI 에이전트용 규칙과 스킬을 만들었습니다. 작업을 이어갈 때도 결정한 내용과 변경 이유를 확인할 수 있도록 했습니다. 문서를 저장하기 전에 뜻이 모호한 한국어 표현을 찾아보는 검사도 만들어 여러 저장소에서 사용했습니다.",
-        "link": {
-          "label": "문구 개선 사례 보기",
-          "href": "/projects/use-better-terms"
-        },
+        "paragraphs": [
+          "무슨 작업을 진행할지 파악하고, 필요한 자료를 조사한 뒤 구현을 순조롭게 진행할 수 있도록 AI 에이전트용 규칙과 스킬을 만들었습니다. 작업을 이어갈 때도 결정한 내용과 변경 이유를 확인할 수 있도록 했습니다.",
+          "문서를 저장하기 전에 뜻이 모호한 한국어 표현을 찾아보는 검사도 만들어 여러 저장소에서 사용했습니다."
+        ],
+        "links": [
+          {
+            "label": "GitHub 저장소",
+            "context": "AI Agent Workflow 소스 코드",
+            "href": "https://github.com/nwleedev/docs-system"
+          },
+          {
+            "label": "문구 개선 사례 보기",
+            "context": "AI Agent Workflow의 한국어 문구 개선 사례",
+            "href": "/projects/use-better-terms"
+          }
+        ],
         "technologies": ["Node.js", "Repository Rules", "Text Validation"]
       },
       {
         "title": "Personal Notes Workspace",
         "period": "2026 - 현재",
-        "summary": "AI 에이전트 지침을 매번 다시 입력하고, 스크립트 실행 조건이 달라질 때마다 명령어 메모가 늘어나는 불편 때문에 만들기 시작했습니다. 자주 쓰는 지침은 여러 메모에서 골라 한 번에 복사하고, 명령어는 입력 파일명처럼 달라지는 값만 바꿔 다시 쓸 수 있게 했습니다. 직접 써보며 메모가 원하는 곳으로 움직이지 않거나 일괄 복사 항목의 순서가 뜻대로 바뀌지 않는 문제의 원인을 찾아서 개선했습니다. 모바일에서도 필요한 문구를 고르고 순서를 바꾸기 편하도록 모바일 페이지를 어떻게 구성해야 하는지 리서치했습니다.",
-        "link": {
-          "label": "소스 코드 보기",
-          "href": "https://github.com/nwleedev/nwleedev/tree/a06bfc94c64232581742792a9834b82f5963f225/apps/notes"
+        "paragraphs": [
+          "AI 에이전트 지침을 매번 다시 입력하고, 스크립트 실행 조건이 달라질 때마다 명령어 메모가 늘어나는 불편 때문에 만들기 시작했습니다. 자주 쓰는 지침은 여러 메모에서 골라 한 번에 복사하고, 명령어는 입력 파일명처럼 달라지는 값만 바꿔 다시 쓸 수 있게 했습니다.",
+          "직접 써보며 메모가 원하는 곳으로 움직이지 않거나 일괄 복사 항목의 순서가 뜻대로 바뀌지 않는 문제의 원인을 찾아서 개선했습니다. 모바일에서도 필요한 문구를 고르고 순서를 바꾸기 편하도록 모바일 페이지를 어떻게 구성해야 하는지 리서치했습니다."
+        ],
+        "serviceLink": {
+          "context": "메모 앱 열기",
+          "href": "https://notes.nwlee.com"
         },
+        "links": [
+          {
+            "label": "GitHub 저장소",
+            "context": "Personal Notes Workspace 소스 코드",
+            "href": "https://github.com/nwleedev/nwleedev/tree/main/apps/notes"
+          }
+        ],
         "technologies": ["TypeScript", "React", "Next.js", "IndexedDB"]
       },
       {
         "title": "Offline Translation Web App",
         "period": "2025",
-        "summary": "미리 저장한 언어 모델로 네트워크 연결 없이 한국어와 영어, 한국어와 일본어 사이를 번역하고, 모델 실행 중에도 페이지 입력을 계속할 수 있도록 했습니다. 브라우저 캐시와 IndexedDB로 필요한 파일과 정보를 저장하고 GitHub Actions로 배포 반복 작업을 자동화했습니다.",
+        "paragraphs": [
+          "미리 저장한 언어 모델로 네트워크 연결 없이 한국어와 영어, 한국어와 일본어 사이를 번역하고, 모델 실행 중에도 페이지 입력을 계속할 수 있도록 했습니다.",
+          "브라우저 캐시와 IndexedDB로 필요한 파일과 정보를 저장하고 GitHub Actions로 배포 반복 작업을 자동화했습니다."
+        ],
+        "links": [],
         "technologies": ["Web Worker", "IndexedDB", "Offline", "GitHub Actions"]
       }
     ]

@@ -29,7 +29,9 @@ Pretendard 1.3.9의 `PretendardVariable.woff2`를 `public/fonts`에서 자체 �
 
 `--container-page`는 42rem을 시작값으로 사용하고 좌우 여백은 `clamp(1rem, 3vw, 2rem)`을 유지한다. 바깥 컨테이너는 중앙에 놓되 텍스트는 왼쪽 정렬한다. Identity, 회사와 기여, 오픈소스, 독립 작업, 배경과 연락처에 같은 폭을 적용한다. `--container-copy`와 `--container-lead`는 없앤다.
 
-페이지 순서는 Identity, Experience, Open Source, Independent Work, Background, Contact와 Footer다. 회사명, 기간과 역할 다음에 담당한 일과 기여 본문을 이어 둔다. 오픈소스는 이름, 설명, 확인 자료 순서이며 독립 작업 두 항목도 세로로 이어진다.
+페이지 순서는 Identity, Experience, Open Source, Projects, Background, Contact와 Footer다. 회사명, 기간과 역할 다음에 담당한 일과 기여 본문을 이어 둔다. 오픈소스는 이름, 설명, 확인 자료 순서이며 개인 프로젝트 세 항목도 세로로 이어진다.
+
+Projects는 제목, 여러 문단의 설명, 자료 링크와 기간 및 기술 정보 순서로 읽는다. 문단 사이는 16px을 사용하고 자료 링크는 마지막 문단에서 16px 뒤에 둔다. Personal Notes Workspace는 제목과 대각선 화살표를 함께 누르면 메모 앱으로 이동한다. 저장소와 문구 개선 사례는 설명 아래의 텍스트 링크로 제공하며, 제목이 줄바꿈되더라도 마지막 단어와 화살표가 함께 표시된다. 직접 이동 주소는 `#projects`다.
 
 공통 여백 단계 4, 8, 12, 16, 24, 32, 48, 64, 96과 128px은 유지한다. 페이지 시작과 영역 사이에는 64px을 적용하고 넓은 화면의 일부 영역 끝에는 96px을 적용했다. 회사와 기여, 문단 사이는 본문 길이와 줄바꿈에 맞춰 이 단계 안에서 구분한다. 빈 화면을 만드는 고정 높이는 두지 않는다.
 
@@ -37,7 +39,7 @@ Pretendard 1.3.9의 `PretendardVariable.woff2`를 `public/fonts`에서 자체 �
 
 ## 구성 요소와 탐색
 
-Shared UI는 `BaseLayout`, `SectionHeader`, `MetadataLine`과 `ExternalTextLink`를 유지한다. `SectionHeader`는 영역 제목과 위쪽 구분선만 표시한다. Experience, Open Source, Independent Work와 Contact는 제목 다음에 영역 편집 방식이나 링크 목록을 예고하는 문구를 표시하지 않으며, 첫 항목 위 구분선 없이 32px 뒤에 내용을 시작한다. 항목 사이의 일반 구분선은 유지하지만 다음 영역의 강한 위쪽 구분선과 겹치는 목록 끝 선은 표시하지 않는다. `ContributionBlock`은 제목, 본문 문단과 기술 정보를 렌더링하고 수치 또는 인용문 종류에 따른 배치 분기를 없앤다. `MetricStatement`, `SystemFigure`와 `PageHeader`는 제거한다.
+Shared UI는 `BaseLayout`, `SectionHeader`, `MetadataLine`과 `ExternalTextLink`를 유지한다. `SectionHeader`는 영역 제목과 위쪽 구분선만 표시한다. Experience, Open Source, Projects와 Contact는 제목 다음에 영역 편집 방식이나 링크 목록을 예고하는 문구를 표시하지 않으며, 첫 항목 위 구분선 없이 32px 뒤에 내용을 시작한다. 항목 사이의 일반 구분선은 유지하지만 다음 영역의 강한 위쪽 구분선과 겹치는 목록 끝 선은 표시하지 않는다. `ContributionBlock`은 제목, 본문 문단과 기술 정보를 렌더링하고 수치 또는 인용문 종류에 따른 배치 분기를 없앤다. `MetricStatement`, `SystemFigure`와 `PageHeader`는 제거한다.
 
 Identity의 첫 행은 이름과 언어 링크를 `align-items: center`, `justify-content: space-between`으로 배치한다. 40rem 이상에서는 KO와 EN을 가로로 표시하고, GitHub, Blog, LinkedIn과 Résumé는 소개 아래의 가로 텍스트 목록에 유지한다. 현재 언어는 글자와 `aria-current="page"`로 함께 표시한다. 40rem 미만에서는 한국어 화면에 EN, 영어 화면에 KO 링크 하나만 이름 오른쪽에 표시한다. 이름과 언어 링크의 위치에는 `position: absolute`나 padding 보정을 사용하지 않는다.
 
