@@ -71,4 +71,4 @@ Harvard 안내에서 적용할 내용은 경험을 구체적인 사실과 성과
 
 드래그 외에 메뉴와 직접 이동을 제공한 판단은 [W3C의 Dragging Movements 설명](https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html)과 대조할 수 있다. 드래그를 하지 않는 단일 포인터 대안을 요구하며 키보드로 사용하는 방법과 구분하는 자료다. 확인일은 2026년 10월 2일이다.
 
-이 기준에 따른 한국어 및 영어 문구는 [메모 앱 소개안](assessment.md#independent-work에-실을-문구-제안), 사이트 반영 절차는 [후속 적용안](../plan.md#항목-추가를-선택할-때의-후속-적용안)에 있다.
+이 기준에 따른 한국어 및 영어 문구는 [메모 앱 소개안](assessment.md#independent-work에-실을-문구-제안), 사이트 반영 절차는 [사이트 반영 플랜](../plan.md#사이트-반영-절차와-완료-근거)에 있다.

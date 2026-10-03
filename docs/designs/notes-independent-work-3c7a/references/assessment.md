@@ -2,7 +2,7 @@
 
 `apps/notes`를 Independent Work에 추가할 것을 권고한다. 반복 입력과 늘어나는 명령어 메모의 원인을 직접 정리하고, 기존 내용을 재사용하는 해결 방향을 정한 경험이 근거다. 직접 사용하며 발견한 불편을 개선한 점까지 연결하면 사용자 문제를 발견하고 해결 방향을 구체화하는 역량을 보여줄 수 있다.
 
-평가 기준은 [선정 요구사항](../requirements.md)이며 항목 추가와 소개 문구는 제안이다. 앱 근거는 `a06bfc94c64232581742792a9834b82f5963f225`와 그 이전 Git 기록이다. [커밋별 평가](commit-assessment.md)는 현재 이력 18개를, [통합 전 이력](squashed-history.md)은 중복을 제외한 앱 및 문서 변경 175개를 평가한다. [사용 목적과 입력 문제](workflow-and-input.md)는 2026년 10월 3일 확인한 제작 목적과 직접 정한 선택을 담는다. 실행 근거의 날짜와 대상은 [10월 2일 실행 기록](#2026년-10월-2일-확인한-실행-결과)에 있다.
+평가 기준은 [선정 요구사항](../requirements.md)이며, 이 평가에 따른 추가 결정은 [독립 작업 선정](../../developer-portfolio-f4b7/decisions/project-availability.md)에 기록한다. 앱 근거는 `a06bfc94c64232581742792a9834b82f5963f225`와 그 이전 Git 기록이다. [커밋별 평가](commit-assessment.md)는 현재 이력 18개를, [통합 전 이력](squashed-history.md)은 중복을 제외한 앱 및 문서 변경 175개를 평가한다. [사용 목적과 입력 문제](workflow-and-input.md)는 2026년 10월 3일 확인한 제작 목적과 직접 정한 선택을 담는다. 실행 근거의 날짜와 대상은 [10월 2일 실행 기록](#2026년-10월-2일-확인한-실행-결과)에 있다.
 
 ## apps/entry의 역할과 개발 의도
 
@@ -10,7 +10,7 @@
 
 현재 소개는 서비스 문제의 원인을 찾고 사용자가 정보와 작업 상태를 정확히 확인하도록 개선한 경험을 전달한다. 회사 경력 다음에 Open Source와 Independent Work를 배치해 회사 밖의 경험을 보충한다. Independent Work는 제목, 기간, 설명과 선택적인 링크 및 기술 정보를 표시한다. 근거는 [한국어 소개 내용](../../../../apps/entry/src/shared/terms/ko.json)과 [Independent Work 구성](../../../../apps/entry/src/_pages/home/ui/IndependentWorkSection.astro)이다.
 
-현재 두 항목은 AI Agent Workflow와 Offline Translation Web App이다. 전자는 저장소 규칙과 문구 검사, 후자는 네트워크 연결 없이 번역하는 브라우저 앱 경험을 설명한다. [첫 버전의 독립 작업 선정](../../developer-portfolio-f4b7/decisions/project-availability.md)은 새로운 항목이 기존 두 작업과 다른 판단 또는 확인 가능한 결과를 보태야 한다고 정한다.
+평가 당시의 두 항목은 AI Agent Workflow와 Offline Translation Web App이다. 전자는 저장소 규칙과 문구 검사, 후자는 네트워크 연결 없이 번역하는 브라우저 앱 경험을 설명한다. [독립 작업 선정](../../developer-portfolio-f4b7/decisions/project-availability.md)은 새로운 항목이 기존 두 작업과 다른 판단 또는 확인 가능한 결과를 보태야 한다고 정한다.
 
 당시 메모 앱은 개발 중인 목적과 기능만 확인돼 경력 중심 소개에서 우선순위가 낮았다. 지금은 실제 제작 목적과 직접 정한 선택, 사용하며 개선한 점을 연결할 수 있어 선정 근거가 구체화됐다.
 
@@ -67,7 +67,7 @@ Worker와 IndexedDB라는 기술 이름은 기존 번역 앱과 회사 경력에
 
 영어 설명 제안:
 
-> Started this personal project to address repeatedly entering instructions for AI agents and keeping a separate Python command note for each execution scenario. Chose to reuse existing notes rather than keep adding copies, distinguishing reusable text from values that change. Improved the layout and ease of use based on issues encountered while using it on mobile.
+> I started this project to address repeatedly entering instructions for AI agents and creating a new Python command note whenever its parameters changed. I chose to reuse existing notes by distinguishing reusable text from values that change. I improved the layout and ease of use based on issues I encountered while using it on mobile.
 
 이력서에서는 직접 내린 판단을 먼저 적고, 지원할 직무에 맞는 문제 해결 사례를 보충한다. 개별 오류 분석과 코드 수정의 개인 역할은 확인된 만큼 덧붙인다.
 
@@ -83,4 +83,4 @@ Worker와 IndexedDB라는 기술 이름은 기존 번역 앱과 회사 경력에
 
 메모의 로컬 저장과 LLM 없이 실행하는 텍스트 분석이 평가 대상이며, 계정 동기화나 웹앱 전체의 오프라인 실행은 포함하지 않는다. [메모 앱의 실행 조건](../../personal-notes-app-8fd/requirements.md#반드시-지킬-조건)이 그 기준이다.
 
-소개를 더 구체화할 사실은 [커밋 평가의 추가 확인 사항](commit-assessment.md#선정-판단과-확인할-사실), 사이트 반영 절차는 [후속 적용 플랜](../plan.md#항목-추가를-선택할-때의-후속-적용안)에 있다.
+소개를 더 구체화할 사실은 [커밋 평가의 추가 확인 사항](commit-assessment.md#선정-판단과-확인할-사실), 사이트 반영 절차는 [사이트 반영 플랜](../plan.md#사이트-반영-절차와-완료-근거)에 있다.
