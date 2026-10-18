@@ -455,19 +455,26 @@ test.describe("320px 일괄 복사", () => {
     await expect(note).toBeVisible()
   })
 
-  test("새 메모 동작은 원형이고 더보기에는 그림자가 없다", async ({ page }) => {
+  test("새 메모는 흰색 아이콘과 그림자가 있는 붉은 원형이고 더보기에는 그림자가 없다", async ({ page }) => {
     const content = `아이콘 모양을 확인할 메모 ${crypto.randomUUID()}`
     const note = await createMobileNoteThroughUi(page, content)
     const createStyle = await page.getByRole("button", { name: "새 메모" }).evaluate((element) => {
       const bounds = element.getBoundingClientRect()
       const style = getComputedStyle(element)
-      return { background: style.backgroundColor, height: bounds.height, radius: Number.parseFloat(style.borderTopLeftRadius), width: bounds.width }
+      const icon = element.querySelector("svg")
+      if (icon === null) throw new Error("New note icon is missing")
+      const channels = style.backgroundColor.match(/[\d.]+/gu)
+      if (channels === null) throw new Error("New note background has no color channels")
+      const [red, green, blue] = channels.map(Number)
+      return { blue, green, height: bounds.height, icon: getComputedStyle(icon).color, radius: Number.parseFloat(style.borderTopLeftRadius), red, shadow: style.boxShadow, width: bounds.width }
     })
-    const noteBackground = await note.evaluate((element) => getComputedStyle(element).backgroundColor)
     const moreShadow = await note.getByRole("button", { name: `${content} 더보기` }).evaluate((element) => getComputedStyle(element).boxShadow)
     expect(createStyle.width).toBeCloseTo(createStyle.height, 0)
     expect(createStyle.radius).toBeGreaterThanOrEqual(createStyle.width / 2)
-    expect(createStyle.background).not.toBe(noteBackground)
+    expect(createStyle.red).toBeGreaterThan(createStyle.green)
+    expect(createStyle.red).toBeGreaterThan(createStyle.blue)
+    expect(createStyle.icon).toBe("rgb(255, 255, 255)")
+    expect(createStyle.shadow).not.toBe("none")
     expect(moreShadow).toBe("none")
   })
 

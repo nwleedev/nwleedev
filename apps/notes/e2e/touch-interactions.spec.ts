@@ -19,7 +19,7 @@ type TouchPoint = {
   y: number
 }
 
-async function center(locator: Locator, verticalFraction = 0.5): Promise<TouchPoint> {
+async function center(locator: Locator, verticalFraction = 0.5, horizontalFraction = 0.5): Promise<TouchPoint> {
   await expect(locator).toBeVisible()
   const box = await locator.boundingBox()
 
@@ -28,7 +28,7 @@ async function center(locator: Locator, verticalFraction = 0.5): Promise<TouchPo
   }
 
   return {
-    x: box.x + box.width / 2,
+    x: box.x + box.width * horizontalFraction,
     y: box.y + box.height * verticalFraction,
   }
 }
@@ -76,7 +76,7 @@ async function holdAndReleaseTouch(
   await endTouch(session)
 }
 
-test("짧은 터치는 복사하고 긴 터치는 중복 항목을 한 번씩 추가한다", async ({ context, page }) => {
+test("짧은 터치는 복사하고 긴 터치는 손을 떼기 전에 한 번씩 추가한다", async ({ context, page }) => {
   await page.clock.install()
   await page.goto("/")
   const firstContent = `짧은 복사 ${crypto.randomUUID()}`
@@ -92,6 +92,7 @@ test("짧은 터치는 복사하고 긴 터치는 중복 항목을 한 번씩 �
   const session = await context.newCDPSession(page)
   const body = second.getByRole("button", { name: `${secondContent} 복사` })
   const originalBox = await body.boundingBox()
+  await page.clock.pauseAt(new Date(Date.now() + 1000))
   for (let count = 1; count <= 2; count += 1) {
     await startTouch(session, await center(body))
     const outline = await second.evaluate((element) => {
@@ -101,11 +102,19 @@ test("짧은 터치는 복사하고 긴 터치는 중복 항목을 한 번씩 �
     expect(outline.width).toBeGreaterThanOrEqual(3)
     expect(outline.color).not.toBe("rgba(0, 0, 0, 0)")
     expect(await body.boundingBox()).toEqual(originalBox)
-    await page.clock.fastForward(500)
+    await page.clock.fastForward(499)
+    await expect(page.getByRole("link", { name: `일괄 복사 확인, ${count - 1}개` })).toBeVisible()
+    await page.clock.fastForward(1)
+    await expect(page.getByRole("link", { name: `일괄 복사 확인, ${count}개` })).toHaveText(String(count))
+    await expect(second).toHaveCSS("outline-width", "3px")
+    await page.clock.fastForward(1000)
+    await expect(page.getByRole("link", { name: `일괄 복사 확인, ${count}개` })).toHaveText(String(count))
     await endTouch(session)
     await expect(page.getByRole("link", { name: `일괄 복사 확인, ${count}개` })).toHaveText(String(count))
+    await expect(second).toHaveCSS("outline-style", "none")
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(firstContent)
   }
+  await page.clock.resume()
   await page.getByRole("link", { name: "일괄 복사 확인, 2개" }).tap()
   await expect(page.getByRole("article", { name: /번째 일괄 복사 항목$/u })).toContainText([secondContent, secondContent])
 })
@@ -196,9 +205,16 @@ test("메모 누르기의 시간과 이동 기준 및 취소에서 추가와 복
   await holdAndReleaseTouch(session, page, await center(body), 500, 9)
   await expect(page.getByRole("link", { name: "일괄 복사 확인, 1개" })).toBeEnabled()
   await holdAndReleaseTouch(session, page, await center(body), 500, 11)
-  await startTouch(session, await center(body))
+  const edge = await center(body, 0.5, 1)
+  edge.x -= 2
+  await startTouch(session, edge)
+  await moveTouch(session, { x: edge.x + 5, y: edge.y })
   await page.clock.fastForward(500)
+  await endTouch(session)
+  await startTouch(session, await center(body))
+  await page.clock.fastForward(499)
   await cancelTouch(session)
+  await page.clock.fastForward(1)
   await preparePointerCaptureRelease(page)
   await startTouch(session, await center(body))
   await releasePointerCapture(page)
@@ -209,6 +225,13 @@ test("메모 누르기의 시간과 이동 기준 및 취소에서 추가와 복
   await page.clock.fastForward(500)
   await endTouch(session)
   await expect(page.getByRole("link", { name: "일괄 복사 확인, 1개" })).toHaveText("1")
+  await startTouch(session, await center(body))
+  await page.clock.fastForward(500)
+  await expect(page.getByRole("link", { name: "일괄 복사 확인, 2개" })).toHaveText("2")
+  await cancelTouch(session)
+  await page.clock.fastForward(1000)
+  await expect(page.getByRole("link", { name: "일괄 복사 확인, 2개" })).toHaveText("2")
+  await expect(note).toHaveCSS("outline-style", "none")
   await page.clock.resume()
   await body.tap()
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(content)
@@ -216,7 +239,7 @@ test("메모 누르기의 시간과 이동 기준 및 취소에서 추가와 복
   await page.getByRole("link", { exact: true, name: "사용 빈도" }).tap()
   const row = page.getByRole("row").filter({ hasText: content })
   await expect(row.getByRole("cell", { name: "개별 복사 2회" })).toBeVisible()
-  await expect(row.getByRole("cell", { name: "일괄 복사 1회" })).toBeVisible()
+  await expect(row.getByRole("cell", { name: "일괄 복사 2회" })).toBeVisible()
 })
 
 test("네 메모의 비인접 삽입을 브라우저 재실행 후에도 유지하고 데스크톱 자료를 보존한다", async ({ baseURL }, testInfo) => {
