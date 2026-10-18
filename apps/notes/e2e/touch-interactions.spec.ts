@@ -110,6 +110,76 @@ test("짧은 터치는 복사하고 긴 터치는 중복 항목을 한 번씩 �
   await expect(page.getByRole("article", { name: /번째 일괄 복사 항목$/u })).toContainText([secondContent, secondContent])
 })
 
+test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 통일한다", async ({ context, page }, testInfo) => {
+  await page.goto("/")
+  const contents = [`카드 ${crypto.randomUUID().slice(0, 8)}`, `여러 줄 카드 비교 원문\n다음 줄 내용 ${crypto.randomUUID()}`]
+  const first = await createMobileNoteThroughUi(page, contents[0])
+  const second = await createMobileNoteThroughUi(page, contents[1])
+  const session = await context.newCDPSession(page)
+
+  async function appearance(card: Locator) {
+    return card.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        background: style.backgroundColor,
+        border: style.borderColor,
+        font: style.fontSize,
+        height: element.getBoundingClientRect().height,
+        gap: style.gap,
+        lineHeight: style.lineHeight,
+        padding: style.padding,
+        radius: style.borderRadius,
+        shadow: style.boxShadow,
+      }
+    })
+  }
+
+  async function inspectDrag(card: Locator, destination: Locator, screenshot: string) {
+    const handle = card.getByRole("button", { name: / 이동$/u })
+    const [cardCenter, handleCenter] = await Promise.all([center(card), center(handle)])
+    expect(handleCenter.y).toBeCloseTo(cardCenter.y, 1)
+    async function verticalGap() {
+      const [source, target] = await Promise.all([center(card, 0), center(destination, 0)])
+      return source.y - target.y
+    }
+    const idle = await appearance(card)
+    await handle.tap()
+    await expect(card).toHaveCSS("outline-style", "none")
+    const iconColor = await handle.evaluate((element) => getComputedStyle(element).color)
+    await expect(handle).toHaveCSS("outline-color", iconColor)
+    await handle.press("Tab")
+    await page.keyboard.press("Shift+Tab")
+    await expect(handle).toBeFocused()
+    await expect(handle).toHaveCSS("outline-style", "solid")
+    await expect(handle).toHaveCSS("outline-color", iconColor)
+    const idleGap = await verticalGap()
+    await startTouch(session, await center(handle))
+    await moveTouch(session, await center(destination, 0.8))
+    await expect.poll(verticalGap).toBeLessThan(idleGap)
+    await expect(card).not.toHaveCSS("box-shadow", "none")
+    await card.evaluate(async (element) => {
+      await Promise.all(element.getAnimations().map((animation) => animation.finished))
+    })
+    const dragging = await appearance(card)
+    expect(dragging.border).not.toBe(idle.border)
+    await page.screenshot({ path: testInfo.outputPath(screenshot) })
+    await cancelTouch(session)
+    await expect.poll(verticalGap).toBeCloseTo(idleGap, 1)
+    await expect(card).toHaveCSS("box-shadow", idle.shadow)
+    return { dragging, idle }
+  }
+
+  const main = await inspectDrag(first, second, "main-card-drag.png")
+  await expect(page.getByRole("article")).toContainText(contents)
+  await addMobileNoteToBatch(page, first)
+  await addMobileNoteToBatch(page, second)
+  await page.getByRole("link", { name: `일괄 복사 확인, ${contents.length}개` }).tap()
+  const entries = page.getByRole("article", { name: /번째 일괄 복사 항목$/u })
+  const confirmation = await inspectDrag(entries.filter({ hasText: contents[0] }), entries.filter({ hasText: contents[1] }), "confirmation-card-drag.png")
+  expect(confirmation).toEqual(main)
+  await expect(entries).toContainText(contents)
+})
+
 test("메모 누르기의 시간과 이동 기준 및 취소에서 추가와 복사를 구분한다", async ({ context, page }) => {
   await page.clock.install()
   await page.goto("/")

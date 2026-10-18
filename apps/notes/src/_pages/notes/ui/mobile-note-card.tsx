@@ -5,12 +5,15 @@ import type { ReactNode } from "react"
 import type { Note } from "@/entities/note"
 import { IconButton } from "@/shared/ui/icon-button"
 import { MoreIcon } from "@/shared/ui/icons"
+import { ReorderableTextCard } from "@/shared/ui/reorderable-text-card"
 
 import { useMobileNoteLongPress } from "../model/use-mobile-note-long-press"
 
 type MobileNoteCardProps = {
   disabled: boolean
-  dragHandle: ReactNode
+  children: ReactNode
+  dragging: boolean
+  dropPlacement: "after" | "before" | null
   note: Note
   onAddToBatchCopy(note: Note): Promise<void>
   onCopy(note: Note): Promise<void>
@@ -19,7 +22,9 @@ type MobileNoteCardProps = {
 
 export function MobileNoteCard({
   disabled,
-  dragHandle,
+  children,
+  dragging,
+  dropPlacement,
   note,
   onAddToBatchCopy,
   onCopy,
@@ -35,17 +40,16 @@ export function MobileNoteCard({
   })
 
   return (
-    <article
-      aria-label={`메모, ${summary}`}
-      className="relative grid shrink-0 grid-cols-[var(--notes-mobile-handle-size)_minmax(0,1fr)] rounded-note border border-border bg-surface-raised data-[pressed=true]:outline data-[pressed=true]:outline-[length:var(--notes-mobile-pressed-width)] data-[pressed=true]:outline-danger data-[pressed=true]:-outline-offset-[length:var(--notes-mobile-pressed-width)]"
-      data-pressed={longPress.pressed}
+    <ReorderableTextCard
+      dragging={dragging}
+      dropPlacement={dropPlacement}
+      label={`메모, ${summary}`}
+      pressed={longPress.pressed}
     >
-      <div className="flex items-center justify-center rounded-l-note border-r border-border bg-canvas">
-        {dragHandle}
-      </div>
+      {children}
       <button
         aria-label={`${summary} 복사`}
-        className="block max-h-48 min-h-24 w-full touch-pan-y select-none overflow-hidden whitespace-pre-wrap break-words px-4 py-4 pr-14 text-left text-base leading-7 text-ink"
+        className="block max-h-48 min-h-[var(--notes-touch-target)] min-w-0 w-full touch-pan-y select-none overflow-hidden whitespace-pre-wrap break-words py-1 text-left"
         disabled={disabled}
         type="button"
         {...longPress.handlers}
@@ -54,12 +58,12 @@ export function MobileNoteCard({
       </button>
       <IconButton
         aria-label={`${summary} 더보기`}
-        className="absolute right-1 top-1 h-[var(--notes-touch-target)] w-[var(--notes-touch-target)]"
+        className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)] self-start"
         id={`mobile-note-actions-${note.id}`}
         onClick={(event) => onOpenActions(note, event.currentTarget)}
       >
-        <MoreIcon className="size-5" />
+        <MoreIcon />
       </IconButton>
-    </article>
+    </ReorderableTextCard>
   )
 }

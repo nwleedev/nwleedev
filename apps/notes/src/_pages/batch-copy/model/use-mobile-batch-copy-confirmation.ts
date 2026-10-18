@@ -112,7 +112,6 @@ export function useMobileBatchCopyConfirmation(
     pending: batchCopy.pending,
     reorderButtonsEnabled: batchCopy.reorderButtonsEnabled,
     remove,
-    reset: batchCopy.reset,
     returnToNotes: () => void returnToNotes(),
     showCopyResult: reportCopyResult,
   }
