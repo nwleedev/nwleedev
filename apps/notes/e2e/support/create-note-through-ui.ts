@@ -1,5 +1,27 @@
 import { expect, type Locator, type Page } from "@playwright/test"
 
+export async function openMobileNoteEditor(page: Page, note: Locator) {
+  await note.getByRole("button", { name: / 더보기$/u }).click()
+  await page.getByRole("dialog", { exact: true, name: "메모" }).getByRole("link", { exact: true, name: "수정" }).click()
+}
+
+export async function readMobileNoteEditHref(page: Page, note: Locator) {
+  await note.getByRole("button", { name: / 더보기$/u }).click()
+  const sheet = page.getByRole("dialog", { exact: true, name: "메모" })
+  const href = await sheet.getByRole("link", { exact: true, name: "수정" }).getAttribute("href")
+  await sheet.getByRole("button", { name: "동작 선택창 닫기" }).click()
+  await expect(sheet).toBeHidden()
+  if (href === null) throw new Error("The note edit link is missing")
+  return href
+}
+
+export async function addMobileNoteToBatch(page: Page, note: Locator) {
+  await note.getByRole("button", { name: / 더보기$/u }).click()
+  const sheet = page.getByRole("dialog", { exact: true, name: "메모" })
+  await sheet.getByRole("button", { exact: true, name: "일괄 복사에 추가" }).click()
+  await expect(sheet).toBeHidden()
+}
+
 export async function createNoteThroughUi(
   page: Page,
   content: string,
@@ -38,7 +60,7 @@ export async function createMobileNoteThroughUi(
   await expect(page).toHaveURL("/")
   await expect(notes).toHaveCount(previousNoteCount + 1)
 
-  await page.getByRole("link", { name: "빈 메모 수정" }).click()
+  await openMobileNoteEditor(page, page.getByRole("article").filter({ has: page.getByRole("button", { exact: true, name: "빈 메모 더보기" }) }))
   await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)
 
   const editor = page.getByRole("textbox", { name: "메모 내용" })

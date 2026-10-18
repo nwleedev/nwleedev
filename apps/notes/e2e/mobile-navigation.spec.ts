@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 import * as fc from "fast-check"
 
-import { createMobileNoteThroughUi } from "./support/create-note-through-ui"
+import { addMobileNoteToBatch, createMobileNoteThroughUi, openMobileNoteEditor } from "./support/create-note-through-ui"
 
 test.use({ viewport: { height: 720, width: 320 } })
 
@@ -135,7 +135,7 @@ test("허용되지 않은 주소의 안내도 보이는 화면 안에 남는다"
   expect(scrollPosition).toBe(0)
 })
 
-test("메모 본문은 복사하고 수정 아이콘만 상세 화면으로 이동한다", async ({ page }) => {
+test("메모 본문은 복사하고 더보기의 수정으로 상세 화면에 이동한다", async ({ page }) => {
   const [firstContent, secondContent] = fc.sample(
     fc.uniqueArray(fc.stringMatching(/^[a-z]{10,24}$/u), {
       minLength: 2,
@@ -154,7 +154,7 @@ test("메모 본문은 복사하고 수정 아이콘만 상세 화면으로 이�
 
   await secondNote.getByRole("button", { name: `${secondContent} 복사` }).click()
   await expect(page.getByRole("status").filter({ hasText: "복사했습니다." })).toBeVisible()
-  await firstNote.getByRole("link", { name: `${firstContent} 수정` }).click()
+  await openMobileNoteEditor(page, firstNote)
   await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)
   await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(firstContent)
   await expect(page.getByRole("button", { name: "탐색 열기" })).toHaveCount(0)
@@ -179,7 +179,7 @@ test("빈 목록과 메모 한 개의 새 메모 버튼은 화면 아래에 남�
   expect(singlePosition!.y).toBeCloseTo(emptyPosition!.y, 0)
   await note.getByRole("button", { name: `${content} 복사` }).click()
   await expect(page.getByRole("status").filter({ hasText: "복사했습니다." })).toBeVisible()
-  await note.getByRole("link", { name: `${content} 수정` }).click()
+  await openMobileNoteEditor(page, note)
   await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(content)
 })
 
@@ -200,32 +200,31 @@ test("목록 끝까지 이동해도 새 메모 제어가 보이는 화면에 남
   await expect(createButton).toBeInViewport()
   await lastNote.getByRole("button", { name: `${contents.at(-1)!} 복사` }).click()
   await expect(page.getByRole("status").filter({ hasText: "복사했습니다." })).toBeVisible()
-  await lastNote.getByRole("link", { name: `${contents.at(-1)!} 수정` }).click()
+  await openMobileNoteEditor(page, lastNote)
   await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(contents.at(-1)!)
 })
 
-test("일괄 복사 중 마지막 메모와 화면 아래의 작업 버튼에 접근한다", async ({ page }) => {
+test("목록 끝에서 추가해도 현재 작업 링크와 새 메모 제어에 접근한다", async ({ page }) => {
   const contents = await createNotesBeyondViewport(page)
-
-  await page.getByRole("button", { name: "일괄 복사 시작" }).click()
-  await expect(page.getByRole("button", { name: "새 메모" })).toHaveCount(0)
-  const next = page.getByRole("button", { name: "다음, 0회 선택" })
-  const before = await next.boundingBox()
-
+  const link = page.getByRole("link", { name: "일괄 복사 확인, 0개" })
+  await expect(link).toBeDisabled()
+  const before = await link.boundingBox()
   const lastContent = contents.at(-1)!
   const lastNote = page.getByRole("article").filter({ hasText: lastContent })
-
   await lastNote.scrollIntoViewIfNeeded()
   await expect(lastNote).toBeInViewport()
-  const after = await next.boundingBox()
+  await addMobileNoteToBatch(page, lastNote)
+  const ready = page.getByRole("link", { name: "일괄 복사 확인, 1개" })
+  await expect(ready).toBeEnabled()
+  const after = await ready.boundingBox()
   expect(before).not.toBeNull()
   expect(after).not.toBeNull()
   expect(after!.y).toBeCloseTo(before!.y, 0)
-  await lastNote.getByRole("button", { name: `${lastContent} 일괄 복사에 추가` }).click()
-  await expect(page.getByRole("button", { name: "다음, 1회 선택" })).toBeInViewport()
-  await expect(page.getByRole("button", { name: "초기화" })).toBeInViewport()
-
-  await page.getByRole("button", { name: "일괄 복사 끝내기" }).click()
+  await expect(page.getByRole("button", { name: "새 메모" })).toBeInViewport()
+  await ready.click()
+  await expect(page.getByRole("heading", { name: "일괄 복사 확인" })).toBeVisible()
+  await expect(page.getByRole("article", { name: "1번째 일괄 복사 항목" })).toContainText(lastContent)
+  await page.getByRole("button", { exact: true, name: "취소" }).click()
   await expect(page.getByRole("button", { name: "새 메모" })).toBeInViewport()
 })
 
@@ -250,10 +249,10 @@ test("보이는 화면의 높이가 줄어도 메모 높이를 유지하고 목�
   expect(firstAfter!.height).toBeCloseTo(firstBefore!.height, 0)
   await lastNote.scrollIntoViewIfNeeded()
   await expect(lastNote).toBeInViewport()
-  await expect(lastNote.getByRole("link", { name: `${contents.at(-1)!} 수정` })).toBeVisible()
+  await expect(lastNote.getByRole("button", { name: `${contents.at(-1)!} 더보기` })).toBeVisible()
 })
 
-test("빈 목록에서 새 메모를 만들면 목록에 남고 수정 아이콘으로 상세를 연다", async ({ page }) => {
+test("빈 목록에서 새 메모를 만들면 목록에 남고 더보기의 수정으로 상세를 연다", async ({ page }) => {
   await page.goto("/")
   const notes = page.getByRole("article")
   const previousNoteCount = await notes.count()
@@ -265,7 +264,7 @@ test("빈 목록에서 새 메모를 만들면 목록에 남고 수정 아이콘
   await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveCount(0)
   await expect(page.getByRole("status").filter({ hasText: "복사했습니다." })).toHaveCount(0)
 
-  await page.getByRole("link", { name: "빈 메모 수정" }).click()
+  await openMobileNoteEditor(page, page.getByRole("article").filter({ has: page.getByRole("button", { exact: true, name: "빈 메모 더보기" }) }))
 
   await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)
   await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue("")
@@ -284,7 +283,7 @@ test("메모가 있는 목록에서 새 메모를 만들어도 기존 메모와 
   await expect(page).toHaveURL("/")
   await expect(notes).toHaveCount(previousNoteCount + 1)
   await expect(notes.filter({ hasText: content })).toBeVisible()
-  await expect(page.getByRole("link", { name: "빈 메모 수정" })).toBeVisible()
+  await expect(page.getByRole("button", { name: "빈 메모 더보기" })).toBeVisible()
 })
 
 test("긴 메모를 스크롤해도 저장 제어가 화면 아래쪽에 남는다", async ({ page }) => {
@@ -302,7 +301,7 @@ test("긴 메모를 스크롤해도 저장 제어가 화면 아래쪽에 남는�
   await page.getByRole("button", { name: "새 메모" }).click()
   await expect(page).toHaveURL("/")
   await expect(notes).toHaveCount(previousNoteCount + 1)
-  await page.getByRole("link", { name: "빈 메모 수정" }).click()
+  await openMobileNoteEditor(page, page.getByRole("article").filter({ has: page.getByRole("button", { exact: true, name: "빈 메모 더보기" }) }))
   const editor = page.getByRole("textbox", { name: "메모 내용" })
   const save = page.getByRole("button", { exact: true, name: "저장" })
   await editor.fill(content)

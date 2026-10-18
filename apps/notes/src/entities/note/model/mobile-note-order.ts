@@ -53,10 +53,4 @@ export function insertMobileNote(
   return next
 }
 
-export function moveMobileNoteId(ids: readonly string[], noteId: string, targetIndex: number) {
-  if (!ids.includes(noteId) || !Number.isInteger(targetIndex)) return [...ids]
-  const next = ids.filter((id) => id !== noteId)
-  const index = Math.max(0, Math.min(targetIndex, next.length))
-  next.splice(index, 0, noteId)
-  return next
-}
+export { moveListItem as moveMobileNoteId } from "@/shared/lib/list-reorder"

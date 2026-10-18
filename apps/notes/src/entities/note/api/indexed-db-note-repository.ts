@@ -52,10 +52,14 @@ export class IndexedDbNoteRepository implements NoteRepository {
     const transaction = database.transaction([NOTE_STORE_NAME, MOBILE_NOTE_ORDER_STORE_NAME], "readwrite")
     const completion = waitForTransaction(transaction)
     try {
-      const order = await readMobileNoteOrder(transaction)
-      transaction.objectStore(NOTE_STORE_NAME).put(record)
-      if (!order.ids.includes(record.id)) {
+      const store = transaction.objectStore(NOTE_STORE_NAME)
+      const existingKey = await readRequest(store.getKey(record.id))
+      if (existingKey === undefined) {
+        const order = await readMobileNoteOrder(transaction)
+        store.put(record)
         writeMobileNoteOrder(transaction, order, insertMobileNote(order.ids, record.id, position))
+      } else {
+        store.put(record)
       }
       await completion
       return record

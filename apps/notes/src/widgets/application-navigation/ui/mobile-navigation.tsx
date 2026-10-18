@@ -35,6 +35,7 @@ export function MobileNavigation({
     <>
       <IconButton
         aria-label="탐색 열기"
+        className="min-h-11 min-w-11"
         onClick={open}
         ref={trigger}
         size="compact"

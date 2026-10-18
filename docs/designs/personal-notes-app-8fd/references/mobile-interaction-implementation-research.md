@@ -11,7 +11,7 @@
 - [모바일 일괄 복사 상태](../../../../apps/notes/src/features/add-note-to-batch-copy/model/use-mobile-batch-copy-state.ts)는 현재 별도 수집 시작을 요구한다. 추가 요청은 순차 처리하고 빠른 연속 입력은 계속 받는다. 확인 이동은 먼저 접수한 추가를 기다리며, 전체 복사의 Clipboard 쓰기는 대기열 밖에서 시작한다. 이 입력 순서 유지와 사용자 활성화 조건은 별도 수집 UI를 없애도 필요하다.
 - [메모 목록 분기](../../../../apps/notes/src/_pages/notes/ui/notes-collection.tsx)는 현재 모바일과 데스크톱에 같은 `tabIndex` 정렬 결과를 전달한다. [메모 스키마](../../../../apps/notes/src/entities/note/model/note.ts)는 엄격한 형식이며 모바일 순서 필드가 없다. 모바일 순서 변경에 `tabIndex`, `geometry.zIndex`, 좌표나 생성 시각을 재사용하면 다른 기능이 바뀐다.
 - [삭제 연결부](../../../../apps/notes/src/_pages/notes/model/use-note-card-actions.ts)는 저장 명령뿐 아니라 데스크톱의 5초 알림, 선택 정리와 목록 포커스 이동도 실행한다. 새 모바일 시트에서 이 연결부 전체를 호출하면 시트 안 포커스와 닫기 전까지 복원이라는 조건을 지키기 어렵다. 저장 명령과 필요한 선택 정리는 재사용하고 알림 수명과 포커스 처리는 분리해야 한다.
-- [모바일 확인 재정렬](../../../../apps/notes/src/_pages/batch-copy/model/use-mobile-batch-copy-pointer-reorder.ts)과 [저장 목록 및 패널 재정렬](../../../../apps/notes/src/features/edit-batch-copy/model/use-batch-copy-pointer-reorder.ts)은 위치 판정과 스크롤 처리가 나뉘어 있다. [기존 순서 계산](../../../../apps/notes/src/features/edit-batch-copy/model/reorder-pointer-session.ts)을 다른 feature 내부에서 직접 가져오지 않고, 실제로 같은 ID 순서 계산과 pointer 수명만 하위 공통 모듈로 옮길 후보로 삼는다.
+- [모바일 공통 재정렬](../../../../apps/notes/src/shared/lib/pointer-reorder/index.ts)과 [저장 목록 및 패널 재정렬](../../../../apps/notes/src/features/edit-batch-copy/model/use-batch-copy-pointer-reorder.ts)은 [ID 기반 순서 계산](../../../../apps/notes/src/shared/lib/list-reorder/session.ts)을 함께 사용한다. 모바일 원본 목록과 현재 작업은 pointer 연결을 공유하고, 패널의 항목 선택과 바깥 놓기 제거는 저장 목록 및 패널 전용 훅에 둔다. 공통 모듈은 상위 feature를 가져오지 않는다.
 
 ## 필요한 함수만 전달하는 의존성 주입
 

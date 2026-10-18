@@ -1,188 +1,66 @@
 import { describe, expect, it } from "vitest"
 
-import {
-  addMobileBatchCopyEntry,
-  beginMobileBatchCopy,
-  confirmMobileBatchCopy,
-  duplicateMobileBatchCopyEntry,
-  moveMobileBatchCopyEntry,
-  resumeMobileBatchCopyCollection,
-  removeMobileBatchCopyEntry,
-  resetMobileBatchCopy,
-} from "./mobile-batch-copy-draft"
+import { addMobileBatchCopyEntry, beginMobileBatchCopy, duplicateMobileBatchCopyEntry, moveMobileBatchCopyEntry, removeMobileBatchCopyEntry, resetMobileBatchCopy, type MobileBatchCopyEntry } from "./mobile-batch-copy-draft"
 
-const firstEntry = {
-  id: "batch-entry-1",
-  sourceNote: { contentRevision: 2, id: "note-1" },
-  textSnapshot: "첫 번째 문장",
+function entry(textSnapshot: string): MobileBatchCopyEntry {
+  return { id: crypto.randomUUID(), sourceNote: { id: crypto.randomUUID(), contentRevision: 1 }, textSnapshot }
 }
 
-const secondEntry = {
-  id: "batch-entry-2",
-  sourceNote: { contentRevision: 4, id: "note-1" },
-  textSnapshot: "두 번째 문장",
+function draftWith(entries: readonly MobileBatchCopyEntry[]) {
+  let draft = beginMobileBatchCopy({ id: crypto.randomUUID(), startedAt: new Date().toISOString() })
+  for (const value of entries) draft = addMobileBatchCopyEntry(draft, value, new Date().toISOString())
+  return draft
 }
 
-const thirdEntry = {
-  id: "batch-entry-3",
-  sourceNote: { contentRevision: 1, id: "note-2" },
-  textSnapshot: "세 번째 문장",
-}
-
-function beginDraft() {
-  return beginMobileBatchCopy({
-    id: "mobile-batch-copy",
-    startedAt: "2026-09-02T03:00:00.000Z",
-  })
-}
-
-describe("모바일 일괄 복사 작업 초안", () => {
-  it("같은 메모를 반복해서 눌러도 클릭 당시 원문과 순서를 모두 보존한다", () => {
-    const first = addMobileBatchCopyEntry(
-      beginDraft(),
-      firstEntry,
-      "2026-09-02T03:01:00.000Z",
-    )
-    const second = addMobileBatchCopyEntry(
-      first,
-      secondEntry,
-      "2026-09-02T03:02:00.000Z",
-    )
-
-    expect(second.entries).toEqual([firstEntry, secondEntry])
-    expect(second.clickCount).toBe(2)
+describe("모바일 일괄 복사 작업 사본", () => {
+  it("반복 추가는 원문 스냅샷과 입력 순서를 보존한다", () => {
+    const first = entry("  같은 원문\n다음 줄  ")
+    const second = { ...first, id: crypto.randomUUID() }
+    const draft = draftWith([first])
+    const added = addMobileBatchCopyEntry(draft, second, new Date().toISOString())
+    expect(added.entries).toEqual([first, second])
+    expect(draft.entries).toEqual([first])
   })
 
-  it("확인 화면 편집 뒤 수집 화면으로 돌아가도 원래 클릭 횟수를 유지한다", () => {
-    const draft = addMobileBatchCopyEntry(
-      beginDraft(),
-      firstEntry,
-      "2026-09-02T03:01:00.000Z",
-    )
-    const confirming = confirmMobileBatchCopy(
-      draft,
-      "2026-09-02T03:02:00.000Z",
-    )
-    const duplicated = duplicateMobileBatchCopyEntry(
-      confirming,
-      firstEntry.id,
-      "batch-entry-copy",
-      "2026-09-02T03:03:00.000Z",
-    )
-    const collecting = resumeMobileBatchCopyCollection(
-      duplicated,
-      "2026-09-02T03:04:00.000Z",
-    )
-
-    expect(collecting).toMatchObject({
-      clickCount: 1,
-      entries: [firstEntry, { ...firstEntry, id: "batch-entry-copy" }],
-      step: "collecting",
-    })
+  it("복제와 삭제 후 추가하면 현재 항목을 기준으로 수와 순서를 유지한다", () => {
+    const first = entry("첫 원문")
+    const second = entry("다른 원문")
+    const copyId = crypto.randomUUID()
+    const now = new Date().toISOString()
+    const duplicated = duplicateMobileBatchCopyEntry(draftWith([first]), first.id, copyId, now)
+    expect(duplicated.entries).toEqual([first, { ...first, id: copyId }])
+    const removed = removeMobileBatchCopyEntry(duplicated, first.id, now)
+    const added = addMobileBatchCopyEntry(removed, second, now)
+    expect(added.entries).toEqual([{ ...first, id: copyId }, second])
   })
 
-  it("초기화는 단계를 유지하면서 항목과 클릭 횟수를 함께 비운다", () => {
-    const draft = addMobileBatchCopyEntry(
-      beginDraft(),
-      firstEntry,
-      "2026-09-02T03:01:00.000Z",
-    )
-
-    expect(resetMobileBatchCopy(draft, "2026-09-02T03:02:00.000Z")).toMatchObject({
-      clickCount: 0,
-      entries: [],
-      step: "collecting",
-    })
+  it("초기화는 항목을 비우고 같은 작업에서 다시 추가할 수 있다", () => {
+    const original = entry("초기화할 원문")
+    const next = entry("다시 추가할 원문")
+    const draft = draftWith([original])
+    const reset = resetMobileBatchCopy(draft, new Date().toISOString())
+    expect(reset.entries).toEqual([])
+    expect(reset.id).toBe(draft.id)
+    expect(addMobileBatchCopyEntry(reset, next, new Date().toISOString()).entries).toEqual([next])
   })
 
-  it("다음 단계는 Clipboard나 목록 자료 없이 확인 단계만 기록한다", () => {
-    const draft = addMobileBatchCopyEntry(
-      beginDraft(),
-      firstEntry,
-      "2026-09-02T03:01:00.000Z",
-    )
-
-    expect(confirmMobileBatchCopy(draft, "2026-09-02T03:02:00.000Z")).toMatchObject({
-      clickCount: 1,
-      entries: [firstEntry],
-      step: "confirming",
-    })
+  it("네 항목의 비인접 앞뒤 삽입은 중간 항목의 상대 순서를 유지한다", () => {
+    const a = entry("A")
+    const b = entry("B")
+    const c = entry("C")
+    const d = entry("D")
+    const draft = draftWith([a, b, c, d])
+    const now = new Date().toISOString()
+    expect(moveMobileBatchCopyEntry(draft, a.id, 3, now).entries).toEqual([b, c, d, a])
+    expect(moveMobileBatchCopyEntry(draft, a.id, 2, now).entries).toEqual([b, c, a, d])
+    expect(draft.entries).toEqual([a, b, c, d])
   })
 
-  it("확인 단계에서 순서를 바꿔도 수집 단계 클릭 횟수를 유지한다", () => {
-    const collecting = addMobileBatchCopyEntry(
-      addMobileBatchCopyEntry(
-        addMobileBatchCopyEntry(
-          beginDraft(),
-          firstEntry,
-          "2026-09-02T03:01:00.000Z",
-        ),
-        secondEntry,
-        "2026-09-02T03:02:00.000Z",
-      ),
-      thirdEntry,
-      "2026-09-02T03:03:00.000Z",
-    )
-    const confirming = confirmMobileBatchCopy(
-      collecting,
-      "2026-09-02T03:04:00.000Z",
-    )
-    const moved = moveMobileBatchCopyEntry(
-      confirming,
-      thirdEntry.id,
-      0,
-      "2026-09-02T03:05:00.000Z",
-    )
-
-    expect(moved.entries).toEqual([thirdEntry, firstEntry, secondEntry])
-    expect(moved.clickCount).toBe(3)
-  })
-
-  it("복제는 새 ID를 사용해 대상 바로 뒤에 만들고 원본 메모를 바꾸지 않는다", () => {
-    const collecting = addMobileBatchCopyEntry(
-      beginDraft(),
-      firstEntry,
-      "2026-09-02T03:01:00.000Z",
-    )
-    const confirming = confirmMobileBatchCopy(
-      collecting,
-      "2026-09-02T03:02:00.000Z",
-    )
-    const duplicated = duplicateMobileBatchCopyEntry(
-      confirming,
-      firstEntry.id,
-      "batch-entry-copy",
-      "2026-09-02T03:03:00.000Z",
-    )
-
-    expect(duplicated.entries).toEqual([
-      firstEntry,
-      { ...firstEntry, id: "batch-entry-copy" },
-    ])
-    expect(duplicated.clickCount).toBe(1)
-  })
-
-  it("삭제는 작업 초안의 한 항목만 없애고 클릭 횟수를 유지한다", () => {
-    const collecting = addMobileBatchCopyEntry(
-      addMobileBatchCopyEntry(
-        beginDraft(),
-        firstEntry,
-        "2026-09-02T03:01:00.000Z",
-      ),
-      secondEntry,
-      "2026-09-02T03:02:00.000Z",
-    )
-    const confirming = confirmMobileBatchCopy(
-      collecting,
-      "2026-09-02T03:03:00.000Z",
-    )
-    const removed = removeMobileBatchCopyEntry(
-      confirming,
-      firstEntry.id,
-      "2026-09-02T03:04:00.000Z",
-    )
-
-    expect(removed.entries).toEqual([secondEntry])
-    expect(removed.clickCount).toBe(2)
+  it("동일한 원문의 삭제는 지정한 항목 ID만 제거한다", () => {
+    const first = entry("반복할 원문")
+    const second = { ...first, id: crypto.randomUUID() }
+    const draft = draftWith([first, second])
+    expect(removeMobileBatchCopyEntry(draft, first.id, new Date().toISOString()).entries).toEqual([second])
+    expect(draft.entries).toEqual([first, second])
   })
 })

@@ -27,10 +27,20 @@
   --notes-focus-ring: var(--notes-color-focus);
   --notes-font-ui: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
   --notes-control-size: 2.375rem;
+  --notes-control-large-size: 56px;
   --notes-board-min-width: 48rem;
   --notes-drawer-width: min(21rem, 88vw);
   --notes-mobile-action-size: 3rem;
   --notes-mobile-action-inset: 1rem;
+  --notes-touch-target: 2.75rem;
+  --notes-mobile-handle-size: 2.75rem;
+  --notes-mobile-pressed-width: 3px;
+  --notes-mobile-sheet-height: 30rem;
+  --notes-mobile-sheet-radius: 1.25rem;
+  --notes-mobile-sheet-inset: 16px;
+  --notes-mobile-sheet-top-gap: 1rem;
+  --notes-mobile-menu-row-height: 56px;
+  --notes-batch-count-size: 1.25rem;
   --notes-action-toast-offset-top: 3.5rem;
   --notes-motion-fast: 120ms;
   --notes-motion-panel: 180ms;
@@ -43,6 +53,50 @@
 .notes-navigation-drawer::backdrop {
   --notes-drawer-backdrop-clear: oklch(18% 0.01 255deg / 0%);
   --notes-drawer-backdrop-visible: oklch(18% 0.01 255deg / 48%);
+}
+
+.notes-action-sheet[data-fixed-height="true"] {
+  border-radius: var(--notes-mobile-sheet-radius) var(--notes-mobile-sheet-radius) 0 0;
+  height: min(var(--notes-mobile-sheet-height), calc(100svh - var(--notes-mobile-sheet-top-gap)));
+  max-height: calc(100svh - var(--notes-mobile-sheet-top-gap));
+  overflow: visible;
+  padding: 0;
+}
+
+.notes-action-sheet[data-fixed-height="true"] .notes-action-sheet-frame {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  padding: 12px var(--notes-mobile-sheet-inset) max(var(--notes-mobile-sheet-inset), env(safe-area-inset-bottom));
+}
+
+.notes-action-sheet[data-fixed-height="true"] h2 {
+  font-size: 1.125rem;
+  overflow: visible;
+  white-space: normal;
+}
+
+.notes-action-sheet[data-fixed-height="true"] .notes-action-sheet-heading {
+  min-height: 44px;
+  column-gap: 12px;
+}
+
+.notes-action-sheet[data-fixed-height="true"] .notes-action-sheet-close {
+  height: var(--notes-touch-target);
+  width: var(--notes-touch-target);
+  max-height: 44px;
+  max-width: 44px;
+}
+
+.notes-mobile-sheet-content {
+  gap: var(--notes-mobile-sheet-inset);
+  padding-top: var(--notes-mobile-sheet-inset);
+}
+
+.notes-mobile-sheet-preview {
+  row-gap: 24px;
+  padding-block: var(--notes-mobile-sheet-inset);
 }
 
 @theme inline {

@@ -4,8 +4,7 @@ import {
   advanceReorderPointerSession,
   createReorderPointerSession,
   finishReorderPointerSession,
-  restoreReorderSnapshot,
-} from "./reorder-pointer-session"
+} from "./session"
 
 function itemIds(count: number) {
   return Array.from({ length: count }, () => crypto.randomUUID())
@@ -72,23 +71,19 @@ describe("일괄 복사 pointer 재정렬", () => {
     })
   })
 
-  it("저장 실패 뒤 원래 순서, 선택과 포커스를 복원하고 새 이동을 시작한다", () => {
+  it("유효하지 않은 놓기는 원래 순서를 보존하고 다음 세션에서 다시 이동한다", () => {
     const ids = itemIds(4)
-    const moved = advanceReorderPointerSession(beginSession(ids, 3), {
+    const cancelled = advanceReorderPointerSession(beginSession(ids, 3), {
+      clientX: 24,
+      clientY: 0,
+      targetIndex: null,
+    })
+    expect(finishReorderPointerSession(cancelled)).toMatchObject({ command: null, itemIds: ids })
+    const restarted = advanceReorderPointerSession(beginSession(ids, 3), {
       clientX: 24,
       clientY: 0,
       targetIndex: 0,
     })
-    const completed = finishReorderPointerSession(moved)
-    const restored = restoreReorderSnapshot(completed.snapshot)
-
-    expect(restored).toEqual({
-      focusItemId: ids[3],
-      itemIds: ids,
-      selectedItemId: ids[3],
-    })
-
-    const restarted = beginSession(restored.itemIds, 3)
-    expect(finishReorderPointerSession(restarted).itemIds).toEqual(ids)
+    expect(finishReorderPointerSession(restarted).itemIds).toEqual([ids[3], ids[0], ids[1], ids[2]])
   })
 })

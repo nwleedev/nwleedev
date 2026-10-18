@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, type MouseEvent as ReactMouseEvent } from "react"
 
-export function useActionSheet(open: boolean) {
+export function useActionSheet(open: boolean, dismissible = true) {
   const dialogRef = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export function useActionSheet(open: boolean) {
   }, [open])
 
   function close() {
-    dialogRef.current?.close()
+    if (dismissible) dialogRef.current?.close()
   }
 
   function closeOnBackdrop(event: ReactMouseEvent<HTMLDialogElement>) {

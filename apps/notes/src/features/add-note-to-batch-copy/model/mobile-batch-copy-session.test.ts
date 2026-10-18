@@ -1,241 +1,85 @@
 import { describe, expect, it } from "vitest"
 
 import type { Note } from "@/entities/note"
+import { addNoteToMobileBatchCopy, duplicateMobileBatchCopySessionEntry, moveMobileBatchCopySessionEntry, removeMobileBatchCopySessionEntry, resetMobileBatchCopySession } from "./mobile-batch-copy-session"
 
-import type { MobileBatchCopyUsageWriter } from "./mobile-batch-copy-usage-writer"
-import {
-  addNoteToMobileBatchCopy,
-  confirmMobileBatchCopySession,
-  duplicateMobileBatchCopySessionEntry,
-  moveMobileBatchCopySessionEntry,
-  removeMobileBatchCopySessionEntry,
-  resetMobileBatchCopySession,
-  resumeMobileBatchCopySession,
-  startMobileBatchCopy,
-} from "./mobile-batch-copy-session"
-
-function createNote(content: string, contentRevision = 1): Note {
+function createNote(content: string): Note {
   const timestamp = new Date().toISOString()
-
-  return {
-    content,
-    contentRevision,
-    createdAt: timestamp,
-    geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
-    id: crypto.randomUUID(),
-    revision: 1,
-    tabIndex: 1000,
-    updatedAt: timestamp,
-  }
+  return { content, contentRevision: 1, createdAt: timestamp, geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 }, id: crypto.randomUUID(), revision: 1, tabIndex: 1000, updatedAt: timestamp }
 }
 
-function createDependencies(failUsage = false) {
-  const usageRecords: Note[] = []
-
-  const writer: MobileBatchCopyUsageWriter = {
-    async record(note) {
-      if (failUsage) {
-        throw new Error("usage record failed")
-      }
-
-      usageRecords.push(note)
-    },
-  }
-
+function createDependencies(failFirstUsage = false) {
+  const records: Note[] = []
+  let failurePending = failFirstUsage
   return {
     createId: () => crypto.randomUUID(),
-    getUsageRecords: () => usageRecords,
     now: () => new Date().toISOString(),
-    writer,
+    records,
+    writer: { async record(note: Note) {
+      if (failurePending) {
+        failurePending = false
+        throw new Error("Controlled usage write failure")
+      }
+      records.push(note)
+    } },
   }
 }
 
-function addedDraft(
-  result: Awaited<ReturnType<typeof addNoteToMobileBatchCopy>>,
-) {
-  if (result.status !== "added") {
-    throw new Error("The note was not added to the current session")
-  }
-
+function added(result: Awaited<ReturnType<typeof addNoteToMobileBatchCopy>>) {
+  if (result.status !== "added") throw new Error("The note was not added")
   return result.draft
 }
 
-describe("모바일 일괄 복사 실행 작업", () => {
-  it("수집 시작 없이 첫 추가로 작업을 만들고 다음 추가의 원문과 순서를 유지한다", async () => {
+describe("모바일 일괄 복사 명령", () => {
+  it("별도 시작 없이 같은 메모 두 번과 다른 메모 한 번을 순서대로 추가한다", async () => {
     const dependencies = createDependencies()
     const note = createNote("  첫 원문\n다음 줄  ")
     const other = createNote("다른 메모")
-    const first = addedDraft(await addNoteToMobileBatchCopy(dependencies, null, note))
-    const second = addedDraft(await addNoteToMobileBatchCopy(dependencies, first, note))
-    const third = addedDraft(await addNoteToMobileBatchCopy(dependencies, second, other))
-
-    expect(third.entries.map(({ textSnapshot }) => textSnapshot)).toEqual([
-      note.content, note.content, other.content,
-    ])
+    const first = added(await addNoteToMobileBatchCopy(dependencies, null, note))
+    const second = added(await addNoteToMobileBatchCopy(dependencies, first, note))
+    const third = added(await addNoteToMobileBatchCopy(dependencies, second, other))
+    expect(third.entries.map(({ textSnapshot }) => textSnapshot)).toEqual([note.content, note.content, other.content])
     expect(new Set(third.entries.map(({ id }) => id)).size).toBe(3)
-    expect(dependencies.getUsageRecords()).toEqual([note, note, other])
+    expect(dependencies.records).toEqual([note, note, other])
     expect(first.entries).toHaveLength(1)
   })
 
-  it("첫 기록 실패는 빈 작업을 성공으로 만들지 않고 같은 메모를 다시 추가할 수 있다", async () => {
-    const note = createNote("재시도할 원문")
-    const failure = await addNoteToMobileBatchCopy(createDependencies(true), null, note)
-    expect(failure).toEqual({ status: "failure" })
-
-    const dependencies = createDependencies()
-    const retried = addedDraft(await addNoteToMobileBatchCopy(dependencies, null, note))
-    expect(retried.entries.map(({ textSnapshot }) => textSnapshot)).toEqual([note.content])
-    expect(dependencies.getUsageRecords()).toEqual([note])
-  })
-
-  it("새 실행은 비어 있는 수집 작업으로 시작한다", () => {
-    const draft = startMobileBatchCopy(createDependencies())
-
-    expect(draft).toMatchObject({
-      clickCount: 0,
-      entries: [],
-      step: "collecting",
-    })
-  })
-
-  it("반복 선택은 당시 원문과 클릭 수를 유지하고 사용 횟수를 기록한다", async () => {
-    const dependencies = createDependencies()
-    const firstNote = createNote(crypto.randomUUID())
-    const started = startMobileBatchCopy(dependencies)
-    const first = addedDraft(
-      await addNoteToMobileBatchCopy(dependencies, started, firstNote),
-    )
-    const changedNote = {
-      ...firstNote,
-      content: crypto.randomUUID(),
-      contentRevision: firstNote.contentRevision + 1,
-    }
-    const second = addedDraft(
-      await addNoteToMobileBatchCopy(dependencies, first, changedNote),
-    )
-
-    expect(second.entries.map(({ textSnapshot }) => textSnapshot)).toEqual([
-      firstNote.content,
-      changedNote.content,
-    ])
-    expect(second.entries.map(({ sourceNote }) => sourceNote.contentRevision))
-      .toEqual([firstNote.contentRevision, changedNote.contentRevision])
-    expect(second.clickCount).toBe(2)
-    expect(dependencies.getUsageRecords()).toEqual([firstNote, changedNote])
-  })
-
-  it("사용 횟수 기록에 실패하면 새 항목을 실행 작업에 반영하지 않는다", async () => {
+  it("첫 기록 실패는 항목을 만들지 않고 같은 의존성으로 재시도할 수 있다", async () => {
     const dependencies = createDependencies(true)
-    const started = startMobileBatchCopy(dependencies)
-    const note = createNote(crypto.randomUUID())
-    const result = await addNoteToMobileBatchCopy(
-      dependencies,
-      started,
-      note,
-    )
-
-    expect(result.status).toBe("failure")
-    expect(started).toMatchObject({ clickCount: 0, entries: [] })
-    expect(dependencies.getUsageRecords()).toEqual([])
+    const note = createNote("재시도할 원문")
+    expect(await addNoteToMobileBatchCopy(dependencies, null, note)).toEqual({ status: "failure" })
+    expect(dependencies.records).toEqual([])
+    const retried = added(await addNoteToMobileBatchCopy(dependencies, null, note))
+    expect(retried.entries.map(({ textSnapshot }) => textSnapshot)).toEqual([note.content])
+    expect(dependencies.records).toEqual([note])
   })
 
-  it("초기화와 확인 전환은 현재 실행 상태만 바꾼다", async () => {
+  it("원문 수정 후 추가는 새 버전을 기록하고 이전 스냅샷을 유지한다", async () => {
     const dependencies = createDependencies()
-    const added = addedDraft(
-      await addNoteToMobileBatchCopy(
-        dependencies,
-        startMobileBatchCopy(dependencies),
-        createNote(crypto.randomUUID()),
-      ),
-    )
-    const reset = resetMobileBatchCopySession(added, dependencies.now)
-    const confirmed = confirmMobileBatchCopySession(
-      reset,
-      dependencies.now,
-    )
-
-    expect(reset).toMatchObject({ clickCount: 0, entries: [], step: "collecting" })
-    expect(confirmed).toMatchObject({
-      clickCount: 0,
-      entries: [],
-      step: "confirming",
-    })
+    const note = createNote("수정 전")
+    const changed = { ...note, content: "수정 후", contentRevision: note.contentRevision + 1 }
+    const first = added(await addNoteToMobileBatchCopy(dependencies, null, note))
+    const second = added(await addNoteToMobileBatchCopy(dependencies, first, changed))
+    expect(second.entries.map(({ textSnapshot }) => textSnapshot)).toEqual([note.content, changed.content])
+    expect(second.entries.map(({ sourceNote }) => sourceNote.contentRevision)).toEqual([note.contentRevision, changed.contentRevision])
+    expect(dependencies.records).toEqual([note, changed])
   })
 
-  it("확인 작업에서 항목 순서, 복제와 삭제를 반영한다", async () => {
+  it("작업 편집과 초기화는 원문 및 사용 기록을 추가로 바꾸지 않는다", async () => {
     const dependencies = createDependencies()
-    const started = startMobileBatchCopy(dependencies)
-    const firstNote = createNote(crypto.randomUUID())
-    const secondNote = createNote(crypto.randomUUID())
-    const first = addedDraft(
-      await addNoteToMobileBatchCopy(dependencies, started, firstNote),
-    )
-    const second = addedDraft(
-      await addNoteToMobileBatchCopy(
-        dependencies,
-        first,
-        secondNote,
-      ),
-    )
-    const confirmation = confirmMobileBatchCopySession(
-      second,
-      dependencies.now,
-    )
-    expect(confirmation.entries).toHaveLength(2)
-    const secondEntry = confirmation.entries[1]!
-
-    const moved = moveMobileBatchCopySessionEntry(
-      confirmation,
-      secondEntry.id,
-      0,
-      dependencies.now,
-    )
-    const firstEntry = moved.entries[1]!
-
-    const duplicated = duplicateMobileBatchCopySessionEntry(
-      dependencies,
-      moved,
-      firstEntry.id,
-    )
-    const duplicateEntry = duplicated.entries[2]!
-
-    const removed = removeMobileBatchCopySessionEntry(
-      duplicated,
-      duplicateEntry.id,
-      dependencies.now,
-    )
-
-    expect(removed.entries.map(({ textSnapshot }) => textSnapshot)).toEqual([
-      secondNote.content,
-      firstNote.content,
-    ])
-    expect(removed.clickCount).toBe(2)
-  })
-
-  it("확인 작업에서 수집 화면으로 돌아오면 선택한 원문을 유지한다", async () => {
-    const dependencies = createDependencies()
-    const started = startMobileBatchCopy(dependencies)
-    const note = createNote(crypto.randomUUID())
-    const collection = addedDraft(
-      await addNoteToMobileBatchCopy(
-        dependencies,
-        started,
-        note,
-      ),
-    )
-    const confirmation = confirmMobileBatchCopySession(
-      collection,
-      dependencies.now,
-    )
-    const resumed = resumeMobileBatchCopySession(
-      confirmation,
-      dependencies.now,
-    )
-
-    expect(resumed).toMatchObject({
-      clickCount: 1,
-      entries: [{ textSnapshot: note.content }],
-      step: "collecting",
-    })
+    const firstNote = createNote("첫 메모")
+    const secondNote = createNote("두 번째 메모")
+    const first = added(await addNoteToMobileBatchCopy(dependencies, null, firstNote))
+    const draft = added(await addNoteToMobileBatchCopy(dependencies, first, secondNote))
+    const moved = moveMobileBatchCopySessionEntry(draft, draft.entries[1]!.id, 0, dependencies.now)
+    const duplicated = duplicateMobileBatchCopySessionEntry(dependencies, moved, moved.entries[1]!.id)
+    expect(duplicated.entries.map(({ textSnapshot }) => textSnapshot)).toEqual([secondNote.content, firstNote.content, firstNote.content])
+    const removed = removeMobileBatchCopySessionEntry(duplicated, duplicated.entries[2]!.id, dependencies.now)
+    expect(removed.entries.map(({ textSnapshot }) => textSnapshot)).toEqual([secondNote.content, firstNote.content])
+    const reset = resetMobileBatchCopySession(removed, dependencies.now)
+    expect(reset.entries).toEqual([])
+    expect(reset.id).toBe(draft.id)
+    expect(dependencies.records).toEqual([firstNote, secondNote])
+    expect(firstNote.content).toBe("첫 메모")
   })
 })

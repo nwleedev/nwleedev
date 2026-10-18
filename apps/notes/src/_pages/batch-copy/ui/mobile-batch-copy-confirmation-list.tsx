@@ -9,10 +9,10 @@ import {
   useBatchCopyActionSheet,
 } from "@/features/edit-batch-copy"
 import { joinClassNames } from "@/shared/lib/join-class-names"
+import { usePointerReorder } from "@/shared/lib/pointer-reorder"
 import { IconButton } from "@/shared/ui/icon-button"
 import { GripIcon, MoreIcon } from "@/shared/ui/icons"
 
-import { useMobileBatchCopyPointerReorder } from "../model/use-mobile-batch-copy-pointer-reorder"
 
 type MobileBatchCopyConfirmationListProps = {
   disabled: boolean
@@ -88,11 +88,11 @@ function MobileBatchCopyEntryRow({
   }
 
   return (
-    <li data-mobile-batch-copy-position={position}>
+    <li data-reorder-id={entry.id}>
       <article aria-label={itemLabel} className={articleClassName}>
         <button
           aria-label={`${itemLabel} 이동`}
-          className="flex min-h-11 min-w-11 touch-pan-y cursor-grab items-center justify-center rounded-control border-0 bg-transparent text-icon active:cursor-grabbing disabled:opacity-45"
+          className="flex min-h-11 min-w-11 touch-none cursor-grab items-center justify-center rounded-control border-0 bg-transparent text-icon active:cursor-grabbing disabled:opacity-45"
           disabled={disabled}
           onLostPointerCapture={onPointerCancel}
           onPointerCancel={onPointerCancel}
@@ -141,7 +141,7 @@ export function MobileBatchCopyConfirmationList({
     onPointerMove,
     onPointerUp,
     registerHandle,
-  } = useMobileBatchCopyPointerReorder({ disabled, entries, onMove })
+  } = usePointerReorder({ disabled, items: entries, onMove })
   const actionSheet = useBatchCopyActionSheet(entries.map(({ id }) => id), list)
   const activePosition = entries.findIndex(({ id }) => id === actionSheet.activeItemId)
   const activeEntry = entries[activePosition]
@@ -181,7 +181,7 @@ export function MobileBatchCopyConfirmationList({
       <ol className="grid gap-3" ref={list} tabIndex={-1}>
         {entries.map((entry, position) => {
           const dragging = drag?.entryId === entry.id
-          const target = drag?.targetIndex === position
+          const target = (drag?.targetIndex === position) && (drag?.sourceIndex !== position)
           let dropPlacement: "after" | "before" | null = null
 
           if (target && drag.targetIndex !== null) {

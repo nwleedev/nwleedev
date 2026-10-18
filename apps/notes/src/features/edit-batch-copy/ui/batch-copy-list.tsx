@@ -274,7 +274,8 @@ export function BatchCopyList({
       <ol className="grid gap-2" ref={list} tabIndex={-1}>
         {editing.items.map((item, position) => {
           const dragging = drag?.active === true && drag.itemId === item.id
-          const target = drag?.active === true && drag.targetIndex === position
+          const activeTarget = (drag?.active === true) && (drag.targetIndex === position)
+          const target = activeTarget && drag.originalIndex !== position
           let dropPlacement: "after" | "before" | null = null
 
           if (target && drag.targetIndex !== null) {

@@ -1,10 +1,9 @@
 "use client"
 
-import { startTransition, useOptimistic, useRef } from "react"
+import { useRef } from "react"
 
 import type {
-  ConfirmingMobileBatchCopyDraft,
-  MobileBatchCopyEntry,
+  MobileBatchCopyDraft,
 } from "@/entities/batch-copy"
 import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
 import {
@@ -13,48 +12,16 @@ import {
 } from "@/features/edit-batch-copy"
 import { useActionToast } from "@/shared/ui/action-toast"
 
-type OptimisticChange =
-  | { entryId: string; kind: "remove" }
-  | { entryId: string; index: number; kind: "move" }
-
-function applyOptimisticChange(
-  entries: readonly MobileBatchCopyEntry[],
-  change: OptimisticChange,
-) {
-  if (change.kind === "remove") {
-    return entries.filter(({ id }) => id !== change.entryId)
-  }
-
-  const sourceIndex = entries.findIndex(({ id }) => id === change.entryId)
-
-  if (sourceIndex < 0 || sourceIndex === change.index) {
-    return entries
-  }
-
-  const reordered = [...entries]
-  const [entry] = reordered.splice(sourceIndex, 1)
-
-  if (entry === undefined) {
-    return entries
-  }
-
-  reordered.splice(change.index, 0, entry)
-  return reordered
-}
-
 export function useMobileBatchCopyConfirmation(
-  draft: ConfirmingMobileBatchCopyDraft,
-  onReturnToCollection: () => Promise<boolean>,
+  draft: MobileBatchCopyDraft,
+  onReturnToNotes: () => Promise<boolean>,
   onCancelConfirmation: () => Promise<boolean>,
 ) {
   const batchCopy = useMobileBatchCopy()
   const toast = useActionToast()
   const showCopyResult = useCopyBatchTextFeedback(batchCopy.copy)
   const failureRevision = useRef<number | null>(null)
-  const [entries, applyOptimistic] = useOptimistic(
-    draft.entries,
-    applyOptimisticChange,
-  )
+  const entries = draft.entries
 
   function showFailure(message: string, retry: () => void) {
     let revision = 0
@@ -83,14 +50,14 @@ export function useMobileBatchCopyConfirmation(
     failureRevision.current = null
   }
 
-  async function returnToCollection() {
-    if (await onReturnToCollection()) {
+  async function returnToNotes() {
+    if (await onReturnToNotes()) {
       clearFailure()
       return
     }
 
-    showFailure("메모 선택 화면으로 돌아가지 못했습니다.", () =>
-      void returnToCollection(),
+    showFailure("메모 목록으로 돌아가지 못했습니다.", () =>
+      void returnToNotes(),
     )
   }
 
@@ -105,24 +72,11 @@ export function useMobileBatchCopyConfirmation(
     )
   }
 
-  function move(entryId: string, index: number): Promise<boolean> {
-    return new Promise((resolve) => {
-      startTransition(async () => {
-        applyOptimistic({ entryId, index, kind: "move" })
-        const result = await batchCopy.move(entryId, index)
-
-        if (result) {
-          clearFailure()
-          resolve(true)
-          return
-        }
-
-        showFailure("항목 순서를 변경하지 못했습니다.", () =>
-          void move(entryId, index),
-        )
-        resolve(false)
-      })
-    })
+  async function move(entryId: string, index: number) {
+    const result = await batchCopy.move(entryId, index)
+    if (result) clearFailure()
+    else showFailure("항목 순서를 변경하지 못했습니다.", () => void move(entryId, index))
+    return result
   }
 
   function duplicate(entryId: string) {
@@ -137,16 +91,9 @@ export function useMobileBatchCopyConfirmation(
   }
 
   function remove(entryId: string) {
-    startTransition(async () => {
-      applyOptimistic({ entryId, kind: "remove" })
-      const result = await batchCopy.removeEntry(entryId)
-
-      if (result) {
-        clearFailure()
-        return
-      }
-
-      showFailure("항목을 삭제하지 못했습니다.", () => remove(entryId))
+    void batchCopy.removeEntry(entryId).then((result) => {
+      if (result) clearFailure()
+      else showFailure("항목을 삭제하지 못했습니다.", () => remove(entryId))
     })
   }
 
@@ -165,7 +112,8 @@ export function useMobileBatchCopyConfirmation(
     pending: batchCopy.pending,
     reorderButtonsEnabled: batchCopy.reorderButtonsEnabled,
     remove,
-    returnToCollection: () => void returnToCollection(),
+    reset: batchCopy.reset,
+    returnToNotes: () => void returnToNotes(),
     showCopyResult: reportCopyResult,
   }
 }

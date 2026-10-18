@@ -8,80 +8,53 @@ export type MobileBatchCopyEntry = {
 }
 
 export type MobileBatchCopyDraft = {
-  clickCount: number
   entries: MobileBatchCopyEntry[]
   id: string
   startedAt: string
-  step: "collecting" | "confirming"
   updatedAt: string
-}
-
-export type CollectingMobileBatchCopyDraft = MobileBatchCopyDraft & {
-  step: "collecting"
-}
-
-export type ConfirmingMobileBatchCopyDraft = MobileBatchCopyDraft & {
-  step: "confirming"
 }
 
 export function beginMobileBatchCopy(input: {
   id: string
   startedAt: string
-}): CollectingMobileBatchCopyDraft {
+}): MobileBatchCopyDraft {
   return {
-    clickCount: 0,
     entries: [],
     id: input.id,
     startedAt: input.startedAt,
-    step: "collecting",
     updatedAt: input.startedAt,
   }
 }
 
 export function addMobileBatchCopyEntry(
-  draft: CollectingMobileBatchCopyDraft,
+  draft: MobileBatchCopyDraft,
   entry: MobileBatchCopyEntry,
   updatedAt: string,
-): CollectingMobileBatchCopyDraft {
+): MobileBatchCopyDraft {
   return {
     ...draft,
-    clickCount: draft.clickCount + 1,
     entries: [...draft.entries, entry],
     updatedAt,
   }
 }
 
 export function resetMobileBatchCopy(
-  draft: CollectingMobileBatchCopyDraft,
+  draft: MobileBatchCopyDraft,
   updatedAt: string,
-): CollectingMobileBatchCopyDraft {
-  if (draft.entries.length === 0 && draft.clickCount === 0) {
+): MobileBatchCopyDraft {
+  if (draft.entries.length === 0) {
     return draft
   }
 
-  return { ...draft, clickCount: 0, entries: [], updatedAt }
-}
-
-export function confirmMobileBatchCopy(
-  draft: CollectingMobileBatchCopyDraft,
-  updatedAt: string,
-): ConfirmingMobileBatchCopyDraft {
-  return { ...draft, step: "confirming", updatedAt }
-}
-
-export function resumeMobileBatchCopyCollection(
-  draft: ConfirmingMobileBatchCopyDraft,
-  updatedAt: string,
-): CollectingMobileBatchCopyDraft {
-  return { ...draft, step: "collecting", updatedAt }
+  return { ...draft, entries: [], updatedAt }
 }
 
 export function moveMobileBatchCopyEntry(
-  draft: ConfirmingMobileBatchCopyDraft,
+  draft: MobileBatchCopyDraft,
   entryId: string,
   requestedIndex: number,
   updatedAt: string,
-): ConfirmingMobileBatchCopyDraft {
+): MobileBatchCopyDraft {
   const currentIndex = draft.entries.findIndex(({ id }) => id === entryId)
 
   if (currentIndex < 0 || draft.entries.length < 2) {
@@ -107,11 +80,11 @@ export function moveMobileBatchCopyEntry(
 }
 
 export function duplicateMobileBatchCopyEntry(
-  draft: ConfirmingMobileBatchCopyDraft,
+  draft: MobileBatchCopyDraft,
   entryId: string,
   duplicateId: string,
   updatedAt: string,
-): ConfirmingMobileBatchCopyDraft {
+): MobileBatchCopyDraft {
   const entryIndex = draft.entries.findIndex(({ id }) => id === entryId)
   const duplicateIdIsValid = EntityIdSchema.safeParse(duplicateId).success
   const duplicateExists = draft.entries.some(({ id }) => id === duplicateId)
@@ -132,10 +105,10 @@ export function duplicateMobileBatchCopyEntry(
 }
 
 export function removeMobileBatchCopyEntry(
-  draft: ConfirmingMobileBatchCopyDraft,
+  draft: MobileBatchCopyDraft,
   entryId: string,
   updatedAt: string,
-): ConfirmingMobileBatchCopyDraft {
+): MobileBatchCopyDraft {
   const entries = draft.entries.filter(({ id }) => id !== entryId)
 
   if (entries.length === draft.entries.length) {

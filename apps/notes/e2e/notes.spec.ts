@@ -15,6 +15,8 @@ import { ExplorationInvariantError } from "@/shared/lib/note-model-exploration"
 import { readAppRevision } from "../test-app-revision.js"
 import {
   createMobileNoteThroughUi,
+  openMobileNoteEditor,
+  readMobileNoteEditHref,
   createNoteThroughUi,
 } from "./support/create-note-through-ui"
 import {
@@ -677,7 +679,7 @@ class ReopenMobileDetail implements fc.AsyncCommand<MobileSaveModel, MobileSaveR
 
   async run(model: MobileSaveModel, real: MobileSaveReal) {
     real.actions.push(this.toString())
-    await real.page.getByRole("link", { name: /수정$/u }).click()
+    await openMobileNoteEditor(real.page, real.page.getByRole("article"))
     model.input = model.stored
     model.view = "detail"
     await expectMobileSaveState(model, real)
@@ -719,9 +721,9 @@ async function runMobileSaveCommands(
     const initialContent = "저장된 메모"
     const note = await createMobileNoteThroughUi(page, initialContent)
     const noteId = noteIdFromHref(
-      await note.getByRole("link", { name: /수정$/u }).getAttribute("href"),
+      await readMobileNoteEditHref(page, note),
     )
-    await note.getByRole("link", { name: /수정$/u }).click()
+    await openMobileNoteEditor(page, note)
 
     if (blockSave) {
       await page.evaluate(() => {
@@ -1598,6 +1600,19 @@ test("이동 핸들, 가장자리 크기 조절과 빈 캔버스 시점 이동�
   }
 
   await preparePointerCaptureRelease(page)
+  for (const interrupt of [
+    () => page.keyboard.press("Escape"),
+    () => page.evaluate(() => { window.dispatchEvent(new Event("blur")) }),
+  ]) {
+    await page.mouse.move(moveStart.x, moveStart.y)
+    await page.mouse.down()
+    await page.mouse.move(moveStart.x + 45, moveStart.y + 40)
+    await interrupt()
+    await page.mouse.move(moveStart.x + 90, moveStart.y + 80)
+    await page.mouse.up()
+    await expect.poll(async () => (await visibleBox(note)).x).toBe(original.x)
+  }
+
   await page.mouse.move(moveStart.x, moveStart.y)
   await page.mouse.down()
   await page.mouse.move(moveStart.x + 45, moveStart.y + 40)
@@ -2146,7 +2161,7 @@ test.describe("320px 메모 화면", () => {
     const draftContent = `${storedContent} 수정 중`
     const note = await createMobileNoteThroughUi(page, storedContent)
     const noteId = noteIdFromHref(
-      await note.getByRole("link", { name: /수정$/u }).getAttribute("href"),
+      await readMobileNoteEditHref(page, note),
     )
     const storedBeforeOpen = await readStoredNote(page, noteId)
     expect(storedBeforeOpen).not.toBeNull()
@@ -2161,7 +2176,7 @@ test.describe("320px 메모 화면", () => {
     await writeStoredNoteDraft(page, draft)
     await page.clock.install()
     await page.reload()
-    await page.getByRole("link", { name: /수정$/u }).click()
+    await openMobileNoteEditor(page, page.getByRole("article"))
     await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
       draftContent,
     )
@@ -2185,7 +2200,7 @@ test.describe("320px 메모 화면", () => {
     const draftUpdatedAt = new Date().toISOString()
     const note = await createMobileNoteThroughUi(page, storedContent)
     const noteId = noteIdFromHref(
-      await note.getByRole("link", { name: / 수정$/u }).getAttribute("href"),
+      await readMobileNoteEditHref(page, note),
     )
     await page.reload()
     const initialStoredNote = await readStoredNote(page, noteId)
@@ -2295,20 +2310,20 @@ test.describe("320px 메모 화면", () => {
     await expect(editor).toHaveValue(savedContent)
   })
 
-  test("짧게 눌러 상세 화면에서 저장하고 제한된 높이의 목록으로 돌아온다", async ({
+  test("더보기의 수정으로 상세 화면에서 저장하고 제한된 높이의 목록으로 돌아온다", async ({
     page,
   }) => {
     const initialContent = "작은 화면에서 편집할 메모"
     const revisedContent = `${initialContent}\n두 번째 줄\n세 번째 줄\n네 번째 줄\n다섯 번째 줄\n여섯 번째 줄\n일곱 번째 줄`
     const note = await createMobileNoteThroughUi(page, initialContent)
     const noteId = noteIdFromHref(
-      await note.getByRole("link", { name: / 수정$/u }).getAttribute("href"),
+      await readMobileNoteEditHref(page, note),
     )
     const storedBeforeResize = await readStoredNote(page, noteId)
     expect(storedBeforeResize).not.toBeNull()
 
     await expect(note.getByText("내용 더 있음")).toHaveCount(0)
-    await note.getByRole("link", { name: / 수정$/u }).click()
+    await openMobileNoteEditor(page, note)
     const editor = page.getByRole("textbox", { name: "메모 내용" })
     await editor.fill(revisedContent)
     await page.getByRole("button", { exact: true, name: "저장" }).click()
@@ -2333,10 +2348,10 @@ test.describe("320px 메모 화면", () => {
     const discardedContent = "목록으로 돌아갈 때 버릴 변경사항"
     const note = await createMobileNoteThroughUi(page, initialContent)
     const noteId = noteIdFromHref(
-      await note.getByRole("link", { name: / 수정$/u }).getAttribute("href"),
+      await readMobileNoteEditHref(page, note),
     )
 
-    await note.getByRole("link", { name: / 수정$/u }).click()
+    await openMobileNoteEditor(page, note)
     const editor = page.getByRole("textbox", { name: "메모 내용" })
     const backLink = page.getByRole("link", { exact: true, name: "메모 목록" })
     await editor.fill(discardedContent)
@@ -2357,7 +2372,7 @@ test.describe("320px 메모 화면", () => {
     const restoredNote = page
       .getByRole("article")
       .filter({ hasText: initialContent })
-    await restoredNote.getByRole("link", { name: / 수정$/u }).click()
+    await openMobileNoteEditor(page, restoredNote)
     await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
       initialContent,
     )
@@ -2370,7 +2385,7 @@ test.describe("320px 메모 화면", () => {
     const changedContent = "버리기 전에 작성한 변경사항"
     const note = await createMobileNoteThroughUi(page, initialContent)
 
-    await note.getByRole("link", { name: / 수정$/u }).click()
+    await openMobileNoteEditor(page, note)
     const editor = page.getByRole("textbox", { name: "메모 내용" })
     await editor.fill(changedContent)
     await page.getByRole("link", { exact: true, name: "메모 목록" }).click()
@@ -2447,7 +2462,7 @@ test.describe("320px 메모 화면", () => {
     const revisedContent = "탐색 전에 확인할 변경사항"
     const note = await createMobileNoteThroughUi(page, initialContent)
 
-    await note.getByRole("link", { name: / 수정$/u }).click()
+    await openMobileNoteEditor(page, note)
     await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)
     await page.setViewportSize({ height: 800, width: 1280 })
     const editor = page.getByRole("textbox", { name: "메모 내용" })

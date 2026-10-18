@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useEffectEvent,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -33,6 +34,7 @@ type GeometryGesture = {
   moved: boolean
   pointerId: number
   pointerType: string
+  target: HTMLElement
   startX: number
   startY: number
 }
@@ -130,6 +132,41 @@ export function useNoteGeometryGesture({
     }
   }, [])
 
+  const cancelFromWindow = useEffectEvent(() => {
+    const current = gesture.current
+    if (current === null) return
+    gesture.current = null
+    setPreview(null)
+    suppressClickSequence()
+    if (current.target.hasPointerCapture(current.pointerId)) {
+      current.target.releasePointerCapture(current.pointerId)
+    }
+  })
+
+  useEffect(() => {
+    function escape(event: KeyboardEvent) {
+      if (event.key === "Escape") cancelFromWindow()
+    }
+    function hidden() {
+      if (document.visibilityState === "hidden") cancelFromWindow()
+    }
+    window.addEventListener("blur", cancelFromWindow)
+    window.addEventListener("resize", cancelFromWindow)
+    document.addEventListener("visibilitychange", hidden)
+    document.addEventListener("keydown", escape)
+    return () => {
+      window.removeEventListener("blur", cancelFromWindow)
+      window.removeEventListener("resize", cancelFromWindow)
+      document.removeEventListener("visibilitychange", hidden)
+      document.removeEventListener("keydown", escape)
+      const current = gesture.current
+      gesture.current = null
+      if (current?.target.hasPointerCapture(current.pointerId)) current.target.releasePointerCapture(current.pointerId)
+    }
+  }, [])
+
+  useEffect(() => { cancelFromWindow() }, [disabled, scale])
+
   function suppressClickSequence() {
     clickSuppressed.current = true
 
@@ -153,7 +190,11 @@ export function useNoteGeometryGesture({
     event: ReactPointerEvent<HTMLElement>,
     action: GeometryGesture["action"],
   ) {
-    if (disabled || saving || event.button !== 0) {
+    if (disabled || saving) {
+      return
+    }
+
+    if (!event.isPrimary || event.button !== 0) {
       return
     }
 
@@ -166,6 +207,7 @@ export function useNoteGeometryGesture({
       pointerType: event.pointerType,
       startX: event.clientX,
       startY: event.clientY,
+      target: event.currentTarget,
     }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
@@ -266,6 +308,7 @@ export function useNoteGeometryGesture({
     gesture.current = null
     setPreview(null)
     suppressClickSequence()
+    releasePointer(event)
   }
 
   return {

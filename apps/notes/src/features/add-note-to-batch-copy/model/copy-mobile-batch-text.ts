@@ -1,4 +1,4 @@
-import type { ConfirmingMobileBatchCopyDraft } from "@/entities/batch-copy"
+import type { MobileBatchCopyDraft } from "@/entities/batch-copy"
 import type {
   ClipboardWriteFailureReason,
   ClipboardWriter,
@@ -13,7 +13,7 @@ export type CopyMobileBatchTextResult =
 
 export async function copyMobileBatchText(
   clipboard: ClipboardWriter,
-  draft: ConfirmingMobileBatchCopyDraft,
+  draft: MobileBatchCopyDraft,
 ): Promise<CopyMobileBatchTextResult> {
   const text = draft.entries.map(({ textSnapshot }) => textSnapshot).join("\n")
   const result = await clipboard.writeText(text)

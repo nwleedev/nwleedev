@@ -1,6 +1,6 @@
 "use client"
 
-import type { ConfirmingMobileBatchCopyDraft } from "@/entities/batch-copy"
+import type { MobileBatchCopyDraft } from "@/entities/batch-copy"
 import { CopyBatchTextAction } from "@/features/edit-batch-copy"
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
@@ -12,19 +12,19 @@ import {
 import { MobileBatchCopyConfirmationList } from "./mobile-batch-copy-confirmation-list"
 
 type MobileBatchCopyConfirmationProps = {
-  draft: ConfirmingMobileBatchCopyDraft
+  draft: MobileBatchCopyDraft
   onCancelConfirmation(): Promise<boolean>
-  onReturnToCollection(): Promise<boolean>
+  onReturnToNotes(): Promise<boolean>
 }
 
 export function MobileBatchCopyConfirmation({
   draft,
   onCancelConfirmation,
-  onReturnToCollection,
+  onReturnToNotes,
 }: MobileBatchCopyConfirmationProps) {
   const confirmation = useMobileBatchCopyConfirmation(
     draft,
-    onReturnToCollection,
+    onReturnToNotes,
     onCancelConfirmation,
   )
 
@@ -35,9 +35,9 @@ export function MobileBatchCopyConfirmation({
     >
       <header className="grid min-h-14 grid-cols-[auto_1fr_auto] items-center border-b border-line bg-surface-raised px-3 py-2">
         <IconButton
-          aria-label="메모 선택으로 돌아가기"
+          aria-label="메모 목록으로 돌아가기"
           disabled={confirmation.pending}
-          onClick={confirmation.returnToCollection}
+          onClick={confirmation.returnToNotes}
           size="compact"
         >
           <NavigateBackIcon />
@@ -68,6 +68,7 @@ export function MobileBatchCopyConfirmation({
         >
           취소
         </Button>
+        <Button disabled={confirmation.copyDisabled} onClick={confirmation.reset} tone="quiet">초기화</Button>
         <CopyBatchTextAction
           disabled={confirmation.copyDisabled}
           label="일괄 복사하기"

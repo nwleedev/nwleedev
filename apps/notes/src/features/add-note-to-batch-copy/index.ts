@@ -20,12 +20,9 @@ export {
 } from "./model/copy-mobile-batch-text"
 export {
   addNoteToMobileBatchCopy,
-  confirmMobileBatchCopySession,
   duplicateMobileBatchCopySessionEntry,
   moveMobileBatchCopySessionEntry,
   removeMobileBatchCopySessionEntry,
   resetMobileBatchCopySession,
-  resumeMobileBatchCopySession,
-  startMobileBatchCopy,
   type AddMobileBatchCopyResult,
 } from "./model/mobile-batch-copy-session"

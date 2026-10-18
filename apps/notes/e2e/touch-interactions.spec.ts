@@ -1,4 +1,5 @@
 import {
+  chromium,
   expect,
   test,
   type CDPSession,
@@ -6,7 +7,8 @@ import {
   type Page,
 } from "@playwright/test"
 
-import { createMobileNoteThroughUi } from "./support/create-note-through-ui"
+import { addMobileNoteToBatch, createMobileNoteThroughUi, openMobileNoteEditor, readMobileNoteEditHref } from "./support/create-note-through-ui"
+import { noteIdFromHref, readStoredNote } from "./support/read-stored-note"
 import {
   preparePointerCaptureRelease,
   releasePointerCapture,
@@ -17,7 +19,7 @@ type TouchPoint = {
   y: number
 }
 
-async function center(locator: Locator): Promise<TouchPoint> {
+async function center(locator: Locator, verticalFraction = 0.5): Promise<TouchPoint> {
   await expect(locator).toBeVisible()
   const box = await locator.boundingBox()
 
@@ -27,7 +29,7 @@ async function center(locator: Locator): Promise<TouchPoint> {
 
   return {
     x: box.x + box.width / 2,
-    y: box.y + box.height / 2,
+    y: box.y + box.height * verticalFraction,
   }
 }
 
@@ -74,264 +76,354 @@ async function holdAndReleaseTouch(
   await endTouch(session)
 }
 
-async function expectCopyCancelled(page: Page) {
-  await expect(page).toHaveURL("/")
-  await expect(
-    page.getByRole("status").filter({ hasText: "복사했습니다." }),
-  ).toHaveCount(0)
-}
-
-test("메모를 길게 눌러 복사하고 확인 항목을 길게 누른 뒤 끌어 순서를 바꾼다", async ({
-  context,
-  page,
-}) => {
+test("짧은 터치는 복사하고 긴 터치는 중복 항목을 한 번씩 추가한다", async ({ context, page }) => {
   await page.clock.install()
   await page.goto("/")
-  const firstContent = "길게 누를 첫 번째 메모"
-  const secondContent = "길게 누를 두 번째 메모"
-  const firstNote = await createMobileNoteThroughUi(page, firstContent)
-  const secondNote = await createMobileNoteThroughUi(page, secondContent)
+  const firstContent = `짧은 복사 ${crypto.randomUUID()}`
+  const secondContent = `긴 추가 ${crypto.randomUUID()}`
+  const first = await createMobileNoteThroughUi(page, firstContent)
+  const second = await createMobileNoteThroughUi(page, secondContent)
+  await first.getByRole("button", { name: `${firstContent} 복사` }).tap()
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(firstContent)
+  await openMobileNoteEditor(page, second)
+  await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(secondContent)
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(firstContent)
+  await page.getByRole("link", { exact: true, name: "메모 목록" }).click()
   const session = await context.newCDPSession(page)
-  const firstLink = firstNote.getByRole("button", { name: `${firstContent} 복사` })
-
-  await secondNote.getByRole("button", { name: `${secondContent} 복사` }).click()
-  await expect
-    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toBe(secondContent)
-  await firstNote.getByRole("link", { name: `${firstContent} 수정` }).click()
-  await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(firstContent)
-  await expect
-    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toBe(secondContent)
-  await page.getByRole("link", { name: "메모 목록" }).click()
-  const firstPoint = await center(firstLink)
-
-  await startTouch(session, firstPoint)
-  await page.clock.fastForward(500)
-  await endTouch(session)
-  await expect(
-    page.getByRole("status").filter({ hasText: "복사했습니다." }),
-  ).toBeVisible()
-  await expect(page).toHaveURL("/")
-  await expect
-    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toBe(firstContent)
-
-  await page.getByRole("button", { name: "일괄 복사 시작" }).click()
-  const firstBatchLink = firstNote.getByRole("button", {
-    name: `${firstContent} 일괄 복사에 추가`,
-  })
-  const batchLongPressPoint = await center(firstBatchLink)
-  await startTouch(session, batchLongPressPoint)
-  await page.clock.fastForward(500)
-  await endTouch(session)
-  await expect(page.getByRole("button", { name: "다음, 0회 선택" })).toBeDisabled()
-  await expect
-    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toBe(firstContent)
-
-  await firstBatchLink.click()
-  await secondNote.getByRole("button", { name: `${secondContent} 일괄 복사에 추가` }).click()
-  await page.getByRole("button", { name: "다음, 2회 선택" }).click()
-
-  const firstEntry = page.getByRole("article", {
-    name: "1번째 일괄 복사 항목",
-  })
-  const secondEntry = page.getByRole("article", {
-    name: "2번째 일괄 복사 항목",
-  })
-  const firstHandle = firstEntry.getByRole("button", {
-    name: "1번째 일괄 복사 항목 이동",
-  })
-  const reorderStatus = page.getByRole("status").filter({
-    hasText: /(?:번째 위치로 이동 중|놓을 수 없는 위치)/u,
-  })
-  const dragStart = await center(firstHandle)
-  const dragEnd = await center(secondEntry)
-
-  await startTouch(session, dragStart)
-  await page.clock.fastForward(500)
-  await expect(reorderStatus).toContainText("1번째 위치로 이동 중")
-  await moveTouch(session, dragEnd)
-  await expect(reorderStatus).toContainText("2번째 위치로 이동 중")
-  await endTouch(session)
-
-  await expect(
-    page.getByRole("article", { name: /번째 일괄 복사 항목$/u }),
-  ).toContainText([secondContent, firstContent])
-
-  const reorderedEntries = page.getByRole("article", {
-    name: /번째 일괄 복사 항목$/u,
-  })
-  const cancellationTarget = reorderedEntries.filter({
-    hasText: secondContent,
-  })
-  const cancellationHandle = cancellationTarget.getByRole("button", {
-    name: "1번째 일괄 복사 항목 이동",
-  })
-  const outsideDragStart = await center(cancellationHandle)
-  await startTouch(session, outsideDragStart)
-  await page.clock.fastForward(500)
-  await moveTouch(session, { x: outsideDragStart.x, y: 20 })
-  await expect(reorderStatus).toContainText("놓을 수 없는 위치")
-  await endTouch(session)
-  await expect(reorderedEntries).toContainText([secondContent, firstContent])
-
-  const cancellationPoint = await center(cancellationHandle)
-  await startTouch(session, cancellationPoint)
-  await page.clock.fastForward(500)
-  await expect(reorderStatus).toContainText("1번째 위치로 이동 중")
-  await cancelTouch(session)
-  await expect(reorderStatus).toHaveCount(0)
-  await expect(reorderedEntries).toContainText([secondContent, firstContent])
-
-  const capturePoint = await center(cancellationHandle)
-  await preparePointerCaptureRelease(page)
-  await startTouch(session, capturePoint)
-  await page.clock.fastForward(500)
-  await releasePointerCapture(page)
-  await endTouch(session)
-  await expect(reorderStatus).toHaveCount(0)
-  await expect(reorderedEntries).toContainText([secondContent, firstContent])
-
-  const scrollPoint = await center(cancellationHandle)
-  await startTouch(session, scrollPoint)
-  await moveTouch(session, { x: scrollPoint.x, y: scrollPoint.y + 20 })
-  await page.clock.fastForward(500)
-  await endTouch(session)
-  await expect(reorderStatus).toHaveCount(0)
-  await expect(reorderedEntries).toContainText([secondContent, firstContent])
+  const body = second.getByRole("button", { name: `${secondContent} 복사` })
+  const originalBox = await body.boundingBox()
+  for (let count = 1; count <= 2; count += 1) {
+    await startTouch(session, await center(body))
+    const outline = await second.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return { color: style.outlineColor, width: Number.parseFloat(style.outlineWidth) }
+    })
+    expect(outline.width).toBeGreaterThanOrEqual(3)
+    expect(outline.color).not.toBe("rgba(0, 0, 0, 0)")
+    expect(await body.boundingBox()).toEqual(originalBox)
+    await page.clock.fastForward(500)
+    await endTouch(session)
+    await expect(page.getByRole("link", { name: `일괄 복사 확인, ${count}개` })).toHaveText(String(count))
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(firstContent)
+  }
+  await page.getByRole("link", { name: "일괄 복사 확인, 2개" }).tap()
+  await expect(page.getByRole("article", { name: /번째 일괄 복사 항목$/u })).toContainText([secondContent, secondContent])
 })
 
-test("낮은 모바일 화면에서도 항목 동작을 누르고 삭제 뒤 남은 항목으로 돌아간다", async ({
-  page,
-}) => {
+test("메모 누르기의 시간과 이동 기준 및 취소에서 추가와 복사를 구분한다", async ({ context, page }) => {
+  await page.clock.install()
+  await page.goto("/")
+  const content = `누르기 기준 ${crypto.randomUUID()}`
+  const note = await createMobileNoteThroughUi(page, content)
+  const body = note.getByRole("button", { name: `${content} 복사` })
+  const session = await context.newCDPSession(page)
+  await page.clock.pauseAt(new Date(Date.now() + 1000))
+  await holdAndReleaseTouch(session, page, await center(body), 499, 0)
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(content)
+  await expect(page.getByRole("link", { name: "일괄 복사 확인, 0개" })).toBeDisabled()
+  await holdAndReleaseTouch(session, page, await center(body), 500, 9)
+  await expect(page.getByRole("link", { name: "일괄 복사 확인, 1개" })).toBeEnabled()
+  await holdAndReleaseTouch(session, page, await center(body), 500, 11)
+  await startTouch(session, await center(body))
+  await page.clock.fastForward(500)
+  await cancelTouch(session)
+  await preparePointerCaptureRelease(page)
+  await startTouch(session, await center(body))
+  await releasePointerCapture(page)
+  await page.clock.fastForward(500)
+  await endTouch(session)
+  await startTouch(session, await center(body))
+  await page.evaluate(() => { window.dispatchEvent(new Event("blur")) })
+  await page.clock.fastForward(500)
+  await endTouch(session)
+  await expect(page.getByRole("link", { name: "일괄 복사 확인, 1개" })).toHaveText("1")
+  await page.clock.resume()
+  await body.tap()
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(content)
+  await page.getByRole("button", { name: "탐색 열기" }).tap()
+  await page.getByRole("link", { exact: true, name: "사용 빈도" }).tap()
+  const row = page.getByRole("row").filter({ hasText: content })
+  await expect(row.getByRole("cell", { name: "개별 복사 2회" })).toBeVisible()
+  await expect(row.getByRole("cell", { name: "일괄 복사 1회" })).toBeVisible()
+})
+
+test("네 메모의 비인접 삽입을 브라우저 재실행 후에도 유지하고 데스크톱 자료를 보존한다", async ({ baseURL }, testInfo) => {
+  const profile = testInfo.outputPath("mobile-order-profile")
+  const options = { baseURL, hasTouch: true, viewport: { height: 720, width: 320 } }
+  let context = await chromium.launchPersistentContext(profile, options)
+  try {
+  let page = await context.newPage()
+  await page.goto("/")
+  const contents = Array.from({ length: 4 }, (_, index) => `순서 ${index + 1} ${crypto.randomUUID()}`)
+  const before = []
+  for (const content of contents) {
+    const note = await createMobileNoteThroughUi(page, content)
+    const id = noteIdFromHref(await readMobileNoteEditHref(page, note))
+    before.push({ id, stored: await readStoredNote(page, id) })
+  }
+  let notes = page.getByRole("article")
+  const session = await context.newCDPSession(page)
+  async function dragFirstToLast() {
+    const handle = notes.filter({ hasText: contents[0] }).getByRole("button", { name: / 이동$/u })
+    const destination = await center(notes.filter({ hasText: contents[3] }), 0.8)
+    await startTouch(session, await center(handle))
+    await moveTouch(session, destination)
+    await endTouch(session)
+  }
+  await dragFirstToLast()
+  const expected = [contents[1], contents[2], contents[3], contents[0]]
+  await expect(notes).toContainText(expected)
+  await page.reload()
+  await expect(notes).toContainText(expected)
+  for (const { id, stored } of before) expect(await readStoredNote(page, id)).toEqual(stored)
+  await context.close()
+  context = await chromium.launchPersistentContext(profile, options)
+  page = await context.newPage()
+  await page.goto("/")
+  notes = page.getByRole("article")
+  await expect(notes).toContainText(expected)
+  await page.setViewportSize({ height: 900, width: 1280 })
+  await expect.poll(() => page.getByRole("textbox", { name: "메모 내용" }).evaluateAll((editors) => editors.map((editor) => (editor as HTMLTextAreaElement).value))).toEqual(contents)
+  for (const { id, stored } of before) expect(await readStoredNote(page, id)).toEqual(stored)
+  } finally { await context.close() }
+})
+
+test("확인 목록의 삽입과 취소 후 다음 드래그 및 전체 복사가 동작한다", async ({ context, page }) => {
+  await page.goto("/")
+  const contents = Array.from({ length: 4 }, (_, index) => `항목 ${index + 1} ${crypto.randomUUID()}`)
+  for (const content of contents) await addMobileNoteToBatch(page, await createMobileNoteThroughUi(page, content))
+  await page.getByRole("link", { name: "일괄 복사 확인, 4개" }).tap()
+  const entries = page.getByRole("article", { name: /번째 일괄 복사 항목$/u })
+  const session = await context.newCDPSession(page)
+  const handle = entries.filter({ hasText: contents[0] }).getByRole("button", { name: / 항목 이동$/u })
+  const destination = await center(entries.filter({ hasText: contents[3] }), 0.8)
+  await startTouch(session, await center(handle))
+  await moveTouch(session, destination)
+  await cancelTouch(session)
+  await expect(entries).toContainText(contents)
+  await preparePointerCaptureRelease(page)
+  await startTouch(session, await center(handle))
+  await moveTouch(session, destination)
+  await releasePointerCapture(page)
+  await endTouch(session)
+  await expect(entries).toContainText(contents)
+  const start = await center(handle)
+  await startTouch(session, start)
+  await moveTouch(session, { x: start.x, y: 20 })
+  await endTouch(session)
+  await expect(entries).toContainText(contents)
+  await startTouch(session, await center(handle))
+  await moveTouch(session, destination)
+  await endTouch(session)
+  const expected = [contents[1], contents[2], contents[3], contents[0]]
+  await expect(entries).toContainText(expected)
+  await page.getByRole("button", { name: "일괄 복사하기" }).tap()
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(expected.join("\n"))
+})
+
+test("낮은 모바일 화면에서도 항목 동작을 누르고 삭제 뒤 남은 항목으로 돌아간다", async ({ page }) => {
   await page.goto("/")
   const firstContent = `첫 동작 항목 ${crypto.randomUUID()}`
   const secondContent = `둘째 동작 항목 ${crypto.randomUUID()}`
-  const firstNote = await createMobileNoteThroughUi(page, firstContent)
-  const secondNote = await createMobileNoteThroughUi(page, secondContent)
-
-  await page.getByRole("button", { name: "일괄 복사 시작" }).tap()
-  await firstNote.getByRole("button", {
-    name: `${firstContent} 일괄 복사에 추가`,
-  }).tap()
-  await secondNote.getByRole("button", {
-    name: `${secondContent} 일괄 복사에 추가`,
-  }).tap()
-  await page.getByRole("button", { name: "다음, 2회 선택" }).tap()
+  await addMobileNoteToBatch(page, await createMobileNoteThroughUi(page, firstContent))
+  await addMobileNoteToBatch(page, await createMobileNoteThroughUi(page, secondContent))
+  await page.getByRole("link", { name: "일괄 복사 확인, 2개" }).tap()
   await page.setViewportSize({ height: 360, width: 320 })
-
-  await page.getByRole("button", {
-    name: "1번째 일괄 복사 항목 동작",
-  }).tap()
-  const sheet = page.getByRole("dialog", {
-    name: "1번째 일괄 복사 항목",
-  })
-  await expect(sheet).toBeVisible()
+  await page.getByRole("button", { name: "1번째 일괄 복사 항목 동작" }).tap()
+  const sheet = page.getByRole("dialog", { name: "1번째 일괄 복사 항목" })
   await sheet.getByRole("button", { name: "삭제" }).tap()
   await expect(sheet).toBeHidden()
-  await expect(page.getByRole("article", {
-    name: /번째 일괄 복사 항목$/u,
-  })).toContainText([secondContent])
-
-  const remainingAction = page.getByRole("button", {
-    name: "1번째 일괄 복사 항목 동작",
-  })
+  await expect(page.getByRole("article", { name: /번째 일괄 복사 항목$/u })).toContainText([secondContent])
+  const remainingAction = page.getByRole("button", { name: "1번째 일괄 복사 항목 동작" })
   await expect(remainingAction).toBeFocused()
   await remainingAction.tap()
-  await page.getByRole("dialog", {
-    name: "1번째 일괄 복사 항목",
-  }).getByRole("button", { name: "동작 선택창 닫기" }).tap()
+  await sheet.getByRole("button", { name: "동작 선택창 닫기" }).tap()
   await expect(remainingAction).toBeFocused()
 })
 
-test("메모 길게 누르기는 이동, 취소와 pointer capture 상실에서 중단된다", async ({
-  context,
-  page,
-}) => {
-  await page.clock.install()
+test("메모 삭제 단계는 같은 높이를 유지하고 5초 후에도 복원한다", async ({ page }) => {
   await page.goto("/")
-  const content = "취소 조건을 확인할 메모"
+  const content = `삭제와 복원 ${crypto.randomUUID()}`
   const note = await createMobileNoteThroughUi(page, content)
-  const session = await context.newCDPSession(page)
-  const link = note.getByRole("button", { name: `${content} 복사` })
-  const point = await center(link)
-
-  await startTouch(session, point)
-  await moveTouch(session, { x: point.x, y: point.y + 20 })
-  await page.clock.fastForward(500)
-  await endTouch(session)
-  await expectCopyCancelled(page)
-
-  const cancelPoint = await center(link)
-  await startTouch(session, cancelPoint)
-  await page.clock.fastForward(500)
-  await cancelTouch(session)
-  await expectCopyCancelled(page)
-
-  const capturePoint = await center(link)
-  await preparePointerCaptureRelease(page)
-  await startTouch(session, capturePoint)
-  await releasePointerCapture(page)
-  await page.clock.fastForward(500)
-  await endTouch(session)
-  await expectCopyCancelled(page)
-  await expect(page.getByRole("article").filter({ hasText: content })).toBeVisible()
-
-  const nextTapPoint = await center(link)
-  await startTouch(session, nextTapPoint)
-  await endTouch(session)
-  await expect(page).toHaveURL("/")
-  await expect
-    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toBe(content)
+  await page.clock.install()
+  const more = note.getByRole("button", { name: / 더보기$/u })
+  await more.tap()
+  const sheet = page.getByRole("dialog")
+  const bounds = await sheet.boundingBox()
+  await sheet.getByRole("button", { exact: true, name: "삭제" }).tap()
+  await expect(sheet.getByRole("heading", { name: "메모 삭제", exact: true })).toBeVisible()
+  expect((await sheet.getByRole("button", { exact: true, name: "삭제" }).boundingBox())!.height).toBeGreaterThanOrEqual(44)
+  expect(await sheet.boundingBox()).toEqual(bounds)
+  await sheet.getByRole("button", { exact: true, name: "취소" }).tap()
+  await expect(sheet.getByRole("link", { name: "수정" })).toBeVisible()
+  expect(await sheet.boundingBox()).toEqual(bounds)
+  await sheet.getByRole("button", { exact: true, name: "삭제" }).tap()
+  await sheet.getByRole("button", { exact: true, name: "삭제" }).tap()
+  await expect(sheet.getByText("메모를 삭제했습니다.", { exact: true })).toBeVisible()
+  await expect(note).toHaveCount(0)
+  expect(await sheet.boundingBox()).toEqual(bounds)
+  await page.clock.fastForward(6000)
+  await expect(sheet).toBeVisible()
+  await sheet.getByRole("button", { name: "실행 취소" }).tap()
+  await expect(sheet.getByRole("link", { name: "수정" })).toBeVisible()
+  expect(await sheet.boundingBox()).toEqual(bounds)
+  await sheet.getByRole("button", { name: "동작 선택창 닫기" }).tap()
+  await expect(note).toBeVisible()
+  await expect(more).toBeFocused()
+  await more.tap()
+  await sheet.getByRole("button", { exact: true, name: "삭제" }).tap()
+  await sheet.getByRole("button", { exact: true, name: "삭제" }).tap()
+  await expect(sheet.getByText("메모를 삭제했습니다.", { exact: true })).toBeVisible()
+  await sheet.getByRole("button", { exact: true, name: "닫기" }).tap()
+  await expect(sheet).toBeHidden()
+  await expect(page.getByRole("button", { name: "새 메모" })).toBeFocused()
 })
 
-test("메모 누르기 시간과 이동 기준 앞뒤에서 복사를 한 번만 기록한다", async ({
-  context,
-  page,
-}) => {
-  await page.clock.install()
+
+test("삭제와 복원 저장 실패는 같은 시트에서 재시도하고 원문을 보존한다", async ({ page }) => {
   await page.goto("/")
-  const content = `터치 복사 ${crypto.randomUUID()}`
+  const content = `저장 실패 복구 ${crypto.randomUUID()}`
   const note = await createMobileNoteThroughUi(page, content)
-  const copyButton = note.getByRole("button", { name: `${content} 복사` })
-  const session = await context.newCDPSession(page)
-  const successfulGestures = [
-    { duration: 499, movement: 0 },
-    { duration: 500, movement: 0 },
-    { duration: 500, movement: 9 },
-  ]
+  const id = noteIdFromHref(await readMobileNoteEditHref(page, note))
+  const original = await readStoredNote(page, id)
+  await page.evaluate(() => {
+    const remove = IDBObjectStore.prototype.delete
+    IDBObjectStore.prototype.delete = function (key) {
+      if (this.name === "notes") {
+        IDBObjectStore.prototype.delete = remove
+        throw new DOMException("Controlled removal failure", "UnknownError")
+      }
+      return remove.call(this, key)
+    }
+  })
+  await note.getByRole("button", { name: / 더보기$/u }).tap()
+  const sheet = page.getByRole("dialog")
+  const bounds = await sheet.boundingBox()
+  await sheet.getByRole("button", { exact: true, name: "삭제" }).tap()
+  await sheet.getByRole("button", { exact: true, name: "삭제" }).tap()
+  await expect(sheet.getByRole("alert")).toContainText("삭제하지 못했습니다")
+  expect(await sheet.boundingBox()).toEqual(bounds)
+  expect(await readStoredNote(page, id)).toEqual(original)
+  await sheet.getByRole("button", { exact: true, name: "삭제" }).tap()
+  await expect(sheet.getByText("메모를 삭제했습니다.", { exact: true })).toBeVisible()
+  expect(await readStoredNote(page, id)).toBeNull()
+  await page.evaluate(() => {
+    const put = IDBObjectStore.prototype.put
+    IDBObjectStore.prototype.put = function (...args: Parameters<IDBObjectStore["put"]>) {
+      if (this.name === "notes") {
+        IDBObjectStore.prototype.put = put
+        throw new DOMException("Controlled restoration failure", "UnknownError")
+      }
+      return put.apply(this, args)
+    }
+  })
+  await sheet.getByRole("button", { name: "실행 취소" }).tap()
+  await expect(sheet.getByRole("alert")).toContainText("복원하지 못했습니다")
+  expect(await sheet.boundingBox()).toEqual(bounds)
+  expect(await readStoredNote(page, id)).toBeNull()
+  await sheet.getByRole("button", { name: "실행 취소" }).tap()
+  await expect(sheet.getByRole("link", { name: "수정" })).toBeVisible()
+  await sheet.getByRole("button", { name: "동작 선택창 닫기" }).tap()
+  await expect(note).toContainText(content)
+  const restored = await readStoredNote(page, id)
+  expect(restored?.content).toBe(original?.content)
+  expect(restored?.geometry).toEqual(original?.geometry)
+})
 
-  for (const gesture of successfulGestures) {
-    const point = await center(copyButton)
-    await holdAndReleaseTouch(
-      session,
-      page,
-      point,
-      gesture.duration,
-      gesture.movement,
-    )
-    await expect(page).toHaveURL("/")
-    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()))
-      .toBe(content)
+test("짧은 화면과 큰 글자에서도 메모 시트의 닫기와 삭제 및 복원에 접근한다", async ({ page }) => {
+  await page.goto("/")
+  const content = `긴 메모 ${"줄바꿈과 긴 본문\n".repeat(40)}`
+  const note = await createMobileNoteThroughUi(page, content)
+  await page.setViewportSize({ height: 360, width: 390 })
+  await page.evaluate(() => { document.documentElement.style.fontSize = "200%" })
+  await note.getByRole("button", { name: / 더보기$/u }).tap()
+  const sheet = page.getByRole("dialog")
+  const bounds = await sheet.boundingBox()
+  await expect(sheet.getByRole("button", { name: "동작 선택창 닫기" })).toBeInViewport()
+  await sheet.getByRole("button", { exact: true, name: "삭제" }).tap()
+  expect(await sheet.boundingBox()).toEqual(bounds)
+  await expect(sheet.getByRole("heading", { name: "메모를 삭제할까요?" })).toBeInViewport({ ratio: 1 })
+  await expect(sheet.getByRole("button", { exact: true, name: "삭제" })).toBeInViewport()
+  await sheet.getByRole("button", { exact: true, name: "삭제" }).tap()
+  await expect(sheet.getByText("메모를 삭제했습니다.", { exact: true })).toBeVisible()
+  expect(await sheet.boundingBox()).toEqual(bounds)
+  await expect(sheet.getByRole("button", { name: "실행 취소" })).toBeInViewport()
+  await sheet.getByRole("button", { name: "실행 취소" }).tap()
+  await sheet.getByRole("button", { name: "동작 선택창 닫기" }).tap()
+  await expect(note).toBeVisible()
+})
+
+
+test("다른 탭의 순서 저장과 충돌하면 최신 순서를 보여주고 다시 이동한다", async ({ context, page }) => {
+  await page.goto("/")
+  const contents = Array.from({ length: 4 }, (_, index) => `탭 정렬 ${index + 1} ${crypto.randomUUID()}`)
+  for (const content of contents) await createMobileNoteThroughUi(page, content)
+  const second = await context.newPage()
+  await second.goto("/")
+  await expect(second.getByRole("button", { name: `${contents[1]} 이동` })).toBeEnabled()
+  async function dragIn(targetPage: Page, source: string, destination: string) {
+    const session = await context.newCDPSession(targetPage)
+    const articles = targetPage.getByRole("article")
+    const from = await center(articles.filter({ hasText: source }).getByRole("button", { name: / 이동$/u }))
+    const to = await center(articles.filter({ hasText: destination }), 0.8)
+    await startTouch(session, from)
+    await moveTouch(session, to)
+    await endTouch(session)
   }
+  await page.evaluate(() => {
+    const put = IDBObjectStore.prototype.put
+    IDBObjectStore.prototype.put = function (...args: Parameters<IDBObjectStore["put"]>) {
+      if (this.name === "mobileNoteOrder") {
+        IDBObjectStore.prototype.put = put
+        throw new DOMException("Controlled order failure", "UnknownError")
+      }
+      return put.apply(this, args)
+    }
+  })
+  await dragIn(page, contents[0], contents[3])
+  await expect(page.getByRole("alert").filter({ hasText: "메모 순서를 저장하지 못했습니다" })).toBeVisible()
+  await expect(page.getByRole("article")).toContainText(contents)
+  await dragIn(page, contents[0], contents[3])
+  const latest = [contents[1], contents[2], contents[3], contents[0]]
+  await expect(page.getByRole("article")).toContainText(latest)
+  await dragIn(second, contents[1], contents[3])
+  await expect(second.getByRole("alert").filter({ hasText: "다른 탭에서 순서가 바뀌었습니다" })).toBeVisible()
+  await expect(second.getByRole("article")).toContainText(latest)
+  await dragIn(second, contents[1], contents[0])
+  const retried = [contents[2], contents[3], contents[0], contents[1]]
+  await expect(second.getByRole("article")).toContainText(retried)
+  await page.reload()
+  await expect(page.getByRole("article")).toContainText(retried)
+})
 
-  const movedPoint = await center(copyButton)
-  await holdAndReleaseTouch(session, page, movedPoint, 500, 11)
-  await expect(page).toHaveURL("/")
-
-  const cancelledPoint = await center(copyButton)
-  await startTouch(session, cancelledPoint)
-  await page.clock.fastForward(500)
+test("목록 가장자리에 멈춘 손가락으로 자동 스크롤하고 취소하면 멈춘다", async ({ context, page }) => {
+  await page.goto("/")
+  const contents = Array.from({ length: 9 }, (_, index) => `자동 스크롤 ${index + 1} ${crypto.randomUUID()}`)
+  for (const content of contents) await createMobileNoteThroughUi(page, content)
+  const notes = page.getByRole("article")
+  const first = notes.filter({ hasText: contents[0] })
+  await first.scrollIntoViewIfNeeded()
+  const handle = first.getByRole("button", { name: / 이동$/u })
+  const start = await center(handle)
+  const session = await context.newCDPSession(page)
+  const scrollTop = () => first.evaluate((element) => {
+    let parent = element.parentElement
+    while (parent !== null) {
+      if (/(auto|scroll)/u.test(getComputedStyle(parent).overflowY)) return parent.scrollTop
+      parent = parent.parentElement
+    }
+    throw new Error("The scrolling list is missing")
+  })
+  const before = await scrollTop()
+  const viewport = page.viewportSize()!
+  await startTouch(session, start)
+  await moveTouch(session, { x: viewport.width / 2, y: viewport.height - 20 })
+  await expect.poll(scrollTop).toBeGreaterThan(before + 100)
+  const during = await scrollTop()
+  await expect.poll(scrollTop).toBeGreaterThan(during + 100)
   await cancelTouch(session)
-  await expect(page).toHaveURL("/")
-
-  await page.getByRole("button", { name: "탐색 열기" }).tap()
-  await page.getByRole("link", { exact: true, name: "사용 빈도" }).tap()
-  const usageRow = page.getByRole("row").filter({ hasText: content })
-  await expect(usageRow.getByRole("cell", {
-    name: `개별 복사 ${successfulGestures.length}회`,
-  })).toBeVisible()
+  const stopped = await scrollTop()
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+  expect(await scrollTop()).toBe(stopped)
+  await expect(notes).toContainText(contents)
 })

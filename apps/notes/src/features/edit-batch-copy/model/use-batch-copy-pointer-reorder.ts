@@ -15,7 +15,7 @@ import {
   advanceReorderPointerSession,
   createReorderPointerSession,
   finishReorderPointerSession,
-} from "./reorder-pointer-session"
+} from "@/shared/lib/list-reorder"
 
 const POINTER_THRESHOLD_PX = 5
 const TOUCH_THRESHOLD_PX = 10
@@ -36,6 +36,8 @@ type ActiveSession = {
   pointerId: number
   state: ReturnType<typeof createReorderPointerSession>
   target: HTMLButtonElement
+  x: number
+  y: number
 }
 
 type UseBatchCopyPointerReorderOptions = {
@@ -52,6 +54,7 @@ function itemIndexAtPoint(
   list: HTMLOListElement,
   clientX: number,
   clientY: number,
+  sourceIndex: number,
 ) {
   const bounds = list.getBoundingClientRect()
   const outside =
@@ -71,7 +74,8 @@ function itemIndexAtPoint(
 
     if (clientY < rowBounds.top + rowBounds.height / 2) {
       const position = Number(row.dataset.batchCopyPosition)
-      return Number.isInteger(position) ? position : null
+      if (!Number.isInteger(position)) return null
+      return position > sourceIndex ? position - 1 : position
     }
   }
 
@@ -106,7 +110,6 @@ export function useBatchCopyPointerReorder({
   const list = useRef<HTMLOListElement>(null)
   const activeSession = useRef<ActiveSession | null>(null)
   const itemHandles = useRef(new Map<string, HTMLButtonElement>())
-  const pointerY = useRef<number | null>(null)
   const scrollFrame = useRef<number | null>(null)
   const [announcement, setAnnouncement] = useState("")
   const [drag, setDrag] = useState<DragView | null>(null)
@@ -119,32 +122,27 @@ export function useBatchCopyPointerReorder({
   }
 
   function runAutoScroll() {
+    scrollFrame.current = null
+    const current = activeSession.current
     const container = scrollContainer(list.current)
-    const currentY = pointerY.current
-
-    if (container === null || currentY === null) {
-      stopAutoScroll()
-      return
-    }
-
+    if (current === null || container === null) return
     const bounds = container.getBoundingClientRect()
-    const nearTop = currentY < bounds.top + EDGE_SCROLL_AREA_PX
-    const nearBottom = currentY > bounds.bottom - EDGE_SCROLL_AREA_PX
-
-    if (nearTop) {
-      container.scrollBy({ top: -EDGE_SCROLL_STEP_PX })
-    } else if (nearBottom) {
-      container.scrollBy({ top: EDGE_SCROLL_STEP_PX })
-    }
-
-    scrollFrame.current = requestAnimationFrame(runAutoScroll)
+    if (current.x < bounds.left || current.x > bounds.right) return
+    if (current.y < bounds.top || current.y > bounds.bottom) return
+    let step = 0
+    if (current.y < bounds.top + EDGE_SCROLL_AREA_PX) step = -EDGE_SCROLL_STEP_PX
+    if (current.y > bounds.bottom - EDGE_SCROLL_AREA_PX) step = EDGE_SCROLL_STEP_PX
+    if (step === 0) return
+    const previous = container.scrollTop
+    container.scrollBy({ top: step })
+    updatePointer(current, current.x, current.y)
+    if (container.scrollTop !== previous) scrollFrame.current = requestAnimationFrame(runAutoScroll)
   }
 
   function clearSession(releaseCapture: boolean) {
     const current = activeSession.current
 
     activeSession.current = null
-    pointerY.current = null
     setDrag(null)
     stopAutoScroll()
 
@@ -169,15 +167,32 @@ export function useBatchCopyPointerReorder({
       }
     }
 
+    function escape(event: KeyboardEvent) {
+      if (event.key === "Escape") cancelActiveSession()
+    }
+
+    window.addEventListener("resize", cancelFromWindow)
+    document.addEventListener("keydown", escape)
     window.addEventListener("blur", cancelFromWindow)
     document.addEventListener("visibilitychange", cancelWhenHidden)
 
     return () => {
+      window.removeEventListener("resize", cancelFromWindow)
+      document.removeEventListener("keydown", escape)
       window.removeEventListener("blur", cancelFromWindow)
       document.removeEventListener("visibilitychange", cancelWhenHidden)
       cancelActiveSession()
     }
   }, [])
+
+  const cancelChangedItems = useEffectEvent(() => {
+    const current = activeSession.current
+    if (current === null) return
+    const original = current.state.snapshot.itemIds
+    const changed = items.length !== original.length || items.some(({ id }, index) => id !== original[index])
+    if (pending || changed) clearSession(true)
+  })
+  useEffect(() => { cancelChangedItems() }, [items, pending])
 
   function registerHandle(itemId: string, element: HTMLButtonElement | null) {
     if (element === null) {
@@ -199,7 +214,9 @@ export function useBatchCopyPointerReorder({
     const threshold = event.pointerType === "touch"
       ? TOUCH_THRESHOLD_PX
       : POINTER_THRESHOLD_PX
+    event.preventDefault()
     const target = event.currentTarget
+    target.focus({ preventScroll: true })
     activeSession.current = {
       itemId,
       outside: false,
@@ -215,6 +232,8 @@ export function useBatchCopyPointerReorder({
         threshold,
       }),
       target,
+      x: event.clientX,
+      y: event.clientY,
     }
     target.setPointerCapture(event.pointerId)
     setDrag({
@@ -238,45 +257,34 @@ export function useBatchCopyPointerReorder({
       return
     }
 
-    const panel = event.currentTarget.closest<HTMLElement>(
-      "[data-batch-copy-panel-boundary]",
-    )
-    const panelBounds = panel?.getBoundingClientRect()
-    const outside =
-      presentation === "panel" &&
-      panelBounds !== undefined &&
-      (
-        event.clientX < panelBounds.left ||
-        event.clientX > panelBounds.right ||
-        event.clientY < panelBounds.top ||
-        event.clientY > panelBounds.bottom
-      )
-    const targetIndex = outside
-      ? null
-      : itemIndexAtPoint(listElement, event.clientX, event.clientY)
-    const state = advanceReorderPointerSession(current.state, {
-      clientX: event.clientX,
-      clientY: event.clientY,
-      targetIndex,
-    })
-    current.state = state
-    current.outside = outside
-    pointerY.current = event.clientY
-
-    if (state.active && scrollFrame.current === null) {
+    updatePointer(current, event.clientX, event.clientY)
+    if (current.state.active && scrollFrame.current === null) {
       scrollFrame.current = requestAnimationFrame(runAutoScroll)
     }
+  }
 
-    if (state.active && presentation === "panel" && selectedItemId !== current.itemId) {
-      onToggleSelection?.(current.itemId)
+  function updatePointer(current: ActiveSession, clientX: number, clientY: number) {
+    const listElement = list.current
+    if (listElement === null) return
+    current.x = clientX
+    current.y = clientY
+    const panel = current.target.closest<HTMLElement>("[data-batch-copy-panel-boundary]")
+    const panelBounds = panel?.getBoundingClientRect()
+    let outside = false
+    if (presentation === "panel" && panelBounds !== undefined) {
+      outside = clientX < panelBounds.left || clientX > panelBounds.right
+      outside = outside || clientY < panelBounds.top
+      outside = outside || clientY > panelBounds.bottom
     }
-
-    setDrag({
-      active: state.active,
-      itemId: current.itemId,
-      originalIndex: state.originalIndex,
-      outside,
-      targetIndex: state.targetIndex,
+    const targetIndex = outside ? null : itemIndexAtPoint(listElement, clientX, clientY, current.state.originalIndex)
+    const state = advanceReorderPointerSession(current.state, { clientX, clientY, targetIndex })
+    current.state = state
+    current.outside = outside
+    setDrag((previous) => {
+      if (previous?.active === state.active && previous.targetIndex === state.targetIndex) {
+        if (previous.outside === outside) return previous
+      }
+      return { active: state.active, itemId: current.itemId, originalIndex: state.originalIndex, outside, targetIndex: state.targetIndex }
     })
   }
 
@@ -287,11 +295,12 @@ export function useBatchCopyPointerReorder({
       return
     }
 
+    updatePointer(current, event.clientX, event.clientY)
     const outside = current.outside
     const completion = finishReorderPointerSession(current.state)
     clearSession(true)
 
-    if (outside && presentation === "panel") {
+    if (outside && current.state.active && presentation === "panel") {
       onRemove(current.itemId)
       return
     }
@@ -308,6 +317,7 @@ export function useBatchCopyPointerReorder({
     requestAnimationFrame(() => itemHandles.current.get(current.itemId)?.focus())
 
     if (saved) {
+      if (presentation === "panel" && current.state.snapshot.selectedItemId !== current.itemId) onToggleSelection?.(current.itemId)
       const from = current.state.originalIndex + 1
       const to = completion.command.targetIndex + 1
       setAnnouncement(`${from}번째 항목을 ${to}번째로 옮겼습니다.`)

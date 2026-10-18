@@ -91,38 +91,20 @@ export function BatchCopyStartPage() {
     cancelConfirmation,
     mobileDraft,
     returningConfirmation,
-    returnToCollection,
-    routePending,
+    returnToNotes,
     showCopyResult,
   } = useBatchCopyPage()
   const copyDisabled =
     batchCopy.status !== "ready" || batchCopy.items.length === 0
 
-  if (routePending) {
-    return (
-      <main
-        className="grid h-full min-h-0 place-items-center bg-canvas"
-        id="main-content"
-      >
-        <p className="text-sm text-soft-ink" role="status">
-          일괄 복사 화면 확인 중
-        </p>
-      </main>
-    )
-  }
-
-  const mobileConfirmation =
-    mobileDraft?.step === "confirming"
-      ? { ...mobileDraft, step: "confirming" as const }
-      : null
-  const confirmingDraft = returningConfirmation ?? mobileConfirmation
+  const confirmingDraft = returningConfirmation ?? mobileDraft
 
   if (confirmingDraft !== null) {
     return (
         <MobileBatchCopyConfirmation
           draft={confirmingDraft}
           onCancelConfirmation={cancelConfirmation}
-          onReturnToCollection={returnToCollection}
+          onReturnToNotes={returnToNotes}
         />
     )
   }

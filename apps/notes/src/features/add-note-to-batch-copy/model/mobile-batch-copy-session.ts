@@ -1,14 +1,11 @@
 import {
   addMobileBatchCopyEntry,
   beginMobileBatchCopy,
-  confirmMobileBatchCopy,
   duplicateMobileBatchCopyEntry,
   moveMobileBatchCopyEntry,
   removeMobileBatchCopyEntry,
-  resumeMobileBatchCopyCollection,
   resetMobileBatchCopy,
-  type CollectingMobileBatchCopyDraft,
-  type ConfirmingMobileBatchCopyDraft,
+  type MobileBatchCopyDraft,
   type MobileBatchCopyEntry,
 } from "@/entities/batch-copy"
 import type { Note } from "@/entities/note"
@@ -21,25 +18,14 @@ type MobileBatchCopyDependencies = {
 }
 
 export type AddMobileBatchCopyResult =
-  | { draft: CollectingMobileBatchCopyDraft; status: "added" }
+  | { draft: MobileBatchCopyDraft; status: "added" }
   | { status: "failure" }
-
-export function startMobileBatchCopy(
-  dependencies: MobileBatchCopyDependencies,
-): CollectingMobileBatchCopyDraft {
-  const startedAt = dependencies.now()
-
-  return beginMobileBatchCopy({
-    id: dependencies.createId(),
-    startedAt,
-  })
-}
 
 export async function addNoteToMobileBatchCopy(
   dependencies: MobileBatchCopyDependencies & {
     writer: MobileBatchCopyUsageWriter
   },
-  draft: CollectingMobileBatchCopyDraft | null,
+  draft: MobileBatchCopyDraft | null,
   note: Note,
 ): Promise<AddMobileBatchCopyResult> {
   const updatedAt = dependencies.now()
@@ -58,7 +44,7 @@ export async function addNoteToMobileBatchCopy(
     return { status: "failure" }
   }
 
-  const current = draft ?? startMobileBatchCopy(dependencies)
+  const current = draft ?? beginMobileBatchCopy({ id: dependencies.createId(), startedAt: updatedAt })
 
   return {
     draft: addMobileBatchCopyEntry(current, entry, updatedAt),
@@ -67,21 +53,14 @@ export async function addNoteToMobileBatchCopy(
 }
 
 export function resetMobileBatchCopySession(
-  draft: CollectingMobileBatchCopyDraft,
+  draft: MobileBatchCopyDraft,
   now: () => string,
 ) {
   return resetMobileBatchCopy(draft, now())
 }
 
-export function confirmMobileBatchCopySession(
-  draft: CollectingMobileBatchCopyDraft,
-  now: () => string,
-) {
-  return confirmMobileBatchCopy(draft, now())
-}
-
 export function moveMobileBatchCopySessionEntry(
-  draft: ConfirmingMobileBatchCopyDraft,
+  draft: MobileBatchCopyDraft,
   entryId: string,
   index: number,
   now: () => string,
@@ -91,7 +70,7 @@ export function moveMobileBatchCopySessionEntry(
 
 export function duplicateMobileBatchCopySessionEntry(
   dependencies: MobileBatchCopyDependencies,
-  draft: ConfirmingMobileBatchCopyDraft,
+  draft: MobileBatchCopyDraft,
   entryId: string,
 ) {
   return duplicateMobileBatchCopyEntry(
@@ -103,16 +82,9 @@ export function duplicateMobileBatchCopySessionEntry(
 }
 
 export function removeMobileBatchCopySessionEntry(
-  draft: ConfirmingMobileBatchCopyDraft,
+  draft: MobileBatchCopyDraft,
   entryId: string,
   now: () => string,
 ) {
   return removeMobileBatchCopyEntry(draft, entryId, now())
-}
-
-export function resumeMobileBatchCopySession(
-  draft: ConfirmingMobileBatchCopyDraft,
-  now: () => string,
-) {
-  return resumeMobileBatchCopyCollection(draft, now())
 }

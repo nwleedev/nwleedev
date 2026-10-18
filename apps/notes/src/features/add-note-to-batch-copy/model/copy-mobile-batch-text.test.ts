@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import type { ConfirmingMobileBatchCopyDraft } from "@/entities/batch-copy"
+import type { MobileBatchCopyDraft } from "@/entities/batch-copy"
 import type {
   ClipboardWriteResult,
   ClipboardWriter,
@@ -8,8 +8,7 @@ import type {
 
 import { copyMobileBatchText } from "./copy-mobile-batch-text"
 
-const draft: ConfirmingMobileBatchCopyDraft = {
-  clickCount: 2,
+const draft: MobileBatchCopyDraft = {
   entries: [
     {
       id: "entry-1",
@@ -24,7 +23,6 @@ const draft: ConfirmingMobileBatchCopyDraft = {
   ],
   id: "mobile-batch-copy",
   startedAt: "2026-09-02T03:00:00.000Z",
-  step: "confirming",
   updatedAt: "2026-09-02T03:01:00.000Z",
 }
 

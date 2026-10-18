@@ -31,14 +31,10 @@ export {
 export {
   addMobileBatchCopyEntry,
   beginMobileBatchCopy,
-  confirmMobileBatchCopy,
   duplicateMobileBatchCopyEntry,
   moveMobileBatchCopyEntry,
   removeMobileBatchCopyEntry,
-  resumeMobileBatchCopyCollection,
   resetMobileBatchCopy,
-  type CollectingMobileBatchCopyDraft,
-  type ConfirmingMobileBatchCopyDraft,
   type MobileBatchCopyDraft,
   type MobileBatchCopyEntry,
 } from "./model/mobile-batch-copy-draft"

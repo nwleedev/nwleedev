@@ -37,14 +37,14 @@ export type ReorderPointerCompletion = {
   snapshot: ReorderSnapshot
 }
 
-function moveItemId(
+export function moveListItem(
   itemIds: readonly string[],
   itemId: string,
   targetIndex: number,
 ) {
   const sourceIndex = itemIds.indexOf(itemId)
 
-  if (sourceIndex < 0 || sourceIndex === targetIndex) {
+  if (sourceIndex < 0 || !Number.isInteger(targetIndex)) {
     return [...itemIds]
   }
 
@@ -55,7 +55,7 @@ function moveItemId(
     return [...itemIds]
   }
 
-  moved.splice(targetIndex, 0, item)
+  moved.splice(Math.max(0, Math.min(targetIndex, moved.length)), 0, item)
   return moved
 }
 
@@ -103,7 +103,7 @@ export function advanceReorderPointerSession(
   const targetIndex = active && validTarget ? position.targetIndex : null
   const previewItemIds = targetIndex === null
     ? session.snapshot.itemIds
-    : moveItemId(session.snapshot.itemIds, session.itemId, targetIndex)
+    : moveListItem(session.snapshot.itemIds, session.itemId, targetIndex)
 
   return {
     ...session,
@@ -126,13 +126,5 @@ export function finishReorderPointerSession(
     command: changed ? { itemId: session.itemId, targetIndex } : null,
     itemIds: changed ? session.previewItemIds : session.snapshot.itemIds,
     snapshot: session.snapshot,
-  }
-}
-
-export function restoreReorderSnapshot(snapshot: ReorderSnapshot) {
-  return {
-    focusItemId: snapshot.focusItemId,
-    itemIds: [...snapshot.itemIds],
-    selectedItemId: snapshot.selectedItemId,
   }
 }

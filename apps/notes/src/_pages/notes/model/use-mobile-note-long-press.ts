@@ -2,7 +2,9 @@
 
 import {
   useEffect,
+  useEffectEvent,
   useRef,
+  useState,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
 } from "react"
@@ -34,8 +36,10 @@ export function useMobileNoteLongPress({
 }: UseMobileNoteLongPressOptions) {
   const session = useRef<LongPressSession | null>(null)
   const suppressClick = useRef(false)
+  const [pressed, setPressed] = useState(false)
 
   function clearSession(suppressFollowingClick: boolean) {
+    setPressed(false)
     const current = session.current
 
     if (current === null) {
@@ -45,13 +49,29 @@ export function useMobileNoteLongPress({
     clearTimeout(current.timer)
     session.current = null
     suppressClick.current = suppressFollowingClick
+    if (current.target.hasPointerCapture(current.pointerId)) {
+      current.target.releasePointerCapture(current.pointerId)
+    }
   }
 
-  useEffect(() => () => clearSession(false), [])
+  const cancelFromWindow = useEffectEvent(() => clearSession(true))
+  useEffect(() => {
+    function hidden() {
+      if (document.visibilityState === "hidden") cancelFromWindow()
+    }
+    window.addEventListener("blur", cancelFromWindow)
+    document.addEventListener("visibilitychange", hidden)
+    return () => {
+      window.removeEventListener("blur", cancelFromWindow)
+      document.removeEventListener("visibilitychange", hidden)
+      clearSession(false)
+    }
+  }, [])
 
   function onPointerDown(event: ReactPointerEvent<HTMLButtonElement>) {
     if (event.isPrimary) {
       suppressClick.current = false
+      if (!disabled && event.button === 0) setPressed(true)
     }
 
     if (
@@ -108,6 +128,7 @@ export function useMobileNoteLongPress({
   }
 
   function onPointerUp(event: ReactPointerEvent<HTMLButtonElement>) {
+    setPressed(false)
     const current = session.current
 
     if (current === null || current.pointerId !== event.pointerId) {
@@ -164,6 +185,8 @@ export function useMobileNoteLongPress({
   }
 
   return {
+    pressed,
+    handlers: {
     onClick,
     onContextMenu,
     onLostPointerCapture,
@@ -171,5 +194,8 @@ export function useMobileNoteLongPress({
     onPointerDown,
     onPointerMove,
     onPointerUp,
+    onPointerLeave: () => setPressed(false),
+    onBlur: () => clearSession(true),
+    },
   }
 }
