@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Nowon Lee — Frontend Engineer",
-    "description": "Technical profile of frontend engineer Nowon Lee, focused on information accuracy, task visibility, interface responsiveness, and service reliability"
+    "description": "Technical profile of frontend engineer Nowon Lee, focused on information accuracy, document generation progress, interface responsiveness, and service reliability"
   },
   "skipLink": "Skip to main content",
   "linkLabels": {
@@ -19,7 +19,7 @@
     "name": "Nowon Lee",
     "role": "Frontend Engineer",
     "lead": "I observe how services behave, trace problems to their causes, and fix them. I want to help make web services easier to use and their information more accurate.",
-    "supporting": "In TypeScript and React services, I have addressed issues with real-time information, long-running tasks, dashboard data accuracy, and authentication. I continue to check the user experience after deployment.",
+    "supporting": "In TypeScript and React services, I have improved real-time updates, progress reporting during document generation, and dashboard accuracy, and resolved authentication issues. I continue to check the user experience after deployment.",
     "links": [
       { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "Code and open source contributions", "icon": "github" },
       { "label": "Blog", "href": "https://blog.nwlee.com", "context": "Technical notes and problem-solving process", "icon": "article" },
@@ -34,13 +34,13 @@
         "company": "AI Factory",
         "period": "2025 — Present",
         "role": "Frontend Engineer",
-        "summary": "I handled frontend development for public-sector web services. I improved data accuracy, progress updates for long-running tasks, and deployment reliability, and resolved UI issues caused by API responses.",
+        "summary": "I handled frontend development for public-sector web services. I improved information accuracy, progress updates during document generation, interface responsiveness while processing API responses, and deployment reliability.",
         "contributions": [
           {
             "title": "Fixing incorrect dashboard values and improving transfer efficiency",
             "paragraphs": [
-              "I fixed missing and incorrect time-series values so dashboard users could accurately check computer resource usage. I aligned metric names and labels with actual responses and corrected ratio calculations. I also traced why separate time series were being combined and updated how they are identified.",
-              "I changed queries to fetch only values after the previous request time, reducing data transferred over 10 minutes from 96.5 MB to 41 KB. I compared the deployed dashboard with actual responses to verify the displayed values."
+              "I fixed missing and incorrect measurements over time so dashboard users could accurately check server status. I aligned metric names and labels with actual responses and corrected ratio calculations. I also traced why measurements that should stay separate were being combined and updated how they are identified.",
+              "I changed queries to fetch only values after the previous request time, reducing data transferred over 10 minutes from 96.5 MB to 41 KB. I designed and implemented a Next.js API so the browser would not call Prometheus directly. I compared the deployed dashboard with actual responses to verify the displayed values."
             ],
             "metadata": {
               "period": "Verified in production",
@@ -48,10 +48,10 @@
             }
           },
           {
-            "title": "Improving progress updates and status accuracy during long-running document generation",
+            "title": "Improving progress updates and status displays during document generation",
             "paragraphs": [
               "I designed the frontend so users could keep track of the current stage and elapsed time during document generation, which takes 5–10 minutes. I added a confirmation step before leaving the page or canceling generation.",
-              "After SSE events, the client checks the server status again so the page reflects the actual state even if events arrive out of order or the connection fails. Status checks stayed at 10 or fewer per task, compared with an estimated 100–200 checks at three-second intervals. After deployment, I verified that generation and cancellation states matched the progress shown on the page."
+              "After SSE events, the client checks the server status again so the page reflects the actual state even if events arrive out of order or the connection fails. I reduced API requests to check document generation status from 150–200 to 30 or fewer. After deployment, I verified that generation and cancellation states matched the progress shown on the page."
             ],
             "metadata": {
               "period": "For 5–10 minute tasks",
@@ -59,14 +59,14 @@
             }
           },
           {
-            "title": "Eliminating 3–4 second UI freezes and keeping real-time charts continuous",
+            "title": "Improving responsiveness during large API responses and keeping real-time charts continuous",
             "paragraphs": [
-              "I fixed pages that froze for 3–4 seconds while processing API responses. I moved API requests and response processing into a SharedWorker, used the same approach on run-history and detail pages, and confirmed the fix in the deployed service.",
+              "For API responses of up to 330 MB, I reduced the maximum interval between frame updates from 1,316.6 ms to 16.8 ms. I designed a module that moves API requests, JSON parsing, and display-value conversion into a Web Worker and applied it across multiple pages to keep them responsive while processing responses.",
               "I merged historical values loaded after refresh with new streamed values on the same time basis, keeping the chart continuous without duplicates. I recombined split JSON fragments with the next chunk so real-time updates could continue."
             ],
             "metadata": {
               "period": "Response size and format retained",
-              "technologies": ["SharedWorker", "REST", "Server Sent Event"]
+              "technologies": ["Web Worker", "REST", "Server Sent Event"]
             }
           },
           {
@@ -78,6 +78,16 @@
             "metadata": {
               "period": "Pre-deployment verification",
               "technologies": ["Playwright", "Authentication", "QA"]
+            }
+          },
+          {
+            "title": "Packaging the frontend as a library for integration into another app",
+            "paragraphs": [
+              "I configured a Vite library build so a previously standalone frontend could be used in another app. I organized type declarations, CSS, and provider integration to keep the UI and behavior consistent in the host app."
+            ],
+            "metadata": {
+              "period": "Integration into another app",
+              "technologies": ["Vite", "TypeScript", "React", "CSS"]
             }
           }
         ]
@@ -156,8 +166,8 @@
         "title": "AI Agent Workflow",
         "period": "2026 — Present",
         "paragraphs": [
-          "I created rules and skills to help AI agents clarify the work, research what they need, and carry out implementation. Decisions and the reasons for changes remain available when work resumes.",
-          "I also built a check for ambiguous Korean wording before documents are saved and used it across multiple repositories."
+          "I created repository rules and skills that separate requirements, research findings, decisions, and plans so AI agents can check the evidence behind implementation and the reasons for changes. I applied them across multiple repositories.",
+          "I established a review process to find ambiguous Korean wording and revise it in context before documents are saved. The checker uses Unicode normalization to handle different Hangul representations and can inspect changed files, specified files, and standard input."
         ],
         "links": [
           {
@@ -177,8 +187,8 @@
         "title": "Personal Notes Workspace",
         "period": "2026 — Present",
         "paragraphs": [
-          "I started this project because I had to re-enter AI agent instructions and keep adding command notes whenever script parameters changed. Users can select instructions from multiple notes and copy them together, or reuse a command by changing only values such as input filenames.",
-          "While using the app myself, I traced and fixed problems that prevented notes from moving to the intended position or batch-copy items from being reordered as expected. I also researched how to design mobile pages to make selecting and reordering text easier."
+          "I started this project because I kept re-entering the same AI agent instructions and creating separate command notes for different execution parameters. Users can select the instructions they need from multiple notes, arrange them in order, and copy them together, or reuse a command by changing only values such as input filenames.",
+          "I designed data structures that let users change the text and order of items to copy while preserving the original notes. Using the app myself, I improved note and batch-copy reordering and separated copy and edit interactions so users could select and edit the text they need on their phones."
         ],
         "serviceLink": {
           "context": "Open the notes app",
@@ -198,7 +208,7 @@
         "period": "2025",
         "paragraphs": [
           "With language models saved ahead of time, users can translate between Korean and English or Korean and Japanese without a network connection and keep entering text on the page while the model runs.",
-          "I used browser caching and IndexedDB to store the files and information needed for translation, and automated repeated deployment steps with GitHub Actions."
+          "I used browser caching and IndexedDB to store the files and information needed for translation, and automated deployment with GitHub Actions."
         ],
         "links": [],
         "technologies": ["Web Worker", "IndexedDB", "Offline", "GitHub Actions"]
