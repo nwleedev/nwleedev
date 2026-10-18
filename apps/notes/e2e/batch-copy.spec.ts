@@ -432,6 +432,29 @@ test.describe("320px 일괄 복사", () => {
     await expect(page.getByRole("heading", { name: "일괄 복사 확인" })).toBeVisible()
   }
 
+  test("메인과 확인 목록의 핸들은 클릭 테두리를 남기지 않고 키보드 포커스를 표시한다", async ({ page }) => {
+    const content = `포커스 확인 ${crypto.randomUUID()}`
+    const note = await createMobileNoteThroughUi(page, content)
+
+    async function inspectFocus(handle: Locator) {
+      await handle.click()
+      await expect(handle).toHaveCSS("outline-style", "none")
+      await handle.press("ArrowDown")
+      await expect(handle).toBeFocused()
+      await expect(handle).toHaveCSS("outline-style", "solid")
+      await handle.click()
+      await expect(handle).toHaveCSS("outline-style", "none")
+    }
+
+    await inspectFocus(note.getByRole("button", { name: `${content} 이동` }))
+    await addMobileNoteToBatch(page, note)
+    await openCurrent(page, 1)
+    await inspectFocus(page.getByRole("button", { name: "1번째 일괄 복사 항목 이동" }))
+    await expect(page.getByRole("article")).toHaveText(content)
+    await page.getByRole("button", { exact: true, name: "취소" }).click()
+    await expect(note).toBeVisible()
+  })
+
   test("새 메모 동작은 원형이고 더보기에는 그림자가 없다", async ({ page }) => {
     const content = `아이콘 모양을 확인할 메모 ${crypto.randomUUID()}`
     const note = await createMobileNoteThroughUi(page, content)

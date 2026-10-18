@@ -130,8 +130,6 @@ export function usePointerReorder({ disabled, items, onMove }: PointerReorderOpt
     if (disabled || !event.isPrimary || event.button !== 0) return
     if (items[index]?.id !== id) return
     clearSession(true)
-    event.preventDefault()
-    event.currentTarget.focus({ preventScroll: true })
     const threshold = event.pointerType === "touch" ? 10 : 5
     session.current = {
       pointerId: event.pointerId,
