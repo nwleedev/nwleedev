@@ -8,11 +8,10 @@ import {
   createBatchCopyItemActions,
   useBatchCopyActionSheet,
 } from "@/features/edit-batch-copy"
-import { joinClassNames } from "@/shared/lib/join-class-names"
 import { usePointerReorder } from "@/shared/lib/pointer-reorder"
 import { IconButton } from "@/shared/ui/icon-button"
-import { GripIcon, MoreIcon } from "@/shared/ui/icons"
-
+import { MoreIcon } from "@/shared/ui/icons"
+import { ReorderableTextCard, ReorderHandle } from "@/shared/ui/reorderable-text-card"
 
 type MobileBatchCopyConfirmationListProps = {
   disabled: boolean
@@ -60,16 +59,6 @@ function MobileBatchCopyEntryRow({
 }: MobileBatchCopyEntryRowProps) {
   const positionText = (position + 1).toLocaleString("ko-KR")
   const itemLabel = `${positionText}번째 일괄 복사 항목`
-  const articleClassName = joinClassNames(
-    "relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-note border border-border bg-surface-raised p-3 text-sm leading-6 text-ink transition-[border-color,box-shadow,transform]",
-    dragging ? "-translate-y-1 border-action shadow-floating" : undefined,
-    dropPlacement === "before"
-      ? "before:absolute before:-top-2 before:left-1 before:right-1 before:h-1 before:rounded-full before:bg-action"
-      : undefined,
-    dropPlacement === "after"
-      ? "after:absolute after:-bottom-2 after:left-1 after:right-1 after:h-1 after:rounded-full after:bg-action"
-      : undefined,
-  )
 
   function registerHandle(element: HTMLButtonElement | null) {
     onRegisterHandle(entry.id, element)
@@ -89,10 +78,9 @@ function MobileBatchCopyEntryRow({
 
   return (
     <li data-reorder-id={entry.id}>
-      <article aria-label={itemLabel} className={articleClassName}>
-        <button
+      <ReorderableTextCard dragging={dragging} dropPlacement={dropPlacement} label={itemLabel}>
+        <ReorderHandle
           aria-label={`${itemLabel} 이동`}
-          className="flex min-h-11 min-w-11 touch-none cursor-grab items-center justify-center rounded-control border-0 bg-transparent text-icon active:cursor-grabbing disabled:opacity-45"
           disabled={disabled}
           onLostPointerCapture={onPointerCancel}
           onPointerCancel={onPointerCancel}
@@ -100,25 +88,22 @@ function MobileBatchCopyEntryRow({
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           ref={registerHandle}
-          type="button"
-        >
-          <GripIcon />
-        </button>
-        <p className="min-w-0 whitespace-pre-wrap break-words py-2">
+        />
+        <p className="min-w-0 whitespace-pre-wrap break-words py-1">
           {entry.textSnapshot || "빈 메모"}
         </p>
         <IconButton
           aria-expanded={actionsOpen}
           aria-haspopup="dialog"
           aria-label={`${itemLabel} 동작`}
+          className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)] self-start"
           disabled={disabled}
           onClick={openActions}
           ref={registerActionTrigger}
-          size="compact"
         >
           <MoreIcon />
         </IconButton>
-      </article>
+      </ReorderableTextCard>
     </li>
   )
 }

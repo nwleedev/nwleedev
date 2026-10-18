@@ -9,7 +9,8 @@ import { usePointerReorder } from "@/shared/lib/pointer-reorder"
 import { Button } from "@/shared/ui/button"
 import { useActionToast } from "@/shared/ui/action-toast"
 import { IconButton } from "@/shared/ui/icon-button"
-import { BatchCopyIcon, GripIcon, PlusIcon } from "@/shared/ui/icons"
+import { BatchCopyIcon, PlusIcon } from "@/shared/ui/icons"
+import { ReorderHandle } from "@/shared/ui/reorderable-text-card"
 import { MobileNavigation, type SavedBatchCopyLink } from "@/widgets/application-navigation"
 
 import { useNotesData } from "../model/notes-data-provider"
@@ -74,26 +75,35 @@ export function MobileNotesWorkspace({ creationPending, notes, onCreate }: Mobil
           {count > 0 ? <span aria-hidden="true" className="absolute bottom-0 right-0 flex min-h-[var(--notes-batch-count-size)] min-w-[var(--notes-batch-count-size)] items-center justify-center rounded-full bg-danger px-1 text-xs font-semibold tabular-nums text-on-accent">{countText}</span> : null}
         </IconButton>
       </header>
-      <div className="flex min-h-0 flex-1 flex-col overflow-auto p-4">
+      <div className="flex min-h-0 flex-1 flex-col overflow-auto p-4 pb-[var(--notes-mobile-list-end-inset)]">
         {order.failure ? <div className="mb-3 grid gap-2"><p className="text-sm text-danger" role="alert">{order.failure}</p><Button onClick={order.retry} tone="quiet">다시 불러오기</Button></div> : null}
         <p aria-live="polite" className="sr-only" role="status">{reorder.announcement}</p>
         <ol className="grid gap-3" ref={reorder.list}>
           {order.notes.map((note, index) => (
             <li
-              className="relative data-[dragging=true]:z-10 data-[dragging=true]:-translate-y-1 data-[dragging=true]:shadow-floating data-[drop=before]:before:absolute data-[drop=before]:before:-top-2 data-[drop=before]:before:left-0 data-[drop=before]:before:right-0 data-[drop=before]:before:h-1 data-[drop=before]:before:bg-danger data-[drop=after]:after:absolute data-[drop=after]:after:-bottom-2 data-[drop=after]:after:left-0 data-[drop=after]:after:right-0 data-[drop=after]:after:h-1 data-[drop=after]:after:bg-danger"
-              data-dragging={reorder.drag?.entryId === note.id}
-              data-drop={dropPlacement(reorder.drag, index)}
               data-reorder-id={note.id}
               key={note.id}
             >
               <MobileNoteCard
                 disabled={false}
-                dragHandle={<button aria-label={`${note.content.split("\n")[0] || "빈 메모"} 이동`} className="flex min-h-[var(--notes-touch-target)] w-full touch-none cursor-grab items-center justify-center rounded-control border-0 bg-transparent text-icon active:cursor-grabbing disabled:opacity-45" disabled={order.pending || !order.ready} onLostPointerCapture={reorder.onPointerCancel} onPointerCancel={reorder.onPointerCancel} onPointerDown={(event) => reorder.onPointerDown(event, note.id, index)} onPointerMove={reorder.onPointerMove} onPointerUp={reorder.onPointerUp} ref={(element) => reorder.registerHandle(note.id, element)} type="button"><GripIcon className="size-5" /></button>}
+                dragging={reorder.drag?.entryId === note.id}
+                dropPlacement={dropPlacement(reorder.drag, index)}
                 note={note}
                 onAddToBatchCopy={addToBatchCopy}
                 onCopy={copy}
                 onOpenActions={actions.open}
-              />
+              >
+                <ReorderHandle
+                  aria-label={`${note.content.split("\n")[0] || "빈 메모"} 이동`}
+                  disabled={order.pending || !order.ready}
+                  onLostPointerCapture={reorder.onPointerCancel}
+                  onPointerCancel={reorder.onPointerCancel}
+                  onPointerDown={(event) => reorder.onPointerDown(event, note.id, index)}
+                  onPointerMove={reorder.onPointerMove}
+                  onPointerUp={reorder.onPointerUp}
+                  ref={(element) => reorder.registerHandle(note.id, element)}
+                />
+              </MobileNoteCard>
             </li>
           ))}
         </ol>
@@ -107,7 +117,7 @@ export function MobileNotesWorkspace({ creationPending, notes, onCreate }: Mobil
 }
 
 function dropPlacement(drag: { sourceIndex: number; targetIndex: number | null } | null, index: number) {
-  if (drag === null || drag.targetIndex === null || drag.targetIndex === drag.sourceIndex) return undefined
-  if (drag.targetIndex !== index) return undefined
+  if (drag === null || drag.targetIndex === null || drag.targetIndex === drag.sourceIndex) return null
+  if (drag.targetIndex !== index) return null
   return drag.targetIndex < drag.sourceIndex ? "before" : "after"
 }

@@ -68,7 +68,6 @@ export function MobileBatchCopyConfirmation({
         >
           취소
         </Button>
-        <Button disabled={confirmation.copyDisabled} onClick={confirmation.reset} tone="quiet">초기화</Button>
         <CopyBatchTextAction
           disabled={confirmation.copyDisabled}
           label="일괄 복사하기"

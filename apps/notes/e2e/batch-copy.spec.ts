@@ -486,7 +486,7 @@ test.describe("320px 일괄 복사", () => {
     await expect(managed).toHaveCount(contents.length)
   })
 
-  test("실제 항목 수를 반영하고 복제, 이동, 삭제와 초기화를 유지한다", async ({ page }) => {
+  test("실제 항목 수를 반영하고 복제, 이동, 삭제와 취소 후 메인 복귀를 유지한다", async ({ page }) => {
     await setReorderButtons(page, true)
     await page.goto("/")
     const firstContent = "모바일 첫 번째 메모"
@@ -530,9 +530,11 @@ test.describe("320px 일괄 복사", () => {
     await page.getByRole("button", { name: "메모 목록으로 돌아가기" }).click()
     await expect(page.getByRole("link", { name: "일괄 복사 확인, 3개" })).toHaveText("3")
     await openCurrent(page, 3)
-    await page.getByRole("button", { exact: true, name: "초기화" }).click()
-    await expect(entries).toHaveCount(0)
-    await page.getByRole("button", { name: "메모 목록으로 돌아가기" }).click()
+    await expect(page.getByRole("button", { exact: true, name: "초기화" })).toHaveCount(0)
+    await page.getByRole("button", { exact: true, name: "취소" }).click()
+    await expect(page).toHaveURL("/")
+    await expect(firstNote).toBeVisible()
+    await expect(secondNote).toBeVisible()
     const empty = page.getByRole("link", { name: "일괄 복사 확인, 0개" })
     await expect(empty).toBeDisabled()
     await expect(empty).toHaveText("")

@@ -43,6 +43,10 @@ a {
     outline: 0.2rem solid var(--notes-color-focus);
     outline-offset: 0.2rem;
   }
+
+  .notes-reorder-handle:focus-visible {
+    outline-color: var(--notes-color-icon);
+  }
 }
 
 dialog::backdrop {
@@ -163,7 +167,8 @@ dialog::backdrop {
 
 @media (forced-colors: active) {
   @layer base {
-    :focus-visible {
+    :focus-visible,
+    .notes-reorder-handle:focus-visible {
       outline-color: Highlight;
     }
   }

@@ -32,8 +32,13 @@
   --notes-drawer-width: min(21rem, 88vw);
   --notes-mobile-action-size: 3rem;
   --notes-mobile-action-inset: 1rem;
+  --notes-mobile-list-end-inset: calc(
+    var(--notes-mobile-action-size) +
+    max(var(--notes-mobile-action-inset), env(safe-area-inset-bottom, 0px)) +
+    var(--notes-mobile-action-inset)
+  );
   --notes-touch-target: 2.75rem;
-  --notes-mobile-handle-size: 2.75rem;
+  --notes-mobile-card-min-height: 4rem;
   --notes-mobile-pressed-width: 3px;
   --notes-mobile-sheet-height: 30rem;
   --notes-mobile-sheet-radius: 1.25rem;
