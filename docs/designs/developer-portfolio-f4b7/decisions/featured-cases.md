@@ -1,6 +1,6 @@
 # 홈페이지 Engineering Contribution 선정
 
-인공지능팩토리 경력에는 **Data & Monitoring, Async State & Realtime, Browser Runtime & Realtime Data, Reliability & Delivery** 네 기여를 소개한다. 각 기여에는 담당한 문제, 구체적인 변경 방식과 확인 결과를 적는다. 결과 한 줄과 큰 숫자만으로 기여를 대신하지 않는다.
+인공지능팩토리 경력에는 **Data & Monitoring, Async State & Realtime, Browser Runtime & Realtime Data, Reliability & Delivery**와 **다른 앱에 통합하기 위한 라이브러리 구성**의 다섯 기여를 소개한다. 각 기여에는 담당한 문제, 구체적인 변경 방식과 확인 결과를 적는다. 결과 한 줄과 큰 숫자만으로 기여를 대신하지 않는다.
 
 이 결정은 [Experience 요구사항](../requirements.md#experience)과 [개발자 소개에서 앞세울 가치](developer-positioning.md)를 같은 페이지에서 뒷받침하기 위한 기준이다. 별도의 사례 목록과 상세 페이지는 만들지 않는다.
 
@@ -14,6 +14,9 @@
 - Async State & Realtime은 장시간 작업에서 이벤트와 서버 상태 확인의 역할을 구분한 판단을 보여준다.
 - Browser Runtime & Realtime Data는 대용량 응답 처리 위치와 REST 및 실시간 데이터 병합을 보여준다.
 - Reliability & Delivery는 70개 이상의 실행 가능한 E2E 시나리오와 인증 상태 문제 발견을 보여준다.
+- 라이브러리 구성은 독립 실행하던 프론트엔드를 다른 앱에서도 사용할 수 있도록 Vite 빌드, 타입 선언, CSS와 Provider 연결을 정리한 경험을 보여준다. 기존 네 항목 뒤에 추가하며 이전 회사의 Vite 로딩 개선과 합치지 않는다.
+
+기존 네 항목만 유지하는 구성과 라이브러리 구성 경험을 보태는 구성을 비교했다. 라이브러리 구성은 응답 처리와 인증 문제 해결 이외에 다른 앱과 연결할 때 필요한 판단을 보여주므로 추가한다. 수치 갱신과 추가 사실은 [현재 요구사항](../requirements.md#experience) 및 [소개 내용 조사](../references/profile-content-evidence.md#회사-기여의-갱신-기준)를 따른다.
 
 작업별 이력 구성 경험은 홈페이지의 필수 Contribution에서는 제외하지만, 장시간 작업과 다른 경험의 정보 구성 근거로 사용할 수 있다. 기존 상세 분석은 [경험의 편집 근거](../references/featured-case-copy.md)에 남긴다.
 
