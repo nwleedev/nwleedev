@@ -69,6 +69,8 @@ export function useMobileNoteLongPress({
   }, [])
 
   function onPointerDown(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (session.current !== null) clearSession(true)
+
     if (event.isPrimary) {
       suppressClick.current = false
       if (!disabled && event.button === 0) setPressed(true)
@@ -97,6 +99,8 @@ export function useMobileNoteLongPress({
       }
 
       current.held = true
+      suppressClick.current = true
+      if (longPressEnabled) onLongPress()
     }, LONG_PRESS_DURATION_MS)
 
     session.current = {
@@ -122,7 +126,11 @@ export function useMobileNoteLongPress({
       event.clientY - current.startY,
     )
 
-    if (movement > LONG_PRESS_MOVEMENT_PX) {
+    const inside = current.target.contains(
+      document.elementFromPoint(event.clientX, event.clientY),
+    )
+
+    if (movement > LONG_PRESS_MOVEMENT_PX || !inside) {
       clearSession(true)
     }
   }
@@ -138,18 +146,12 @@ export function useMobileNoteLongPress({
     const releasedInside = event.currentTarget.contains(
       document.elementFromPoint(event.clientX, event.clientY),
     )
-    const shouldRunLongPress =
-      current.held && releasedInside && longPressEnabled
     clearTimeout(current.timer)
     session.current = null
     suppressClick.current = current.held || !releasedInside
 
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
-    }
-
-    if (shouldRunLongPress) {
-      onLongPress()
     }
   }
 
