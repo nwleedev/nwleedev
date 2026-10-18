@@ -14,6 +14,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ## 구현 실행 상태
 
+- U49 포커스 수정 완료: 핸들 클릭의 강제 포커스를 제거하고 클릭 및 터치와 키보드 입력의 포커스 표시를 구분했다. 두 목록에서 클릭과 터치 및 드래그 완료 뒤 외곽선이 남지 않고 키보드 입력의 포커스가 유지되는 것을 확인했다. lint, 타입 검사, 운영 빌드와 일괄 복사 및 touch E2E 38개가 통과했다.
+
 - U49 완료: 메인과 현재 일괄 복사 확인 목록에 공통 카드와 핸들을 적용했다. 핸들 세로 중앙 정렬, 같은 배경과 구분선 제거, 중립색 키보드 포커스 및 공통 드래그 표시를 반영했다. 카드 최소 높이는 4rem, 안쪽 여백과 열 간격은 4px이며 44px 조작 영역은 유지한다. 확인 화면의 초기화를 제거하고 취소 후 메인 복귀와 작업 비우기를 유지했다. lint, 타입 검사, 운영 빌드와 메모, 일괄 복사 및 탐색 E2E 71개가 통과했다.
 - U45: 원본 모바일 목록, 현재 일괄 복사 작업, 저장 목록과 데스크톱 배치가 바꾸는 자료를 구분했다. 모바일 원본 목록의 드래그 대체 제어는 백로그로 옮기고 기존 일괄 복사 대체 제어는 유지한다.
 - U46: `apps/notes/DESIGN.md`와 여섯 시안을 구현 기준으로 확인했다. 시트 30rem, 표시 높이 상한의 여백 1rem과 누름 표시 3 CSS px을 적용했다. 320px 및 390px 화면에서 단계를 비교했으며 실제 스마트폰의 safe area와 도구 모음은 확인하지 않았다.
@@ -351,6 +353,12 @@ DI 확인은 새 코드와 수정 및 재사용한 코드 모두에 적용한다
 완료 근거는 `pnpm notes:lint`, `pnpm notes:typecheck`와 `pnpm notes:test:e2e e2e/batch-copy.spec.ts e2e/mobile-navigation.spec.ts e2e/touch-interactions.spec.ts --max-failures=2`다. 운영 빌드 후 Chromium, Firefox, WebKit 및 Chromium touch 대상 71개 사례가 통과했다.
 
 내장 브라우저의 390×844 화면에서 두 목록의 같은 두 줄 메모는 모두 74px였으며 핸들 중심과 카드 중심이 일치했다. 320×360 확인 화면에서 두 하단 버튼이 가림 없이 표시되고 초기화 버튼이 없는 것을 확인했다. 새 메모 버튼이 마지막 항목을 가리던 문제는 목록 끝 스크롤 여유를 확보해 해소했다.
+
+핸들 포커스의 후속 수정에서는 포인터 시작 시 브라우저의 기본 포커스 동작을 유지하고 핸들의 표시 상태만 입력 방식에 따라 구분한다. `pointer-reorder/index.ts`의 강제 포커스와 기본 동작 취소를 제거하고 pointer capture, 입력 취소 및 이동 완료 뒤 포커스 복원은 유지한다. [Pointer Events의 기본 동작](https://www.w3.org/TR/pointerevents3/#attributes-and-default-actions)과 [포커스 표시 판정](https://www.w3.org/TR/selectors-4/#the-focus-visible-pseudo)을 기준으로 네이티브 버튼 동작을 사용한다. 공통 핸들 안에만 포인터 입력 여부를 두고 클릭과 터치에서 외곽선을 숨기며 키보드 입력 및 포커스 이탈에서 해제한다. 전역 입력 감시나 Provider를 추가하거나 외곽선 제거를 위해 포커스를 빼앗지 않는다. [포커스와 표시를 구분하는 React Aria의 설명](https://react-aria.adobe.com/useFocusRing)을 참고하며 의존성은 추가하지 않는다.
+
+기존 touch 사례는 핸들 자체의 외곽선 부재와 키보드 이후 터치 전환을 확인하도록 보완하고, 기존 일괄 복사 E2E에는 세 브라우저의 두 목록에서 클릭 및 키보드 전환을 관찰하는 사례를 둔다.
+
+포커스 수정은 `pnpm notes:lint`, `pnpm notes:typecheck`와 `pnpm notes:test:e2e e2e/batch-copy.spec.ts e2e/touch-interactions.spec.ts --max-failures=2`로 확인했다. Chromium, Firefox, WebKit의 클릭 및 키보드 입력과 Chromium touch의 실제 터치, 드래그 완료 및 취소를 포함한 38개 사례가 통과했다. 내장 브라우저의 390×844 화면에서도 클릭 후 외곽선이 사라지고 버튼의 실제 포커스는 유지되는 것을 확인했다.
 
 ## 이전 구현 계획
 

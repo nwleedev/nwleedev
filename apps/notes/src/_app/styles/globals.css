@@ -39,13 +39,18 @@ a {
 }
 
 @layer base {
-  :focus-visible {
+  :focus-visible,
+  .notes-reorder-handle:focus {
     outline: 0.2rem solid var(--notes-color-focus);
     outline-offset: 0.2rem;
   }
 
-  .notes-reorder-handle:focus-visible {
+  .notes-reorder-handle:focus {
     outline-color: var(--notes-color-icon);
+  }
+
+  .notes-reorder-handle[data-pointer-focus="true"]:focus {
+    outline: none;
   }
 }
 
@@ -168,7 +173,7 @@ dialog::backdrop {
 @media (forced-colors: active) {
   @layer base {
     :focus-visible,
-    .notes-reorder-handle:focus-visible {
+    .notes-reorder-handle:focus {
       outline-color: Highlight;
     }
   }

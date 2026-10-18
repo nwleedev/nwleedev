@@ -1,4 +1,6 @@
-import type { ComponentPropsWithRef, ReactNode } from "react"
+"use client"
+
+import { useState, type ComponentPropsWithRef, type PointerEvent as ReactPointerEvent, type ReactNode } from "react"
 
 import { GripIcon } from "@/shared/ui/icons"
 
@@ -43,10 +45,25 @@ export function ReorderableTextCard({
   )
 }
 
-export function ReorderHandle(props: ReorderHandleProps) {
+export function ReorderHandle({ onPointerDown, ...props }: ReorderHandleProps) {
+  const [pointerFocused, setPointerFocused] = useState(false)
+
+  function beginPointer(event: ReactPointerEvent<HTMLButtonElement>) {
+    setPointerFocused(true)
+    onPointerDown?.(event)
+  }
+
+  function clearPointerFocus() {
+    setPointerFocused(false)
+  }
+
   return (
     <button
       className="notes-reorder-handle flex min-h-[var(--notes-touch-target)] min-w-[var(--notes-touch-target)] touch-none cursor-grab items-center justify-center self-center rounded-control border-0 bg-transparent text-icon active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-45"
+      data-pointer-focus={pointerFocused}
+      onBlur={clearPointerFocus}
+      onKeyDown={clearPointerFocus}
+      onPointerDown={beginPointer}
       type="button"
       {...props}
     >
