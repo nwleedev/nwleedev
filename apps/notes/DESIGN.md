@@ -1,5 +1,9 @@
 # 개인 메모 디자인 체계
 
+모바일 메모의 시각 구성과 메모 복사, 일괄 복사, 수정 및 삭제의 조작 방식, 모바일과 데스크톱의 드래그 앤 드롭을 다시 설계한다. 모바일 초기 메모 화면에서도 드래그 앤 드롭을 사용할 수 있어야 한다. 구체적인 외형과 조작은 [재설계 요구사항](../../docs/designs/personal-notes-app-8fd/requirements.md#메모-조작과-드래그-앤-드롭-재설계)과 [설계 절차](../../docs/designs/personal-notes-app-8fd/plan.md#재설계할-항목과-진행-순서)에 따라 정한다.
+
+아래의 메모 외형, 누르기 및 길게 누르기, 수정 아이콘, 삭제 제어, 이동 핸들과 드래그 피드백은 재설계할 항목이다. 기존 표현을 새 시안의 필수 조건으로 삼지 않는다. 저장 자료 보존, 실패 복구와 접근성 등 영향을 받지 않는 규칙은 계속 적용한다. 선택한 시각 구성과 조작을 확정한 뒤 기존 UI 규칙을 갱신한다.
+
 개인 메모는 자주 쓰는 텍스트를 빠르게 기록하고, 찾아서 복사하며, 순서대로 모아 재사용하는 작업 화면이다. 본문이 장식과 관리 제어보다 먼저 보여야 하며 복사는 숨은 제스처나 더보기 안에만 두지 않는다.
 
 이 문서는 구현에 적용할 UI 규칙을 관리한다. 사용자 동작과 자료 규칙은 [요구사항](../../docs/designs/personal-notes-app-8fd/requirements.md), 시각 방향은 [텍스트 재사용 작업 화면 결정](../../docs/designs/personal-notes-app-8fd/decisions/focused-text-utility-workspace.md), 조작 수명은 [조작 피드백과 실패 복구 결정](../../docs/designs/personal-notes-app-8fd/decisions/interaction-feedback-and-recovery.md)을 따른다.
