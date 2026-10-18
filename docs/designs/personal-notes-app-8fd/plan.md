@@ -8,7 +8,9 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 다음 작업은 모바일 메모의 시각 구성, 복사, 일괄 복사, 수정과 삭제의 조작 방식, 모바일 및 데스크톱의 드래그 앤 드롭을 다시 설계하는 것이다. 모바일 초기 메모 화면의 드래그 앤 드롭도 포함한다. [요구사항의 재설계 목표](requirements.md#메모-조작과-드래그-앤-드롭-재설계)를 기준으로 U45부터 U48을 진행한다.
 
-모바일 메모는 왼쪽 핸들, 본문과 오른쪽 더보기로 구성한다. 짧은 터치는 개별 복사, 길게 터치는 일괄 복사 추가로 정하고 헤더의 항목 수 링크에서 확인 페이지로 바로 이동한다. 메모 더보기, 삭제 확인과 삭제 완료는 같은 높이의 바텀 시트를 사용하며 완료 시트를 닫기 전까지 실행 취소를 제공한다. [시안과 적용 가능성](references/mobile-note-sheet-design.md)을 U45와 U46의 시각 자료로 사용한다. 초기 화면의 드래그 대상과 놓았을 때 바뀔 내용은 U47에서 정하며, 핸들이 있다는 이유로 특정 동작을 구현하지 않는다.
+모바일 메모는 왼쪽 핸들, 본문과 오른쪽 더보기로 구성한다. 짧은 터치는 개별 복사, 길게 터치는 일괄 복사 추가로 정하고 헤더의 항목 수 링크에서 확인 페이지로 바로 이동한다. 메모 더보기, 삭제 확인과 삭제 완료는 같은 높이의 바텀 시트를 사용하며 완료 시트를 닫기 전까지 실행 취소를 제공한다. 초기 화면의 드래그는 메모 목록 순서를 바꾸며 새로고침과 재실행 후에도 유지한다. 데스크톱 메모 배치와 탐색 순서는 유지한다.
+
+[시안과 적용 가능성](references/mobile-note-sheet-design.md)은 시각 구성을, [코드 변경과 의존성 조사](references/mobile-interaction-implementation-research.md)는 구현 단위별 패턴과 변경 지점을 설명한다. U45부터 U48은 설계와 계획이며 아래 구현 단위는 아직 실행하지 않았다.
 
 ## 재설계할 항목과 진행 순서
 
@@ -18,7 +20,7 @@ U45부터 U48은 새 설계와 구현 계획을 정하는 절차다. 메모 구�
 
 ### U45 사용 상황과 조작 결과 정리
 
-모바일 초기 화면에서 메모를 읽고 복사하거나, 여러 메모를 모아 확인하고, 수정하거나 삭제하는 조작 순서를 정리한다. 모바일과 데스크톱에서 드래그할 대상, 시작점, 놓을 위치와 결과를 구분하고 초기 화면의 드래그가 맡을 동작을 결정할 질문을 정리한다.
+모바일 초기 화면에서 메모를 읽고 복사하거나, 여러 메모를 모아 확인하고, 수정하거나 삭제하는 조작 순서를 정리한다. 초기 화면의 왼쪽 핸들은 모바일 메모 순서만 바꾼다. 확인 화면에서는 일괄 복사 작업 사본의 순서를, 넓은 보드에서는 원본 메모의 위치와 크기를 바꾼다. 화면별 대상 ID와 바뀌는 저장 자료를 구분한다.
 
 짧은 터치 복사, 길게 터치해 추가, 더보기의 명시적 동작, 헤더 링크의 확인 페이지 직접 이동과 삭제 확인 및 완료 시트는 확정 조건으로 사용한다. 별도 수집 상태의 시작, 하단 `다음`과 길게 누르기 개별 복사는 새 조작에서 제외한다. 작업 초기화는 확인 페이지에서도 계속 사용할 수 있도록 배치하고, 현재 작업과 저장 목록 관리의 이동을 구분한다.
 
@@ -26,7 +28,9 @@ U45부터 U48은 새 설계와 구현 계획을 정하는 절차다. 메모 구�
 
 `requirements.md`의 재설계 절을 구체화하고, 재사용할 조사 근거는 기존 `references/mobile-navigation-and-actions-research.md`와 `references/mobile-batch-copy-transition-and-dependency-research.md`에 반영한다. 이 단계에서는 애플리케이션 파일을 변경하지 않는다.
 
-완료 근거는 각 과업의 시작 상태, 입력, 실행 뒤 바뀌는 내용과 취소 절차다. 복사와 편집의 시작 방법은 확정됐으며, 초기 화면의 드래그 의미는 아직 정하지 않았다. 드래그의 놓기 동작에 의존하는 구현 계획만 보류한다. 이 단계는 설계 조사이므로 TDD 대상이 아니다.
+적용 패턴은 사용자 입력, 명령 결과와 화면 상태를 구분하는 책임 분리다. 피할 방식은 이전 UI 제어를 기능 자체로 취급해 함께 삭제하거나 새 화면마다 저장 명령을 복사하는 것이다. [현재 연결 지점](references/mobile-interaction-implementation-research.md#현재-기능을-연결할-지점)에 따라 기존 원문, 초안, 복사 결과와 저장 실패 처리를 각 과업에 연결한다. 이 단계에는 의존성 주입을 추가하지 않는다.
+
+완료 근거는 각 과업의 시작 상태, 입력, 실행 뒤 바뀌는 내용과 취소 절차다. 모바일 순서의 재실행 보존과 데스크톱 자료 유지도 포함한다. 구체적인 저장 형식과 실패 시 재시도 방안은 U48-2의 구현 제안으로 구분한다. 이 단계는 설계 조사이므로 TDD 대상이 아니다.
 
 ### U46 모바일 메모의 시각 구성과 조작안 비교
 
@@ -46,11 +50,17 @@ U45부터 U48은 새 설계와 구현 계획을 정하는 절차다. 메모 구�
 
 완료 근거는 비교 가능한 화면과 과업별 조작 순서, 선택한 안의 이유 및 기존 동작과 달라지는 부분이다. 시각 구성은 TDD로 판정하지 않으며, 구현 단계의 실제 브라우저 확인 항목을 남긴다.
 
+적용 패턴은 표시와 동작 콜백을 나누는 컴포넌트 합성과 상태별 시각 토큰이다. 피할 방식은 생성 이미지의 픽셀을 CSS 값으로 확정하거나, 모든 시트의 닫기 및 높이 규칙을 한꺼번에 바꾸거나, 카드마다 모달을 추가하는 것이다. [시트와 이동 조사](references/mobile-interaction-implementation-research.md#고정-높이-시트와-편집-및-확인-화면-이동)에 따라 조작 후 시트를 유지할 조건과 공통 dialog 표현을 구분한다. 별도 DI 계층은 만들지 않는다.
+
 ### U47 모바일과 데스크톱의 드래그 앤 드롭 설계
 
 U45에서 정한 동작과 U46의 메모 표현을 함께 사용해 드래그 시작, 이동 중 미리보기, 놓을 위치, 자동 스크롤, 완료와 취소를 설계한다. 모바일 초기 화면과 일괄 복사 확인 페이지, 데스크톱 메모와 일괄 복사 항목을 각각 설계한다. 한 화면의 드래그 동작만으로 다른 화면의 설계를 완료하지 않는다.
 
 손가락, 마우스와 키보드에서 같은 결과가 필요한 부분과 다른 표현이 필요한 부분을 구분한다. 드래그가 본문 복사, 편집, 세로 스크롤이나 캔버스 이동과 함께 실행되지 않는지 확인할 조작 순서를 정한다. 드래그를 사용하지 않는 대안과 중단 뒤 원래 상태로 돌아가는 방식도 함께 비교한다.
+
+모바일 초기 목록은 저장한 독립 순서를 사용하고 데스크톱의 geometry, 겹침 및 `tabIndex`를 유지한다. 초기 목록과 확인 목록의 밖에 놓기는 원본 삭제나 항목 추가로 바꾸지 않는다. 넓은 일괄 복사 패널의 바깥 놓기 제거는 기존 기능으로 유지하며 일반 목록의 취소와 구분한다.
+
+적용 패턴은 입력 세션, 임시 미리보기와 완료 명령 분리 및 ID 기반 삽입이다. 피할 방식은 pointer 이동마다 저장하기, 배열 index를 대상 ID로 쓰기, 종료 event 하나만 처리하기와 공간 이동 및 목록 정렬을 범용 훅으로 묶기다. [드래그 조사](references/mobile-interaction-implementation-research.md#입력-미리보기와-완료를-분리하는-드래그)의 취소와 자동 스크롤 조건을 U48-6 및 U48-7에 연결한다.
 
 확정한 표현과 조작을 `apps/notes/DESIGN.md`와 `decisions/responsive-note-presentation.md`에 반영한다. 일괄 복사 순서와 항목 제거 방식을 바꾸면 `decisions/accumulator-ordering-and-recovery.md`도 갱신한다.
 
@@ -58,23 +68,142 @@ U45에서 정한 동작과 U46의 메모 표현을 함께 사용해 드래그 �
 
 ### U48 구현 계획과 완료 조건 확정
 
-U46과 U47에서 정한 선택을 요구사항과 결정 기록에 반영한 뒤 이 계획의 영향을 받는 이전 절차를 갱신한다. U45 이후의 설계 작업과 실제 구현 작업을 구분하고, 구체적인 조작이 미정인 구현 단위는 시작하지 않는다.
+구현은 기존 기능을 유지하는 연결 변경부터 진행하고 실제로 불필요해진 코드만 제거한다. U45부터 U47의 요구사항과 시각 선택을 아래 단위에 연결한다. 파일 이름은 현재 확인한 연결 지점과 생성 후보이며 추상화를 만들기 위한 생성 목록이 아니다. 아래 단위의 상태는 모두 구현 전이다.
 
-구현 단위마다 변경할 화면과 모듈, 생성하거나 수정하거나 제거할 파일, 선행 조건과 사용자가 확인할 동작을 정한다. 복사, 일괄 복사, 수정, 삭제와 드래그가 같은 조작에서 중복 실행되지 않는 조건을 포함한다.
+공통 적용 자료는 [개발 지침](../../dev/README.md), [React Hook Form 지침](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md)이다. 기술 안티패턴 문서는 제안 상태인 부분과 계정 동기화 백로그를 구분한다.
 
-구현 계획은 다음 세 단위로 나눠 구체화한다. 아래 파일은 현재 연결 지점을 설명하며 최종 모듈 구조를 고정하지 않는다.
+현재 로컬 저장을 서버 Query로 바꾸거나 DI, 드래그와 시트를 위해 외부 의존성을 추가하는 계획은 아니다.
 
-- 메모 구성과 터치: `apps/notes/src/_pages/notes/ui/mobile-note-card.tsx`와 `apps/notes/src/_pages/notes/model/use-mobile-note-long-press.ts`, `apps/notes/src/_app/styles/tokens.css`를 수정할 대상으로 둔다. 명시적 복사와 추가, 더보기 및 핸들만 같은 메모 UI에서 제공하고 별도 수정 아이콘을 제거한다. 제스처 판정과 취소의 순수 규칙만 TDD 후보로 두며 실제 Clipboard 쓰기, 스크롤과 뒤따르는 click은 브라우저에서 확인한다.
-- 메모 동작 시트와 삭제 복원: 생성 후보는 `apps/notes/src/_pages/notes/ui/mobile-note-action-sheet.tsx`와 `apps/notes/src/_pages/notes/model/use-mobile-note-action-sheet.ts`다. `apps/notes/src/shared/ui/action-sheet/index.tsx`, `apps/notes/src/shared/ui/action-sheet/use-action-sheet.ts`와 기존 메모 삭제 및 복원 연결부는 수정할 대상으로 둔다. 메모가 제거돼도 시트가 유지돼야 하며, 완료 시트의 복원 자료와 데스크톱의 시간제한 알림을 구분한다. 삭제, 재시도와 복원의 상태 전이는 TDD 후보, 높이 유지, 포커스와 저장된 메모의 삭제 및 복원 여부는 브라우저 확인 대상으로 둔다.
-- 항목 수와 확인 페이지 직접 이동: `apps/notes/src/_pages/notes/ui/mobile-notes-workspace.tsx`, `apps/notes/src/_pages/notes/model/use-mobile-batch-copy-navigation.ts`, `apps/notes/src/features/add-note-to-batch-copy/model/use-mobile-batch-copy-state.ts`와 `apps/notes/src/features/add-note-to-batch-copy/model/mobile-batch-copy-session.ts`, `apps/notes/src/_pages/batch-copy/`의 현재 작업 확인 화면을 수정할 대상으로 둔다. 평상시 목록에서 바로 추가할 수 있게 하고 헤더 링크가 현재 작업의 확인 화면을 열도록 한다. 별도 수집 모드의 진입 및 하단 `다음` UI는 제거하고, 초기화는 확인 화면에서 유지한다. 이전 모드에만 쓰이던 함수와 자료는 실제 사용처가 없어졌을 때 제거하며 저장 목록 관리와 실패 복구는 유지한다. 현재 항목 수, 입력 순서와 작업 사본 수명은 TDD 후보, 직접 이동과 뒤로가기는 브라우저 확인 대상으로 둔다.
+실행 순서는 U48-1, U48-2, U48-3, U48-4, U48-5, U48-6, U48-7, U48-8이다. U48-7의 데스크톱 조작 조사는 다른 저장 자료를 바꾸지 않는 범위에서 독립적으로 진행할 수 있다. 각 단위는 적용할 설계, 변경 파일과 보존할 동작을 확인한 뒤 시작하고 결과를 이 절차에 갱신한다. 한 단위의 마지막 확인 한 번에 해당 결과와 보존 조건을 함께 판단하며 문서만으로 구현 완료를 기록하지 않는다.
 
-시트의 고정 높이와 헤더 항목 수는 공통 이름을 먼저 늘리지 않고 기존 토큰의 역할과 비교해 필요한 값만 추가하도록 계획한다. 생성 후보의 역할과 재사용 가능성을 U48에서 확인하고 최종 파일 구성을 정한다. 현재 삭제 예정 파일은 없으며, 이전 수집 모드에만 쓰이는 코드의 사용처가 사라졌는지 확인한 뒤 제거할 파일을 정한다. U47의 드래그 의미가 정해지기 전에는 드롭이 자료를 바꾸는 구현을 이 세 단위에 끼워 넣지 않는다.
+#### U48-1 평상시 추가와 현재 일괄 복사 작업
 
-[개발 지침](../../dev/README.md), [React Hook Form 지침](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md)을 다시 대조해 순수 규칙, 저장소 연동과 실제 화면 조작의 확인 방법을 나눈다. 기존 구현 절차에 TDD가 적혀 있다는 이유만으로 모든 변경에 TDD를 적용하지 않는다.
+평상시 목록에서 바로 추가하면서 한 실행의 현재 작업, 입력 순서와 원문 스냅샷을 유지한다. 카드, 메뉴와 확인 페이지가 같은 작업을 사용해야 한다.
 
-Cloudflare 배포의 스마트폰에서 첫 이동과 반복 이동을 구분하고, 누른 시점부터 첫 반응과 다음 화면의 조작 가능 시점까지 확인할 조건을 정한다. 지연 허용값과 측정 환경은 실제 근거를 확인한 뒤 정한다. 화면에 로딩 상태가 나타나더라도 실제 이동 시간은 별도로 확인한다.
+- 수정: `apps/notes/src/entities/batch-copy/model/mobile-batch-copy-draft.ts`, `apps/notes/src/features/add-note-to-batch-copy/model/mobile-batch-copy-session.ts`와 `use-mobile-batch-copy-state.ts`. 최초 추가에서 작업을 준비하고 수집 화면을 켜지 않아도 추가할 수 있게 한다. 확인 화면에서도 초기화할 수 있게 하며 돌아온 뒤 같은 작업에 이어서 추가한다.
+- 통합: 카드와 메뉴의 추가를 같은 명령에 연결하고 기존 대기열 및 `indexed-db-mobile-batch-copy-usage-writer.ts`를 재사용한다. UI에 필요한 작업 자료와 진행 상태만 기존 provider에서 제공한다. 새 페이지용 작업 사본이나 별도 provider는 만들지 않는다.
+- 제거: 호출처 전환 후 별도 수집 화면만 위한 `collectionVisible`, `start`, `resumeCollection`과 수집 및 확인 전환 조건의 필요성을 다시 판단한다. 실제 화면 단계와 무관해진 `step` 및 `clickCount`도 사용처와 사용 기록 저장을 대조한 뒤 제거한다. 이를 제거해도 연속 추가, 초기화, 명시적 취소와 확인 편집은 남아야 한다. 이 단위의 새 운영 파일은 필요하지 않다.
 
-완료 근거는 네 설계 목표와 연결된 구현 단위, 확정한 조작, 유지할 자료 및 오류 처리와 확인 가능한 완료 조건이다. 미정인 동작이나 시각 선택은 그 조작을 구현하는 단위의 중단 조건으로 남긴다. U45부터 U48의 완료는 설계와 계획의 완료이며 구현 완료가 아니다.
+적용 패턴은 한 곳에서 관리하는 작업 상태, 명시적 상태 전이와 순차 명령 처리다. 피할 안티패턴은 null 작업을 이유로 첫 입력을 버리기, 추가 중 전체 목록 비활성화, state와 ref마다 다른 작업을 갖기, 숫자를 Effect로 동기화하기와 작업 사본을 IndexedDB에 다시 영속화하기다. [파생 표시 조사](references/mobile-interaction-implementation-research.md#현재-작업-하나와-파생-표시)를 따른다.
+
+의존성 주입은 기존 `_app/composition/use-mobile-batch-copy-adapters.ts`에서 선택한 ID 생성, 시각과 사용 기록 동작에 한정한다. 저장 명령이 필요한 함수만 받고 UI는 연결된 추가 콜백을 사용한다. 현재 작업과 대기열을 DI 객체나 Context에 복제하지 않는다. 실제 타입 및 조립 방안은 [함수 전달 설계](references/mobile-interaction-implementation-research.md#필요한-함수만-전달하는-의존성-주입)를 따른다.
+
+완료 조건은 같은 메모 두 번과 다른 메모 한 번을 연속 추가해 세 스냅샷과 순서가 남는 것이다. 저장 실패 입력은 성공 항목 및 횟수에 포함하지 않고 재시도할 수 있어야 한다. 확인 중 복제와 삭제는 원본, 저장 목록과 사용 횟수를 바꾸지 않는다. 초기화와 취소의 차이, 내부 이동의 작업 유지와 새로고침의 작업 초기화를 보존한다. 순수 상태 전이와 명령 성공 및 실패는 TDD 후보이며 실제 transaction과 빠른 터치는 브라우저 확인 대상이다.
+
+#### U48-2 모바일 메모 순서의 독립 저장
+
+모바일 순서는 새로고침과 브라우저 재실행 후에도 보존한다. `tabIndex`, `geometry`, 생성 시각이나 내용 revision을 모바일 정렬값으로 사용하지 않는다.
+
+- 추가 후보: `apps/notes/src/entities/note/model/mobile-note-order.ts`와 `apps/notes/src/entities/note/api/indexed-db-mobile-note-order-repository.ts`. 메모 ID의 순서, 자체 revision, 유효 ID 및 복원 위치 판정과 저장을 맡긴다. `entities/note/index.ts`에서 필요한 타입과 동작만 제공한다.
+- 수정: `apps/notes/src/_app/composition/indexed-db/open-personal-notes-database.ts`, `migrate-personal-notes-database.ts`, `apps/notes/src/_app/composition/use-note-adapters.ts`, `note.tsx`와 `apps/notes/src/_pages/notes/model/use-notes-data-model.ts`. 별도 순서 record를 읽고 저장하는 제안을 기준으로 실제 이행과 조립을 정한다. 메모와 순서를 함께 바꾸는 생성, 삭제 및 복원은 `apps/notes/src/entities/note/api/indexed-db-note-repository.ts`의 저장 처리와 통합한다.
+- 통합: `apps/notes/src/_pages/notes/ui/notes-collection.tsx`에서 모바일 정렬과 데스크톱 `tabIndex` 정렬을 구분한다. 기존 정상 메모를 빠짐없이 표시하며 새 메모를 목록 끝에 추가한다. 순서가 없는 이전 자료는 실제 기존 목록 순서를 유지하도록 이행한다.
+- 제거: 공통 `orderedNotes`를 두 표현의 유일한 정렬 기준으로 삼는 부분만 대체한다. 데스크톱 정렬, 기존 note 스키마 검사와 v1부터 v3까지의 자료 이행은 제거하지 않는다. 삭제 예정 파일은 없다.
+
+적용 패턴은 메모와 별도인 표시 순서 모델, 자체 revision을 이용한 충돌 확인과 원자적 저장이다. 피할 안티패턴은 데스크톱 배치 필드 재사용, 순서 저장을 위해 전체 메모를 오래된 사본으로 덮어쓰기, read 뒤 검증 없이 전체 ID 배열 저장, 부분 성공과 실패를 모두 성공으로 표시하기다. [순서 저장 조사](references/mobile-interaction-implementation-research.md#순서-저장과-데스크톱-자료-보존)의 별도 record안과 `NoteRecord` 필드 확장안을 이행 및 영향 파일 수로 최종 비교한다.
+
+의존성 주입은 앱 조립부에서 정한 순서 읽기 및 변경 함수에 적용한다. 목록 이동 모듈은 메모 ID, 놓을 대상 ID 및 예상 순서 revision으로 요청하며 성공한 순서 또는 구분 가능한 실패를 받는다. UI에 `IDBDatabase`, repository 전체나 transaction을 전달하지 않는다. 여러 저장 동작을 함께 실행해야 하는 기존 저장 모듈은 응집된 처리를 유지하고 연결만을 위한 한 메서드 wrapper를 늘리지 않는다.
+
+완료 조건은 네 메모의 비인접 순서 변경과 재실행 보존, 생성 후 끝에 추가, 삭제와 실행 취소 후 위치 복원이다. 순서 record의 없는 ID나 중복 ID 때문에 유효한 메모가 사라지지 않아야 한다. 모든 메모의 원문, ID, content revision, 좌표, 크기, 겹침과 데스크톱 탐색 순서 및 사용 횟수는 재정렬 전후에 같아야 한다. 실제 IndexedDB에서 새 DB와 이전 DB, `blocked`, `versionchange`, abort, quota 및 두 탭의 오래된 요청을 확인한다.
+
+ID 삽입, 순서 자료 검증과 충돌 결과는 TDD 후보이고 DB 이행 및 transaction은 브라우저 통합 대상이다. 삭제 복원 시 이웃이 사라진 경우의 위치와 충돌 재시도는 구현 전에 확정하며 원문이나 데스크톱 배치를 고쳐 해결하지 않는다. 새 저장 구조의 이행을 확인하기 전에는 이 구조를 사용하는 삭제 및 드래그 연결을 완료로 판정하지 않는다.
+
+#### U48-3 모바일 메모 구성과 터치 입력
+
+짧은 터치 복사, 길게 터치 추가, 왼쪽 핸들과 오른쪽 더보기를 같은 메모에서 사용할 수 있게 한다. 편집 가능한 원문 사본을 목록에 만들지 않는다.
+
+- 수정: `apps/notes/src/_pages/notes/ui/mobile-note-card.tsx`, `apps/notes/src/_pages/notes/model/use-mobile-note-long-press.ts`, `apps/notes/src/_pages/notes/ui/mobile-notes-workspace.tsx`와 `apps/notes/src/_app/styles/tokens.css`. 본문, 핸들과 더보기를 각각 독립된 조작 영역으로 구성한다. 누름 테두리는 레이아웃 크기를 바꾸지 않게 하고 기존 미리보기 상한과 줄바꿈을 보존한다.
+- 통합: 본문과 더보기 메뉴는 기존 `use-note-copy-action.ts` 및 U48-1의 추가 명령을 사용한다. 아이콘, 버튼과 클래스 결합은 `shared/ui`와 `shared/lib/join-class-names`를 먼저 사용한다. 역할이 같은 색, 테두리, 간격과 눌림 상태만 토큰으로 관리한다.
+- 제거: 카드의 직접 수정 아이콘과 수집 모드에 따라 짧은 터치 뜻을 바꾸는 `batchCopyActive` 분기를 대체한다. 수정 기능은 U48-4의 메뉴로 옮긴다. 생성 후보는 새로운 역할을 확인한 경우의 입력 상태 모듈뿐이며 같은 long press 훅을 다른 이름으로 복제하지 않는다.
+
+적용 패턴은 값을 받는 UI, 직접 사용하는 이벤트 콜백과 하나의 입력 세션이다. 피할 안티패턴은 동작 버튼 중첩, 더보기의 이벤트가 본문까지 실행되기, 타이머에서 추가하고 손을 떼며 다시 복사하기, 목록 전체 `touch-action: none`, 누름 때 border로 본문 밀기다. [입력 조사](references/mobile-interaction-implementation-research.md#입력-미리보기와-완료를-분리하는-드래그)를 따른다.
+
+카드에는 note 표시값과 실행할 콜백만 전달한다. 카드 전용 Context나 DI 컨테이너를 추가하지 않는다. 기존 복사 명령이 Clipboard를 사용자 입력 안에서 먼저 실행하는 순서와 횟수 저장 실패 구분을 유지한다.
+
+완료 조건은 짧게 눌러 원문 전체가 한 번 복사되고 길게 누르면 한 항목만 추가되는 것이다. 길게 누른 뒤 click, 스크롤, 카드 밖 놓기, `pointercancel`, capture 상실과 더보기 및 핸들 입력에서 뜻하지 않은 복사나 추가가 없어야 한다. 눌림 테두리가 손을 떼면 사라지고 본문 줄바꿈이 유지돼야 한다. 순수 판정 규칙만 TDD 후보로 두고 실제 Clipboard, 터치, 네이티브 click과 세로 스크롤은 실제 브라우저로 확인한다.
+
+#### U48-4 고정 높이 메모 시트와 삭제 및 복원
+
+목록에서 메모가 사라진 뒤에도 같은 시트가 완료와 실행 취소를 제공한다. 메모별 시트 여러 개를 만들거나 데스크톱 삭제 알림의 수명을 바꾸지 않는다.
+
+- 추가 후보: `apps/notes/src/_pages/notes/ui/mobile-note-action-sheet.tsx`, `apps/notes/src/_pages/notes/model/use-mobile-note-action-sheet.ts`. 시트는 목록의 카드 반복문 밖에 하나를 두고 단계, 대상 ID, 성공한 삭제 스냅샷과 복원 진행을 관리한다. 순수 상태 전이가 필요하면 같은 model 안에 분리한다.
+- 수정: `apps/notes/src/_pages/notes/ui/mobile-notes-workspace.tsx`, `apps/notes/src/shared/ui/action-sheet/index.tsx`와 `use-action-sheet.ts`. 공통 dialog의 모달, 제목, 닫기 및 포커스 기능을 재사용하면서 메모 시트에만 고정 외곽과 본문 스크롤을 적용할 수 있게 한다.
+- 통합: `use-notes-data-model.ts`의 삭제 및 복원 명령과 필요한 세션 선택 정리를 연결한다. U48-2의 메모 및 순서 원자적 저장과 복원 위치 결과를 사용한다. `use-note-card-actions.ts`의 데스크톱 토스트 및 목록 포커스 후처리는 모바일에서 호출하지 않는다.
+- 제거: 새 모바일 연결에서는 즉시 삭제와 5초 토스트 복원 진입을 대체한다. `NOTE_REMOVAL_UNDO_DURATION_MS`, 데스크톱 LIFO 삭제 이력과 일괄 복사 항목 시트의 조작 후 닫힘은 제거하거나 변경하지 않는다. 공통 시트나 기존 삭제 파일 자체를 삭제할 계획은 없다.
+
+적용 패턴은 단계별 상태 전이, UI와 저장 명령 분리 및 단일 모달 합성이다. 피할 안티패턴은 대상 카드 안에 완료 시트 두기, 여러 boolean으로 단계 조합하기, 삭제 전 완료 표시하기, 실패 중 복원 자료 버리기와 공통 `onClose`에 복원 명령 넣기다. [시트 수명 조사](references/mobile-interaction-implementation-research.md#고정-높이-시트와-편집-및-확인-화면-이동)를 따른다.
+
+의존성 주입은 조정 모듈에 필요한 삭제 및 복원 함수에만 적용한다. 입력은 실제 메모 식별 및 revision이고 결과는 삭제 스냅샷 또는 복원 메모와 실패 정보다. 원본 저장과 순서 저장을 UI가 각각 호출하지 않는다. 시트 표현은 복사, 추가, 수정, 삭제, 복원과 닫기 콜백을 사용하고 저장소나 세션 객체를 받지 않는다.
+
+완료 조건은 메뉴, 확인, 처리, 완료와 실패의 외곽 높이가 같은 것이며 5초 이상 지나도 닫기 전 실행 취소가 되는 것이다. 삭제 및 복원 실패는 같은 대상에서 재시도하고 중복 저장을 막아야 한다. 복원 성공 전에 복원 기회를 지우지 않는다. 포커스는 시트 안에 두며 닫을 때는 남은 대상의 더보기, 다음 메모, 이전 메모나 새 메모 제어로 옮긴다. 처리 중 닫기 요청과 기기 뒤로가기가 저장 결과를 잃지 않도록 같은 판단을 적용한다.
+
+상태 전이와 실패 후 스냅샷 유지만 TDD 후보로 둔다. 실제 삭제 및 복원, 포커스, safe area, 짧은 가로 화면과 200% 글자 확대의 높이는 브라우저로 확인한다. 후보 높이 480 CSS px, 상단 여백 16 CSS px과 누름 테두리 3 CSS px은 실행 확인 전 제안이다.
+
+#### U48-5 항목 수, 확인 직접 이동과 상세 편집 진입
+
+현재 작업 확인과 저장 목록 관리를 모두 유지하면서 헤더 한 번으로 확인 페이지를 연다. 수정 메뉴는 기존 상세 편집으로 연결하며 이탈 확인, 복구 초안과 명시적 저장을 유지한다.
+
+- 수정: `apps/notes/src/_pages/notes/model/use-mobile-batch-copy-navigation.ts`, `apps/notes/src/_pages/notes/ui/mobile-notes-workspace.tsx`, `apps/notes/src/_pages/batch-copy/model/use-batch-copy-page.ts`, `use-mobile-batch-copy-confirmation.ts`와 `apps/notes/src/_pages/batch-copy/ui/mobile-batch-copy-confirmation.tsx`. 현재 작업 확인과 저장 관리의 진입 목적을 구분하고 초기화를 확인 화면에 둔다.
+- 통합: `apps/notes/src/widgets/application-navigation/ui/mobile-navigation.tsx`의 저장 목록 관리와 `apps/notes/src/_pages/notes/ui/note-detail-page.tsx`의 기존 편집을 유지한다. `use-note-detail-navigation.ts`, `use-note-detail-draft.ts`와 기존 React Hook Form 편집 처리는 새 메뉴 때문에 복제하지 않는다. 저장 목록 링크는 현재 작업이 있다는 이유만으로 숨기지 않는다.
+- 추가 후보: 실측상 필요한 경우에만 `apps/notes/app/batch-copy/loading.tsx`와 `apps/notes/app/notes/[noteId]/loading.tsx`. 링크 사전 로딩과 route 준비가 늦는 근거를 확인한 뒤 적용하며 로딩 UI를 실제 이동 시간 단축의 증거로 삼지 않는다.
+- 제거: 별도 수집 헤더, 수집 모드 뒤로가기와 하단 `다음` 및 옮겨진 초기화 UI를 없앤다. U48-1 및 화면 호출처가 전환된 뒤 수집 복귀만 위한 Effect와 전환 중 임시 화면을 정리한다. 확인 페이지, 저장 관리, 초기화, 취소와 뒤로가기 기능은 남긴다. 배지만을 위한 별도 상태 파일은 생성하지 않는다.
+
+적용 패턴은 작업 상태와 탐색 상태 분리, 실제 항목 배열에서 파생한 표시와 필요한 링크의 사전 준비다. 피할 안티패턴은 `clickCount`를 실제 항목 수로 사용하기, 배지 숫자 state 복제, 화면 이동 때 현재 작업 재생성, 돌아온 뒤 Effect로 강제 초기화, 대기 중 저장 관리 화면 점멸과 상세 메모 전체 일괄 prefetch다. [상태 조사](references/mobile-interaction-implementation-research.md#현재-작업-하나와-파생-표시)와 [탐색 조사](references/mobile-interaction-implementation-research.md#고정-높이-시트와-편집-및-확인-화면-이동)를 따른다.
+
+배지는 `entries.length`가 1 이상일 때만 숫자와 붉은 배경을 함께 표시한다. 0개에서는 둘 다 숨기고 아이콘 링크는 유지한다. 이동 중에도 먼저 접수한 추가를 유실하지 않는다. route 준비는 추가 저장 대기와 분리할 수 있지만 저장 실패를 성공으로 표시하거나 입력 순서를 바꾸어서는 안 된다. 필요 함수는 기존 작업 명령과 화면 콜백으로 받으며 router 및 내비게이션 가드는 기존 탐색 조정 모듈에 둔다. DI를 위해 router 전용 서비스나 새 Context를 만들지 않는다.
+
+완료 조건은 추가 직후 확인 페이지, 복제 및 삭제 후 뒤로가기, 초기화 후 배지 숨김과 재추가, 저장 목록 관리 및 새 메모 제어 유지다. 숫자가 여러 자리여도 읽을 수 있어야 한다. 저장 및 이동 실패에서는 같은 항목과 순서를 유지하고 중복 추가 없이 재시도한다. 직접 `/batch-copy` 접속과 새로고침의 기존 저장 관리, `/accumulator` 미지원도 유지한다. 항목 0개에서 링크가 열 화면과 현재 및 저장 작업의 진입 구분 방법은 구현 전에 확정한다. 이를 위해 승인 없이 새 URL 체계를 만들지 않는다.
+
+상세 편집은 긴 원문, 저장 성공 및 실패, 복구 초안, 저장 전 뒤로가기와 다른 페이지 이동에서 기존 결과를 확인한다. 배지 파생값은 표시 결과로 검사하고 navigation, Clipboard 및 폼 수명은 브라우저로 확인한다. Cloudflare의 스마트폰에서 첫 이동과 반복 이동을 나눠 입력, 저장 완료, 첫 화면 반응과 다음 화면 조작 가능 시점을 확인한다. 허용 지연값은 기기 및 측정 근거 없이 임의로 정하지 않는다.
+
+#### U48-6 초기 메모 목록과 일괄 복사 목록의 드래그
+
+U48-2의 모바일 순서 저장과 U48-3의 입력 영역을 연결하고, 확인 및 저장 목록은 각자의 기존 삽입 명령을 유지한다. 모든 목록이 같은 자료를 바꾸도록 통합하지 않는다.
+
+- 추가 후보: `apps/notes/src/_pages/notes/model/use-mobile-note-reorder.ts`. 원본 메모의 모바일 목록 이동을 맡고 U48-2의 이동 함수를 사용한다.
+- 수정: `apps/notes/src/_pages/notes/ui/mobile-note-card.tsx`, `mobile-notes-workspace.tsx`, `apps/notes/src/_pages/batch-copy/model/use-mobile-batch-copy-pointer-reorder.ts`, `apps/notes/src/_pages/batch-copy/ui/mobile-batch-copy-confirmation-list.tsx`, `apps/notes/src/features/edit-batch-copy/model/use-batch-copy-pointer-reorder.ts`와 `ui/batch-copy-list.tsx`.
+- 통합 후보: `apps/notes/src/features/edit-batch-copy/model/reorder-pointer-session.ts`의 도메인에 독립적인 ID 삽입 및 세션 계산을 `apps/notes/src/shared/lib/list-reorder/index.ts`로 옮긴다. 둘 이상의 호출부에서 같은 책임을 확인한 pointer 및 스크롤 연결만 `apps/notes/src/shared/lib/pointer-reorder/`로 분리한다. 도메인 명령과 문구, 패널 바깥 제거는 각 기능에 둔다.
+- 제거: 공통 계산으로 실제 대체한 중복 위치 판정 및 종료 정리만 없앤다. 기존 `reorder-pointer-session.ts`는 모든 운영 및 검사 사용처가 전환되고 기능별 책임이 남지 않을 때만 삭제한다. 공통화를 위해 feature 내부 파일을 다른 feature가 직접 가져오지 않는다.
+
+적용 패턴은 ID 기반 삽입, 입력과 완료 명령 분리 및 필요한 연결부만 공유하는 합성이다. 피할 안티패턴은 DOM index를 저장 식별자로 사용하기, 모든 목록을 하나의 옵션 많은 훅으로 만들기, 이동마다 저장 및 Context 전체 갱신, 고정 보폭의 pointermove에만 의존하는 자동 스크롤과 취소에서 drag 상태 남기기다. [드래그 조사](references/mobile-interaction-implementation-research.md#입력-미리보기와-완료를-분리하는-드래그)를 따른다.
+
+드래그 연결부는 ID와 순서, 처리 상태 및 `onMove` 콜백만 사용한다. 저장 repository나 전체 feature Context를 주입하지 않는다. 순수 삽입 계산은 일반 import로 사용한다. 자동 스크롤은 실제 스크롤 요소를 대상으로 실행하고 손가락을 가장자리에 멈춰도 작동하며 종료 때 frame과 listener를 정리한다. 스크롤한 만큼 놓을 위치 판정도 갱신한다.
+
+완료 조건은 네 항목의 비인접 삽입, 같은 텍스트의 다른 ID, 자기 자신과 유효하지 않은 놓기, 입력 중 대상 제거와 저장 실패 복원이다. 모바일 초기 목록은 원본 목록 순서만, 확인 목록은 현재 작업만, 저장 목록은 저장 항목만 바뀌어야 한다. 모바일에서 목록 밖 놓기는 삭제하지 않고, 넓은 일괄 복사 패널 바깥 제거와 이력은 유지한다. 드래그 없는 위치 변경 대안과 키보드 조작도 같은 명령을 사용하고 이동한 대상의 포커스 및 알림을 유지한다.
+
+삽입 및 순서 규칙은 TDD 후보, 실제 capture, long press, 취소, 터치 스크롤, 자동 스크롤과 삽입선은 브라우저 확인 대상이다. 외부 드래그 라이브러리로 바꾸는 작업은 포함하지 않는다.
+
+#### U48-7 데스크톱 메모 이동과 크기 조절
+
+데스크톱 메모의 공간 이동과 크기 조절을 목록 재정렬과 구분해 다시 설계한다. 기존 선택, 편집과 캔버스 탐색을 유지한다.
+
+- 수정: `apps/notes/src/_pages/notes/model/use-note-geometry-gesture.ts`, `apps/notes/src/_pages/notes/ui/note-card.tsx`와 `notes-board.tsx`. 필요할 때 `model/board-view.ts`, `use-notes-board-view.ts` 및 `apps/notes/src/_app/styles/tokens.css`의 표시 연결을 수정한다.
+- 통합: 메모 위치 및 크기 저장은 기존 `saveGeometry`와 최신 note를 사용하는 변경 대기열을 유지한다. U48-6과 같은 종료 정리만 재사용하고 공간 좌표 계산이나 캔버스 시점 저장을 목록 명령에 넣지 않는다.
+- 제거: 대체한 중복 제스처 정리가 있을 때만 제거한다. 헤더 선택과 더블클릭, Enter 속성, 가장자리 및 꼭짓점 resize, 빈 캔버스 pan, zoom과 전체 맞춤 제어는 제거하지 않는다. 새 운영 파일은 순수 geometry 계산을 실제로 분리할 필요가 있을 때만 만든다.
+
+적용 패턴은 시작 스냅샷, 임시 geometry와 저장 완료를 구분하는 조작 세션이다. 피할 안티패턴은 drag 중 패널을 바꿔 viewport 흔들기, 본문에서 공간 이동 시작하기, 목록 이동 때문에 geometry 저장하기와 중단 처리를 전부 같은 되돌리기로 처리하기다. [드래그 조사](references/mobile-interaction-implementation-research.md#입력-미리보기와-완료를-분리하는-드래그) 및 [반응형 결정](decisions/responsive-note-presentation.md)을 따른다.
+
+기존 `onSave(note, geometry)`와 실패 콜백은 필요한 동작을 이미 전달하므로 새 DI 계층을 추가하지 않는다. 순수 좌표 계산에는 시계, 저장소나 React를 주입하지 않는다.
+
+완료 조건은 축소 및 확대 상태의 이동, 음수와 큰 좌표, 반대편 변을 유지하는 resize와 저장 실패 복구다. 단순 헤더 클릭은 선택, 이동하지 않은 더블클릭 및 Enter는 속성 열기, 본문은 편집을 유지한다. `Command` 표시 복원, `Command+클릭` 복사, 설정에 따른 추가, `Escape`, Tab, 두 패널 전환과 초안을 보존한다. 캔버스 pan 중단은 마지막 유효 시점을 유지하고 메모 이동 취소 및 목록 순서 취소와 구분한다. 실제 mouse, touch, macOS 창 전환과 운영체제 단축키는 브라우저 및 실제 기기에서 확인한다.
+
+#### U48-8 유지할 기능과 제거할 코드의 최종 확인
+
+최종 확인은 새 조작의 성공과 기존 기능의 보존을 같은 사용자 과업으로 판정한다. 새 UI가 보인다는 이유만으로 이전 제어와 검사를 지우지 않는다.
+
+변경한 운영 모듈을 검사하는 기존 `apps/notes/e2e/mobile-navigation.spec.ts`, `touch-interactions.spec.ts`, `batch-copy.spec.ts`, `notes.spec.ts`와 note 상태, 삭제 및 IndexedDB 검사의 보호 목적을 대조한다. 변경이 승인된 이후 실제 바뀐 사용자 행동을 검사하도록 필요한 사례만 조정한다.
+
+- 추가 및 복사: 원문 공백과 줄바꿈, 중복 추가, 입력 순서, Clipboard 실패, 복사 성공 후 기록 실패 및 전체 복사 문자열을 확인한다.
+- 메모와 저장: 생성, 상세 명시적 저장, 데스크톱 자동 저장, 복구 초안, 이탈 확인, 삭제 및 복원과 자료 이행을 확인한다. 모바일 정렬 전후 데스크톱 배치 및 탐색을 비교한다.
+- 목록과 탐색: 새 메모 제어, Drawer의 저장 목록, 현재 작업 확인, 초기화, 취소와 브라우저 뒤로가기, 새로고침을 확인한다. 다른 페이지의 사용 빈도, 분석, 템플릿과 설정 진입도 유지한다.
+- 시각 및 접근성: 320 및 390 CSS px, 짧은 화면과 가로 화면, 200% 글자 확대, safe area, 0개와 여러 자리 배지, 키보드 포커스 및 단일 pointer 대안을 확인한다. 평상시 drop zone이나 상시 안내 문구는 추가하지 않는다.
+
+적용 패턴은 사용자 결과와 저장 불변 조건에 따른 검증이다. 피할 안티패턴은 내부 boolean이나 class 이름만 검사하기, 운영 함수로 예상 순서를 계산하기, 실패하는 검사를 삭제하기와 성능을 위해 접근 가능한 메모를 누락하기다. [테스트 전략](../../dev/personal-notes-app/testing-strategy.md#사용자-과업에서-테스트를-작성하는-순서)을 따른다.
+
+DI 확인은 새 말단 UI가 외부 클라이언트를 import하지 않는지, 각 모듈이 필요한 함수만 받는지와 기존 provider 상태를 복제하지 않았는지로 한정한다. 검사만을 위해 새 의존성, 범용 mock, 전역 상태 조회 UI나 fixture를 만들지 않는다.
+
+구현 때의 기존 검사 명령은 `pnpm notes:lint`, `pnpm notes:typecheck`, 변경 동작을 검사하는 `pnpm notes:test`, `pnpm --filter notes-app test:browser`와 `pnpm notes:test:e2e`다. Cloudflare 확인은 배포 빌드와 첫 이동 및 반복 이동을 구분하며 입력 반응, 저장 대기, 페이지 준비와 렌더링 비용을 따로 관찰한다.
+
+파일 삭제는 모든 사용처가 대체되고 이전 파일이 보호하던 사용자 결과를 다른 증거로 확인했을 때만 진행한다. 기존 테스트도 새 조작으로 대체되는 조건을 먼저 확인하고 그대로 유지할 기능을 검사하는 부분은 약화하지 않는다. 미정인 0개 링크 목적, 드래그 대체 조작의 배치, 복원 위치 fallback과 실제 시각 수치는 영향을 받는 단위에서 확정할 사항이다. U45부터 U48의 완료는 설계와 계획의 완료이며 구현 완료가 아니다.
 
 ## 이전 구현 계획
 
