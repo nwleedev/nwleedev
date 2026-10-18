@@ -14,6 +14,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ## 구현 실행 상태
 
+- U50 진행 전: 모바일 새 메모 버튼의 강조 표현과 길게 누르기의 추가 시점을 변경한다. U49의 카드, 핸들 및 확인 화면 동작은 유지한다.
+
 - U49 카드 최소 높이 조정: 공통 카드의 최소 높이를 4rem에서 6rem으로 높였다.
 
 - U49 포커스 수정 완료: 핸들 클릭의 강제 포커스를 제거하고 클릭 및 터치와 키보드 입력의 포커스 표시를 구분했다. 두 목록에서 클릭과 터치 및 드래그 완료 뒤 외곽선이 남지 않고 키보드 입력의 포커스가 유지되는 것을 확인했다. lint, 타입 검사, 운영 빌드와 일괄 복사 및 touch E2E 38개가 통과했다.
@@ -361,6 +363,30 @@ DI 확인은 새 코드와 수정 및 재사용한 코드 모두에 적용한다
 기존 touch 사례는 핸들 자체의 외곽선 부재와 키보드 이후 터치 전환을 확인하도록 보완하고, 기존 일괄 복사 E2E에는 세 브라우저의 두 목록에서 클릭 및 키보드 전환을 관찰하는 사례를 둔다.
 
 포커스 수정은 `pnpm notes:lint`, `pnpm notes:typecheck`와 `pnpm notes:test:e2e e2e/batch-copy.spec.ts e2e/touch-interactions.spec.ts --max-failures=2`로 확인했다. Chromium, Firefox, WebKit의 클릭 및 키보드 입력과 Chromium touch의 실제 터치, 드래그 완료 및 취소를 포함한 38개 사례가 통과했다. 내장 브라우저의 390×844 화면에서도 클릭 후 외곽선이 사라지고 버튼의 실제 포커스는 유지되는 것을 확인했다.
+
+### U50 모바일 새 메모 버튼과 누르는 동안의 일괄 복사 추가
+
+[확정된 모바일 메모 구성과 조작](requirements.md#확정된-모바일-메모-구성과-조작)을 기준으로 두 절차를 진행한다. 저장 형식, 명령 대기열, 실패 재시도와 사용 횟수 기록은 유지한다. 새 의존성과 Provider는 추가하지 않는다. 두 절차 모두 TDD 대신 구현 후 기존 브라우저 검사를 보완한다.
+
+#### U50-1 새 메모 버튼의 강조 표현
+
+`IconButton`, `mobile-notes-workspace.tsx`, 색 및 그림자 토큰을 수정한다. 투명한 기본 스타일과 강조 스타일을 함께 지정하지 않고 버튼의 역할별 변형으로 구분한다. 원형 크기, 새 메모 생성, 중복 실행 방지, 포커스 및 safe area 여백은 유지한다. 별도의 새 버튼 컴포넌트를 만들지 않는다.
+
+[Material Web의 FAB](https://material-web.dev/components/fab/)는 화면의 주요 동작과 낮은 elevation 변형을 구분한다. [Flutter의 FAB elevation 설명](https://api.flutter.dev/flutter/material/FloatingActionButton/elevation.html)은 기본 높이를 6으로 정한다. 플랫폼의 높이 값을 CSS 그림자로 그대로 옮기지 않고 48px 버튼에 두 층의 짧은 그림자를 적용한다. 정확한 CSS 수치는 이 화면의 구현 선택이며 Material 규격의 복제값이 아니다. 흰색 아이콘은 [WCAG 비문자 대비 기준](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)의 3:1 이상을 확인한다.
+
+기존 `batch-copy.spec.ts`에서 실제 렌더링된 원형, 붉은 배경, 흰색 아이콘과 그림자를 검사한다. 더보기에는 그림자가 없어야 한다. 모바일 탐색 검사로 생성 동작, 짧은 화면의 하단 접근과 마지막 항목 가림을 확인한다. 토큰 이름이나 CSS 클래스 일치만으로 성공을 판정하지 않는다.
+
+#### U50-2 기준 시간 도달 시 한 번 추가
+
+`use-mobile-note-long-press.ts`의 입력 세션과 `touch-interactions.spec.ts`를 수정한다. [React Aria의 long press](https://react-aria.adobe.com/useLongPress)는 기준 시간 도달과 입력 종료를 구분하며, 성립 전 대상 이탈은 취소하고 성립 후 다른 press 동작을 억제한다. 이 구분을 적용해 500ms 도달 시 추가를 시작하고 손을 떼는 처리는 입력 종료만 맡긴다. 본문 누름 표시는 손을 뗄 때까지 유지한다.
+
+대기 타이머와 활성 pointer를 한 세션으로 관리한다. 기준 시간 전 이동, 대상 이탈, capture 상실과 창 비활성화는 추가를 취소한다. 추가가 시작된 뒤의 종료나 취소는 이미 추가한 항목을 제거하지 않는다. 종료 처리에서 추가를 다시 실행하거나, 항목 수를 별도 누계 state로 복제하거나, 주기 타이머로 계속 추가하는 방식은 사용하지 않는다. 필요한 명령은 기존 콜백으로 전달하며 서비스 객체나 Context로 대체하지 않는다.
+
+React 19.2의 [Effect Event 호출 조건](https://react.dev/reference/react/useEffectEvent)에 따라 포인터 핸들러에서 시작한 타이머에 Effect Event를 우회 사용하지 않는다.
+
+실제 touch 입력과 브라우저 clock으로 499ms에는 0개, 500ms에는 손을 떼기 전 1개가 보이는지 확인한다. 계속 누르기, 손 떼기와 추가 이후 취소에서 수가 늘지 않고 Clipboard가 보존되는지 확인한다. 기준 시간 전 이동 및 취소와 다음 짧은 복사, 두 번의 별도 긴 추가, 사용 횟수와 확인 페이지의 원문도 검사한다. 타이머 콜백 직접 호출이나 내부 세션 변수 검사는 사용하지 않는다.
+
+최종 확인은 `pnpm notes:lint`, `pnpm notes:typecheck`와 `pnpm notes:test:e2e e2e/batch-copy.spec.ts e2e/mobile-navigation.spec.ts e2e/touch-interactions.spec.ts --max-failures=2`로 묶는다. 내장 브라우저에서 붉은 원과 흰색 플러스, 그림자 및 화면 여백을 확인한다. 각 절차의 구현과 확인 증거는 실행 상태에 갱신한다.
 
 ## 이전 구현 계획
 
