@@ -14,6 +14,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ## 구현 실행 상태
 
+- U49 카드 최소 높이 조정: 공통 카드의 최소 높이를 4rem에서 6rem으로 높였다.
+
 - U49 포커스 수정 완료: 핸들 클릭의 강제 포커스를 제거하고 클릭 및 터치와 키보드 입력의 포커스 표시를 구분했다. 두 목록에서 클릭과 터치 및 드래그 완료 뒤 외곽선이 남지 않고 키보드 입력의 포커스가 유지되는 것을 확인했다. lint, 타입 검사, 운영 빌드와 일괄 복사 및 touch E2E 38개가 통과했다.
 
 - U49 완료: 메인과 현재 일괄 복사 확인 목록에 공통 카드와 핸들을 적용했다. 핸들 세로 중앙 정렬, 같은 배경과 구분선 제거, 중립색 키보드 포커스 및 공통 드래그 표시를 반영했다. 카드 최소 높이는 4rem, 안쪽 여백과 열 간격은 4px이며 44px 조작 영역은 유지한다. 확인 화면의 초기화를 제거하고 취소 후 메인 복귀와 작업 비우기를 유지했다. lint, 타입 검사, 운영 빌드와 메모, 일괄 복사 및 탐색 E2E 71개가 통과했다.
@@ -342,7 +344,7 @@ DI 확인은 새 코드와 수정 및 재사용한 코드 모두에 적용한다
 
 적용 패턴은 `children` 합성과 상태별 시각 표현이다. [React의 합성 설명](https://react.dev/learn/passing-props-to-a-component#passing-jsx-as-children)을 참고하고 [현재 JSX 규칙](../../dev/personal-notes-app/anti-patterns.md#jsx-렌더링-흐름을-한눈에-확인할-수-있게-작성한다)에 따라 named JSX slot, render prop, 새 Context와 서비스 전달을 추가하지 않는다. 외부 명령은 각 과업에 남기고 공통 표현은 필요한 표시 값과 실제 버튼 이벤트만 사용한다. 핸들 포커스를 통째로 제거하는 방식은 [키보드 포커스 표시 기준](https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html)에 따라 피한다. 정상 종료와 capture 상실 처리는 기존 pointer 세션에 유지한다.
 
-핸들 중앙 정렬은 개별 grid 항목 정렬을 사용해 오른쪽 더보기의 위쪽 정렬과 구분한다. 공통 카드의 최소 높이는 4rem, 외곽 안쪽 여백과 열 간격 및 본문 위아래 여백은 각각 4px로 둔다. 시안의 픽셀을 화면 크기와 무관한 고정 높이로 옮기지 않고 여러 줄 내용에 따라 늘린다. 터치 영역은 44px를 유지한다. [개별 항목 정렬](https://tailwindcss.com/docs/align-self)과 [조작 대상 크기](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)를 참고하며 절대 좌표로 핸들을 옮기거나 여백 축소를 위해 조작 영역까지 줄이지 않는다. 새 메모 버튼이 마지막 항목을 가리지 않도록 목록 끝의 스크롤 여유를 버튼 크기와 safe area에 맞춘다.
+핸들 중앙 정렬은 개별 grid 항목 정렬을 사용해 오른쪽 더보기의 위쪽 정렬과 구분한다. 공통 카드의 최소 높이는 6rem, 외곽 안쪽 여백과 열 간격 및 본문 위아래 여백은 각각 4px로 둔다. 시안의 픽셀을 화면 크기와 무관한 고정 높이로 옮기지 않고 여러 줄 내용에 따라 늘린다. 터치 영역은 44px를 유지한다. [개별 항목 정렬](https://tailwindcss.com/docs/align-self)과 [조작 대상 크기](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html)를 참고하며 절대 좌표로 핸들을 옮기거나 여백 축소를 위해 조작 영역까지 줄이지 않는다. 새 메모 버튼이 마지막 항목을 가리지 않도록 목록 끝의 스크롤 여유를 버튼 크기와 safe area에 맞춘다.
 
 `mobile-batch-copy-confirmation.tsx`에서 초기화 버튼을 제거하고 확인 훅의 미사용 반환값을 정리한다. 취소는 기존 명령과 메인 복귀를 유지하며 헤더 뒤로가기의 작업 보존과 구분한다. 전체 복사, 항목 복제, 삭제, 재정렬과 실패 후 재시도를 보존한다.
 
