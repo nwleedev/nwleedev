@@ -38,7 +38,7 @@
     var(--notes-mobile-action-inset)
   );
   --notes-touch-target: 2.75rem;
-  --notes-mobile-card-min-height: 4rem;
+  --notes-mobile-card-min-height: 6rem;
   --notes-mobile-pressed-width: 3px;
   --notes-mobile-sheet-height: 30rem;
   --notes-mobile-sheet-radius: 1.25rem;
