@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import type { MobileNotePosition } from "./mobile-note-order"
+
 import {
   EntityIdSchema,
   IsoDateTimeSchema,
@@ -79,7 +81,7 @@ export interface NoteReader {
 }
 
 export interface NoteRepository extends NoteReader {
-  save(note: Note): Promise<Note>
+  save(note: Note, position?: MobileNotePosition): Promise<Note>
   saveAll(notes: readonly Note[]): Promise<readonly Note[]>
   remove(note: NoteReference): Promise<void>
 }

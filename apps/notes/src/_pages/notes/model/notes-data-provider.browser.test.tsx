@@ -32,6 +32,10 @@ const drafts: NoteDraftRepository = {
   save: async (draft) => draft,
 }
 
+async function unexpectedMobileOrderAccess(): Promise<never> {
+  throw new Error("This scenario must not access mobile ordering")
+}
+
 function NotesDataProbe() {
   const notesData = useNotesData()
 
@@ -252,6 +256,8 @@ describe("NotesDataProvider", () => {
           createId={() => "created-note"}
           drafts={drafts}
           now={() => timestamp}
+          readMobileOrder={unexpectedMobileOrderAccess}
+          moveMobileNote={unexpectedMobileOrderAccess}
           repository={repository}
           storageMonitor={storageMonitor}
           usage={usage}

@@ -18,7 +18,7 @@ export function Note({
   database,
   usage,
 }: NoteProps) {
-  const { clipboard, createId, drafts, now, repository, storageMonitor } =
+  const { clipboard, createId, drafts, now, repository, storageMonitor, readMobileOrder, moveMobileNote } =
     useNoteAdapters(database)
 
   return (
@@ -28,6 +28,8 @@ export function Note({
       createId={createId}
       drafts={drafts}
       now={now}
+      readMobileOrder={readMobileOrder}
+      moveMobileNote={moveMobileNote}
       repository={repository}
       storageMonitor={storageMonitor}
       usage={usage}

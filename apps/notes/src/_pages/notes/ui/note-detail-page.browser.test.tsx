@@ -83,6 +83,10 @@ const monitor: NoteStorageMonitor = {
   subscribe: () => () => undefined,
 }
 
+async function unexpectedMobileOrderAccess(): Promise<never> {
+  throw new Error("Detail editing must not access mobile ordering")
+}
+
 let container: HTMLDivElement
 let root: Root
 
@@ -107,6 +111,8 @@ async function renderDetail(noteId: string, storage: ReturnType<typeof createSto
           createId={crypto.randomUUID}
           drafts={storage.drafts}
           now={() => new Date().toISOString()}
+          readMobileOrder={unexpectedMobileOrderAccess}
+          moveMobileNote={unexpectedMobileOrderAccess}
           repository={storage.notes}
           storageMonitor={monitor}
           usage={{ recordIndividualCopy: async () => undefined }}

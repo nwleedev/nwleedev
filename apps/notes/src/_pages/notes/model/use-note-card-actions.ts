@@ -3,6 +3,7 @@ import { useRef, type RefObject } from "react"
 import {
   createNoteGeometryDraft,
   createNoteReference,
+  mobileNotePosition,
   noteGeometryDraftFields,
   NOTE_REMOVAL_UNDO_DURATION_MS,
   type Note,
@@ -32,6 +33,7 @@ export function useNoteCardActions(
     moveNoteToFront,
     removeNote,
     restoreNote,
+    readMobileOrder,
     saveContent,
     updateNote,
   } = useNotesData()
@@ -108,9 +110,11 @@ export function useNoteCardActions(
     const nextNote = orderedNotes[removedIndex + 1]
     const previousNote = orderedNotes[removedIndex - 1]
     const focusTarget = nextNote ?? previousNote ?? null
+    const mobileOrder = await readMobileOrder()
+    const position = mobileNotePosition(mobileOrder.ids, note.id)
     const removedNote = await removeNote(note)
     const previousRemovals = session.removals
-    const removal = session.rememberRemoval(removedNote)
+    const removal = session.rememberRemoval(removedNote, position)
 
     session.forgetNote(removedNote.id)
     showRemovalNotice(removal, previousRemovals)
@@ -147,7 +151,7 @@ export function useNoteCardActions(
     revision: number,
   ) {
     try {
-      const restoredNote = await restoreNote(removal.note)
+      const restoredNote = await restoreNote(removal.note, removal.mobilePosition)
       session.forgetRemoval(removal)
       session.select(restoredNote.id)
       requestAnimationFrame(() => focusNote(restoredNote.id))

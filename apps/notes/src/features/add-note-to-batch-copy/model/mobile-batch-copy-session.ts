@@ -39,7 +39,7 @@ export async function addNoteToMobileBatchCopy(
   dependencies: MobileBatchCopyDependencies & {
     writer: MobileBatchCopyUsageWriter
   },
-  draft: CollectingMobileBatchCopyDraft,
+  draft: CollectingMobileBatchCopyDraft | null,
   note: Note,
 ): Promise<AddMobileBatchCopyResult> {
   const updatedAt = dependencies.now()
@@ -58,8 +58,10 @@ export async function addNoteToMobileBatchCopy(
     return { status: "failure" }
   }
 
+  const current = draft ?? startMobileBatchCopy(dependencies)
+
   return {
-    draft: addMobileBatchCopyEntry(draft, entry, updatedAt),
+    draft: addMobileBatchCopyEntry(current, entry, updatedAt),
     status: "added",
   }
 }

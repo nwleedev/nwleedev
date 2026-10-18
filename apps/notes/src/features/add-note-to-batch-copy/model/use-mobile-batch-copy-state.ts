@@ -138,10 +138,6 @@ export function useMobileBatchCopyState({
     return enqueue(async () => {
       const latestDraft = collectingDraft(draft.current)
 
-      if (latestDraft === null) {
-        return { status: "failure" } as const
-      }
-
       const result = await addNoteToMobileBatchCopy(
         { createId, now, writer },
         latestDraft,

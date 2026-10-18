@@ -1,4 +1,18 @@
 export {
+  IndexedDbMobileNoteOrderRepository,
+  MOBILE_NOTE_ORDER_STORE_NAME,
+} from "./api/indexed-db-mobile-note-order-repository"
+export {
+  insertMobileNote,
+  mobileNotePosition,
+  moveMobileNoteId,
+  reconcileMobileNoteIds,
+  type MobileNoteOrder,
+  type MobileNotePosition,
+  type MoveMobileNoteInput,
+  type MoveMobileNoteResult,
+} from "./model/mobile-note-order"
+export {
   IndexedDbNoteRepository,
   NOTE_STORE_NAME,
   StaleNoteRevisionError,

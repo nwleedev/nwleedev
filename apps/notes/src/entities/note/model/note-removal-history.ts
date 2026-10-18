@@ -1,8 +1,10 @@
 import type { Note } from "./note"
+import type { MobileNotePosition } from "./mobile-note-order"
 
 export type RemovedNoteSnapshot = {
   note: Note
   removedAt: string
+  mobilePosition?: MobileNotePosition
 }
 
 export type NoteRemovalHistory = {
@@ -26,9 +28,10 @@ export function rememberRemovedNote(
   history: NoteRemovalHistory,
   note: Note,
   removedAt: string,
+  mobilePosition?: MobileNotePosition,
 ): NoteRemovalHistory {
   return {
-    entries: [...history.entries, { note, removedAt }],
+    entries: [...history.entries, { note, removedAt, ...(mobilePosition ? { mobilePosition } : {}) }],
   }
 }
 

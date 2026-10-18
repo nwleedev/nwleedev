@@ -16,6 +16,7 @@ import {
   NOTE_STORE_NAME,
   IndexedDbNoteDraftRepository,
   IndexedDbNoteRepository,
+  IndexedDbMobileNoteOrderRepository,
   type Note,
   type NoteDraft,
 } from "@/entities/note"
@@ -146,6 +147,27 @@ describe("personal notes IndexedDB storage", () => {
     connections.push(connection)
     return connection
   }
+
+  it("v3의 메모를 바꾸지 않고 기존 탐색 순서로 모바일 순서를 읽는다", async () => {
+    const previous = await openIndexedDatabase({
+      name: PERSONAL_NOTES_DATABASE_NAME,
+      version: 3,
+      upgrade: (database) => {
+        database.createObjectStore(NOTE_STORE_NAME, { keyPath: "id" })
+      },
+    })
+    const companion = { ...note, id: crypto.randomUUID(), tabIndex: note.tabIndex + 1 }
+    const transaction = previous.transaction(NOTE_STORE_NAME, "readwrite")
+    const completed = waitForTransaction(transaction)
+    transaction.objectStore(NOTE_STORE_NAME).put(companion)
+    transaction.objectStore(NOTE_STORE_NAME).put(note)
+    await completed
+    previous.close()
+    const connection = createConnection()
+    expect((await new IndexedDbMobileNoteOrderRepository(connection).read()).ids).toEqual([note.id, companion.id])
+    const records = await new IndexedDbNoteRepository(connection).getAll()
+    expect(new Map(records.map((value) => [value.id, value]))).toEqual(new Map([[note.id, note], [companion.id, companion]]))
+  })
 
   it("restores all persistent records through a new connection", async () => {
     const identifiers = new CryptoEntityIdGenerator()

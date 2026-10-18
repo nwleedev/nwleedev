@@ -19,6 +19,10 @@ import {
   type NoteDraftRepository,
   type NoteGeometry,
   type NoteRepository,
+  type MobileNoteOrder,
+  type MobileNotePosition,
+  type MoveMobileNoteInput,
+  type MoveMobileNoteResult,
 } from "@/entities/note"
 import type { IndividualCopyUsageWriter } from "@/entities/usage"
 import type { ClipboardWriter } from "@/shared/lib/clipboard"
@@ -54,7 +58,9 @@ type NotesDataContextValue = NotesDataState & {
   moveNoteToBack(noteId: string): Promise<readonly Note[]>
   moveNoteToFront(noteId: string): Promise<readonly Note[]>
   removeNote(note: Note): Promise<Note>
-  restoreNote(note: Note): Promise<Note>
+  restoreNote(note: Note, position?: MobileNotePosition): Promise<Note>
+  readMobileOrder(): Promise<MobileNoteOrder>
+  moveMobileNote(input: MoveMobileNoteInput): Promise<MoveMobileNoteResult>
   retry(): void
   saveContent(noteId: string, content: string): Promise<SaveNoteContentResult>
   saveDraft(noteId: string, content: string): Promise<void>
@@ -103,6 +109,8 @@ export type NotesDataDependencies = {
   drafts: NoteDraftRepository
   now(): string
   repository: NoteRepository
+  readMobileOrder(): Promise<MobileNoteOrder>
+  moveMobileNote(input: MoveMobileNoteInput): Promise<MoveMobileNoteResult>
   storageMonitor: NoteStorageMonitor
   usage: IndividualCopyUsageWriter
 }
@@ -114,6 +122,8 @@ export function useNotesDataModel({
   batchCopyShortcutEnabled,
   now,
   repository,
+  readMobileOrder,
+  moveMobileNote,
   storageMonitor,
   usage,
 }: NotesDataDependencies) {
@@ -341,9 +351,9 @@ export function useNotesDataModel({
     })
   }
 
-  async function restoreNote(note: Note) {
+  async function restoreNote(note: Note, position?: MobileNotePosition) {
     return enqueue(async () => {
-      const savedNote = await repository.save(note)
+      const savedNote = await repository.save(note, position)
       const notes = [...availableNotesReference.current, savedNote]
       publishAvailable(notes, draftContentReference.current)
       return savedNote
@@ -356,6 +366,8 @@ export function useNotesDataModel({
     createNote,
     moveNoteToBack,
     moveNoteToFront,
+    readMobileOrder,
+    moveMobileNote,
     batchCopyShortcutEnabled,
     removeNote,
     restoreNote,

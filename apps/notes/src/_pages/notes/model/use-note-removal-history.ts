@@ -6,6 +6,7 @@ import {
   forgetRemovedNote,
   rememberRemovedNote,
   type Note,
+  type MobileNotePosition,
   type RemovedNoteSnapshot,
 } from "@/entities/note"
 
@@ -14,12 +15,12 @@ export function useNoteRemovalHistory(now: () => string) {
     createNoteRemovalHistory,
   )
 
-  const rememberRemoval = useCallback((note: Note) => {
+  const rememberRemoval = useCallback((note: Note, mobilePosition?: MobileNotePosition) => {
     const removedAt = now()
     setRemovalHistory((current) =>
-      rememberRemovedNote(current, note, removedAt),
+      rememberRemovedNote(current, note, removedAt, mobilePosition),
     )
-    return { note, removedAt }
+    return { note, removedAt, mobilePosition }
   }, [now])
 
   const forgetRemoval = useCallback((snapshot: RemovedNoteSnapshot) => {

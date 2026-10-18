@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   IndexedDbNoteDraftRepository,
   IndexedDbNoteRepository,
+  IndexedDbMobileNoteOrderRepository,
+  MOBILE_NOTE_ORDER_STORE_NAME,
+  mobileNotePosition,
   reviseNote,
   sendNoteToFront,
   type Note,
@@ -66,6 +69,75 @@ describe("메모 저장소 모델", () => {
     connections.push(connection)
     return connection
   }
+
+  it("모바일 순서를 새 연결에서 복원하고 원문 및 데스크톱 자료를 보존한다", async () => {
+    const connection = createConnection()
+    const notes = new IndexedDbNoteRepository(connection)
+    const order = new IndexedDbMobileNoteOrderRepository(connection)
+    const originals = Array.from({ length: 4 }, (_, index) => ({
+      ...note,
+      content: `메모 ${index + 1}\n  원문  `,
+      id: crypto.randomUUID(),
+      tabIndex: note.tabIndex + index,
+    }))
+    await notes.saveAll(originals)
+    const before = await order.read()
+    const [first, second, third, fourth] = originals as [Note, Note, Note, Note]
+    await order.move({ expectedRevision: before.revision, noteId: first.id, targetIndex: 3 })
+    connection.close()
+    const next = createConnection()
+    expect((await new IndexedDbMobileNoteOrderRepository(next).read()).ids).toEqual([
+      second.id, third.id, fourth.id, first.id,
+    ])
+    const stored = await new IndexedDbNoteRepository(next).getAll()
+    expect(new Map(stored.map((value) => [value.id, value]))).toEqual(
+      new Map(originals.map((value) => [value.id, value])),
+    )
+  })
+
+  it("두 연결의 오래된 이동은 최신 순서를 덮어쓰지 않는다", async () => {
+    const connection = createConnection()
+    const notes = new IndexedDbNoteRepository(connection)
+    const companion = { ...note, id: crypto.randomUUID(), tabIndex: note.tabIndex + 1 }
+    await notes.saveAll([note, companion])
+    const first = new IndexedDbMobileNoteOrderRepository(connection)
+    const second = new IndexedDbMobileNoteOrderRepository(createConnection())
+    const old = await second.read()
+    await first.move({ expectedRevision: old.revision, noteId: note.id, targetIndex: 1 })
+    const result = await second.move({ expectedRevision: old.revision, noteId: companion.id, targetIndex: 1 })
+    expect(result.status).toBe("conflict")
+    expect(result.order.ids).toEqual([companion.id, note.id])
+    expect((await second.read()).ids).toEqual([companion.id, note.id])
+  })
+
+  it("삭제 및 복원은 모바일 순서를 함께 저장하고 기록 중단은 두 자료를 보존한다", async () => {
+    const connection = createConnection()
+    const notes = new IndexedDbNoteRepository(connection)
+    const order = new IndexedDbMobileNoteOrderRepository(connection)
+    const companion = { ...note, id: crypto.randomUUID(), tabIndex: note.tabIndex + 1 }
+    await notes.saveAll([note, companion])
+    const before = await order.read()
+    const position = mobileNotePosition(before.ids, note.id)
+    const originalPut = IDBObjectStore.prototype.put
+    const put = vi.spyOn(IDBObjectStore.prototype, "put")
+    put.mockImplementation(function (this: IDBObjectStore, value: unknown, key?: IDBValidKey) {
+      const request = originalPut.call(this, value, key)
+      if (this.name === MOBILE_NOTE_ORDER_STORE_NAME) queueMicrotask(() => this.transaction.abort())
+      return request
+    })
+    try {
+      await expect(notes.remove(note)).rejects.toThrow()
+    } finally {
+      put.mockRestore()
+    }
+    expect(await order.read()).toEqual(before)
+    expect(await notes.getAll()).toHaveLength(2)
+    await notes.remove(note)
+    expect((await order.read()).ids).toEqual([companion.id])
+    await notes.save(note, position)
+    expect((await order.read()).ids).toEqual([note.id, companion.id])
+    expect(noteById(await notes.getAll(), note.id)).toEqual(note)
+  })
 
   it("새 연결에서 저장한 원문과 정리된 초안을 다시 읽는다", async () => {
     const firstConnection = createConnection()

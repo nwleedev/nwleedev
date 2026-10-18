@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo } from "react"
 
-import type { Note, NoteReference, RemovedNoteSnapshot } from "@/entities/note"
+import type { Note, NoteReference, RemovedNoteSnapshot, MobileNotePosition } from "@/entities/note"
 
 import type { NotePropertiesFocus, NoteWorkspaceState } from "./note-workspace-state"
 import { useNoteRemovalHistory } from "./use-note-removal-history"
@@ -23,7 +23,7 @@ type NoteSessionContextValue = {
   forgetBatchCopyItem(itemId: string): void
   forgetNote(noteId: string): void
   forgetRemoval(snapshot: RemovedNoteSnapshot): void
-  rememberRemoval(note: Note): RemovedNoteSnapshot
+  rememberRemoval(note: Note, position?: MobileNotePosition): RemovedNoteSnapshot
   restorePropertiesTarget(note: NoteReference): void
   select(noteId: string): void
   toggleBatchCopyItem(itemId: string): void

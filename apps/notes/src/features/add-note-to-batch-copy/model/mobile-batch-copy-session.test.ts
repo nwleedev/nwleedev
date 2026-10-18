@@ -61,6 +61,33 @@ function addedDraft(
 }
 
 describe("모바일 일괄 복사 실행 작업", () => {
+  it("수집 시작 없이 첫 추가로 작업을 만들고 다음 추가의 원문과 순서를 유지한다", async () => {
+    const dependencies = createDependencies()
+    const note = createNote("  첫 원문\n다음 줄  ")
+    const other = createNote("다른 메모")
+    const first = addedDraft(await addNoteToMobileBatchCopy(dependencies, null, note))
+    const second = addedDraft(await addNoteToMobileBatchCopy(dependencies, first, note))
+    const third = addedDraft(await addNoteToMobileBatchCopy(dependencies, second, other))
+
+    expect(third.entries.map(({ textSnapshot }) => textSnapshot)).toEqual([
+      note.content, note.content, other.content,
+    ])
+    expect(new Set(third.entries.map(({ id }) => id)).size).toBe(3)
+    expect(dependencies.getUsageRecords()).toEqual([note, note, other])
+    expect(first.entries).toHaveLength(1)
+  })
+
+  it("첫 기록 실패는 빈 작업을 성공으로 만들지 않고 같은 메모를 다시 추가할 수 있다", async () => {
+    const note = createNote("재시도할 원문")
+    const failure = await addNoteToMobileBatchCopy(createDependencies(true), null, note)
+    expect(failure).toEqual({ status: "failure" })
+
+    const dependencies = createDependencies()
+    const retried = addedDraft(await addNoteToMobileBatchCopy(dependencies, null, note))
+    expect(retried.entries.map(({ textSnapshot }) => textSnapshot)).toEqual([note.content])
+    expect(dependencies.getUsageRecords()).toEqual([note])
+  })
+
   it("새 실행은 비어 있는 수집 작업으로 시작한다", () => {
     const draft = startMobileBatchCopy(createDependencies())
 
