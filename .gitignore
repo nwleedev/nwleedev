@@ -375,5 +375,4 @@ temps/
 
 PROBLEMS.md
 
-media/dev
-media/test
+media/*
