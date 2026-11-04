@@ -63,24 +63,18 @@ export function useActionPopover() {
     setExpanded(open)
     if (open) {
       placePopover(popover)
+      popover.querySelector<HTMLButtonElement>("button")?.focus()
+      return
     }
-    requestAnimationFrame(() => {
-      if (open) {
-        if (popover.isConnected) {
-          popover.querySelector<HTMLButtonElement>("button")?.focus()
-        }
-        return
-      }
 
-      const activeElement = document.activeElement
-      const focusStayedInPopover =
-        activeElement === document.body ||
-        popover.contains(activeElement)
+    const activeElement = document.activeElement
+    const focusStayedInPopover =
+      activeElement === document.body ||
+      popover.contains(activeElement)
 
-      if (focusStayedInPopover && triggerRef.current?.isConnected) {
-        triggerRef.current?.focus()
-      }
-    })
+    if (focusStayedInPopover && triggerRef.current?.isConnected) {
+      triggerRef.current.focus()
+    }
   }
 
   return {
