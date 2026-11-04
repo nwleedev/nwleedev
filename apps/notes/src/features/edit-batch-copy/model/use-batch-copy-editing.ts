@@ -60,10 +60,11 @@ export function useBatchCopyEditing({
   )
 
   function move(itemId: string, index: number): Promise<boolean> {
+    const request = onMove(itemId, index)
     return new Promise((resolve) => {
       startTransition(async () => {
         applyOptimistic({ index, itemId, kind: "move" })
-        const result = await onMove(itemId, index)
+        const result = await request
 
         if (result.status === "failure") {
           setFailure({
@@ -94,9 +95,10 @@ export function useBatchCopyEditing({
   }
 
   function remove(itemId: string) {
+    const request = onRemove(itemId)
     startTransition(async () => {
       applyOptimistic({ itemId, kind: "remove" })
-      const result = await onRemove(itemId)
+      const result = await request
 
       if (result.status === "failure") {
         setFailure({

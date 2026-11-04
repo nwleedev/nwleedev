@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  Fragment,
   type PointerEvent as ReactPointerEvent,
 } from "react"
 
@@ -8,6 +9,8 @@ import { joinClassNames } from "@/shared/lib/join-class-names"
 import { IconButton } from "@/shared/ui/icon-button"
 import {
   DuplicateIcon,
+  MoveFirstIcon,
+  MoveLastIcon,
   ArrowDownIcon,
   ArrowUpIcon,
   BringToFrontIcon,
@@ -22,7 +25,8 @@ import { useActionPopover } from "./use-action-popover"
 
 export type ActionPopoverAction = {
   id: string
-  icon: "back" | "down" | "duplicate" | "front" | "move" | "properties" | "remove" | "up"
+  icon: "back" | "down" | "duplicate" | "first" | "last" | "front" | "move" | "properties" | "remove" | "up"
+  group?: string
   label: string
   tone?: "danger" | "neutral"
   onSelect(): void
@@ -37,7 +41,6 @@ type ActionPopoverProps = {
 
 type ActionPopoverRowProps = {
   action: ActionPopoverAction
-  separated: boolean
 }
 
 function ActionPopoverIcon({ icon }: Pick<ActionPopoverAction, "icon">) {
@@ -61,6 +64,9 @@ function ActionPopoverIcon({ icon }: Pick<ActionPopoverAction, "icon">) {
     return <SendToBackIcon />
   }
 
+  if (icon === "first") return <MoveFirstIcon />
+  if (icon === "last") return <MoveLastIcon />
+
   if (icon === "up") {
     return <ArrowUpIcon />
   }
@@ -74,12 +80,10 @@ function ActionPopoverIcon({ icon }: Pick<ActionPopoverAction, "icon">) {
 
 function ActionPopoverRow({
   action,
-  separated,
 }: ActionPopoverRowProps) {
   const rowClassName = joinClassNames(
-    "flex min-h-10 w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm font-semibold text-text hover:bg-canvas focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[-0.2rem] focus-visible:outline-[var(--notes-color-focus)] active:bg-feedback active:text-on-accent",
-    action.tone === "danger" ? "text-danger hover:bg-danger/10 active:bg-danger/15" : undefined,
-    separated ? "mt-1 border-t border-line pt-2" : undefined,
+    "flex min-h-10 w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm font-semibold hover:bg-canvas focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[-0.2rem] focus-visible:outline-[var(--notes-color-focus)] active:bg-feedback active:text-on-accent",
+    action.tone === "danger" ? "text-danger hover:bg-danger/10 active:bg-danger/15" : "text-text",
   )
 
   return (
@@ -142,7 +146,7 @@ export function ActionPopover({
       </IconButton>
       <div
         aria-label={label}
-        className="fixed inset-auto z-50 m-0 w-44 rounded-panel border border-border-strong bg-surface-raised p-1.5 text-text shadow-floating"
+        className="fixed inset-auto z-50 m-0 w-52 max-w-[calc(100vw-2rem)] rounded-panel border border-border-strong bg-surface-raised p-1.5 text-text shadow-floating"
         id={popoverId}
         onPointerDown={stopPointer}
         onToggle={handleToggle}
@@ -152,11 +156,12 @@ export function ActionPopover({
         style={popoverStyle}
       >
         {closeThenRunActions.map((action, index) => (
-          <ActionPopoverRow
-            action={action}
-            key={action.id}
-            separated={index > 0 && action.tone === "danger"}
-          />
+          <Fragment key={action.id}>
+            {index > 0 && (
+              action.group !== actions[index - 1].group || action.tone === "danger"
+            ) ? <hr className="mx-2 my-1 border-0 border-t border-line" /> : null}
+            <ActionPopoverRow action={action} />
+          </Fragment>
         ))}
       </div>
     </>

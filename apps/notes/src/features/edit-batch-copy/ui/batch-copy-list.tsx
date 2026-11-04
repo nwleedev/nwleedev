@@ -1,5 +1,7 @@
 "use client"
 
+import { createPortal } from "react-dom"
+
 import type {
   KeyboardEvent as ReactKeyboardEvent,
   MouseEvent as ReactMouseEvent,
@@ -95,9 +97,11 @@ function BatchCopyRow({
   const itemLabel = `${positionText}번째 일괄 복사 항목`
   const handleLabel = `${itemLabel} 이동`
   const rowClassName = joinClassNames(
-    "relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-control border border-border bg-surface-raised p-2 transition-[border-color,opacity,transform]",
+    "relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-control border border-border bg-surface-raised p-2 transition-[border-color,opacity] duration-[var(--notes-motion-fast)] motion-reduce:transition-none",
+    presentation === "panel" ? "border-transparent" : undefined,
     selected ? "border-selection ring-1 ring-inset ring-selection" : undefined,
-    dragging ? "-translate-y-0.5 border-border-strong opacity-85 shadow-floating" : undefined,
+    dragging && actionPresentation === "popover" ? "opacity-35" : undefined,
+    dragging && actionPresentation !== "popover" ? "-translate-y-0.5 border-border-strong opacity-85 shadow-floating" : undefined,
     outside ? "border-danger bg-danger/5" : undefined,
     dropPlacement === "before"
       ? "before:absolute before:-top-1.5 before:left-1 before:right-1 before:h-0.5 before:rounded-full before:bg-accent"
@@ -216,6 +220,8 @@ export function BatchCopyList({
     drag,
     list,
     moveBy,
+    moveTo,
+    registerPreview,
     onKeyDown,
     onPointerCancel,
     onPointerDown,
@@ -247,12 +253,20 @@ export function BatchCopyList({
     return createBatchCopyItemActions({
       canMoveDown: reorderButtonsEnabled && position < editing.items.length - 1,
       canMoveUp: reorderButtonsEnabled && position > 0,
+      ends: actionPresentation === "popover" && presentation === "panel"
+        ? {
+            onMoveFirst: () => { moveTo(item.id, position, 0) },
+            onMoveLast: () => { moveTo(item.id, position, editing.items.length - 1) },
+          }
+        : undefined,
       onDuplicate: () => editing.duplicate(item.id),
       onMoveDown: () => { moveBy(item.id, position, 1) },
       onMoveUp: () => { moveBy(item.id, position, -1) },
       onRemove: () => editing.remove(item.id),
     })
   }
+
+  const draggedItem = drag?.active ? editing.items.find(({ id }) => id === drag.itemId) : undefined
 
   const activeActions = activeItem === undefined
     ? []
@@ -315,6 +329,18 @@ export function BatchCopyList({
           )
         })}
       </ol>
+      {draggedItem !== undefined && drag !== null && actionPresentation === "popover" ? createPortal(
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed left-0 top-0 z-50 grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-control border border-border bg-surface-raised p-2 text-sm leading-6 text-text shadow-floating"
+          ref={registerPreview}
+        >
+          <span className="flex min-h-10 min-w-10 items-center justify-center text-icon"><GripIcon /></span>
+          <p className="min-w-0 whitespace-pre-wrap break-words px-1 py-2">{draggedItem.textSnapshot || "빈 메모"}</p>
+          <span className="p-2 text-icon"><MoreIcon /></span>
+        </div>,
+        drag.container,
+      ) : null}
       <BatchCopyActionSheet
         actions={activeActions}
         itemLabel={activeLabel}

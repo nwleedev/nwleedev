@@ -23,6 +23,7 @@ const EDGE_SCROLL_AREA_PX = 32
 const EDGE_SCROLL_STEP_PX = 6
 
 type DragView = {
+  container: HTMLElement
   active: boolean
   itemId: string
   originalIndex: number
@@ -31,10 +32,12 @@ type DragView = {
 }
 
 type ActiveSession = {
+  container: HTMLElement
   itemId: string
   outside: boolean
   pointerId: number
   state: ReturnType<typeof createReorderPointerSession>
+  preview: { width: number; height: number; offsetX: number; offsetY: number }
   target: HTMLButtonElement
   x: number
   y: number
@@ -107,6 +110,7 @@ export function useBatchCopyPointerReorder({
   presentation,
   selectedItemId,
 }: UseBatchCopyPointerReorderOptions) {
+  const preview = useRef<HTMLDivElement | null>(null)
   const list = useRef<HTMLOListElement>(null)
   const activeSession = useRef<ActiveSession | null>(null)
   const itemHandles = useRef(new Map<string, HTMLButtonElement>())
@@ -194,6 +198,20 @@ export function useBatchCopyPointerReorder({
   })
   useEffect(() => { cancelChangedItems() }, [items, pending])
 
+  function previewTransform(current: ActiveSession) {
+    return `translate(${current.x - current.preview.offsetX}px, ${current.y - current.preview.offsetY}px)`
+  }
+
+  function registerPreview(element: HTMLDivElement | null) {
+    preview.current = element
+    const current = activeSession.current
+    if (element !== null && current !== null) {
+      element.style.width = `${current.preview.width}px`
+      element.style.minHeight = `${current.preview.height}px`
+      element.style.transform = previewTransform(current)
+    }
+  }
+
   function registerHandle(itemId: string, element: HTMLButtonElement | null) {
     if (element === null) {
       itemHandles.current.delete(itemId)
@@ -217,7 +235,12 @@ export function useBatchCopyPointerReorder({
     event.preventDefault()
     const target = event.currentTarget
     target.focus({ preventScroll: true })
+    const bounds = target.closest("li")?.getBoundingClientRect()
+    if (bounds === undefined) return
+    const container = target.closest("dialog") ?? document.body
     activeSession.current = {
+      container,
+      preview: { width: bounds.width, height: bounds.height, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top },
       itemId,
       outside: false,
       pointerId: event.pointerId,
@@ -237,6 +260,7 @@ export function useBatchCopyPointerReorder({
     }
     target.setPointerCapture(event.pointerId)
     setDrag({
+      container,
       active: false,
       itemId,
       originalIndex: position,
@@ -268,6 +292,9 @@ export function useBatchCopyPointerReorder({
     if (listElement === null) return
     current.x = clientX
     current.y = clientY
+    if (preview.current !== null) {
+      preview.current.style.transform = previewTransform(current)
+    }
     const panel = current.target.closest<HTMLElement>("[data-batch-copy-panel-boundary]")
     const panelBounds = panel?.getBoundingClientRect()
     let outside = false
@@ -284,7 +311,7 @@ export function useBatchCopyPointerReorder({
       if (previous?.active === state.active && previous.targetIndex === state.targetIndex) {
         if (previous.outside === outside) return previous
       }
-      return { active: state.active, itemId: current.itemId, originalIndex: state.originalIndex, outside, targetIndex: state.targetIndex }
+      return { container: current.container, active: state.active, itemId: current.itemId, originalIndex: state.originalIndex, outside, targetIndex: state.targetIndex }
     })
   }
 
@@ -330,10 +357,9 @@ export function useBatchCopyPointerReorder({
     }
   }
 
-  function moveBy(itemId: string, position: number, offset: -1 | 1) {
-    const targetIndex = position + offset
+  function moveTo(itemId: string, position: number, targetIndex: number) {
 
-    if (targetIndex < 0 || targetIndex >= items.length) {
+    if (targetIndex === position || targetIndex < 0 || targetIndex >= items.length) {
       return false
     }
 
@@ -345,6 +371,10 @@ export function useBatchCopyPointerReorder({
       }
     })
     return true
+  }
+
+  function moveBy(itemId: string, position: number, offset: -1 | 1) {
+    return moveTo(itemId, position, position + offset)
   }
 
   function onKeyDown(
@@ -368,10 +398,12 @@ export function useBatchCopyPointerReorder({
   }
 
   return {
+    registerPreview,
     announcement,
     drag,
     list,
     moveBy,
+    moveTo,
     onKeyDown,
     onPointerCancel,
     onPointerDown,

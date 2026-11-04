@@ -311,3 +311,19 @@ export function DuplicateIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function MoveFirstIcon(props: IconProps) {
+  return (
+    <svg {...props} aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16">
+      <path d="M3 2h10M8 14V5M4.5 8.5 8 5l3.5 3.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function MoveLastIcon(props: IconProps) {
+  return (
+    <svg {...props} aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16">
+      <path d="M3 14h10M8 2v9M4.5 7.5 8 11l3.5-3.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
