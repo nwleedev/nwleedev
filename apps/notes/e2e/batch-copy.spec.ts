@@ -242,6 +242,66 @@ test("설정을 꺼도 데스크탑 패널에서 가능한 방향으로 이동�
   ).toBeVisible()
 })
 
+test("패널 너비를 조절하고 취소, 새로고침과 창 크기 변경에서 유지한다", async ({ page }) => {
+  const { panel } = await createDesktopBatchCopy(page)
+  const resize = page.getByRole("separator", { name: "일괄 복사 너비" })
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(320)
+  const headerHeight = await panel.getByRole("heading", { name: "일괄 복사" }).evaluate(
+    (heading) => heading.parentElement!.getBoundingClientRect().height,
+  )
+  expect(headerHeight).toBe(60)
+  const edge = await visibleBox(resize)
+  const x = edge.x + edge.width / 2
+  const y = edge.y + 120
+  await page.mouse.move(x, y)
+  await page.mouse.down()
+  await page.mouse.move(x - 120, y, { steps: 12 })
+  await page.mouse.up()
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(440)
+
+  const movedEdge = await visibleBox(resize)
+  await page.mouse.move(movedEdge.x + movedEdge.width / 2, y)
+  await page.mouse.down()
+  await page.mouse.move(movedEdge.x - 50, y, { steps: 6 })
+  await page.keyboard.press("Escape")
+  await page.mouse.up()
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(440)
+  await page.reload()
+  await page.getByRole("button", { name: "일괄 복사 2개", exact: true }).click()
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(440)
+
+  await resize.press("ArrowLeft")
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(456)
+  await resize.press("ArrowRight")
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(440)
+  await page.setViewportSize({ width: 1600, height: 720 })
+  await resize.press("End")
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(640)
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(512)
+  await page.setViewportSize({ width: 1600, height: 720 })
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(640)
+  await resize.press("Home")
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(280)
+})
+
+test("브라우저가 너비 보관을 거부해도 현재 패널의 크기는 조절할 수 있다", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "localStorage", {
+      get() { throw new DOMException("Storage denied", "SecurityError") },
+    })
+  })
+  await page.reload()
+  const { panel } = await createDesktopBatchCopy(page)
+  const resize = page.getByRole("separator", { name: "일괄 복사 너비" })
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(320)
+  await resize.press("ArrowLeft")
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(336)
+  await page.reload()
+  await page.getByRole("button", { name: "일괄 복사 2개", exact: true }).click()
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(320)
+})
+
 test("항목 메뉴는 첫 화면 프레임부터 실행 버튼 옆에 표시된다", async ({ page }) => {
   const { firstContent, panel, secondContent } = await createDesktopBatchCopy(page)
 

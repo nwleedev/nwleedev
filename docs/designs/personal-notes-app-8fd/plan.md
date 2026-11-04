@@ -50,11 +50,13 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ### 패널 너비, 기기별 보관과 60px 헤더
 
+상태: `pass`. 기본 320px, 좌우 0.75rem과 패널 헤더 60px를 적용했다. 왼쪽 조절선의 드래그, Escape 취소, 방향키 및 Home/End, 새로고침 복원과 창 축소 후 선호 너비 복원을 세 브라우저에서 확인했다. 관련 9건 및 저장 거부와 패널 전환 6건이 각각 통과했다. 코드 검토에서 너비 저장을 조작 완료 시점으로 제한하고 속성 패널의 기존 토큰을 유지한 것을 확인했다. 조절선만 React 상태를 갱신하며 작업 영역 너비는 CSS 변수로 적용한다. 내장 브라우저에서 기본 너비와 헤더 배치를 확인했다. 새 카드 배치에서의 확대 및 전체 화면 통합 검사는 남아 있다.
+
 - 디자인 패턴: 두 영역 사이 크기 조절과 조작 중 값 및 완료값의 구분. 보관할 너비와 현재 창에서 표시 가능한 너비를 구분한다.
 - 서비스 구성: `_pages/notes`가 패널 표시와 너비 조절을 관리한다. 기기별 너비만 브라우저에 보관하고 메모 및 서버 공유 설정과 분리한다. 일괄 복사와 속성 패널은 서로의 너비와 여백을 변경하지 않는다. 일괄 복사 전용 디자인 토큰으로 좌우 0.75rem을 적용한다. 드래그 중에는 저장을 반복하지 않고 완료 시 보관한다.
-- 파일 배치: `_pages/notes/ui/batch-copy-workspace.tsx`, `model/use-batch-copy-workspace.ts`, `model/use-batch-copy-panel.ts`와 `_app/styles/tokens.css`를 수정한다. 신규 후보는 `_pages/notes/model/use-batch-copy-panel-width.ts`와 `_pages/notes/api/panel-width-storage.ts`다. 전자는 너비와 입력 수명, 후자는 너비 한 값의 읽기 및 쓰기를 맡는다. 순수 너비 보정 검사가 필요하면 같은 model 폴더의 `batch-copy-panel-width.test.ts`를 추가한다. 범용 저장 클래스나 별도 테이블은 만들지 않는다.
+- 파일 배치: `_pages/notes/ui/batch-copy-workspace.tsx`, `model/use-batch-copy-workspace.ts`, `model/use-batch-copy-panel.ts`와 `_app/styles/tokens.css`를 수정한다. 신규 후보는 `_pages/notes/model/use-batch-copy-panel-width.ts`와 `_pages/notes/api/panel-width-storage.ts`다. 전자는 너비와 입력 수명, 후자는 너비 한 값의 읽기 및 쓰기를 맡는다. 조절선 UI는 `_pages/notes/ui/batch-copy-panel-resize.tsx`로 분리해 너비 변화가 메모 목록의 React 렌더링을 유발하지 않게 한다. 범용 저장 클래스나 별도 테이블은 만들지 않는다.
 - 공학적 지식: pointer capture 및 취소, 상한과 하한 보정, 키보드 separator, 동기식 브라우저 저장의 비용, SSR 초기값과 hydration. 후보값은 기본 320px, 최소 280px, 최대 `min(640px, 작업 영역 너비 - 48rem)`다. 나란한 패널의 기존 72rem 전환 기준을 유지하고 모달은 크기 조절 대상에서 제외하는 안을 사용한다. 저장 실패에서는 현재 화면의 조절을 유지하고 다음 접속의 기본값 복귀를 허용한다.
-- 테스트와 TDD: 너비 계산과 잘못된 보관값의 보정은 입력과 기대값이 분명하므로 TDD가 적합하다. 실제 테두리 드래그, 방향키, 취소, 새로고침 복원, 창 축소 후 확대, 저장 불가 조건은 브라우저에서 확인한다. 너비 변경이 메모의 저장 위치 및 크기를 바꾸지 않는지 확인한다. 약 60px 헤더에서 제목, 항목 수와 닫기 버튼의 수직 중앙 정렬 및 320px 너비에서의 잘림을 확인한다. 좌우 여백은 각각 0.75rem인지 확인하며 속성 패널의 여백은 유지한다. 헤더 CSS에는 TDD를 적용하지 않는다.
+- 테스트와 TDD: 실제 구현은 브라우저 측정과 포인터 입력을 함께 처리하므로 별도 순수 계산 모듈 및 TDD는 추가하지 않았다. 실제 저장 거부 조건은 localStorage 접근 실패를 주입하고 화면 조절 및 새로고침의 기본값 복귀로 확인한다. 실제 테두리 드래그, 방향키, 취소, 새로고침 복원, 창 축소 후 확대, 저장 불가 조건은 브라우저에서 확인한다. 너비 변경이 메모의 저장 위치 및 크기를 바꾸지 않는지 확인한다. 약 60px 헤더에서 제목, 항목 수와 닫기 버튼의 수직 중앙 정렬 및 320px 너비에서의 잘림을 확인한다. 좌우 여백은 각각 0.75rem인지 확인하며 속성 패널의 여백은 유지한다. 헤더 CSS에는 TDD를 적용하지 않는다.
 
 ### 데스크탑 및 모바일 카드의 헤더와 본문
 

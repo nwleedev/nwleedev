@@ -51,6 +51,9 @@
   --notes-mobile-sheet-inset: 16px;
   --notes-mobile-sheet-top-gap: 1rem;
   --notes-mobile-menu-row-height: 56px;
+  --notes-batch-panel-width: 320px;
+  --notes-batch-panel-header-height: 60px;
+  --notes-batch-panel-inset: 0.75rem;
   --notes-panel-width: clamp(22rem, 30vw, 32rem);
   --notes-workspace-panel-width: var(--notes-panel-width);
   --notes-panel-inset: 1.5rem;

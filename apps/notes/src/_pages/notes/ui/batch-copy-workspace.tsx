@@ -19,6 +19,7 @@ import {
   MODAL_PANEL_ID,
   useBatchCopyWorkspaceState,
 } from "../model/use-batch-copy-workspace"
+import { BatchCopyPanelResize } from "./batch-copy-panel-resize"
 import { NotePropertiesPanel } from "./note-properties-panel"
 
 type BatchCopyPanelContentProps = {
@@ -76,9 +77,9 @@ function BatchCopyPanelContent({
       className="flex h-full min-h-0 flex-col bg-surface-raised"
       data-batch-copy-panel-boundary
     >
-      <header className="flex min-h-[var(--notes-panel-header-height)] shrink-0 flex-wrap items-center gap-3 border-b border-line px-[var(--notes-panel-inset)] py-3">
+      <header className="flex min-h-[var(--notes-batch-panel-header-height)] shrink-0 items-center gap-2 border-b border-line px-[var(--notes-batch-panel-inset)] py-2">
         <h2
-          className="text-xl font-semibold tracking-[-0.01em]"
+          className="min-w-0 text-lg font-semibold tracking-[-0.01em]"
           id={headingId}
           ref={headingRef}
           tabIndex={-1}
@@ -121,7 +122,10 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
     trigger,
     workspaceContext,
   } = useBatchCopyWorkspaceState()
-  const workspaceClassName = "@container/notes-workspace relative h-full min-h-0 overflow-clip"
+  const workspaceClassName = joinClassNames(
+    "@container/notes-workspace relative h-full min-h-0 overflow-clip",
+    batchCopyActive ? "[--notes-workspace-panel-width:var(--notes-batch-panel-width)]" : undefined,
+  )
   const workspaceLayoutClassName = joinClassNames(
     "h-full min-h-0",
     showInlinePanel ? "grid grid-cols-[minmax(0,1fr)_var(--notes-workspace-panel-width)]" : "block",
@@ -137,7 +141,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
   const batchCopyBody =
     batchCopy.status === "ready" && batchCopyItems.length > 0 ? (
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 overflow-auto p-[var(--notes-panel-inset)]">
+        <div className="min-h-0 flex-1 overflow-auto px-[var(--notes-batch-panel-inset)] py-[var(--notes-panel-inset)]">
           <BatchCopyList
             actionPresentation="popover"
             items={batchCopyItems}
@@ -151,7 +155,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
             selectedItemId={selectedBatchCopyItemId}
           />
         </div>
-        <div className="flex shrink-0 p-[var(--notes-panel-inset)]">
+        <div className="flex shrink-0 px-[var(--notes-batch-panel-inset)] py-[var(--notes-panel-inset)]">
           <CopyBatchTextAction
             className="w-full"
             size="large"
@@ -212,10 +216,11 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
           {showInlinePanel ? (
             <div
               aria-label={batchCopyActive ? "일괄 복사" : undefined}
-              className="h-full min-h-0 overflow-hidden border-l border-line bg-surface-raised shadow-floating"
+              className="relative h-full min-h-0 border-l border-line bg-surface-raised shadow-floating"
               id={INLINE_PANEL_ID}
               role={batchCopyActive ? "complementary" : undefined}
             >
+              {batchCopyActive ? <BatchCopyPanelResize container={container} /> : null}
               {batchCopyActive ? (
                 <BatchCopyPanelContent
                   countText={batchCopyCountText}
