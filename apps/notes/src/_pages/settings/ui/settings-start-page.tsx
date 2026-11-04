@@ -46,7 +46,7 @@ function InteractionPreferencesForm({
       <Checkbox
         description="각 항목의 더보기에서 현재 실행할 수 있는 이동 동작을 표시합니다."
         disabled={saving}
-        label="일괄 복사 항목에 위로 이동과 아래로 이동 표시"
+        label="모바일과 저장 목록에서 이동 버튼 표시"
         {...reorderButtonsRegistration}
         onChange={changeReorderButtons}
       />

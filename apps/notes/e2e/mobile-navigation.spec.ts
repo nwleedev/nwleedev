@@ -87,7 +87,7 @@ test("보조 화면은 내용에 맞게 문서 스크롤을 허용한다", async
       heading: "설정",
       endContent: () =>
         page.getByText(
-          "일괄 복사 항목에 위로 이동과 아래로 이동 표시",
+          "모바일과 저장 목록에서 이동 버튼 표시",
           { exact: true },
         ),
       route: "/settings/",

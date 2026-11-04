@@ -39,7 +39,7 @@ async function createDesktopBatchCopy(page: Page) {
 }
 
 const reorderButtonsSetting =
-  "일괄 복사 항목에 위로 이동과 아래로 이동 표시"
+  "모바일과 저장 목록에서 이동 버튼 표시"
 
 async function expectStoredSetting(
   page: Page,
@@ -123,7 +123,7 @@ test("설정에서 데스크톱 일괄 복사 단축키를 끄고 새로고침 �
   ).toBeVisible()
 })
 
-test("직접 이동 설정을 저장하고 현재 항목에서 가능한 방향만 제공한다", async ({
+test("설정을 꺼도 데스크탑 패널에서 가능한 방향으로 이동하고 순서를 저장한다", async ({
   page,
 }) => {
   await page.goto("/settings/")
@@ -138,6 +138,10 @@ test("직접 이동 설정을 저장하고 현재 항목에서 가능한 방향�
   await expect(
     page.getByRole("checkbox", { name: reorderButtonsSetting }),
   ).toBeChecked()
+
+  await setReorderButtons(page, false)
+  await page.reload()
+  await expect(setting).not.toBeChecked()
 
   await page.goto("/")
   const createContent = (position: number) =>

@@ -250,10 +250,13 @@ export function BatchCopyList({
     : "일괄 복사 항목 동작"
 
   function actionsFor(item: BatchCopyItem, position: number) {
+    const panelActions = (actionPresentation === "popover") && (presentation === "panel")
+    const showMoves = panelActions || reorderButtonsEnabled
+
     return createBatchCopyItemActions({
-      canMoveDown: reorderButtonsEnabled && position < editing.items.length - 1,
-      canMoveUp: reorderButtonsEnabled && position > 0,
-      ends: actionPresentation === "popover" && presentation === "panel"
+      canMoveDown: showMoves && (position < editing.items.length - 1),
+      canMoveUp: showMoves && (position > 0),
+      ends: panelActions
         ? {
             onMoveFirst: () => { moveTo(item.id, position, 0) },
             onMoveLast: () => { moveTo(item.id, position, editing.items.length - 1) },
