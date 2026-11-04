@@ -580,7 +580,7 @@ async function executeSelectionCommands(
         await settleFrames(page)
         const panelOpen = await properties.isVisible().catch(() => false)
         const panelTitle = panelOpen
-          ? await properties.getByRole("heading").textContent()
+          ? await properties.getByRole("heading", { level: 3 }).textContent()
           : null
         const panelWidth = panelOpen
           ? await properties

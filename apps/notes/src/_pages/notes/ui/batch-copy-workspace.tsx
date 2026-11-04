@@ -76,7 +76,7 @@ function BatchCopyPanelContent({
       className="flex h-full min-h-0 flex-col bg-surface-raised"
       data-batch-copy-panel-boundary
     >
-      <header className="flex min-h-[var(--notes-batch-panel-header-height)] shrink-0 flex-wrap items-center gap-3 border-b border-line px-[var(--notes-batch-panel-inset)] py-3">
+      <header className="flex min-h-[var(--notes-panel-header-height)] shrink-0 flex-wrap items-center gap-3 border-b border-line px-[var(--notes-panel-inset)] py-3">
         <h2
           className="text-xl font-semibold tracking-[-0.01em]"
           id={headingId}
@@ -121,10 +121,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
     trigger,
     workspaceContext,
   } = useBatchCopyWorkspaceState()
-  const workspaceClassName = joinClassNames(
-    "@container/notes-workspace relative h-full min-h-0 overflow-clip",
-    batchCopyActive ? "[--notes-workspace-panel-width:var(--notes-batch-panel-width)]" : undefined,
-  )
+  const workspaceClassName = "@container/notes-workspace relative h-full min-h-0 overflow-clip"
   const workspaceLayoutClassName = joinClassNames(
     "h-full min-h-0",
     showInlinePanel ? "grid grid-cols-[minmax(0,1fr)_var(--notes-workspace-panel-width)]" : "block",
@@ -140,7 +137,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
   const batchCopyBody =
     batchCopy.status === "ready" && batchCopyItems.length > 0 ? (
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 overflow-auto p-[var(--notes-batch-panel-inset)]">
+        <div className="min-h-0 flex-1 overflow-auto p-[var(--notes-panel-inset)]">
           <BatchCopyList
             actionPresentation="popover"
             items={batchCopyItems}
@@ -154,7 +151,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
             selectedItemId={selectedBatchCopyItemId}
           />
         </div>
-        <div className="flex shrink-0 p-[var(--notes-batch-panel-inset)]">
+        <div className="flex shrink-0 p-[var(--notes-panel-inset)]">
           <CopyBatchTextAction
             className="w-full"
             size="large"

@@ -51,7 +51,7 @@ function GeometryField({
   }
 
   return (
-    <label className="grid gap-1.5 text-xs font-semibold">
+    <label className="grid min-w-0 gap-2 text-base font-medium">
       <span>{label}</span>
       <TextField
         aria-invalid={invalid}
@@ -60,6 +60,7 @@ function GeometryField({
         {...(minimum === undefined ? {} : { min: minimum })}
         onBlur={applyOnBlur}
         onKeyDown={applyOnEnter}
+        style={{ fontSize: "var(--notes-panel-text-size)", minHeight: "var(--notes-touch-target)" }}
         step="1"
         type="number"
       />
@@ -90,12 +91,11 @@ export function NotePropertiesPanel() {
         className="flex h-full flex-col bg-surface-raised"
         ref={panel}
       >
-        <header className="flex h-[2.375rem] items-center justify-between border-b border-line px-3">
-          <h2 className="text-sm font-semibold">메모 속성</h2>
+        <header className="flex min-h-[var(--notes-panel-header-height)] shrink-0 items-center justify-between border-b border-line px-[var(--notes-panel-inset)] py-3">
+          <h2 className="text-xl font-semibold">메모 속성</h2>
           <IconButton
             aria-label="메모 속성 패널 닫기"
             onClick={closeProperties}
-            size="compact"
           >
             <CloseIcon />
           </IconButton>
@@ -113,20 +113,18 @@ export function NotePropertiesPanel() {
       className="flex h-full min-h-0 flex-col bg-surface-raised"
       ref={panel}
     >
-      <header className="flex h-[2.375rem] shrink-0 items-center justify-between gap-3 border-b border-line px-3">
-        <h2 className="min-w-0 truncate text-sm font-semibold">
-          {title}
-        </h2>
+      <header className="flex min-h-[var(--notes-panel-header-height)] shrink-0 items-center justify-between gap-3 border-b border-line px-[var(--notes-panel-inset)] py-3">
+        <h2 className="min-w-0 truncate text-xl font-semibold">메모 속성</h2>
         <IconButton
           aria-label="메모 속성 패널 닫기"
           onClick={closeProperties}
-          size="compact"
         >
           <CloseIcon />
         </IconButton>
       </header>
-      <form className="grid gap-4 overflow-auto p-4" onSubmit={submit}>
-        <fieldset className="grid grid-cols-2 gap-3" disabled={pending}>
+      <form className="grid gap-6 overflow-auto p-[var(--notes-panel-inset)]" onSubmit={submit}>
+        <h3 className="min-w-0 truncate text-lg font-medium text-soft-ink">{title}</h3>
+        <fieldset className="grid grid-cols-2 gap-x-6 gap-y-7" disabled={pending}>
           <legend className="sr-only">위치와 크기</legend>
           {geometryFields.map(({ field, label, minimum }) => (
             <GeometryField
