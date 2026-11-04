@@ -109,7 +109,7 @@ export function MobileNotesWorkspace({ creationPending, notes, onCreate }: Mobil
         </ol>
       </div>
       <IconButton aria-label={creationPending ? "메모 만드는 중" : "새 메모"} className="absolute bottom-[max(var(--notes-mobile-action-inset),env(safe-area-inset-bottom))] right-[var(--notes-mobile-action-inset)] z-20 shadow-action" disabled={creationPending} onClick={onCreate} ref={createButton} size="floating" tone="accent">
-        <PlusIcon />
+        <PlusIcon className="size-7" />
       </IconButton>
       <MobileNoteActionSheet onAdd={addToBatchCopy} onCopy={copy} sheet={actions.view} />
     </div>

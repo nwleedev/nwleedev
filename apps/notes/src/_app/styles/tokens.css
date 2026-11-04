@@ -34,7 +34,7 @@
   --notes-control-large-size: 56px;
   --notes-board-min-width: 48rem;
   --notes-drawer-width: min(21rem, 88vw);
-  --notes-mobile-action-size: 3rem;
+  --notes-mobile-action-size: 3.75rem;
   --notes-mobile-action-inset: 1rem;
   --notes-mobile-list-end-inset: calc(
     var(--notes-mobile-action-size) +

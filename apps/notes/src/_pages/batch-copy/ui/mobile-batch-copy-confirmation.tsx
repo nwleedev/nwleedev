@@ -33,17 +33,19 @@ export function MobileBatchCopyConfirmation({
       className="relative grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] bg-canvas"
       id="main-content"
     >
-      <header className="grid min-h-14 grid-cols-[auto_1fr_auto] items-center border-b border-line bg-surface-raised px-3 py-2">
+      <header className="grid min-h-14 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-line bg-surface-raised px-3 py-2">
         <IconButton
           aria-label="메모 목록으로 돌아가기"
           disabled={confirmation.pending}
           onClick={confirmation.returnToNotes}
-          size="compact"
+          className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)]"
         >
           <NavigateBackIcon />
         </IconButton>
-        <h1 className="text-center text-base font-semibold">일괄 복사 확인</h1>
-        <span aria-hidden="true" className="h-9 w-9" />
+        <h1 className="min-w-0 text-lg font-semibold">일괄 복사 확인</h1>
+        <span className="text-sm font-semibold tabular-nums text-danger">
+          {confirmation.entries.length.toLocaleString("ko-KR")}개
+        </span>
       </header>
       <section className="min-h-0 overflow-auto px-4 py-5">
         {confirmation.entries.length === 0 ? (
@@ -60,10 +62,11 @@ export function MobileBatchCopyConfirmation({
           reorderButtonsEnabled={confirmation.reorderButtonsEnabled}
         />
       </section>
-      <footer className="flex justify-between gap-3 border-t border-line bg-surface-raised px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <footer className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3 border-t border-line bg-surface-raised px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <Button
           disabled={confirmation.pending}
           onClick={confirmation.cancel}
+          size="large"
           tone="quiet"
         >
           취소
@@ -73,6 +76,7 @@ export function MobileBatchCopyConfirmation({
           label="일괄 복사하기"
           onCopy={confirmation.copy}
           onResult={confirmation.showCopyResult}
+          size="large"
         />
       </footer>
     </main>
