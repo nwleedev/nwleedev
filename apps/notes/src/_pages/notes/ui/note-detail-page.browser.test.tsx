@@ -208,3 +208,42 @@ it("이전 저장이 끝나도 최신 입력의 저장이 끝날 때까지 저�
   await expect.element(status).toHaveTextContent("저장됨")
   expect(storage.note.content).toBe("저장 중에 추가한 최신 내용")
 })
+
+it.each(["", " ㄱ"])("조합 중 추가 본문 %j에서 이전 저장이 완료되어도 조합 완료 후 저장한다", async (suffix) => {
+  const initialNote = createStoredNote()
+  const storage = createStorage(initialNote, false)
+  const save = storage.notes.save
+  const completions: (() => void)[] = []
+  storage.notes.save = async (note) => {
+    await new Promise<void>((resolve) => completions.push(resolve))
+    return save(note)
+  }
+  await renderDetail(initialNote.id, storage)
+  const editor = page.getByRole("textbox", { name: "메모 내용" })
+  const status = page.getByRole("status")
+  await act(async () => userEvent.fill(editor, "저장 요청 본문"))
+  await act(async () => { await expect.poll(() => completions.length).toBe(1) })
+  const element = editor.element()
+  const setContent = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!
+  await act(async () => {
+    element.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }))
+    setContent.call(element, `저장 요청 본문${suffix}`)
+    element.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertCompositionText", isComposing: true, data: suffix }))
+  })
+  await act(async () => completions[0]())
+  expect(storage.note.content).toBe("저장 요청 본문")
+  expect(completions).toHaveLength(1)
+  await expect.element(editor).toHaveValue(`저장 요청 본문${suffix}`)
+  await expect.element(status).toHaveTextContent("저장 중")
+  await act(async () => {
+    setContent.call(element, "저장 요청 본문 가")
+    element.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertCompositionText", isComposing: true, data: "가" }))
+    element.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true, data: "가" }))
+  })
+  await act(async () => { await expect.poll(() => completions.length).toBe(2) })
+  await act(async () => completions[1]())
+  expect(storage.note.content).toBe("저장 요청 본문 가")
+  await expect.element(status).toHaveTextContent("저장됨")
+  await act(async () => userEvent.click(page.getByRole("button", { name: "실행 취소", exact: true })))
+  await expect.element(editor).toHaveValue("저장 요청 본문")
+})

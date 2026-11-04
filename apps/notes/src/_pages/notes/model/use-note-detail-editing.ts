@@ -104,13 +104,13 @@ export function useNoteDetailEditing({
   }
 
   function startComposition() {
-    autosave.cancelSchedule()
+    autosave.pause()
     history.startComposition()
   }
 
   function endComposition() {
     history.endComposition()
-    autosave.scheduleSave()
+    autosave.resume()
   }
 
   const connectEditor = useCallback((element: HTMLTextAreaElement | null) => {
