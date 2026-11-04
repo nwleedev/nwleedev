@@ -22,6 +22,7 @@ import {
 import { NotePropertiesPanel } from "./note-properties-panel"
 
 type BatchCopyPanelContentProps = {
+  countText: string
   headingId: string
   headingRef?: RefObject<HTMLHeadingElement | null>
   onClose(): void
@@ -65,6 +66,7 @@ function EmptyBatchCopyContent({
 
 function BatchCopyPanelContent({
   children,
+  countText,
   headingId,
   headingRef,
   onClose,
@@ -74,19 +76,20 @@ function BatchCopyPanelContent({
       className="flex h-full min-h-0 flex-col bg-surface-raised"
       data-batch-copy-panel-boundary
     >
-      <header className="flex h-[2.375rem] shrink-0 items-center justify-between gap-3 border-b border-line px-3">
+      <header className="flex min-h-[var(--notes-batch-panel-header-height)] shrink-0 flex-wrap items-center gap-3 border-b border-line px-[var(--notes-batch-panel-inset)] py-3">
         <h2
-          className="text-sm font-semibold tracking-[-0.01em]"
+          className="text-xl font-semibold tracking-[-0.01em]"
           id={headingId}
           ref={headingRef}
           tabIndex={-1}
         >
           일괄 복사
         </h2>
+        <span className="rounded-full bg-surface px-3 py-1 text-sm tabular-nums">{countText}</span>
         <IconButton
+          className="ml-auto"
           aria-label="일괄 복사 패널 닫기"
           onClick={onClose}
-          size="compact"
         >
           <CloseIcon />
         </IconButton>
@@ -118,9 +121,13 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
     trigger,
     workspaceContext,
   } = useBatchCopyWorkspaceState()
+  const workspaceClassName = joinClassNames(
+    "@container/notes-workspace relative h-full min-h-0 overflow-clip",
+    batchCopyActive ? "[--notes-workspace-panel-width:var(--notes-batch-panel-width)]" : undefined,
+  )
   const workspaceLayoutClassName = joinClassNames(
     "h-full min-h-0",
-    showInlinePanel ? "grid grid-cols-[minmax(0,1fr)_22rem]" : "block",
+    showInlinePanel ? "grid grid-cols-[minmax(0,1fr)_var(--notes-workspace-panel-width)]" : "block",
   )
   const batchCopyTriggerClassName = joinClassNames(
     "shadow-floating",
@@ -128,12 +135,12 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
   )
   const batchCopyTriggerPositionClassName = joinClassNames(
     "absolute top-3 z-20 hidden @3xl/notes-workspace:block",
-    showInlinePanel ? "right-[22.75rem]" : "right-3 sm:right-4",
+    showInlinePanel ? "right-[calc(var(--notes-workspace-panel-width)+0.75rem)]" : "right-3 sm:right-4",
   )
   const batchCopyBody =
     batchCopy.status === "ready" && batchCopyItems.length > 0 ? (
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 overflow-auto p-4">
+        <div className="min-h-0 flex-1 overflow-auto p-[var(--notes-batch-panel-inset)]">
           <BatchCopyList
             actionPresentation="popover"
             items={batchCopyItems}
@@ -147,8 +154,10 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
             selectedItemId={selectedBatchCopyItemId}
           />
         </div>
-        <div className="flex shrink-0 justify-end border-t border-line p-3">
+        <div className="flex shrink-0 p-[var(--notes-batch-panel-inset)]">
           <CopyBatchTextAction
+            className="w-full"
+            size="large"
             disabled={batchCopy.pending}
             onCopy={batchCopy.copyAll}
             onResult={showCopyResult}
@@ -165,7 +174,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
   return (
     <BatchCopyWorkspaceContext value={workspaceContext}>
       <main
-        className="@container/notes-workspace relative h-full min-h-0 overflow-clip"
+        className={workspaceClassName}
         id="main-content"
         ref={container}
       >
@@ -212,6 +221,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
             >
               {batchCopyActive ? (
                 <BatchCopyPanelContent
+                  countText={batchCopyCountText}
                   headingId="batch-copy-inline-title"
                   onClose={session.closePanel}
                 >
@@ -233,6 +243,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
         >
           {batchCopyActive ? (
             <BatchCopyPanelContent
+              countText={batchCopyCountText}
               headingId="batch-copy-dialog-title"
               headingRef={dialogHeading}
               onClose={session.closePanel}

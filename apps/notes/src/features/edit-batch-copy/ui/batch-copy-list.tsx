@@ -161,7 +161,7 @@ function BatchCopyRow({
         <button
           aria-label={`일괄 복사 항목 선택: ${text}`}
           aria-pressed={selected}
-          className="min-h-10 min-w-0 whitespace-pre-wrap break-words rounded-control border-0 bg-transparent px-1 py-2 text-left text-sm leading-6 text-text disabled:opacity-45"
+          className="min-h-10 min-w-0 whitespace-pre-wrap break-words rounded-control border-0 bg-transparent px-1 py-2 text-left text-[length:var(--notes-batch-panel-text-size)] leading-7 text-text disabled:opacity-45"
           disabled={pending}
           onClick={selectItem}
           type="button"
@@ -332,7 +332,7 @@ export function BatchCopyList({
       {draggedItem !== undefined && drag !== null && actionPresentation === "popover" ? createPortal(
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed left-0 top-0 z-50 grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-control border border-border bg-surface-raised p-2 text-sm leading-6 text-text shadow-floating"
+          className="pointer-events-none fixed left-0 top-0 z-50 grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-control border border-border bg-surface-raised p-2 text-[length:var(--notes-batch-panel-text-size)] leading-7 text-text shadow-floating"
           ref={registerPreview}
         >
           <span className="flex min-h-10 min-w-10 items-center justify-center text-icon"><GripIcon /></span>

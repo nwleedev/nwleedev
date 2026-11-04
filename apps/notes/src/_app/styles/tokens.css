@@ -48,6 +48,11 @@
   --notes-mobile-sheet-inset: 16px;
   --notes-mobile-sheet-top-gap: 1rem;
   --notes-mobile-menu-row-height: 56px;
+  --notes-batch-panel-width: clamp(22rem, 30vw, 32rem);
+  --notes-workspace-panel-width: 22rem;
+  --notes-batch-panel-inset: 1.5rem;
+  --notes-batch-panel-header-height: 5.5rem;
+  --notes-batch-panel-text-size: 1.125rem;
   --notes-batch-count-size: 1.25rem;
   --notes-action-toast-offset-top: 3.5rem;
   --notes-motion-fast: 120ms;
