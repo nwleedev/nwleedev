@@ -332,7 +332,7 @@ export function BatchCopyList({
       {draggedItem !== undefined && drag !== null && actionPresentation === "popover" ? createPortal(
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed left-0 top-0 z-[var(--notes-layer-drag-preview)] grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-control border border-border bg-surface-raised p-2 text-[length:var(--notes-panel-text-size)] leading-7 text-text shadow-floating"
+          className="pointer-events-none fixed left-0 top-0 z-[var(--notes-layer-drag-preview)] max-h-[var(--notes-drag-preview-max-height)] overflow-hidden grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-control border border-border bg-surface-raised p-2 text-[length:var(--notes-panel-text-size)] leading-7 text-text shadow-floating"
           ref={registerPreview}
         >
           <span className="flex min-h-10 min-w-10 items-center justify-center text-icon"><GripIcon /></span>

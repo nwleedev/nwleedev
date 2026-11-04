@@ -363,7 +363,7 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   await page.keyboard.press("Escape")
   await expect(dialog).toHaveCount(0)
   const batchCopyTrigger = page.getByRole("button", { name: "일괄 복사 2개" })
-  await batchCopyTrigger.focus()
+  await expect(batchCopyTrigger).toBeFocused()
   await batchCopyTrigger.press("Enter")
   await expect(dialog).toBeVisible()
   const modalSelection = dialog.getByRole("button", {
@@ -376,7 +376,7 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   await modalSelection.press("Escape")
   await expect(dialog).toHaveCount(0)
 
-  await batchCopyTrigger.focus()
+  await expect(batchCopyTrigger).toBeFocused()
   await batchCopyTrigger.press("Enter")
   const firstModalSelection = dialog.getByRole("button", {
     name: `일괄 복사 항목 선택: ${firstContent}`,

@@ -200,7 +200,9 @@ export function useBatchCopyPointerReorder({
 
   function previewTransform(current: ActiveSession) {
     const x = current.x - current.preview.offsetX
-    let y = current.y - current.preview.offsetY
+    const bottom = window.innerHeight - current.preview.height - current.preview.gap
+    let y = Math.min(current.y - current.preview.offsetY, bottom)
+    y = Math.max(current.preview.gap, y)
     const targetIndex = current.state.targetIndex
     const hasPlacement = targetIndex !== null && targetIndex !== current.state.originalIndex
     const row = hasPlacement && !current.outside
@@ -232,7 +234,7 @@ export function useBatchCopyPointerReorder({
     const current = activeSession.current
     if (element !== null && current !== null) {
       element.style.width = `${current.preview.width}px`
-      element.style.minHeight = `${current.preview.height}px`
+      current.preview.height = element.getBoundingClientRect().height
       element.style.transform = previewTransform(current)
     }
   }
