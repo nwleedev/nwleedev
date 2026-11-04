@@ -59,13 +59,13 @@ export function MobileNoteActionSheet({ sheet, onCopy, onAdd }: MobileNoteAction
               <button className="flex min-h-[var(--notes-mobile-menu-row-height)] w-full items-center gap-5 rounded-control px-3 text-left text-base font-medium text-danger hover:bg-danger/10" onClick={sheet.confirmRemoval} type="button"><RemoveIcon className="size-6" />삭제</button>
             </div>
           ) : null}
-          {confirmation ? (
+          {confirmation || deleted ? (
             <div className="notes-mobile-sheet-preview grid gap-6 px-2 py-5">
-              <h3 className="text-xl font-semibold">메모를 삭제할까요?</h3>
+              {confirmation ? <h3 className="text-xl font-semibold">메모를 삭제할까요?</h3> : null}
+              {deleted ? <p className="text-sm text-soft-ink" role="status">메모를 삭제했습니다.</p> : null}
               <p className="whitespace-pre-wrap break-words text-base leading-7 text-soft-ink">{note?.content || "빈 메모"}</p>
             </div>
           ) : null}
-          {deleted ? <p className="grid min-h-full place-items-center py-4 text-base" role="status">메모를 삭제했습니다.</p> : null}
           {sheet.failure ? <p className="px-2 py-3 text-sm text-danger" role="alert">{sheet.failure}</p> : null}
         </div>
         {confirmation ? (
