@@ -52,6 +52,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 공통 카드의 최소 높이는 3.5rem으로 줄이고 2.75rem 터치 영역을 유지한다. 두 목록은 기존 공통 카드와 포인터 재정렬을 사용하므로 드래그 코드를 추가하거나 나누지 않는다.
 
+화면 통합 비교에서 모바일 드래그의 이동 카드 표시가 시안과 다름을 확인했다. 원래 카드의 위치와 크기를 유지하며 흐리게 표시하고 포인터를 따라가는 이동 카드를 별도로 표시하도록 보완한다. `shared/lib/pointer-reorder/index.ts`, `shared/ui/reorderable-text-card/index.tsx`와 두 모바일 목록의 연결을 수정 대상으로 삼는다. 기존 삽입 위치 계산, 자동 스크롤, 취소 및 저장 명령은 유지한다. 데스크탑의 이동 카드 처리에서 재사용할 책임을 먼저 확인하며 같은 미리보기를 화면마다 따로 구현하지 않는다. 기존 터치 검사의 원래 카드 이동량 단언은 원래 자리 보존 및 이동 카드 추적 확인으로 대체한다. 포인터 취소 뒤 미리보기 제거와 순서 보존을 함께 확인하며 별도 fixture나 테스트 파일은 추가하지 않는다.
+
 - 디자인 패턴: 공통 카드의 UI 합성과 기존 삭제 시트의 상태 전이를 사용한다. 메모 목록 순서와 일괄 복사 순서는 별개의 기능으로 유지한다. 공통화는 핸들, 누름 상태와 삽입 표시처럼 같은 책임에 한정한다.
 - 서비스 구성: `shared/ui/reorderable-text-card`는 표시와 입력 지점을 제공한다. `_pages/notes/model/use-mobile-note-order.ts`는 원본 메모 순서를, `features/edit-batch-copy`는 작업 사본 순서를 바꾼다. 삭제 시트는 삭제, 복원과 실패를 기존 메모 명령에 연결한다.
 - 파일 배치: `_pages/notes/ui/mobile-note-card.tsx`, `mobile-note-action-sheet.tsx`, `model/use-mobile-note-action-sheet.ts`, `use-mobile-note-order.ts`, `shared/ui/reorderable-text-card/index.tsx`와 `shared/ui/action-sheet`를 필요한 만큼 수정한다. 기존 `mobile-note-action-sheet.browser.test.tsx`, `e2e/touch-interactions.spec.ts`와 `e2e/mobile-navigation.spec.ts`를 사용한다.
