@@ -242,6 +242,43 @@ test("설정을 꺼도 데스크탑 패널에서 가능한 방향으로 이동�
   ).toBeVisible()
 })
 
+test("항목 메뉴는 첫 화면 프레임부터 실행 버튼 옆에 표시된다", async ({ page }) => {
+  const { firstContent, panel, secondContent } = await createDesktopBatchCopy(page)
+
+  for (const content of [firstContent, secondContent, firstContent]) {
+    const item = panel.getByRole("listitem").filter({ hasText: content })
+    const trigger = item.getByRole("button", { name: /번째 일괄 복사 항목 동작$/u })
+    const label = await trigger.getAttribute("aria-label")
+    const popover = item.getByRole("group", { includeHidden: true, name: label! })
+    const triggerBounds = await visibleBox(trigger)
+    const framesPromise = popover.evaluate((element) => new Promise<{
+      right: number
+      top: number
+      width: number
+    }[]>((resolve) => {
+      const frames: { right: number; top: number; width: number }[] = []
+      function observe() {
+        const bounds = element.getBoundingClientRect()
+        frames.push({ right: bounds.right, top: bounds.top, width: bounds.width })
+        if (frames.length === 3) resolve(frames)
+        else requestAnimationFrame(observe)
+      }
+      element.addEventListener("beforetoggle", () => requestAnimationFrame(observe), { once: true })
+    }))
+    await trigger.click()
+    const frames = await framesPromise
+
+    for (const frame of frames) {
+      expect(frame.width).toBeGreaterThan(0)
+      expect(frame.right).toBeCloseTo(triggerBounds.x + triggerBounds.width, 0)
+      expect(frame.top).toBeGreaterThanOrEqual(triggerBounds.y + triggerBounds.height)
+    }
+    await page.keyboard.press("Escape")
+    await expect(popover).toBeHidden()
+    await expect(trigger).toBeFocused()
+  }
+})
+
 test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분한다", async ({
   page,
 }) => {

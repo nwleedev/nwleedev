@@ -4,13 +4,9 @@ import {
   useId,
   useRef,
   useState,
+  type MouseEvent,
   type SyntheticEvent,
 } from "react"
-
-type PopoverPosition = {
-  left: number
-  top: number
-}
 
 const popoverMargin = 12
 const popoverGap = 6
@@ -20,7 +16,6 @@ export function useActionPopover() {
   const popoverRef = useRef<HTMLDivElement>(null)
   const popoverId = useId()
   const [expanded, setExpanded] = useState(false)
-  const [position, setPosition] = useState<PopoverPosition>({ left: 0, top: 0 })
 
   function placePopover(popover: HTMLDivElement) {
     const trigger = triggerRef.current
@@ -45,7 +40,22 @@ export function useActionPopover() {
     )
     const top = Math.max(popoverMargin, Math.min(preferredTop, maximumTop))
 
-    setPosition({ left, top })
+    popover.style.left = `${left}px`
+    popover.style.top = `${top}px`
+  }
+
+  function toggle(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault()
+    const popover = popoverRef.current
+
+    if (popover === null) return
+
+    event.currentTarget.focus({ preventScroll: true })
+    popover.togglePopover()
+    if (popover.matches(":popover-open")) {
+      placePopover(popover)
+      popover.querySelector<HTMLButtonElement>("button")?.focus()
+    }
   }
 
   function close() {
@@ -62,8 +72,6 @@ export function useActionPopover() {
 
     setExpanded(open)
     if (open) {
-      placePopover(popover)
-      popover.querySelector<HTMLButtonElement>("button")?.focus()
       return
     }
 
@@ -83,7 +91,7 @@ export function useActionPopover() {
     handleToggle,
     popoverId,
     popoverRef,
-    popoverStyle: { left: position.left, top: position.top },
+    toggle,
     triggerRef,
   }
 }

@@ -111,7 +111,7 @@ export function ActionPopover({
     handleToggle,
     popoverId,
     popoverRef,
-    popoverStyle,
+    toggle,
     triggerRef,
   } = useActionPopover()
 
@@ -135,6 +135,7 @@ export function ActionPopover({
         aria-label={label}
         className={triggerClassName}
         disabled={disabled}
+        onClick={toggle}
         onPointerDown={stopPointer}
         popoverTarget={popoverId}
         popoverTargetAction="toggle"
@@ -153,7 +154,6 @@ export function ActionPopover({
         popover="auto"
         ref={popoverRef}
         role="group"
-        style={popoverStyle}
       >
         {closeThenRunActions.map((action, index) => (
           <Fragment key={action.id}>
