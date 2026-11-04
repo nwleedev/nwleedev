@@ -31,6 +31,49 @@ import {
 } from "./support/read-stored-note"
 import { runNoteAction } from "./support/run-note-action"
 
+async function delayNextWriteCompletion(page: Page, storeName: "notes" | "noteDrafts") {
+  await page.evaluate((targetStore) => {
+    type DelayedWriteWindow = typeof window & { delayedWriteCommitted?: Promise<void> }
+    const currentWindow = window as DelayedWriteWindow
+    const originalTransaction = IDBDatabase.prototype.transaction
+    let reportCommitted: (() => void) | undefined
+    currentWindow.delayedWriteCommitted = new Promise<void>((resolve) => {
+      reportCommitted = resolve
+    })
+    IDBDatabase.prototype.transaction = function (storeNames, mode) {
+      const transaction = originalTransaction.call(this, storeNames, mode)
+      const usesTarget = Array.isArray(storeNames)
+        ? storeNames.includes(targetStore)
+        : storeNames === targetStore
+      if (!usesTarget || mode !== "readwrite") return transaction
+      IDBDatabase.prototype.transaction = originalTransaction
+      let completionHandler: ((event: Event) => unknown) | null = null
+      Object.defineProperty(transaction, "oncomplete", {
+        configurable: true,
+        get: () => completionHandler,
+        set: (handler: ((event: Event) => unknown) | null) => { completionHandler = handler },
+      })
+      transaction.addEventListener("complete", (event) => {
+        window.addEventListener("release-delayed-write", () => {
+          completionHandler?.call(transaction, event)
+        }, { once: true })
+        reportCommitted?.()
+      })
+      return transaction
+    }
+  }, storeName)
+
+  return {
+    waitUntilCommitted: () => page.evaluate(() => {
+      type DelayedWriteWindow = typeof window & { delayedWriteCommitted?: Promise<void> }
+      return (window as DelayedWriteWindow).delayedWriteCommitted
+    }),
+    release: () => page.evaluate(() => {
+      window.dispatchEvent(new Event("release-delayed-write"))
+    }),
+  }
+}
+
 async function visibleBox(locator: Locator) {
   await expect(locator).toBeVisible()
   const box = await locator.boundingBox()
@@ -2415,67 +2458,90 @@ test.describe("320px 메모 화면", () => {
     await editor.fill(changedContent)
     await page.getByRole("link", { exact: true, name: "메모 목록" }).click()
 
-    await page.evaluate(() => {
-      type DelayedDraftWindow = typeof window & {
-        waitForDelayedDraftSave?: Promise<void>
-      }
-      const currentWindow = window as DelayedDraftWindow
-      const originalTransaction = IDBDatabase.prototype.transaction
-      let releaseCompletion: (() => void) | null = null
-
-      currentWindow.waitForDelayedDraftSave = new Promise<void>((resolve) => {
-        releaseCompletion = resolve
-      })
-      IDBDatabase.prototype.transaction = function transaction(
-        storeNames: string | string[],
-        mode?: IDBTransactionMode,
-      ) {
-        const transaction = originalTransaction.call(this, storeNames, mode)
-        const usesDraftStore = Array.isArray(storeNames)
-          ? storeNames.includes("noteDrafts")
-          : storeNames === "noteDrafts"
-
-        if (!usesDraftStore || mode !== "readwrite") {
-          return transaction
-        }
-
-        let completionHandler: ((event: Event) => unknown) | null = null
-        Object.defineProperty(transaction, "oncomplete", {
-          configurable: true,
-          get() {
-            return completionHandler
-          },
-          set(handler: ((event: Event) => unknown) | null) {
-            completionHandler = handler
-          },
-        })
-        transaction.addEventListener("complete", (event) => {
-          window.addEventListener(
-            "release-delayed-draft-save",
-            () => completionHandler?.call(transaction, event),
-            { once: true },
-          )
-          releaseCompletion?.()
-        })
-        return transaction
-      }
-    })
+    const completion = await delayNextWriteCompletion(page, "noteDrafts")
 
     const dialog = page.getByRole("dialog", { name: "저장하지 않은 내용이 있어요" })
     await dialog.getByRole("button", { name: "나가기" }).click()
-    await page.evaluate(() => {
-      type DelayedDraftWindow = typeof window & {
-        waitForDelayedDraftSave?: Promise<void>
-      }
-
-      return (window as DelayedDraftWindow).waitForDelayedDraftSave
-    })
+    await completion.waitUntilCommitted()
     await expect(page).toHaveURL("/")
     await expect(dialog).toBeHidden()
-    await page.evaluate(() => {
-      window.dispatchEvent(new Event("release-delayed-draft-save"))
-    })
+    await completion.release()
     await expect(page).toHaveURL("/")
+  })
+
+  test("저장 중 나가면 늦은 저장은 유지하고 이후 입력과 편집 기록은 버린다", async ({ page }) => {
+    const initialContent = "편집 전 본문"
+    const pendingContent = "이미 요청한 본문"
+    const discardedContent = "요청 뒤 추가로 편집한 본문"
+    await page.clock.install()
+    const note = await createMobileNoteThroughUi(page, initialContent)
+    const noteId = noteIdFromHref(await readMobileNoteEditHref(page, note))
+    await openMobileNoteEditor(page, note)
+    await page.clock.pauseAt(Date.now() + 60_000)
+    const completion = await delayNextWriteCompletion(page, "notes")
+    const editor = page.getByRole("textbox", { name: "메모 내용" })
+    await editor.fill(pendingContent)
+    await page.clock.runFor(800)
+    await completion.waitUntilCommitted()
+    await expect(page.getByRole("status")).toHaveText("저장 중")
+    await editor.fill(discardedContent)
+    await page.getByRole("link", { exact: true, name: "메모 목록" }).click()
+    const dialog = page.getByRole("dialog", { name: "저장하지 않은 내용이 있어요" })
+    await dialog.getByRole("button", { name: "나가기" }).click()
+    await expect(page).toHaveURL("/")
+    await expect(dialog).toBeHidden()
+    await completion.release()
+    await expect.poll(() => readStoredNoteDraft(page, noteId)).toBeNull()
+    await page.clock.runFor(800)
+    expect((await readStoredNote(page, noteId))?.content).toBe(pendingContent)
+    const savedNote = page.getByRole("article").filter({ hasText: pendingContent })
+    await openMobileNoteEditor(page, savedNote)
+    await expect(editor).toHaveValue(pendingContent)
+    await expect(page.getByRole("button", { exact: true, name: "실행 취소" })).toBeDisabled()
+    await expect(page.getByRole("button", { exact: true, name: "다시 실행" })).toBeDisabled()
+  })
+
+  test("브라우저 앞뒤 이동을 취소하면 주소와 입력을 유지하고 나가기는 원래 위치로 이동한다", async ({ page }) => {
+    await page.clock.install()
+    const initialContent = "브라우저 이동 전 저장 본문"
+    const note = await createMobileNoteThroughUi(page, initialContent)
+    await openMobileNoteEditor(page, note)
+    await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)
+    const detailUrl = page.url()
+    await page.setViewportSize({ height: 800, width: 1280 })
+    await page.getByRole("link", { exact: true, name: "텍스트 분석" }).click()
+    await expect(page).toHaveURL("/analysis/")
+    await page.goBack()
+    await expect(page).toHaveURL(detailUrl)
+    await page.clock.pauseAt(Date.now() + 60_000)
+    const editor = page.getByRole("textbox", { name: "메모 내용" })
+    const dialog = page.getByRole("dialog", { name: "저장하지 않은 내용이 있어요" })
+    const historyLength = await page.evaluate(() => history.length)
+    await editor.fill("앞으로가기 전에 편집한 본문")
+    await page.goForward()
+    await expect(dialog).toBeVisible()
+    await expect(page).toHaveURL(detailUrl)
+    await dialog.getByRole("button", { name: "계속 편집" }).click()
+    await expect(editor).toHaveValue("앞으로가기 전에 편집한 본문")
+    expect(await page.evaluate(() => history.length)).toBe(historyLength)
+    await page.goForward()
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole("button", { name: "나가기" }).click()
+    await expect(page).toHaveURL("/analysis/")
+    await page.goBack()
+    await expect(editor).toHaveValue(initialContent)
+    await expect(page.getByRole("button", { exact: true, name: "실행 취소" })).toBeDisabled()
+    await editor.fill("뒤로가기 전에 편집한 본문")
+    await page.goBack()
+    await expect(dialog).toBeVisible()
+    await expect(page).toHaveURL(detailUrl)
+    await dialog.getByRole("button", { name: "계속 편집" }).click()
+    await expect(editor).toHaveValue("뒤로가기 전에 편집한 본문")
+    await page.goBack()
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole("button", { name: "나가기" }).click()
+    await expect(page).toHaveURL("/")
+    expect(await page.evaluate(() => history.length)).toBe(historyLength)
   })
 
   test("넓은 화면 탐색도 저장하지 않은 상세 입력을 확인한다", async ({

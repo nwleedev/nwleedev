@@ -22,14 +22,14 @@ export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="ko">
       <body>
-        <RuntimeAccessGuard>
-          <PersonalNotesProvider>
-            <NavigationGuardProvider>
+        <NavigationGuardProvider>
+          <RuntimeAccessGuard>
+            <PersonalNotesProvider>
               <SkipLink />
               {children}
-            </NavigationGuardProvider>
-          </PersonalNotesProvider>
-        </RuntimeAccessGuard>
+            </PersonalNotesProvider>
+          </RuntimeAccessGuard>
+        </NavigationGuardProvider>
       </body>
     </html>
   )

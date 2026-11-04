@@ -1,6 +1,7 @@
 "use client"
 
 import type { PropsWithChildren } from "react"
+import { useBrowserNavigation } from "./use-browser-navigation"
 
 import {
   NavigationGuardContext,
@@ -9,6 +10,7 @@ import {
 
 export function NavigationGuardProvider({ children }: PropsWithChildren) {
   const value = useNavigationGuardState()
+  useBrowserNavigation(value.requestNavigation)
 
   return (
     <NavigationGuardContext value={value}>
