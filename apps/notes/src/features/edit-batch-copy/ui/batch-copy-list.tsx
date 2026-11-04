@@ -104,10 +104,10 @@ function BatchCopyRow({
     dragging && actionPresentation !== "popover" ? "-translate-y-0.5 border-border-strong opacity-85 shadow-floating" : undefined,
     outside ? "border-danger bg-danger/5" : undefined,
     dropPlacement === "before"
-      ? "before:absolute before:-top-1.5 before:left-1 before:right-1 before:h-0.5 before:rounded-full before:bg-accent"
+      ? "before:pointer-events-none before:absolute before:z-[var(--notes-layer-drop-indicator)] before:-top-1.5 before:left-1 before:right-1 before:h-0.5 before:rounded-full before:bg-accent"
       : undefined,
     dropPlacement === "after"
-      ? "after:absolute after:-bottom-1.5 after:left-1 after:right-1 after:h-0.5 after:rounded-full after:bg-accent"
+      ? "after:pointer-events-none after:absolute after:z-[var(--notes-layer-drop-indicator)] after:-bottom-1.5 after:left-1 after:right-1 after:h-0.5 after:rounded-full after:bg-accent"
       : undefined,
   )
   function registerHandle(element: HTMLButtonElement | null) {
@@ -332,7 +332,7 @@ export function BatchCopyList({
       {draggedItem !== undefined && drag !== null && actionPresentation === "popover" ? createPortal(
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed left-0 top-0 z-50 grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-control border border-border bg-surface-raised p-2 text-[length:var(--notes-panel-text-size)] leading-7 text-text shadow-floating"
+          className="pointer-events-none fixed left-0 top-0 z-[var(--notes-layer-drag-preview)] grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-control border border-border bg-surface-raised p-2 text-[length:var(--notes-panel-text-size)] leading-7 text-text shadow-floating"
           ref={registerPreview}
         >
           <span className="flex min-h-10 min-w-10 items-center justify-center text-icon"><GripIcon /></span>

@@ -58,6 +58,8 @@
   --notes-panel-text-size: 1.125rem;
   --notes-batch-count-size: 1.25rem;
   --notes-action-toast-offset-top: 3.5rem;
+  --notes-layer-drag-preview: 50;
+  --notes-layer-drop-indicator: 51;
   --notes-motion-fast: 120ms;
   --notes-motion-panel: 180ms;
   --notes-radius-control: 0.375rem;
