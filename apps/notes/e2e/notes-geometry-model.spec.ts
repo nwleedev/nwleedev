@@ -7,6 +7,7 @@ import {
   type Locator,
   type Page,
 } from "@playwright/test"
+import playwrightPackage from "@playwright/test/package.json" with { type: "json" }
 import * as fc from "fast-check"
 
 import {
@@ -728,7 +729,7 @@ test("위치와 크기의 실패 행동을 줄이고 실제 저장값으로 재�
       runs: normal.details.numRuns,
       seed: normal.details.seed,
       termination: "completed",
-      toolVersions: { fastCheck: fc.__version, playwright: "1.62.1" },
+      toolVersions: { fastCheck: fc.__version, playwright: playwrightPackage.version },
     }),
   )
 
@@ -751,7 +752,7 @@ test("위치와 크기의 실패 행동을 줄이고 실제 저장값으로 재�
     layer: "note-card-and-properties-panel",
     modelRevision: "geometry-v1",
     profile: noteModelProfile,
-    toolVersions: { fastCheck: fc.__version, playwright: "1.62.1" },
+    toolVersions: { fastCheck: fc.__version, playwright: playwrightPackage.version },
   })
 
   expect(report.invariant).toBe(

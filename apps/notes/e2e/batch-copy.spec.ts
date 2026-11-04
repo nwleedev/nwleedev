@@ -209,6 +209,7 @@ test("직접 이동 설정을 저장하고 현재 항목에서 가능한 방향�
   await expect(page.getByRole("button", { exact: true, name: "아래로 이동" })).toHaveCount(0)
   await page.getByRole("button", { exact: true, name: "맨 위로 이동" }).click()
   await expect(items).toContainText(contents)
+  await expect(firstItem.getByRole("button", { name: /번째 일괄 복사 항목 이동$/u })).toBeFocused()
 
   await page.reload()
   await page.goto("/batch-copy/")
@@ -517,6 +518,7 @@ test.describe("320px 일괄 복사", () => {
       const note = await createNoteThroughUi(page, content)
       await note.getByRole("textbox", { name: "메모 내용" }).click({ modifiers: ["Meta", "Alt"] })
     }
+    await expect(page.getByRole("button", { exact: true, name: `일괄 복사 ${contents.length}개` })).toBeVisible()
     await page.setViewportSize({ height: 720, width: 320 })
     await page.goto("/batch-copy/")
     const managed = page.getByRole("region", { name: "일괄 복사 항목 관리" }).getByRole("listitem")

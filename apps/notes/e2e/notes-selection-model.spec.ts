@@ -7,6 +7,7 @@ import {
   type Locator,
   type Page,
 } from "@playwright/test"
+import playwrightPackage from "@playwright/test/package.json" with { type: "json" }
 import * as fc from "fast-check"
 
 import {
@@ -780,7 +781,7 @@ test("선택과 속성 대상의 실패를 줄이고 실제 포커스로 재현�
       runs: normal.details.numRuns,
       seed: normal.details.seed,
       termination: "completed",
-      toolVersions: { fastCheck: fc.__version, playwright: "1.62.1" },
+      toolVersions: { fastCheck: fc.__version, playwright: playwrightPackage.version },
     }),
   )
 
@@ -806,7 +807,7 @@ test("선택과 속성 대상의 실패를 줄이고 실제 포커스로 재현�
     layer: "note-card-session-and-properties-panel",
     modelRevision: "selection-focus-v1",
     profile: noteModelProfile,
-    toolVersions: { fastCheck: fc.__version, playwright: "1.62.1" },
+    toolVersions: { fastCheck: fc.__version, playwright: playwrightPackage.version },
   })
 
   expect(report.invariant).toBe(

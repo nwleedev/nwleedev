@@ -1,6 +1,7 @@
 import { ok } from "node:assert/strict"
 
 import { expect, test, type Browser, type Locator, type Page } from "@playwright/test"
+import playwrightPackage from "@playwright/test/package.json" with { type: "json" }
 import * as fc from "fast-check"
 
 import {
@@ -664,7 +665,7 @@ test("겹침 순서의 실패 행동을 줄이고 저장 및 화면 순서로 �
       runs: normal.details.numRuns,
       seed: normal.details.seed,
       termination: "completed",
-      toolVersions: { fastCheck: fc.__version, playwright: "1.62.1" },
+      toolVersions: { fastCheck: fc.__version, playwright: playwrightPackage.version },
     }),
   )
 
@@ -685,7 +686,7 @@ test("겹침 순서의 실패 행동을 줄이고 저장 및 화면 순서로 �
     layer: "note-card-and-indexed-db",
     modelRevision: "stack-order-v1",
     profile: noteModelProfile,
-    toolVersions: { fastCheck: fc.__version, playwright: "1.62.1" },
+    toolVersions: { fastCheck: fc.__version, playwright: playwrightPackage.version },
   })
 
   expect(report.invariant).toBe(
@@ -741,7 +742,7 @@ test("겹침 순서의 실패 행동을 줄이고 저장 및 화면 순서로 �
     layer: "note-card-and-indexed-db",
     modelRevision: "stack-order-v1",
     profile: noteModelProfile,
-    toolVersions: { fastCheck: fc.__version, playwright: "1.62.1" },
+    toolVersions: { fastCheck: fc.__version, playwright: playwrightPackage.version },
   })
   expect(partialReport.invariant).toBe(report.invariant)
   expect(partialReport.originalActions.length).toBeGreaterThan(

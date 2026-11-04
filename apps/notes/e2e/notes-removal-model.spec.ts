@@ -7,6 +7,7 @@ import {
   type Locator,
   type Page,
 } from "@playwright/test"
+import playwrightPackage from "@playwright/test/package.json" with { type: "json" }
 import * as fc from "fast-check"
 
 import {
@@ -781,7 +782,7 @@ test("삭제 실패를 줄이고 스냅샷, 포커스와 만료 시각으로 재
       runs: normal.details.numRuns,
       seed: normal.details.seed,
       termination: "completed",
-      toolVersions: { fastCheck: fc.__version, playwright: "1.62.1" },
+      toolVersions: { fastCheck: fc.__version, playwright: playwrightPackage.version },
     }),
   )
 
@@ -806,7 +807,7 @@ test("삭제 실패를 줄이고 스냅샷, 포커스와 만료 시각으로 재
     layer: "note-card-session-and-indexed-db",
     modelRevision: "removal-recovery-v1",
     profile: noteModelProfile,
-    toolVersions: { fastCheck: fc.__version, playwright: "1.62.1" },
+    toolVersions: { fastCheck: fc.__version, playwright: playwrightPackage.version },
   })
 
   expect(report.invariant).toBe(
