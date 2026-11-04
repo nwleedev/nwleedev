@@ -37,7 +37,7 @@ type ActiveSession = {
   outside: boolean
   pointerId: number
   state: ReturnType<typeof createReorderPointerSession>
-  preview: { width: number; height: number; offsetX: number; offsetY: number }
+  preview: { width: number; height: number; offsetX: number; offsetY: number; gap: number }
   target: HTMLButtonElement
   x: number
   y: number
@@ -199,7 +199,32 @@ export function useBatchCopyPointerReorder({
   useEffect(() => { cancelChangedItems() }, [items, pending])
 
   function previewTransform(current: ActiveSession) {
-    return `translate(${current.x - current.preview.offsetX}px, ${current.y - current.preview.offsetY}px)`
+    const x = current.x - current.preview.offsetX
+    let y = current.y - current.preview.offsetY
+    const targetIndex = current.state.targetIndex
+    const hasPlacement = targetIndex !== null && targetIndex !== current.state.originalIndex
+    const row = hasPlacement && !current.outside
+      ? list.current?.querySelector<HTMLElement>(`[data-batch-copy-position="${targetIndex}"]`)
+      : null
+
+    if (row !== null && row !== undefined) {
+      const bounds = row.getBoundingClientRect()
+      const movingDown = targetIndex! > current.state.originalIndex
+      const edge = movingDown ? bounds.bottom : bounds.top
+      const { gap, height, width } = current.preview
+      const overlapsX = x < bounds.right && (x + width) > bounds.left
+      const overlapsY = y < (edge + gap) && (y + height) > (edge - gap)
+
+      if (overlapsX && overlapsY) {
+        const above = edge - height - gap
+        const below = edge + gap
+        if (movingDown && above >= 0) y = above
+        else if ((below + height) <= window.innerHeight) y = below
+        else y = Math.max(0, above)
+      }
+    }
+
+    return `translate(${x}px, ${y}px)`
   }
 
   function registerPreview(element: HTMLDivElement | null) {
@@ -240,7 +265,7 @@ export function useBatchCopyPointerReorder({
     const container = target.closest("dialog") ?? document.body
     activeSession.current = {
       container,
-      preview: { width: bounds.width, height: bounds.height, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top },
+      preview: { width: bounds.width, height: bounds.height, offsetX: event.clientX - bounds.left, offsetY: event.clientY - bounds.top, gap: Number.parseFloat(getComputedStyle(target).getPropertyValue("--notes-drag-preview-gap")) },
       itemId,
       outside: false,
       pointerId: event.pointerId,
@@ -292,9 +317,6 @@ export function useBatchCopyPointerReorder({
     if (listElement === null) return
     current.x = clientX
     current.y = clientY
-    if (preview.current !== null) {
-      preview.current.style.transform = previewTransform(current)
-    }
     const panel = current.target.closest<HTMLElement>("[data-batch-copy-panel-boundary]")
     const panelBounds = panel?.getBoundingClientRect()
     let outside = false
@@ -307,6 +329,9 @@ export function useBatchCopyPointerReorder({
     const state = advanceReorderPointerSession(current.state, { clientX, clientY, targetIndex })
     current.state = state
     current.outside = outside
+    if (preview.current !== null) {
+      preview.current.style.transform = previewTransform(current)
+    }
     setDrag((previous) => {
       if (previous?.active === state.active && previous.targetIndex === state.targetIndex) {
         if (previous.outside === outside) return previous
