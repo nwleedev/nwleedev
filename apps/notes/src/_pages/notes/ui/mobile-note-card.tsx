@@ -49,7 +49,7 @@ export function MobileNoteCard({
       {children}
       <button
         aria-label={`${summary} 복사`}
-        className="block max-h-48 min-h-[var(--notes-touch-target)] min-w-0 w-full touch-pan-y select-none overflow-hidden whitespace-pre-wrap break-words py-1 text-left"
+        className="line-clamp-6 max-h-[calc(var(--notes-mobile-card-max-height)-var(--notes-mobile-card-padding)*2-2px)] min-h-[var(--notes-touch-target)] min-w-0 w-full touch-pan-y select-none overflow-hidden whitespace-pre-wrap break-words py-1 text-left"
         disabled={disabled}
         type="button"
         {...longPress.handlers}

@@ -6,7 +6,6 @@ import {
   useRef,
   useState,
   type ChangeEvent as ReactChangeEvent,
-  type FocusEvent as ReactFocusEvent,
 } from "react"
 import { useForm } from "react-hook-form"
 
@@ -114,11 +113,6 @@ export function useNoteDetailEditing({
     autosave.scheduleSave()
   }
 
-  function blurContent(event: ReactFocusEvent<HTMLTextAreaElement>) {
-    void contentRegistration.onBlur(event)
-    if (!history.available.composing) void autosave.save()
-  }
-
   const connectEditor = useCallback((element: HTMLTextAreaElement | null) => {
     register("content").ref(element)
     editor.current = element
@@ -141,7 +135,7 @@ export function useNoteDetailEditing({
     discardChanges: navigation.discardChanges,
     failure,
     navigationConfirmationVisible: navigation.navigationConfirmationVisible,
-    onBlur: blurContent,
+    onBlur: contentRegistration.onBlur,
     requestBackNavigation: navigation.requestBackNavigation,
     retryFailure,
     startComposition,

@@ -570,7 +570,7 @@ async function expectMobileSaveState(model: MobileSaveModel, real: MobileSaveRea
 
   if (model.view === "confirming") {
     await expect(
-      real.page.getByRole("dialog", { name: "저장하지 않은 변경사항" }),
+      real.page.getByRole("dialog", { name: "저장하지 않은 내용이 있어요" }),
     ).toBeVisible()
   }
 }
@@ -594,20 +594,20 @@ class EditMobileContent implements fc.AsyncCommand<MobileSaveModel, MobileSaveRe
   }
 }
 
-class SaveMobileContent implements fc.AsyncCommand<MobileSaveModel, MobileSaveReal> {
+class WaitForMobileAutosave implements fc.AsyncCommand<MobileSaveModel, MobileSaveReal> {
   check(model: Readonly<MobileSaveModel>) {
     return model.view === "detail" && model.input !== model.stored
   }
 
   async run(model: MobileSaveModel, real: MobileSaveReal) {
     real.actions.push(this.toString())
-    await real.page.getByRole("button", { exact: true, name: "저장" }).click()
+    await real.page.clock.runFor(800)
     model.stored = model.input
     await expectMobileSaveState(model, real)
   }
 
   toString() {
-    return "save"
+    return "wait-for-autosave"
   }
 }
 
@@ -636,7 +636,7 @@ class ContinueMobileDetail implements fc.AsyncCommand<MobileSaveModel, MobileSav
   async run(model: MobileSaveModel, real: MobileSaveReal) {
     real.actions.push(this.toString())
     await real.page
-      .getByRole("dialog", { name: "저장하지 않은 변경사항" })
+      .getByRole("dialog", { name: "저장하지 않은 내용이 있어요" })
       .getByRole("button", { name: "계속 편집" })
       .click()
     model.view = "detail"
@@ -656,8 +656,8 @@ class DiscardMobileContent implements fc.AsyncCommand<MobileSaveModel, MobileSav
   async run(model: MobileSaveModel, real: MobileSaveReal) {
     real.actions.push(this.toString())
     await real.page
-      .getByRole("dialog", { name: "저장하지 않은 변경사항" })
-      .getByRole("button", { name: "변경사항 버리기" })
+      .getByRole("dialog", { name: "저장하지 않은 내용이 있어요" })
+      .getByRole("button", { name: "나가기" })
       .click()
     model.input = model.stored
     model.view = "list"
@@ -700,7 +700,7 @@ const mobileSavePair = fc
   .filter(([first, second]) => first !== second)
 const mobileSaveActions = [
   mobileSaveContent.map((content) => new EditMobileContent(content)),
-  fc.constant(new SaveMobileContent()),
+  fc.constant(new WaitForMobileAutosave()),
   fc.constant(new LeaveMobileDetail()),
   fc.constant(new ContinueMobileDetail()),
   fc.constant(new DiscardMobileContent()),
@@ -717,6 +717,7 @@ async function runMobileSaveCommands(
 
   try {
     const page = await context.newPage()
+    await page.clock.install()
     await page.goto("/")
     const initialContent = "저장된 메모"
     const note = await createMobileNoteThroughUi(page, initialContent)
@@ -724,23 +725,17 @@ async function runMobileSaveCommands(
       await readMobileNoteEditHref(page, note),
     )
     await openMobileNoteEditor(page, note)
+    await page.clock.pauseAt(Date.now() + 60_000)
 
     if (blockSave) {
       await page.evaluate(() => {
-        window.addEventListener(
-          "click",
-          (event) => {
-            const button = (event.target as Element | null)?.closest("button")
-
-            if (button?.textContent?.trim() !== "저장") {
-              return
-            }
-
-            event.preventDefault()
-            event.stopImmediatePropagation()
-          },
-          true,
-        )
+        const originalPut = IDBObjectStore.prototype.put
+        IDBObjectStore.prototype.put = function (value, key) {
+          if (this.name === "notes") return this.get(value.id)
+          return key === undefined
+            ? originalPut.call(this, value)
+            : originalPut.call(this, value, key)
+        }
       })
     }
 
@@ -766,7 +761,7 @@ async function runMobileSaveCommands(
           .inputValue()
           .catch(() => null),
         saveLabel: await page
-          .getByRole("button", { name: /^저장/u })
+          .getByRole("status")
           .textContent()
           .catch(() => null),
         view: model.view,
@@ -1195,7 +1190,7 @@ test("자동 저장 쓰기 누락을 실제 입력과 시간 진행으로 축소
   console.info(JSON.stringify(report))
 })
 
-test("모바일 상세 화면의 저장과 이탈 선택을 조합한다", async ({ browser }) => {
+test("모바일 상세 화면의 자동 저장과 이탈 선택을 조합한다", async ({ browser }) => {
   test.setTimeout(120_000)
   const details = await fc.check(
     fc.asyncProperty(
@@ -1205,9 +1200,9 @@ test("모바일 상세 화면의 저장과 이탈 선택을 조합한다", async
         await runMobileSaveCommands(
           [
             new EditMobileContent(firstContent),
-            new SaveMobileContent(),
+            new WaitForMobileAutosave(),
             new EditMobileContent(secondContent),
-            new SaveMobileContent(),
+            new WaitForMobileAutosave(),
             ...commands,
           ],
           () => createMobileSaveContext(browser),
@@ -1220,14 +1215,14 @@ test("모바일 상세 화면의 저장과 이탈 선택을 조합한다", async
   expect(details.failed, fc.defaultReportMessage(details)).toBe(false)
 })
 
-test("모바일 저장 버튼의 연결이 빠지면 실패 행동을 축소하고 재현한다", async ({
+test("모바일 자동 저장의 쓰기가 누락되면 실패 행동을 축소하고 재현한다", async ({
   browser,
 }, testInfo) => {
   test.setTimeout(180_000)
   const failures: MobileSaveFailure[] = []
   const actions = [
     mobileSaveContent.map((content) => new EditMobileContent(content)),
-    fc.constant(new SaveMobileContent()),
+    fc.constant(new WaitForMobileAutosave()),
   ]
   const maxCommands = 6
   const details = await fc.check(
@@ -1303,8 +1298,8 @@ test("모바일 저장 버튼의 연결이 빠지면 실패 행동을 축소하�
 
   const report = {
     browser: testInfo.project.name,
-    classification: "controlled-save-click-omission",
-    feature: "mobile-explicit-save",
+    classification: "controlled-autosave-write-omission",
+    feature: "mobile-autosave",
     initialContent: "저장된 메모",
     layer: "note-detail-and-indexeddb",
     original: failures[0],
@@ -2176,7 +2171,7 @@ test("연속 삭제 알림이 사라진 뒤 이전 삭제를 다시 알리지 �
 test.describe("320px 메모 화면", () => {
   test.use({ hasTouch: true, viewport: { height: 720, width: 320 } })
 
-  test("목록의 복구 초안을 상세 화면에서 열어도 저장 전 원문을 유지한다", async ({
+  test("목록의 복구 초안을 상세 화면에서 열면 자동 저장한다", async ({
     page,
   }) => {
     const storedContent = `저장 원문 ${crypto.randomUUID()}`
@@ -2204,12 +2199,11 @@ test.describe("320px 메모 화면", () => {
     )
     await page.clock.fastForward(800)
 
-    const storedAfterOpen = await readStoredNote(page, noteId)
-    expect(storedAfterOpen?.content).toBe(storedBeforeOpen?.content)
-    expect(storedAfterOpen?.contentRevision).toBe(
-      storedBeforeOpen?.contentRevision,
-    )
-    expect(await readStoredNoteDraft(page, noteId)).toEqual(draft)
+    await expect.poll(() => readStoredNote(page, noteId)).toMatchObject({
+      content: draftContent,
+      contentRevision: storedBeforeOpen!.contentRevision + 1,
+    })
+    await expect.poll(() => readStoredNoteDraft(page, noteId)).toBeNull()
   })
 
   test("복구한 초안을 저장하고 제거 실패를 다음 저장에서 정리한다", async ({
@@ -2240,6 +2234,8 @@ test.describe("320px 메모 화면", () => {
     expect(await readStoredNoteDraft(page, noteId)).toEqual(recoverableDraft)
 
     const detailPage = await page.context().newPage()
+    await detailPage.clock.install()
+    await detailPage.clock.pauseAt(Date.now() + 60_000)
     await detailPage.goto(`/notes/${encodeURIComponent(noteId)}/`)
     const editor = detailPage.getByRole("textbox", { name: "메모 내용" })
     await expect(editor).toHaveValue(recoveredContent)
@@ -2281,7 +2277,7 @@ test.describe("320px 메모 화면", () => {
         return originalDelete.call(this, query)
       }
     })
-    await detailPage.getByRole("button", { exact: true, name: "저장" }).click()
+    await detailPage.clock.runFor(800)
     await expect.poll(
       () => readStoredNote(detailPage, noteId),
     ).toMatchObject({
@@ -2308,7 +2304,9 @@ test.describe("320px 메모 화면", () => {
       currentWindow.restoreDraftRemoval?.()
       delete currentWindow.restoreDraftRemoval
     })
-    await detailPage.getByRole("button", { exact: true, name: "저장" }).click()
+    await editor.fill(`${savedContent} 수정`)
+    await editor.fill(savedContent)
+    await detailPage.clock.runFor(800)
     await expect.poll(
       () => readStoredNoteDraft(detailPage, noteId),
     ).toBeNull()
@@ -2348,13 +2346,13 @@ test.describe("320px 메모 화면", () => {
     await openMobileNoteEditor(page, note)
     const editor = page.getByRole("textbox", { name: "메모 내용" })
     await editor.fill(revisedContent)
-    await page.getByRole("button", { exact: true, name: "저장" }).click()
-    await expect(page.getByRole("button", { name: "저장됨" })).toBeVisible()
+    await expect(page.getByRole("status")).toHaveText("저장됨")
+    await expect.poll(async () => (await readStoredNote(page, noteId))?.content).toBe(revisedContent)
     await page.getByRole("link", { exact: true, name: "메모 목록" }).click()
 
     const savedNote = page.getByRole("article").filter({ hasText: initialContent })
     const box = await visibleBox(savedNote)
-    expect(box.height).toBeLessThanOrEqual(194)
+    expect(box.height).toBeLessThanOrEqual(192)
     await expect(savedNote.getByText("내용 더 있음")).toHaveCount(0)
     await page.setViewportSize({ height: 800, width: 1280 })
     await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
@@ -2373,21 +2371,24 @@ test.describe("320px 메모 화면", () => {
       await readMobileNoteEditHref(page, note),
     )
 
+    await page.clock.install()
     await openMobileNoteEditor(page, note)
+    await page.clock.pauseAt(Date.now() + 60_000)
     const editor = page.getByRole("textbox", { name: "메모 내용" })
     const backLink = page.getByRole("link", { exact: true, name: "메모 목록" })
     await editor.fill(discardedContent)
     await backLink.click()
 
-    let dialog = page.getByRole("dialog", { name: "저장하지 않은 변경사항" })
+    let dialog = page.getByRole("dialog", { name: "저장하지 않은 내용이 있어요" })
     await expect(dialog).toBeVisible()
     await dialog.getByRole("button", { name: "계속 편집" }).click()
+    await page.clock.runFor(17)
     await expect(editor).toBeFocused()
     await expect(editor).toHaveValue(discardedContent)
 
     await backLink.click()
-    dialog = page.getByRole("dialog", { name: "저장하지 않은 변경사항" })
-    await dialog.getByRole("button", { name: "변경사항 버리기" }).click()
+    dialog = page.getByRole("dialog", { name: "저장하지 않은 내용이 있어요" })
+    await dialog.getByRole("button", { name: "나가기" }).click()
     await expect(page).toHaveURL("/")
     await expect.poll(() => readStoredNoteDraft(page, noteId)).toBeNull()
 
@@ -2400,14 +2401,16 @@ test.describe("320px 메모 화면", () => {
     )
   })
 
-  test("변경사항을 버리는 중에는 대화상자 닫기를 무시하고 원래 목적지로 이동한다", async ({
+  test("미저장 내용의 나가기는 초안 제거 완료를 기다리지 않는다", async ({
     page,
   }) => {
     const initialContent = "버리기 진행을 확인할 메모"
     const changedContent = "버리기 전에 작성한 변경사항"
     const note = await createMobileNoteThroughUi(page, initialContent)
 
+    await page.clock.install()
     await openMobileNoteEditor(page, note)
+    await page.clock.pauseAt(Date.now() + 60_000)
     const editor = page.getByRole("textbox", { name: "메모 내용" })
     await editor.fill(changedContent)
     await page.getByRole("link", { exact: true, name: "메모 목록" }).click()
@@ -2458,8 +2461,8 @@ test.describe("320px 메모 화면", () => {
       }
     })
 
-    const dialog = page.getByRole("dialog", { name: "저장하지 않은 변경사항" })
-    await dialog.getByRole("button", { name: "변경사항 버리기" }).click()
+    const dialog = page.getByRole("dialog", { name: "저장하지 않은 내용이 있어요" })
+    await dialog.getByRole("button", { name: "나가기" }).click()
     await page.evaluate(() => {
       type DelayedDraftWindow = typeof window & {
         waitForDelayedDraftSave?: Promise<void>
@@ -2467,10 +2470,8 @@ test.describe("320px 메모 화면", () => {
 
       return (window as DelayedDraftWindow).waitForDelayedDraftSave
     })
-    await expect(dialog.getByRole("button", { name: "버리는 중" })).toBeDisabled()
-    await page.keyboard.press("Escape")
-    await expect(dialog).toBeVisible()
-    await expect(editor).toHaveValue(changedContent)
+    await expect(page).toHaveURL("/")
+    await expect(dialog).toBeHidden()
     await page.evaluate(() => {
       window.dispatchEvent(new Event("release-delayed-draft-save"))
     })
@@ -2484,7 +2485,9 @@ test.describe("320px 메모 화면", () => {
     const revisedContent = "탐색 전에 확인할 변경사항"
     const note = await createMobileNoteThroughUi(page, initialContent)
 
+    await page.clock.install()
     await openMobileNoteEditor(page, note)
+    await page.clock.pauseAt(Date.now() + 60_000)
     await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)
     await page.setViewportSize({ height: 800, width: 1280 })
     const editor = page.getByRole("textbox", { name: "메모 내용" })
@@ -2492,23 +2495,25 @@ test.describe("320px 메모 화면", () => {
     await expect(editor).toHaveValue(revisedContent)
     await page.getByRole("link", { exact: true, name: "텍스트 분석" }).click()
 
-    const dialog = page.getByRole("dialog", { name: "저장하지 않은 변경사항" })
+    const dialog = page.getByRole("dialog", { name: "저장하지 않은 내용이 있어요" })
     await expect(dialog).toBeVisible()
     await expect(page).toHaveURL(/\/notes\//u)
     await expect(editor).toHaveValue(revisedContent)
     await dialog.getByRole("button", { name: "계속 편집" }).click()
+    await page.clock.runFor(17)
     await expect(editor).toBeFocused()
     await expect(editor).toHaveValue(revisedContent)
 
     await page.getByRole("link", { exact: true, name: "개인 메모" }).click()
     await expect(dialog).toBeVisible()
     await dialog.getByRole("button", { name: "계속 편집" }).click()
+    await page.clock.runFor(17)
     await expect(editor).toBeFocused()
 
     await page.getByRole("link", { exact: true, name: "텍스트 분석" }).click()
     await page
-      .getByRole("dialog", { name: "저장하지 않은 변경사항" })
-      .getByRole("button", { name: "변경사항 버리기" })
+      .getByRole("dialog", { name: "저장하지 않은 내용이 있어요" })
+      .getByRole("button", { name: "나가기" })
       .click()
     await expect(page).toHaveURL("/analysis/")
   })
