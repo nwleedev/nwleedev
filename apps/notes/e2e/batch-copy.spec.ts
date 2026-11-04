@@ -456,6 +456,54 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   await expect(managementItems).toContainText([firstContent, secondContent])
 })
 
+test("긴 메모를 잡고 목록 끝까지 자동 스크롤한 뒤 원문과 이동 순서를 저장한다", async ({ page }, testInfo) => {
+  const longContent = "검토할 내용\n" + "진행 일정과 전달 자료를 확인합니다.\n".repeat(20)
+  const shortContent = "검토 완료"
+  const first = await createNoteThroughUi(page, longContent)
+  const second = await createNoteThroughUi(page, shortContent)
+  await first.getByRole("textbox", { name: "메모 내용" }).click({ modifiers: ["Meta", "Alt"] })
+  await second.getByRole("textbox", { name: "메모 내용" }).click({ modifiers: ["Meta", "Alt"] })
+  const panel = page.getByRole("complementary", { name: "일괄 복사" })
+  const items = panel.getByRole("listitem")
+  const longItem = items.filter({ hasText: longContent })
+  const shortItem = items.filter({ hasText: shortContent })
+  const handle = longItem.getByRole("button", { name: /번째 일괄 복사 항목 이동$/u })
+  await expect(items).toHaveCount(2)
+  const original = await visibleBox(longItem)
+  const viewportHeight = await page.evaluate(() => window.innerHeight)
+  expect(original.height).toBeGreaterThan(viewportHeight)
+  const scrollBounds = await panel.getByRole("list").evaluate((list) => {
+    let parent = list.parentElement
+    while (parent !== null) {
+      if (getComputedStyle(parent).overflowY === "auto") {
+        const bounds = parent.getBoundingClientRect()
+        return { left: bounds.left, bottom: bounds.bottom }
+      }
+      parent = parent.parentElement
+    }
+    throw new Error("The list has no scrolling area")
+  })
+  await handle.hover()
+  await page.mouse.down()
+  await page.mouse.move(scrollBounds.left + 32, scrollBounds.bottom - 2)
+  await expect.poll(async () => {
+    const bounds = await shortItem.boundingBox()
+    return bounds === null ? Infinity : bounds.y + bounds.height
+  }, { timeout: 15_000 }).toBeLessThan(scrollBounds.bottom)
+  const destination = await visibleBox(shortItem)
+  await page.mouse.move(destination.x + 32, destination.y + destination.height - 2)
+  await page.screenshot({ path: testInfo.outputPath("long-drag-destination.png") })
+  await page.mouse.up()
+  await expect(items).toContainText([shortContent, longContent])
+  await expect(handle).toBeFocused()
+  await page.goto("/batch-copy/")
+  await page.reload()
+  const savedItems = page.getByRole("region", { name: "일괄 복사 항목 관리" }).getByRole("listitem")
+  await expect(savedItems).toContainText([shortContent, longContent])
+  const savedContent = savedItems.filter({ hasText: longContent }).getByRole("paragraph")
+  await expect.poll(() => savedContent.textContent()).toBe(longContent)
+})
+
 test.describe("320px 일괄 복사", () => {
   test.use({ hasTouch: true, viewport: { height: 720, width: 320 } })
 
