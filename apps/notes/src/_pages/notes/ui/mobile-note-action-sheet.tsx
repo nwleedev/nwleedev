@@ -76,8 +76,8 @@ export function MobileNoteActionSheet({ sheet, onCopy, onAdd }: MobileNoteAction
         ) : null}
         {deleted ? (
           <div className="grid grid-cols-2 gap-3">
-            <Button size="large" disabled={sheet.pending} onClick={sheet.restore} tone="quiet">{sheet.pending ? "복원 중" : "실행 취소"}</Button>
-            <Button size="large" disabled={sheet.pending} onClick={sheet.close} tone="solid">닫기</Button>
+            <Button aria-label={sheet.pending ? "복원 중" : "삭제한 메모 복원"} size="large" disabled={sheet.pending} onClick={sheet.restore} tone="quiet">{sheet.pending ? "복원 중" : "취소"}</Button>
+            <Button size="large" disabled={sheet.pending} onClick={sheet.close} tone="danger">확인</Button>
           </div>
         ) : null}
       </div>
