@@ -164,20 +164,29 @@ test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 
     await handle.tap()
     await expect(handle).toHaveCSS("outline-style", "none")
     const idleGap = await verticalGap()
-    await startTouch(session, await center(handle))
-    await moveTouch(session, await center(destination, 0.8))
-    await expect.poll(verticalGap).toBeLessThan(idleGap)
-    await expect(card).not.toHaveCSS("box-shadow", "none")
-    await card.evaluate(async (element) => {
-      await Promise.all(element.getAnimations().map((animation) => animation.finished))
-    })
-    const dragging = await appearance(card)
-    expect(dragging.border).not.toBe(idle.border)
+    const original = (await card.boundingBox())!
+    const start = await center(handle)
+    const end = await center(destination, 0.8)
+    const text = await card.innerText()
+    const preview = page.getByRole("article", { includeHidden: true })
+      .filter({ hasText: text })
+      .filter({ hasNot: page.getByRole("button", { name: / 이동$/u }) })
+    await startTouch(session, start)
+    await moveTouch(session, end)
+    await expect.poll(verticalGap).toBeCloseTo(idleGap, 1)
+    await expect(card).toHaveCSS("opacity", "0.35")
+    await expect(preview).toBeVisible()
+    const moved = (await preview.boundingBox())!
+    expect(moved.y - original.y).toBeCloseTo(end.y - start.y, 1)
+    expect(moved.width).toBeCloseTo(original.width, 1)
+    await expect(preview).not.toHaveCSS("box-shadow", "none")
     await page.screenshot({ path: testInfo.outputPath(screenshot) })
     await cancelTouch(session)
+    await expect(preview).toHaveCount(0)
     await expect.poll(verticalGap).toBeCloseTo(idleGap, 1)
+    await expect(card).toHaveCSS("opacity", "1")
     await expect(card).toHaveCSS("box-shadow", idle.shadow)
-    return { dragging, idle }
+    return idle
   }
 
   const main = await inspectDrag(first, second, "main-card-drag.png")

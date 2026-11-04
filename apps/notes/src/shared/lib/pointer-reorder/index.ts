@@ -6,6 +6,12 @@ import { advanceReorderPointerSession, createReorderPointerSession, finishReorde
 
 type DragView = { entryId: string; sourceIndex: number; targetIndex: number | null }
 type Session = {
+  card: HTMLElement
+  preview: HTMLElement | null
+  offsetX: number
+  offsetY: number
+  width: number
+  height: number
   pointerId: number
   target: HTMLButtonElement
   x: number
@@ -53,6 +59,7 @@ export function usePointerReorder({ disabled, items, onMove }: PointerReorderOpt
   function clearSession(releaseCapture: boolean) {
     const current = session.current
     session.current = null
+    current?.preview?.remove()
     if (frame.current !== null) cancelAnimationFrame(frame.current)
     frame.current = null
     setDrag(null)
@@ -68,6 +75,26 @@ export function usePointerReorder({ disabled, items, onMove }: PointerReorderOpt
       targetIndex: indexAtPoint(element, current.x, current.y, current.state.originalIndex),
     })
     if (!current.state.active) return
+    if (current.preview === null) {
+      const preview = current.card.cloneNode(true)
+      if (preview instanceof HTMLElement) {
+        preview.removeAttribute("id")
+        for (const element of preview.querySelectorAll("[id]")) element.removeAttribute("id")
+        preview.inert = true
+        preview.setAttribute("aria-hidden", "true")
+        preview.dataset.dragging = "false"
+        preview.dataset.drop = ""
+        preview.dataset.pressed = "false"
+        preview.classList.add("notes-reorder-preview")
+        preview.style.width = `${current.width}px`
+        preview.style.height = `${current.height}px`
+        document.body.append(preview)
+        current.preview = preview
+      }
+    }
+    if (current.preview !== null) {
+      current.preview.style.transform = `translate(${current.x - current.offsetX}px, ${current.y - current.offsetY}px)`
+    }
     const next = { entryId: current.state.itemId, sourceIndex: current.state.originalIndex, targetIndex: current.state.targetIndex }
     setDrag((previous) => {
       if (previous?.entryId === next.entryId && previous.targetIndex === next.targetIndex) return previous
@@ -129,9 +156,18 @@ export function usePointerReorder({ disabled, items, onMove }: PointerReorderOpt
   function onPointerDown(event: ReactPointerEvent<HTMLButtonElement>, id: string, index: number) {
     if (disabled || !event.isPrimary || event.button !== 0) return
     if (items[index]?.id !== id) return
+    const card = event.currentTarget.closest("article")
+    if (!(card instanceof HTMLElement)) return
     clearSession(true)
+    const bounds = card.getBoundingClientRect()
     const threshold = event.pointerType === "touch" ? 10 : 5
     session.current = {
+      card,
+      preview: null,
+      offsetX: event.clientX - bounds.left,
+      offsetY: event.clientY - bounds.top,
+      width: bounds.width,
+      height: bounds.height,
       pointerId: event.pointerId,
       target: event.currentTarget,
       x: event.clientX,
