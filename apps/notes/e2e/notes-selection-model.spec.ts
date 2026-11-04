@@ -305,6 +305,7 @@ class EnterTextareaCommand extends SelectionCommand {
   async run(model: SelectionModel, real: SelectionReal) {
     this.recordExecution()
     await real.enterTextarea(this.position)
+    model.selected = this.position
     model.focus = `editor:${this.position}`
     model.observationPending = true
   }
