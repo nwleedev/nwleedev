@@ -1440,6 +1440,28 @@ test("선택한 본문을 교체하고 위치 변경과 원문 revision을 구�
   )
 })
 
+test("본문과 헤더 클릭은 메모를 선택하고 본문 편집은 위치를 바꾸지 않는다", async ({ page }) => {
+  const first = await createNoteThroughUi(page, "본문을 편집할 메모")
+  const second = await createNoteThroughUi(page, "헤더를 선택할 메모")
+  const editor = first.getByRole("textbox", { name: "메모 내용" })
+  const original = await visibleBox(first)
+
+  await second.getByRole("button", { name: "메모 이동" }).click()
+  await expect(second).toHaveAccessibleDescription("선택됨")
+  await editor.click()
+  await expect(first).toHaveAccessibleDescription("선택됨")
+  await expect(second).not.toHaveAccessibleDescription("선택됨")
+  await expect(editor).toBeFocused()
+  await editor.press("End")
+  await editor.press("Enter")
+  await editor.pressSequentially("추가한 본문")
+  await expect(editor).toHaveValue("본문을 편집할 메모\n추가한 본문")
+  await expect(first).toHaveAccessibleDescription("선택됨")
+  expect(await visibleBox(first)).toEqual(original)
+  await expect(page.getByRole("complementary", { name: "메모 속성" })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "일괄 복사 0개" })).toBeVisible()
+})
+
 test("저장된 Tab 순서로 메모를 선택하고 Enter에서만 속성을 편집한다", async ({
   page,
 }) => {

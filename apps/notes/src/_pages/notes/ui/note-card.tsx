@@ -16,7 +16,7 @@ import {
 } from "@/shared/ui/action-popover"
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
-import { CopyIcon, GripIcon } from "@/shared/ui/icons"
+import { CopyIcon } from "@/shared/ui/icons"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
 import type { SaveNoteContentResult } from "../model/save-note-content"
@@ -166,11 +166,11 @@ export function NoteCard({
   const controlsDisabled = interactionPending || gesture.saving
   const selectedVisible = selected && !commandPressed
   const headerClassName = joinClassNames(
-    "flex h-9 shrink-0 items-center justify-between px-1.5",
+    "flex h-9 shrink-0 items-center justify-between",
     commandPressed ? "[&_button]:invisible" : undefined,
   )
   const cardClassName = joinClassNames(
-    "absolute flex flex-col overflow-visible rounded-note border border-border bg-surface-raised outline-transparent focus-visible:outline-none after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-note after:content-[''] after:forced-colors:border-[Highlight] focus-visible:after:border-[0.2rem] focus-visible:after:border-dashed focus-visible:after:border-focus has-[textarea:focus-visible]:after:border-[0.2rem] has-[textarea:focus-visible]:after:border-dashed has-[textarea:focus-visible]:after:border-focus",
+    "absolute flex flex-col overflow-visible rounded-note border border-border bg-surface-raised outline-transparent focus-visible:outline-none after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-note after:content-[''] after:forced-colors:border-[Highlight]",
     selectedVisible
       ? "after:border-2 after:border-selection"
       : undefined,
@@ -203,7 +203,10 @@ export function NoteCard({
   function selectFromKeyboard(event: ReactFocusEvent<HTMLElement>) {
     onFocusNote(note.id)
 
-    if (event.target === event.currentTarget && !commandPressed) {
+    const noteOrContent =
+      event.target === event.currentTarget || event.target.id === contentId
+
+    if (noteOrContent && !commandPressed) {
       onSelect(note.id)
     }
   }
@@ -259,6 +262,9 @@ export function NoteCard({
       event.metaKey && event.altKey && !event.ctrlKey && !event.shiftKey
 
     if (!individualCopy && !batchCopy) {
+      if (!event.metaKey) {
+        onSelect(note.id)
+      }
       return
     }
 
@@ -356,9 +362,9 @@ export function NoteCard({
         선택됨
       </span>
       <header className={headerClassName}>
-        <IconButton
+        <button
           aria-label="메모 이동"
-          className="h-6 w-6 cursor-grab touch-none active:cursor-grabbing"
+          className="h-full min-w-0 flex-1 cursor-grab touch-none rounded-tl-note disabled:cursor-default active:cursor-grabbing"
           disabled={controlsDisabled}
           onClick={selectFromHeader}
           onDoubleClick={openPropertiesFromHeader}
@@ -367,13 +373,11 @@ export function NoteCard({
           onPointerDown={(event) => gesture.start(event, "move")}
           onPointerMove={gesture.move}
           onPointerUp={gesture.finish}
-          size="compact"
           tabIndex={-1}
-        >
-          <GripIcon />
-        </IconButton>
+          type="button"
+        />
         <div
-          className="flex items-center gap-0.5"
+          className="flex items-center gap-0.5 pr-1.5"
           data-note-header-actions=""
           onClick={stopHeaderAction}
           onDoubleClick={stopHeaderAction}
@@ -399,9 +403,7 @@ export function NoteCard({
       </header>
       <textarea
         aria-label="메모 내용"
-        className={joinClassNames(
-          "min-h-0 flex-1 resize-none overflow-auto border-0 bg-transparent px-4 py-3 text-base leading-7 text-text outline-transparent focus-visible:outline-none placeholder:text-soft-ink",
-        )}
+        className="min-h-0 flex-1 resize-none overflow-auto border-0 bg-transparent px-4 pb-3 pt-1 text-base leading-7 text-text outline-none placeholder:text-soft-ink"
         id={contentId}
         onClick={runContentShortcut}
         onMouseDown={prepareContentShortcut}
