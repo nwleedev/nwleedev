@@ -159,16 +159,6 @@ dialog::backdrop {
   max-inline-size: 100%;
 }
 
-@media (min-width: 48rem) {
-  .notes-action-toast-viewport {
-    top: auto;
-    bottom: max(
-      var(--notes-mobile-action-inset),
-      env(safe-area-inset-bottom, 0px)
-    );
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

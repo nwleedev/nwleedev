@@ -257,6 +257,15 @@ test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", 
   await expect(copyNotice).toBeVisible()
   await page.clock.fastForward(toastLifetimeMs / 2)
   const desktopToastBeforeNavigation = await readStableScreenPosition(copyNotice)
+  const desktopToast = await copyNotice.boundingBox()
+  const desktopViewport = page.viewportSize()
+  expect(desktopToast).not.toBeNull()
+  expect(desktopViewport).not.toBeNull()
+  expect(desktopToast!.y).toBeGreaterThanOrEqual(0)
+  expect(desktopToast!.y + desktopToast!.height).toBeLessThan(desktopViewport!.height / 2)
+  expect(
+    Math.abs(desktopToast!.x + desktopToast!.width / 2 - desktopViewport!.width / 2),
+  ).toBeLessThanOrEqual(1)
   await page.getByRole("link", { exact: true, name: "사용 빈도" }).click()
   await expect(copyNotice).toBeVisible()
   const desktopToastAfterNavigation = await readStableScreenPosition(copyNotice)
