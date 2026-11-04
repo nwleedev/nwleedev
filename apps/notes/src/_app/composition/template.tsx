@@ -3,7 +3,7 @@ import type { PropsWithChildren } from "react"
 import { TemplateDataProvider } from "@/_pages/templates/composition"
 
 import type { PersonalNotesDatabase } from "./indexed-db/personal-notes-database"
-import { useTemplateAdapters } from "./use-template-adapters"
+import { useTemplateServices } from "./use-template-services"
 
 type TemplateProps = PropsWithChildren<{
   database: PersonalNotesDatabase
@@ -11,7 +11,7 @@ type TemplateProps = PropsWithChildren<{
 
 export function Template({ children, database }: TemplateProps) {
   const { clipboard, createId, now, repository } =
-    useTemplateAdapters(database)
+    useTemplateServices(database)
 
   return (
     <TemplateDataProvider

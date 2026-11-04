@@ -10,8 +10,8 @@ import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
 
 import type { PersonalNotesDatabase } from "./indexed-db/personal-notes-database"
 
-export function useNoteAdapters(database: PersonalNotesDatabase) {
-  const [adapters] = useState(() => {
+export function useNoteServices(database: PersonalNotesDatabase) {
+  const [services] = useState(() => {
     const identifiers = new CryptoEntityIdGenerator()
     const order = new IndexedDbMobileNoteOrderRepository(database)
 
@@ -27,5 +27,5 @@ export function useNoteAdapters(database: PersonalNotesDatabase) {
     }
   })
 
-  return adapters
+  return services
 }

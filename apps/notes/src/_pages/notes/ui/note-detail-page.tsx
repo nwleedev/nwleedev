@@ -130,21 +130,43 @@ function ReadyNoteDetail({
     >
       <header className="grid min-w-0 gap-2 border-b border-line bg-surface-raised px-3 py-2">
         <div className="flex min-w-0 items-center gap-3">
-        <Link
-          aria-label="메모 목록"
-          className={backLinkClassName}
-          href="/"
-          onClick={requestBackNavigation}
+          <Link
+            aria-label="메모 목록"
+            className={backLinkClassName}
+            href="/"
+            onClick={requestBackNavigation}
+          >
+            <ChevronLeftIcon />
+          </Link>
+          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold">메모 수정</h1>
+          <div className="flex shrink-0 gap-1">
+            <IconButton
+              aria-label="실행 취소"
+              className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)]"
+              disabled={!history.available.undo || history.available.composing}
+              onClick={() => history.replay("undo")}
+              onPointerDown={(event) => event.preventDefault()}
+            >
+              <UndoIcon />
+            </IconButton>
+            <IconButton
+              aria-label="다시 실행"
+              className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)]"
+              disabled={!history.available.redo || history.available.composing}
+              onClick={() => history.replay("redo")}
+              onPointerDown={(event) => event.preventDefault()}
+            >
+              <RedoIcon />
+            </IconButton>
+          </div>
+        </div>
+        <p
+          aria-live="polite"
+          className="px-1 pb-1 text-sm text-soft-ink"
+          role="status"
         >
-          <ChevronLeftIcon />
-        </Link>
-        <h1 className="min-w-0 flex-1 truncate text-lg font-semibold">메모 수정</h1>
-        <div className="flex shrink-0 gap-1">
-          <IconButton aria-label="실행 취소" className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)]" disabled={!history.available.undo || history.available.composing} onClick={() => history.replay("undo")} onPointerDown={(event) => event.preventDefault()}><UndoIcon /></IconButton>
-          <IconButton aria-label="다시 실행" className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)]" disabled={!history.available.redo || history.available.composing} onClick={() => history.replay("redo")} onPointerDown={(event) => event.preventDefault()}><RedoIcon /></IconButton>
-        </div>
-        </div>
-        <p aria-live="polite" className="px-1 pb-1 text-sm text-soft-ink" role="status">{saveLabel}</p>
+          {saveLabel}
+        </p>
       </header>
       <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto]">
         <textarea

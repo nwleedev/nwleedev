@@ -4,7 +4,7 @@ import { NotesDataProvider } from "@/_pages/notes/composition"
 import type { IndividualCopyUsageWriter } from "@/entities/usage"
 
 import type { PersonalNotesDatabase } from "./indexed-db/personal-notes-database"
-import { useNoteAdapters } from "./use-note-adapters"
+import { useNoteServices } from "./use-note-services"
 
 type NoteProps = PropsWithChildren<{
   batchCopyShortcutEnabled: boolean
@@ -19,7 +19,7 @@ export function Note({
   usage,
 }: NoteProps) {
   const { clipboard, createId, drafts, now, repository, storageMonitor, readMobileOrder, moveMobileNote } =
-    useNoteAdapters(database)
+    useNoteServices(database)
 
   return (
     <NotesDataProvider

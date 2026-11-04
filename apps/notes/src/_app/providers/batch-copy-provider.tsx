@@ -6,7 +6,7 @@ import { AddNoteToBatchCopyProvider } from "@/features/add-note-to-batch-copy"
 import { EditBatchCopyProvider } from "@/features/edit-batch-copy"
 
 import type { PersonalNotesDatabase } from "../composition/indexed-db/personal-notes-database"
-import { useBatchCopyAdapters } from "../composition/use-batch-copy-adapters"
+import { useBatchCopyServices } from "../composition/use-batch-copy-services"
 import {
   useBatchCopyState,
   type BatchCopyDependencies,
@@ -24,9 +24,9 @@ export function BatchCopyProvider({
   onItemRemoved,
   reorderButtonsEnabled,
 }: BatchCopyProviderProps) {
-  const adapters = useBatchCopyAdapters(database)
+  const services = useBatchCopyServices(database)
   const { add, editorState, ready } = useBatchCopyState({
-    ...adapters,
+    ...services,
     onItemRemoved,
     reorderButtonsEnabled,
   })

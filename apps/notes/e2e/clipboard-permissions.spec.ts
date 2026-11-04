@@ -181,6 +181,7 @@ async function createGeneratedTemplate(page: Page) {
   )
   await page.getByRole("button", { name: "플레이스홀더로 지정" }).click()
   await page.getByRole("textbox", { name: "템플릿 이름" }).fill("인사")
+  await expect(page.getByRole("textbox", { name: "템플릿 이름" })).toHaveValue("인사")
   await page.getByRole("button", { name: "템플릿 저장" }).click()
   await page.getByRole("textbox", { name: "입력값 1" }).fill("민지")
   await page.getByRole("button", { name: "텍스트 생성" }).click()

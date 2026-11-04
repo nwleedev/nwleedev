@@ -6,8 +6,8 @@ import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
 
 import type { PersonalNotesDatabase } from "./indexed-db/personal-notes-database"
 
-export function useTemplateAdapters(database: PersonalNotesDatabase) {
-  const [adapters] = useState(() => {
+export function useTemplateServices(database: PersonalNotesDatabase) {
+  const [services] = useState(() => {
     const identifiers = new CryptoEntityIdGenerator()
 
     return {
@@ -18,5 +18,5 @@ export function useTemplateAdapters(database: PersonalNotesDatabase) {
     }
   })
 
-  return adapters
+  return services
 }

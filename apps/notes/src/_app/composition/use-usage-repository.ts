@@ -5,7 +5,7 @@ import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
 
 import type { PersonalNotesDatabase } from "./indexed-db/personal-notes-database"
 
-export function useUsageAdapters(database: PersonalNotesDatabase) {
+export function useUsageRepository(database: PersonalNotesDatabase) {
   const [repository] = useState(
     () => new IndexedDbUsageRepository(
       database,

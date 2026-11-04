@@ -180,10 +180,13 @@ export function useTemplateEditor({
     }
 
     const fieldName = `labels.${key}` as const
+    const previousFocus = document.activeElement
     onDraftChange(result.draft)
     form.setValue(fieldName, label)
     setStatus("idle")
-    requestAnimationFrame(() => form.setFocus(fieldName))
+    requestAnimationFrame(() => {
+      if (document.activeElement === previousFocus) form.setFocus(fieldName)
+    })
   }
 
   function changeLabel(key: string, label: string) {

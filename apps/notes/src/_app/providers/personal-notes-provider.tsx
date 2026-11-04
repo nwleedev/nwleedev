@@ -18,7 +18,7 @@ import { Note } from "../composition/note"
 import { Preference } from "../composition/preference"
 import { Template } from "../composition/template"
 import { useDatabase } from "../composition/use-database"
-import { useUsageAdapters } from "../composition/use-usage-adapters"
+import { useUsageRepository } from "../composition/use-usage-repository"
 import { BatchCopyProvider } from "./batch-copy-provider"
 
 type ConnectedProvidersProps = PropsWithChildren<{
@@ -31,7 +31,7 @@ function ConnectedProviders({
 }: ConnectedProvidersProps) {
   const { forgetBatchCopyItem } = useNoteSessionCommands()
   const preferenceState = useInteractionPreferences()
-  const usage = useUsageAdapters(database)
+  const usage = useUsageRepository(database)
   const batchCopyShortcutEnabled =
     "preferences" in preferenceState
       ? preferenceState.preferences.batchCopyShortcutEnabled
