@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 import { useForm, useWatch, type Control } from "react-hook-form"
 
 import {
@@ -100,6 +100,10 @@ export function useTemplateEditor({
   const templates = useTemplateData()
   const { selectTemplate } = useTemplateSelection()
   const sourceField = useRef<HTMLTextAreaElement>(null)
+  const pendingFocus = useRef<{
+    fieldName: `labels.${string}`
+    previous: Element | null
+  } | null>(null)
   const [status, setStatus] = useState<EditorStatus>("idle")
   const form = useForm<TemplateSaveFields>({
     defaultValues: {
@@ -109,6 +113,14 @@ export function useTemplateEditor({
     },
     shouldUnregister: true,
   })
+  const { setFocus } = form
+  useLayoutEffect(() => {
+    const pending = pendingFocus.current
+    pendingFocus.current = null
+    if (pending && document.activeElement === pending.previous) {
+      setFocus(pending.fieldName)
+    }
+  }, [draft, setFocus])
   const sourceRegistration = form.register("sourceText", {
     onChange() {
       setStatus("idle")
@@ -180,13 +192,10 @@ export function useTemplateEditor({
     }
 
     const fieldName = `labels.${key}` as const
-    const previousFocus = document.activeElement
+    pendingFocus.current = { fieldName, previous: document.activeElement }
     onDraftChange(result.draft)
     form.setValue(fieldName, label)
     setStatus("idle")
-    requestAnimationFrame(() => {
-      if (document.activeElement === previousFocus) form.setFocus(fieldName)
-    })
   }
 
   function changeLabel(key: string, label: string) {
