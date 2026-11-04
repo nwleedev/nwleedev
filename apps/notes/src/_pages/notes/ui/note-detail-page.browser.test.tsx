@@ -36,10 +36,10 @@ function createStoredNote(): Note {
   }
 }
 
-function createStorage(initialNote: Note) {
+function createStorage(initialNote: Note, rejectFirstSave = true) {
   let storedNote = initialNote
   let storedDraft: NoteDraft | null = null
-  let rejectNextNoteSave = true
+  let rejectNextNoteSave = rejectFirstSave
 
   const notes: NoteRepository = {
     getAll: async () => [storedNote],
@@ -133,10 +133,8 @@ it("메모 저장 실패 후 다시 열어도 편집 초안을 복구하고 재�
   const editor = page.getByRole("textbox", { name: "메모 내용" })
   await expect.element(editor).toHaveValue(initialNote.content)
   await act(async () => userEvent.fill(editor, changedContent))
-  await act(async () =>
-    userEvent.click(page.getByRole("button", { name: "저장", exact: true })),
-  )
 
+  await act(async () => { await expect.poll(() => storage.draft?.content).toBe(changedContent) })
   await expect.element(page.getByRole("alert")).toBeInTheDocument()
   expect(storage.note.content).toBe(initialNote.content)
   expect(storage.draft?.content).toBe(changedContent)
@@ -146,10 +144,67 @@ it("메모 저장 실패 후 다시 열어도 편집 초안을 복구하고 재�
   await renderDetail(initialNote.id, storage)
   await expect.element(editor).toHaveValue(changedContent)
 
-  await act(async () =>
-    userEvent.click(page.getByRole("button", { name: "저장", exact: true })),
-  )
-  expect(storage.note.content).toBe(changedContent)
+  await act(async () => userEvent.fill(editor, `${changedContent} 재저장`))
+  await act(async () => { await expect.poll(() => storage.note.content).toBe(`${changedContent} 재저장`) })
+  expect(storage.note.content).toBe(`${changedContent} 재저장`)
   expect(storage.note.contentRevision).toBe(initialNote.contentRevision + 1)
   expect(storage.draft).toBeNull()
+})
+
+
+it("자동 저장 뒤에도 편집을 되돌리고 다시 실행하며 새 입력은 이전 Redo를 없앤다", async () => {
+  const initialNote = createStoredNote()
+  const storage = createStorage(initialNote, false)
+  await renderDetail(initialNote.id, storage)
+  const editor = page.getByRole("textbox", { name: "메모 내용" })
+  const undo = page.getByRole("button", { name: "실행 취소", exact: true })
+  const redo = page.getByRole("button", { name: "다시 실행", exact: true })
+  await expect.element(undo).toBeDisabled()
+  await expect.element(redo).toBeDisabled()
+  const changed = `${initialNote.content} 수정한 내용`
+  await act(async () => userEvent.fill(editor, changed))
+  await act(async () => { await expect.poll(() => storage.note.content).toBe(changed) })
+  await expect.element(undo).toBeEnabled()
+  await act(async () => userEvent.click(undo))
+  await expect.element(editor).toHaveValue(initialNote.content)
+  await act(async () => { await expect.poll(() => storage.note.content).toBe(initialNote.content) })
+  await act(async () => userEvent.click(redo))
+  await expect.element(editor).toHaveValue(changed)
+  await act(async () => { await expect.poll(() => storage.note.content).toBe(changed) })
+  await act(async () => userEvent.click(undo))
+  await act(async () => userEvent.fill(editor, "새로운 수정"))
+  await expect.element(redo).toBeDisabled()
+  await act(async () => { await expect.poll(() => storage.note.content).toBe("새로운 수정") })
+  await act(async () => root.unmount())
+  root = createRoot(container)
+  await renderDetail(initialNote.id, storage)
+  await expect.element(editor).toHaveValue("새로운 수정")
+  await expect.element(undo).toBeDisabled()
+  await expect.element(redo).toBeDisabled()
+})
+
+it("이전 저장이 끝나도 최신 입력의 저장이 끝날 때까지 저장 중으로 표시한다", async () => {
+  const initialNote = createStoredNote()
+  const storage = createStorage(initialNote, false)
+  const save = storage.notes.save
+  const completions: (() => void)[] = []
+  storage.notes.save = async (note) => {
+    await new Promise<void>((resolve) => completions.push(resolve))
+    return save(note)
+  }
+  await renderDetail(initialNote.id, storage)
+  const editor = page.getByRole("textbox", { name: "메모 내용" })
+  const status = page.getByRole("status")
+  await act(async () => userEvent.fill(editor, "먼저 저장할 내용"))
+  await act(async () => { await expect.poll(() => completions.length).toBe(1) })
+  await act(async () => userEvent.fill(editor, "저장 중에 추가한 최신 내용"))
+  await expect.element(status).toHaveTextContent("저장 중")
+  await act(async () => completions[0]())
+  await expect.element(editor).toHaveValue("저장 중에 추가한 최신 내용")
+  await expect.element(status).toHaveTextContent("저장 중")
+  expect(storage.note.content).toBe("먼저 저장할 내용")
+  await act(async () => { await expect.poll(() => completions.length).toBe(2) })
+  await act(async () => completions[1]())
+  await expect.element(status).toHaveTextContent("저장됨")
+  expect(storage.note.content).toBe("저장 중에 추가한 최신 내용")
 })

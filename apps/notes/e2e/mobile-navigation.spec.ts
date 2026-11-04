@@ -286,7 +286,7 @@ test("메모가 있는 목록에서 새 메모를 만들어도 기존 메모와 
   await expect(page.getByRole("button", { name: "빈 메모 더보기" })).toBeVisible()
 })
 
-test("긴 메모를 스크롤해도 저장 제어가 화면 아래쪽에 남는다", async ({ page }) => {
+test("긴 메모를 스크롤해도 편집 이력 버튼과 저장 상태가 화면 위쪽에 남는다", async ({ page }) => {
   const content = fc.sample(
     fc.array(fc.stringMatching(/^[a-z]{48,72}$/u), {
       minLength: 50,
@@ -303,14 +303,14 @@ test("긴 메모를 스크롤해도 저장 제어가 화면 아래쪽에 남는�
   await expect(notes).toHaveCount(previousNoteCount + 1)
   await openMobileNoteEditor(page, page.getByRole("article").filter({ has: page.getByRole("button", { exact: true, name: "빈 메모 더보기" }) }))
   const editor = page.getByRole("textbox", { name: "메모 내용" })
-  const save = page.getByRole("button", { exact: true, name: "저장" })
+  const save = page.getByRole("button", { exact: true, name: "실행 취소" })
   await editor.fill(content)
   const viewport = page.viewportSize()
   const before = await save.boundingBox()
 
   expect(viewport).not.toBeNull()
   expect(before).not.toBeNull()
-  expect(viewport!.height - (before!.y + before!.height)).toBeLessThanOrEqual(before!.height)
+  expect(before!.y).toBeLessThanOrEqual(before!.height)
 
   await editor.hover()
   await page.mouse.wheel(0, viewport!.height)
@@ -319,7 +319,6 @@ test("긴 메모를 스크롤해도 저장 제어가 화면 아래쪽에 남는�
   expect(after).not.toBeNull()
   expect(after!.y).toBeCloseTo(before!.y, 0)
   await expect(save).toBeInViewport()
-  await save.click()
-  await expect(page.getByRole("button", { name: "저장됨" })).toBeVisible()
+  await expect(page.getByRole("status").filter({ hasText: "저장됨" })).toBeVisible()
   await expect(editor).toHaveValue(content)
 })

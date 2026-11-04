@@ -64,6 +64,7 @@ type NotesDataContextValue = NotesDataState & {
   retry(): void
   saveContent(noteId: string, content: string): Promise<SaveNoteContentResult>
   saveDraft(noteId: string, content: string): Promise<void>
+  discardDraft(noteId: string): Promise<void>
   updateNote(
     note: Note,
     change: { content?: string; geometry?: NoteGeometry },
@@ -285,6 +286,17 @@ export function useNotesDataModel({
     })
   }
 
+  async function discardDraft(noteId: string) {
+    return enqueue(async () => {
+      const note = availableNotesReference.current.find(({ id }) => id === noteId)
+      if (note === undefined) return
+      await drafts.remove({ id: note.id, contentRevision: note.contentRevision })
+      const nextDraftContent = { ...draftContentReference.current }
+      delete nextDraftContent[noteId]
+      publishAvailable(availableNotesReference.current, nextDraftContent)
+    })
+  }
+
   async function updateNote(
     note: Note,
     change: { content?: string; geometry?: NoteGeometry },
@@ -374,6 +386,7 @@ export function useNotesDataModel({
     retry,
     saveContent,
     saveDraft,
+    discardDraft,
     updateNote,
   }
 }

@@ -65,8 +65,7 @@ export async function createMobileNoteThroughUi(
 
   const editor = page.getByRole("textbox", { name: "메모 내용" })
   await editor.fill(content)
-  await page.getByRole("button", { exact: true, name: "저장" }).click()
-  await expect(page.getByRole("button", { name: "저장됨" })).toBeVisible()
+  await expect(page.getByRole("status").filter({ hasText: "저장됨" })).toBeVisible()
   await page.getByRole("link", { exact: true, name: "메모 목록" }).click()
   await expect(page).toHaveURL("/")
 

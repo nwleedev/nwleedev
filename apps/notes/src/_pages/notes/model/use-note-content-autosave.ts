@@ -25,6 +25,7 @@ type UseNoteContentAutosaveOptions = {
   onFailure?(reason: SaveNoteContentFailureReason): void
   onSave(noteId: string, content: string): Promise<SaveNoteContentResult>
   readContent(): string
+  saveOnExit?: boolean
 }
 
 export function useNoteContentAutosave({
@@ -34,12 +35,15 @@ export function useNoteContentAutosave({
   onFailure,
   onSave,
   readContent,
+  saveOnExit = true,
 }: UseNoteContentAutosaveOptions) {
   const [state, setState] = useState(() =>
     createNoteContentSaveState(note, initialContent),
   )
   const [failureReason, setFailureReason] =
     useState<SaveNoteContentFailureReason | null>(null)
+  const [scheduled, setScheduled] = useState(initialContent !== note.content)
+  const stopped = useRef(false)
   const stateReference = useRef(state)
   const noteReference = useRef(note)
   const saveReference = useRef(onSave)
@@ -62,6 +66,8 @@ export function useNoteContentAutosave({
   }, [])
 
   const scheduleSave = useCallback(() => {
+    if (stopped.current) return
+    setScheduled(true)
     if (timer.current !== null) {
       clearTimeout(timer.current)
     }
@@ -73,6 +79,7 @@ export function useNoteContentAutosave({
   }, [])
 
   const save = useCallback(() => {
+    if (stopped.current) return Promise.resolve(null)
     if (timer.current !== null) {
       clearTimeout(timer.current)
       timer.current = null
@@ -88,7 +95,10 @@ export function useNoteContentAutosave({
     )
     const request = started.request
     publish(started.state)
-    setFailureReason(null)
+    if (mounted.current) {
+      setFailureReason(null)
+      setScheduled(false)
+    }
 
     if (request === null) {
       return pendingSave.current ?? Promise.resolve(started.state.note)
@@ -100,6 +110,8 @@ export function useNoteContentAutosave({
           request.note.id,
           request.content,
         )
+
+        if (stopped.current) return result.status === "failure" ? null : result.note
 
         if (result.status === "failure") {
           publish(failNoteContentSave(stateReference.current))
@@ -127,6 +139,7 @@ export function useNoteContentAutosave({
 
         return result.note
       } catch {
+        if (stopped.current) return null
         publish(failNoteContentSave(stateReference.current))
         setFailureReason("note-storage")
         failureReference.current?.("note-storage")
@@ -142,6 +155,17 @@ export function useNoteContentAutosave({
     })
     return operation
   }, [publish])
+
+  const stop = useCallback(() => {
+    stopped.current = true
+    if (timer.current !== null) clearTimeout(timer.current)
+    timer.current = null
+  }, [])
+
+  const cancelSchedule = useCallback(() => {
+    if (timer.current !== null) clearTimeout(timer.current)
+    timer.current = null
+  }, [])
 
   useEffect(() => {
     noteReference.current = note
@@ -169,6 +193,7 @@ export function useNoteContentAutosave({
 
   useEffect(() => {
     mounted.current = true
+    stopped.current = false
 
     function saveBeforeLeaving() {
       void executeSaveReference.current()
@@ -192,14 +217,18 @@ export function useNoteContentAutosave({
         clearTimeout(timer.current)
       }
 
-      saveBeforeLeaving()
+      if (saveOnExit) saveBeforeLeaving()
+      else stop()
     }
-  }, [])
+  }, [saveOnExit, stop])
 
   return {
     failureReason,
+    cancelSchedule,
     save,
     scheduleSave,
+    pending: scheduled || state.status === "saving",
     status: state.status,
+    stop,
   }
 }

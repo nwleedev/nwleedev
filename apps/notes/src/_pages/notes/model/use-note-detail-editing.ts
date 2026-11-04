@@ -13,10 +13,10 @@ import { useForm } from "react-hook-form"
 import type { Note } from "@/entities/note"
 import type { NoteDetailFailure } from "./note-detail-failure"
 import type { SaveNoteContentResult } from "./save-note-content"
+import { useNoteContentAutosave } from "./use-note-content-autosave"
+import { useNoteEditHistory } from "./use-note-edit-history"
 import { useNoteDetailDraft } from "./use-note-detail-draft"
 import { useNoteDetailNavigation } from "./use-note-detail-navigation"
-
-const SAVED_LABEL_DURATION_MS = 1_500
 
 type NoteContentFields = {
   content: string
@@ -32,6 +32,7 @@ type UseNoteDetailEditingOptions = {
     content: string,
   ): Promise<SaveNoteContentResult>
   saveDraft(noteId: string, content: string): Promise<void>
+  discardDraft(noteId: string): Promise<void>
 }
 
 export function useNoteDetailEditing({
@@ -39,27 +40,37 @@ export function useNoteDetailEditing({
   note,
   saveContent,
   saveDraft,
+  discardDraft,
 }: UseNoteDetailEditingOptions) {
   const {
-    formState: { isSubmitting },
     getValues,
-    handleSubmit,
+    setValue,
     register,
     reset,
   } = useForm<NoteContentFields>({
     defaultValues: { content: initialContent },
   })
   const [failure, setFailure] = useState<NoteDetailFailure | null>(null)
-  const [saved, setSaved] = useState(false)
   const editor = useRef<HTMLTextAreaElement>(null)
   const noteReference = useRef(note)
-  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const readContent = useCallback(() => getValues("content"), [getValues])
   const draft = useNoteDetailDraft({
     noteReference,
     readContent,
     saveDraft,
-    setFailure,
+    discardStoredDraft: discardDraft,
+  })
+  const autosave = useNoteContentAutosave({
+    initialContent,
+    note,
+    onContentSaved(content) {
+      reset({ content }, { keepFieldsRef: true })
+      setFailure(null)
+    },
+    onFailure(reason) { setFailure({ kind: "save", reason }) },
+    onSave: saveContent,
+    readContent,
+    saveOnExit: false,
   })
   const navigation = useNoteDetailNavigation({
     discardDraft: draft.discardDraft,
@@ -67,69 +78,45 @@ export function useNoteDetailEditing({
     noteId: note.id,
     noteReference,
     readContent,
-    setFailure,
+    stopSaving: autosave.stop,
+  })
+  const history = useNoteEditHistory({
+    editor,
+    readContent,
+    replaceContent(content) {
+      setValue("content", content, { shouldDirty: true })
+      autosave.scheduleSave()
+    },
   })
 
-  function showSavedLabel() {
-    if (savedTimer.current !== null) {
-      clearTimeout(savedTimer.current)
-    }
-
-    setSaved(true)
-    savedTimer.current = setTimeout(() => {
-      savedTimer.current = null
-      setSaved(false)
-    }, SAVED_LABEL_DURATION_MS)
-  }
-
+  const { scheduleSave } = autosave
+  useEffect(() => { noteReference.current = note }, [note])
   useEffect(() => {
-    noteReference.current = note
-  }, [note])
-
-  useEffect(() => {
-    return () => {
-      if (savedTimer.current !== null) {
-        clearTimeout(savedTimer.current)
-      }
-    }
-  }, [])
-
-  async function save(fields: NoteContentFields) {
-    draft.clearDraftTimer()
-    setFailure(null)
-    const result = await saveContent(note.id, fields.content)
-
-    if (result.status === "failure") {
-      setFailure({ kind: "save", reason: result.reason })
-      return
-    }
-
-    noteReference.current = result.note
-    const latestContent = getValues("content")
-
-    if (latestContent === fields.content) {
-      reset({ content: result.note.content }, { keepFieldsRef: true })
-    } else {
-      reset(
-        { content: result.note.content },
-        { keepFieldsRef: true, keepValues: true },
-      )
-    }
-
-    showSavedLabel()
-  }
+    if (initialContent !== noteReference.current.content) scheduleSave()
+  }, [initialContent, scheduleSave])
 
   const contentRegistration = register("content")
 
   function changeContent(event: ReactChangeEvent<HTMLTextAreaElement>) {
+    const inputType = event.nativeEvent instanceof InputEvent ? event.nativeEvent.inputType : ""
+    history.record(event.currentTarget, inputType)
     void contentRegistration.onChange(event)
-    setSaved(false)
-    draft.scheduleDraft()
+    if (!history.available.composing) autosave.scheduleSave()
+  }
+
+  function startComposition() {
+    autosave.cancelSchedule()
+    history.startComposition()
+  }
+
+  function endComposition() {
+    history.endComposition()
+    autosave.scheduleSave()
   }
 
   function blurContent(event: ReactFocusEvent<HTMLTextAreaElement>) {
     void contentRegistration.onBlur(event)
-    void draft.storeDraft()
+    if (!history.available.composing) void autosave.save()
   }
 
   const connectEditor = useCallback((element: HTMLTextAreaElement | null) => {
@@ -137,22 +124,9 @@ export function useNoteDetailEditing({
     editor.current = element
   }, [register])
 
-  function submitSave() {
-    void handleSubmit(save)()
-  }
-
   function retryFailure() {
-    if (failure?.kind === "draft") {
-      void draft.storeDraft()
-      return
-    }
-
-    if (failure?.kind === "discard") {
-      void navigation.discardChanges()
-      return
-    }
-
-    submitSave()
+    setFailure(null)
+    void autosave.save()
   }
 
   return {
@@ -165,18 +139,14 @@ export function useNoteDetailEditing({
     dialog: navigation.dialog,
     dialogTitleId: navigation.dialogTitleId,
     discardChanges: navigation.discardChanges,
-    discarding: navigation.discarding,
     failure,
     navigationConfirmationVisible: navigation.navigationConfirmationVisible,
     onBlur: blurContent,
     requestBackNavigation: navigation.requestBackNavigation,
     retryFailure,
-    saveLabel: isSubmitting
-      ? "저장하는 중"
-      : saved
-        ? "저장됨"
-        : "저장",
-    savePending: isSubmitting,
-    submitSave,
+    startComposition,
+    endComposition,
+    saveLabel: failure !== null ? "저장하지 못함" : autosave.pending ? "저장 중" : "저장됨",
+    history,
   }
 }

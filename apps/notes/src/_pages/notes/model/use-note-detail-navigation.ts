@@ -6,21 +6,18 @@ import {
   useId,
   useRef,
   useState,
-  type Dispatch,
   type MouseEvent as ReactMouseEvent,
   type RefObject,
-  type SetStateAction,
   type SyntheticEvent,
 } from "react"
 
 import type { Note } from "@/entities/note"
 import { useNavigationGuard } from "@/features/navigation-guard"
 
-import type { NoteDetailFailure } from "./note-detail-failure"
 
 type NavigationState =
   | { phase: "editing" }
-  | { continueNavigation(): void; phase: "confirming" | "discarding" }
+  | { continueNavigation(): void; phase: "confirming" }
 
 type NoteDetailNavigationOptions = {
   discardDraft(noteId: string): Promise<void>
@@ -28,7 +25,7 @@ type NoteDetailNavigationOptions = {
   noteId: string
   noteReference: RefObject<Note>
   readContent(): string
-  setFailure: Dispatch<SetStateAction<NoteDetailFailure | null>>
+  stopSaving(): void
 }
 
 export function useNoteDetailNavigation({
@@ -37,7 +34,7 @@ export function useNoteDetailNavigation({
   noteId,
   noteReference,
   readContent,
-  setFailure,
+  stopSaving,
 }: NoteDetailNavigationOptions) {
   const router = useRouter()
   const { registerNavigationGuard, requestNavigation } = useNavigationGuard()
@@ -49,16 +46,22 @@ export function useNoteDetailNavigation({
   const dialogTitleId = useId()
 
   useEffect(() => {
+    function confirmUnload(event: BeforeUnloadEvent) {
+      if (readContent() === noteReference.current.content) return
+      event.preventDefault()
+      event.returnValue = ""
+    }
+    window.addEventListener("beforeunload", confirmUnload)
+    return () => window.removeEventListener("beforeunload", confirmUnload)
+  }, [noteReference, readContent])
+
+  useEffect(() => {
     return registerNavigationGuard((continueNavigation) => {
       if (readContent() === noteReference.current.content) {
         return false
       }
 
-      setNavigation((current) =>
-        current.phase === "discarding"
-          ? current
-          : { continueNavigation, phase: "confirming" },
-      )
+      setNavigation({ continueNavigation, phase: "confirming" })
       return true
     })
   }, [readContent, registerNavigationGuard, noteReference])
@@ -96,24 +99,14 @@ export function useNoteDetailNavigation({
     requestAnimationFrame(() => editor.current?.focus())
   }
 
-  async function discardChanges() {
-    if (navigation.phase !== "confirming") {
-      return
-    }
-
+  function discardChanges() {
+    if (navigation.phase !== "confirming") return
     const continueNavigation = navigation.continueNavigation
-    setNavigation({ continueNavigation, phase: "discarding" })
-
-    try {
-      await discardDraft(noteId)
-      dialog.current?.close()
-      setNavigation({ phase: "editing" })
-      continueNavigation()
-    } catch {
-      setNavigation({ continueNavigation, phase: "confirming" })
-      setFailure({ kind: "discard" })
-      requestAnimationFrame(() => continueButton.current?.focus())
-    }
+    stopSaving()
+    void discardDraft(noteId).catch(() => undefined)
+    dialog.current?.close()
+    setNavigation({ phase: "editing" })
+    continueNavigation()
   }
 
   function cancelDialog(event: SyntheticEvent<HTMLDialogElement>) {
@@ -131,7 +124,6 @@ export function useNoteDetailNavigation({
     dialog,
     dialogTitleId,
     discardChanges,
-    discarding: navigation.phase === "discarding",
     navigationConfirmationVisible: navigation.phase !== "editing",
     requestBackNavigation,
   }
