@@ -44,6 +44,9 @@ importers:
       react:
         specifier: 19.2.8
         version: 19.2.8
+      react-aria-components:
+        specifier: 1.22.1
+        version: 1.22.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react-dom:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
@@ -1400,6 +1403,15 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@internationalized/date@3.12.4':
+    resolution: {integrity: sha512-M1dEn4c1U1HsSlaVR8upZtSqvXrTkHDfv18H01uCSJyjVLDxnBR38v/fMxecmlwXKR4i9HeZcmgQAPE6A+aGJQ==}
+
+  '@internationalized/number@3.6.9':
+    resolution: {integrity: sha512-GgWy2caO/+hV9sT/oCTWGHvbjmJMPT9kkXzoKRLnkEq7adghhR7UprhvY9sXrKfrp3NcDfhF6QQHXR1KfQbB8g==}
+
+  '@internationalized/string@3.2.10':
+    resolution: {integrity: sha512-PDx6//vHSpRnHfxqMqto11zQvhsaU74O3mKv2F/0eicGZcl9NLjQmGlbHz/LsJh5tLKp4A4L7ZVTzN1/MmMTvA==}
+
   '@isaacs/cliui@9.0.0':
     resolution: {integrity: sha512-AokJm4tuBHillT+FpMtxQ60n8ObyXBatq7jD2/JA9dxbDDokKQm8KMht5ibGzLVU9IJDIKK4TPKgMHEYMn3lMg==}
     engines: {node: '>=18'}
@@ -1577,6 +1589,11 @@ packages:
 
   '@poppinss/exception@1.2.3':
     resolution: {integrity: sha512-dCED+QRChTVatE9ibtoaxc+WkdzOSjYTKi/+uacHWIsfodVfpsueo3+DKpgU5Px8qXjgmXkSvhXvSCz3fnP9lw==}
+
+  '@react-types/shared@3.37.0':
+    resolution: {integrity: sha512-VNlZuifu4tHdxWPfHvoMfKsHA9kVTCGkduv5vKVTdinm8wHFJNhyVB5RzIMiRFj0q3RKoCbP68u2zaoBSiFueg==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
   '@rolldown/binding-android-arm-eabi@1.2.6':
     resolution: {integrity: sha512-b+jTcARdTiFLI6jB4a5XjTm0RWd6KcRfQj/I2356fxUZemiho9zQLxo0RtCuMDAyKcLo6cEltkgbQp6d1+sjjQ==}
@@ -2376,6 +2393,10 @@ packages:
 
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
+
+  aria-hidden@1.2.6:
+    resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
+    engines: {node: '>=10'}
 
   aria-query@5.3.2:
     resolution: {integrity: sha512-COROpnaoap1E2F000S62r6A60uHZnmlvomhfyT2DlTcrY1OrBKn2UhH7qn5wTC9zMvD0AY7csdPSNwKP+7WiQw==}
@@ -4219,6 +4240,18 @@ packages:
     resolution: {integrity: sha512-K5zQjDllxWkf7Z5xJdV0/B0WTNqx6vxG70zJE4N0kBs4LovmEYWJzQGxC9bS9RAKu3bgM40lrd5zoLJ12MQ5BA==}
     engines: {node: '>= 0.10'}
 
+  react-aria-components@1.22.1:
+    resolution: {integrity: sha512-UTHaYHOaM71bOCjGPF50DcLywlrwAodE63IP64LB4kO+OizatQEL8TesVEOM8+TkBeSgHoflJ45388IlJfa7aw==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+      react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+
+  react-aria@3.53.1:
+    resolution: {integrity: sha512-dikisyOjJd3D2fFrIDWmVWzqiLz5B86GzZv1zxs7xI4dVc0JIz/1Wa52I20gYvVL2WXeFXlygYsle/QcOMhtcg==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+      react-dom: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+
   react-dom@19.2.8:
     resolution: {integrity: sha512-rVprimfGBG3DR+Tq0IQG2DT5PxKth1WIGDmj5yPmlzr4YBe7uyE+Du4oVqTDXZSHGGGXRtTJEGSSePyQCMBglQ==}
     peerDependencies:
@@ -4232,6 +4265,11 @@ packages:
 
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
+
+  react-stately@3.51.0:
+    resolution: {integrity: sha512-YJcmkAXu2XOQP97hO/qz/cC3qv9kni3oVhwBlxWr358BHePJUpY15XwL3YSRMKxYt4EkslPqAz11JRirMfANGw==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
 
   react@19.2.8:
     resolution: {integrity: sha512-PWaYA1L/q9u2u7xYQi+Y3L3Yfnie7XyLeaJICV1MGD6LprsBxcAqGjYyr0eY3p+QdsA+x/Irkt4Qif8D63+Sbw==}
@@ -4790,6 +4828,11 @@ packages:
 
   urlpattern-polyfill@10.1.0:
     resolution: {integrity: sha512-IGjKp/o0NL3Bso1PymYURCJxMPNAf/ILOpendP9f5B6e1rTJgdgiOvgfoT8VxCAdY+Wisb9uhGaJJf3yZ2V9nw==}
+
+  use-sync-external-store@1.7.0:
+    resolution: {integrity: sha512-6L+EeigHMQhdaIPNIFUKwfWJSwWFQ8gJbJ2DLOs5sDIegTwR9fRxvnM3uciHKjIZhFz+KAv2emhWMRvDmMcY8A==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
@@ -6566,6 +6609,18 @@ snapshots:
   '@img/sharp-win32-x64@0.35.4':
     optional: true
 
+  '@internationalized/date@3.12.4':
+    dependencies:
+      '@swc/helpers': 0.5.23
+
+  '@internationalized/number@3.6.9':
+    dependencies:
+      '@swc/helpers': 0.5.23
+
+  '@internationalized/string@3.2.10':
+    dependencies:
+      '@swc/helpers': 0.5.23
+
   '@isaacs/cliui@9.0.0': {}
 
   '@jridgewell/gen-mapping@0.3.13':
@@ -6749,6 +6804,10 @@ snapshots:
       supports-color: 10.2.2
 
   '@poppinss/exception@1.2.3': {}
+
+  '@react-types/shared@3.37.0(react@19.2.8)':
+    dependencies:
+      react: 19.2.8
 
   '@rolldown/binding-android-arm-eabi@1.2.6':
     optional: true
@@ -7541,6 +7600,10 @@ snapshots:
       picomatch: 2.3.2
 
   argparse@2.0.1: {}
+
+  aria-hidden@1.2.6:
+    dependencies:
+      tslib: 2.8.1
 
   aria-query@5.3.2: {}
 
@@ -9637,6 +9700,33 @@ snapshots:
       iconv-lite: 0.7.3
       unpipe: 1.0.0
 
+  react-aria-components@1.22.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      '@internationalized/date': 3.12.4
+      '@internationalized/string': 3.2.10
+      '@react-types/shared': 3.37.0(react@19.2.8)
+      '@swc/helpers': 0.5.23
+      client-only: 0.0.1
+      react: 19.2.8
+      react-aria: 3.53.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      react-dom: 19.2.8(react@19.2.8)
+      react-stately: 3.51.0(react@19.2.8)
+      use-sync-external-store: 1.7.0(react@19.2.8)
+
+  react-aria@3.53.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      '@internationalized/date': 3.12.4
+      '@internationalized/number': 3.6.9
+      '@internationalized/string': 3.2.10
+      '@react-types/shared': 3.37.0(react@19.2.8)
+      '@swc/helpers': 0.5.23
+      aria-hidden: 1.2.6
+      clsx: 2.1.1
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      react-stately: 3.51.0(react@19.2.8)
+      use-sync-external-store: 1.7.0(react@19.2.8)
+
   react-dom@19.2.8(react@19.2.8):
     dependencies:
       react: 19.2.8
@@ -9647,6 +9737,16 @@ snapshots:
       react: 19.2.8
 
   react-is@16.13.1: {}
+
+  react-stately@3.51.0(react@19.2.8):
+    dependencies:
+      '@internationalized/date': 3.12.4
+      '@internationalized/number': 3.6.9
+      '@internationalized/string': 3.2.10
+      '@react-types/shared': 3.37.0(react@19.2.8)
+      '@swc/helpers': 0.5.23
+      react: 19.2.8
+      use-sync-external-store: 1.7.0(react@19.2.8)
 
   react@19.2.8: {}
 
@@ -10311,6 +10411,10 @@ snapshots:
       punycode: 2.3.1
 
   urlpattern-polyfill@10.1.0: {}
+
+  use-sync-external-store@1.7.0(react@19.2.8):
+    dependencies:
+      react: 19.2.8
 
   vary@1.1.2: {}
 

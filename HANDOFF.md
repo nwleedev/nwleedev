@@ -1,8 +1,12 @@
 # 메모 사용 경험과 서버 저장 설계
 
+React Aria 전환의 첫 단계에서 `react-aria-components` 1.22.1을 설치했다. React 및 Next.js 버전은 유지했다. 설치 전 lint와 타입 검사, 설치 후 운영 빌드 및 Node의 메뉴 구성요소 import가 통과했다. 패키지는 Apache-2.0이며 설치 과정의 peer 의존성 충돌은 없었다. 기존 화면은 아직 네이티브 팝오버를 사용한다. 기능 코드, 테스트와 임시 실행기는 추가하지 않았다.
+
+배포 gitHead의 Popover와 usePopover 소스에서 기본 바깥 요소 inert 처리와 underlay를 확인했다. `isNonModal`만 켜면 바깥 클릭 종료도 달라지므로 실제 공통 메뉴 연결에서 종료와 Tab 이탈을 함께 검증해야 한다. 모달 안 삽입 위치와 최소 브라우저 실행도 미확인이다. 플랜 첫 단계는 진행 중이며 다음 작업은 기존 `shared/ui/action-popover`에서 표준 구성을 연결해 이 조건을 확인하는 것이다.
+
 [요구사항의 데스크탑 액션 메뉴와 키보드 접근성](docs/designs/personal-notes-app-8fd/requirements.md#데스크탑-액션-메뉴와-키보드-접근성)에 React Aria 표준 Menu 구성을 반영했다. 메뉴 내부 Tab 탐색과 ARIA menu 금지 조건은 대체됐다. 메뉴 밖 탐색, 항목 본문의 방향키 재정렬과 모바일 액션 시트는 유지한다. 이번 변경은 요구사항 문서에 한정하며 라이브러리 설치, 소스 및 테스트 변경은 하지 않았다.
 
-[플랜의 React Aria 액션 메뉴 전환](docs/designs/personal-notes-app-8fd/plan.md#react-aria-액션-메뉴-전환)에 버전 및 모달 확인, 공통 메뉴와 스타일, 명령 연결, 화면 통합의 네 단계를 추가했다. 각 단계에 패턴, 서비스 구성, 파일 배치, 공학적 근거와 테스트 및 TDD 판단이 있다. 이전 네이티브 팝오버 절차는 교체 전 증거로 구분했다. 설치와 코드 및 테스트 변경은 아직 하지 않았다.
+[플랜의 React Aria 액션 메뉴 전환](docs/designs/personal-notes-app-8fd/plan.md#react-aria-액션-메뉴-전환)에 버전 및 모달 확인, 공통 메뉴와 스타일, 명령 연결, 화면 통합의 네 단계를 추가했다. 각 단계에 패턴, 서비스 구성, 파일 배치, 공학적 근거와 테스트 및 TDD 판단이 있다. 이전 네이티브 팝오버 절차는 교체 전 증거로 구분했다.
 
 메뉴 적용 시 기존 결정 기록의 네이티브 우선 설명보다 최신 요구사항과 전환 계획을 우선한다. 조사한 npm 배포 후보는 react-aria-components 1.22.1이며 배포 버전의 실제 연결과 과거 최소 브라우저 실행은 미확인이다. 근거는 [React Aria Menu](https://react-aria.adobe.com/Menu), [스타일 지침](https://react-aria.adobe.com/styling)과 [W3C 메뉴 키보드 규칙](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/#keyboardinteraction)이다. 다음 구현은 버전, 모달 표시, Tab 이탈과 바깥 클릭 확인부터 시작한다.
 

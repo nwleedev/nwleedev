@@ -23,6 +23,10 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ### 1. 배포 버전과 모달 연결 확인
 
+진행 상태: 의존성 설치를 마쳤으며 메뉴 연결과 브라우저 동작 확인은 남아 있다. `react-aria-components` 1.22.1을 고정했고 React 19.2.8을 유지한 운영 빌드가 통과했다. 아직 화면에서 라이브러리를 사용하지 않으므로 이 빌드는 메뉴 동작이나 추가 번들 크기의 검증 근거가 아니다.
+
+배포 버전의 [Popover 소스](https://github.com/adobe/react-spectrum/blob/740c6c5c4a717ca8c82fc4d15d199f6166cd42dc/packages/react-aria-components/src/Popover.tsx)와 [usePopover 소스](https://github.com/adobe/react-spectrum/blob/740c6c5c4a717ca8c82fc4d15d199f6166cd42dc/packages/react-aria/src/overlays/usePopover.ts)를 대조하면 기본 구성은 바깥 요소를 inert로 처리하고 화면을 덮는 요소로 바깥 클릭을 받는다. 따라서 다른 조작 요소를 한 번 클릭해 메뉴를 닫으면서 그 동작도 실행하는 요구를 기본값만으로 충족한다고 볼 수 없다. `isNonModal`은 이 제한을 없애지만 바깥 클릭 종료 처리도 달라진다. 다음 연결 작업에서는 이 차이와 Tab 이탈을 함께 확인하고 접근성 동작을 유지하는 데 필요한 처리만 공통 메뉴에 둔다.
+
 - 디자인 패턴: 버튼에 연결된 액션 메뉴와 기존 모달 안의 중첩 메뉴. [React Aria Menu](https://react-aria.adobe.com/Menu)의 표준 구성을 사용하고 일반 버튼 목록에 방향키 처리만 덧붙이지 않는다.
 - 서비스 구성: React Aria는 공통 UI의 메뉴 의미, 포커스와 표시 위치만 담당한다. 메모 및 일괄 복사 명령, 저장과 오류 처리는 기존 기능 모듈이 담당한다. Floating UI를 함께 추가해 같은 위치와 포커스를 이중 관리하지 않는다.
 - 파일 배치: `apps/notes/package.json`과 루트 `pnpm-lock.yaml`을 의존성 변경 대상으로 한정한다. `shared/ui/action-popover/`, `shared/ui/icon-button/`, `_pages/notes/ui/batch-copy-workspace.tsx`와 `_pages/notes/model/use-batch-copy-panel.ts`에서 연결 조건을 확인한다. 별도 시험용 페이지나 실행 스크립트는 만들지 않는다.
