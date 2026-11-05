@@ -27,8 +27,9 @@
   --notes-color-soft-ink: oklch(49% 0.014 30deg);
   --notes-focus-ring: var(--notes-color-focus);
   --notes-font-ui: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
-  --notes-navigation-text-size: 1.125rem;
-  --notes-brand-text-size: 1.25rem;
+  --notes-navigation-height: 44px;
+  --notes-navigation-text-size: 0.875rem;
+  --notes-brand-text-size: 1rem;
   --notes-board-action-inset: 1.5rem;
   --notes-control-size: 2.375rem;
   --notes-control-large-size: 56px;

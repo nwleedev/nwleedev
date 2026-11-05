@@ -31,9 +31,9 @@ function NavigationBar({
 
   return (
     <header className={headerClasses[mode]}>
-      <div className="flex min-h-14 items-center justify-between gap-5 px-4 sm:px-5 xl:px-6">
+      <div className="flex min-h-14 items-center justify-between gap-5 px-4 sm:px-5 md:min-h-[calc(var(--notes-navigation-height)-1px)] xl:px-6">
         <Link
-          className="py-3 text-sm font-semibold tracking-[-0.015em] md:text-[length:var(--notes-brand-text-size)]"
+          className="py-3 text-sm font-semibold tracking-[-0.015em] md:py-0 md:text-[length:var(--notes-brand-text-size)]"
           href="/"
           onNavigate={(event) => navigate("/", event)}
           tabIndex={2}
