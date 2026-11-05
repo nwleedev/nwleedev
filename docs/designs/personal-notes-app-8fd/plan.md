@@ -170,6 +170,8 @@ lint, 타입 검사와 운영 빌드 및 기존 탐색 E2E 12건이 통과했다
 
 상태: `needs revision`. [최소 버전과 Popover API 대조](references/desktop-panel-readiness.md#선언된-최소-버전과-popover-api)에서 Chrome 111 및 Safari 16.4 선언과 네이티브 팝오버 직접 호출의 불일치를 확인했다. 최신 브라우저 통과 기록은 유지하지만 전체 호환성 완료 근거로 사용하지 않는다.
 
+Tailwind CSS 4.3.3의 공식 기준은 Firefox 128이며 현재 선언은 125다. 생성 CSS에는 구버전 초기값 보완이 있으므로 실제 실패 여부는 별도 실행으로 판단한다. 현재 최소 버전을 유지하는 안과 기준을 조정하는 안은 [CSS 조건과 선택지](references/desktop-panel-readiness.md#css-도구의-조건과-선택지)를 따른다. 선택 전에는 브라우저 선언, 의존성 버전과 팝오버 동작을 변경하지 않는다. 이 결정은 카드 외형 및 실제 휴대전화 검증과 독립적이다.
+
 - 디자인 패턴: 기능 감지와 같은 사용자 동작을 제공하는 대체 처리. 실패를 감추거나 메뉴를 비활성화하지 않는다.
 - 서비스 구성: 공통 `shared/ui/action-popover` 안에서 표시 및 닫힘을 처리하고 메뉴별 순서 변경과 삭제 명령은 유지한다.
 - 파일 배치: `shared/ui/action-popover/use-action-popover.ts`와 `index.tsx`, 연결된 스타일을 조사 대상으로 둔다. 별도 메뉴 구현을 화면마다 추가하지 않는다. 최소 버전 선언은 승인 없이 변경하지 않는다.

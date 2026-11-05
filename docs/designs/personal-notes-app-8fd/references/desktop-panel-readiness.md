@@ -39,6 +39,18 @@ CSS anchor positioning을 유일한 방법으로 정하지 않는다. 저장소�
 
 최소 버전을 임의로 올리지 않고 기존 지원 조건을 유지하는 대체 처리를 우선 조사한다. 공통 팝오버의 첫 위치, 바깥 누르기, Escape와 포커스 복귀가 같은 결과를 내야 한다. API 부재만 흉내 낸 검사로 구버전 CSS와 전체 화면 호환성까지 증명하지 않는다. 스타일 도구가 요구하는 브라우저 버전도 함께 확인한 뒤 변경 대상을 정한다.
 
+### CSS 도구의 조건과 선택지
+
+Popover API 보완만으로 최소 버전 검증이 끝나지는 않는다. [Tailwind CSS 4 호환성 문서](https://tailwindcss.com/docs/compatibility#browser-support)는 Chrome 111, Safari 16.4와 Firefox 128을 공식 기준으로 설명한다. 프로젝트의 Firefox 125 선언은 이 기준보다 낮다. [MDN의 property 호환성 자료](https://github.com/mdn/browser-compat-data/blob/8d371e9fb68c0cdc1908fa370358f6659aaec513/css/at-rules/property.json)에서도 Firefox의 `@property` 제공 시작은 128이다.
+
+다만 [Tailwind CSS 4.1의 구버전 개선 설명](https://tailwindcss.com/blog/tailwindcss-v4-1#improved-compatibility-with-older-browsers)은 그림자와 변환 등의 초기값 보완을 설명한다. 현재 4.3.3으로 생성된 CSS에도 구형 Firefox와 Safari를 대상으로 하는 `@supports` 아래의 초기값 선언이 있다. 공식 기준보다 낮다는 사실만으로 모든 화면이 실패한다고 단정하거나 스타일 도구의 교체를 필수로 정하지 않는다.
+
+`globals.css`의 탐색 서랍은 기본 열린 상태의 opacity와 transform을 별도로 정의한다. `@starting-style`과 `allow-discrete`는 진입 및 종료 효과에 사용한다. 이 구문을 처리하지 못하는 브라우저에서 효과가 생략되는 것과 서랍 자체를 열 수 없는 문제는 구분해서 확인한다.
+
+선택지는 현재 최소 버전을 유지하고 팝오버 대체 처리 및 구버전 실행 증거를 추가하는 안과 Chrome 및 Edge 114, Safari 17, Firefox 128 이상으로 기준을 변경하는 안이다. 후자는 현재 조사한 필수 API와 CSS 도구의 기준을 맞추는 제안이며 전체 기능 호환성을 보증하는 숫자는 아니다. 지원 조건 변경은 아직 결정하지 않았다.
+
+현재 기준을 유지한다면 공통 팝오버에서 열린 상태, 화면 기준 배치, 바깥 누르기와 Escape, 포커스 복귀를 처리해야 한다. 단순히 API 호출을 건너뛰면 메뉴가 열리지 않거나 지원되지 않는 `popover` 속성을 가진 내용이 상시 표시될 수 있다. 메모 카드의 변환과 모달 안에서도 잘림 없이 동작해야 하므로 일반 fixed 요소로 바꾸기만 하는 안은 충분하지 않다. 기존 카드별 명령은 유지하고 공통 UI 안에서 처리하는 방향을 우선한다.
+
 ## 패널 크기와 기기별 보관
 
 실행 계획의 초기 후보는 기본 320px, 최소 280px, 최대 `640px`와 `작업 영역 너비 - 48rem` 중 작은 값이다. 현재 나란한 패널 전환 기준인 작업 영역 72rem을 유지하면서 메모 보드에 최소 48rem을 남기는 계산이다. 이 수치는 표준값이 아니라 현재 보드와 패널의 공간을 나누는 제안이다. 글자 확대와 320px 패널의 실제 내용을 확인한 뒤 조정한다.
