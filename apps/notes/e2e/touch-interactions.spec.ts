@@ -525,34 +525,83 @@ test("다른 탭의 순서 저장과 충돌하면 최신 순서를 보여주고 
   await expect(page.getByRole("article")).toContainText(retried)
 })
 
-test("목록 가장자리에 멈춘 손가락으로 자동 스크롤하고 취소하면 멈춘다", async ({ context, page }) => {
+test("자동 스크롤한 목록 양 끝의 삽입선이 잘리지 않고 취소하면 순서를 유지한다", async ({ context, page }, testInfo) => {
   await page.goto("/")
   const contents = Array.from({ length: 9 }, (_, index) => `자동 스크롤 ${index + 1} ${crypto.randomUUID()}`)
   for (const content of contents) await createMobileNoteThroughUi(page, content)
-  const notes = page.getByRole("article")
-  const first = notes.filter({ hasText: contents[0] })
-  await first.scrollIntoViewIfNeeded()
-  const handle = first.getByRole("button", { name: / 이동$/u })
-  const start = await center(handle)
   const session = await context.newCDPSession(page)
-  const scrollTop = () => first.evaluate((element) => {
-    let parent = element.parentElement
-    while (parent !== null) {
-      if (/(auto|scroll)/u.test(getComputedStyle(parent).overflowY)) return parent.scrollTop
-      parent = parent.parentElement
+
+  async function inspectEdges(notes: Locator, screen: string) {
+    const first = notes.filter({ hasText: contents[0] })
+    const last = notes.filter({ hasText: contents.at(-1) })
+    async function scrollingArea() {
+      return first.evaluate((element) => {
+        let parent = element.parentElement
+        while (parent !== null) {
+          if (/(auto|scroll)/u.test(getComputedStyle(parent).overflowY)) {
+            const bounds = parent.getBoundingClientRect()
+            return { top: bounds.top, bottom: bounds.bottom, left: bounds.left, right: bounds.right, offset: parent.scrollTop, maximum: parent.scrollHeight - parent.clientHeight }
+          }
+          parent = parent.parentElement
+        }
+        throw new Error("The scrolling list is missing")
+      })
     }
-    throw new Error("The scrolling list is missing")
-  })
-  const before = await scrollTop()
-  const viewport = page.viewportSize()!
-  await startTouch(session, start)
-  await moveTouch(session, { x: viewport.width / 2, y: viewport.height - 20 })
-  await expect.poll(scrollTop).toBeGreaterThan(before + 100)
-  const during = await scrollTop()
-  await expect.poll(scrollTop).toBeGreaterThan(during + 100)
-  await cancelTouch(session)
-  const stopped = await scrollTop()
-  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
-  expect(await scrollTop()).toBe(stopped)
-  await expect(notes).toContainText(contents)
+    async function indicator(card: Locator) {
+      await expect.poll(() => card.evaluate((element) => element.querySelector(".notes-drop-indicator") !== null)).toBe(true)
+      return card.evaluate((element) => {
+        const line = element.querySelector(".notes-drop-indicator")!
+        const bounds = line.getBoundingClientRect()
+        const endpoint = getComputedStyle(line, "::before")
+        return {
+          center: bounds.y + bounds.height / 2,
+          radius: Number.parseFloat(endpoint.height) / 2,
+          right: bounds.right - Number.parseFloat(endpoint.right),
+        }
+      })
+    }
+    await first.scrollIntoViewIfNeeded()
+    const area = await scrollingArea()
+    await startTouch(session, await center(first.getByRole("button", { name: / 이동$/u })))
+    const x = (area.left + area.right) / 2
+    await moveTouch(session, { x, y: area.bottom - 2 })
+    await expect.poll(async () => (await scrollingArea()).offset).toBeGreaterThan(area.offset + 100)
+    const during = (await scrollingArea()).offset
+    await expect.poll(async () => (await scrollingArea()).offset).toBeGreaterThan(during + 100)
+    await expect.poll(async () => {
+      const current = await scrollingArea()
+      return current.maximum - current.offset
+    }, { timeout: 15_000 }).toBe(0)
+    const lastBox = (await last.boundingBox())!
+    await moveTouch(session, { x, y: lastBox.y + lastBox.height - 2 })
+    const end = await indicator(last)
+    expect(end.center - end.radius).toBeGreaterThan(lastBox.y + lastBox.height)
+    expect(end.center + end.radius).toBeLessThan(area.bottom)
+    expect(end.right).toBeLessThan(area.right)
+    await page.screenshot({ path: testInfo.outputPath(`${screen}-last-insertion.png`) })
+    await cancelTouch(session)
+    const stopped = (await scrollingArea()).offset
+    await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
+    expect((await scrollingArea()).offset).toBe(stopped)
+    await expect(notes).toContainText(contents)
+
+    await startTouch(session, await center(last.getByRole("button", { name: / 이동$/u })))
+    await moveTouch(session, { x, y: area.top + 2 })
+    await expect.poll(async () => (await scrollingArea()).offset, { timeout: 15_000 }).toBe(0)
+    const firstBox = (await first.boundingBox())!
+    await moveTouch(session, { x, y: firstBox.y + 2 })
+    const beginning = await indicator(first)
+    expect(beginning.center + beginning.radius).toBeLessThan(firstBox.y)
+    expect(beginning.center - beginning.radius).toBeGreaterThan(area.top)
+    expect(beginning.right).toBeLessThan(area.right)
+    await page.screenshot({ path: testInfo.outputPath(`${screen}-first-insertion.png`) })
+    await cancelTouch(session)
+    await expect(notes).toContainText(contents)
+  }
+
+  const notes = page.getByRole("article")
+  await inspectEdges(notes, "notes")
+  for (const content of contents) await addMobileNoteToBatch(page, notes.filter({ hasText: content }))
+  await page.getByRole("link", { name: `일괄 복사 확인, ${contents.length}개` }).tap()
+  await inspectEdges(page.getByRole("article", { name: /번째 일괄 복사 항목$/u }), "confirmation")
 })
