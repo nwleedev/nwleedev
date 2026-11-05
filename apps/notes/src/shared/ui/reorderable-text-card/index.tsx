@@ -9,7 +9,6 @@ type ReorderableTextCardProps = {
   children: ReactNode
   dragging: boolean
   dropPlacement: "after" | "before" | null
-  list: "notes" | "confirmation"
   label: string
   pressed?: boolean
 }
@@ -32,14 +31,12 @@ export function ReorderableTextCard({
   dragging,
   dropPlacement,
   label,
-  list,
   pressed = false,
 }: ReorderableTextCardProps) {
   return (
     <article
       aria-label={label}
       className="relative flex min-h-[var(--notes-mobile-card-min-height)] flex-col rounded-note border border-border bg-surface-raised text-base leading-7 text-ink transition-[border-color,opacity] data-[dragging=true]:opacity-35 data-[pressed=true]:outline data-[pressed=true]:outline-[length:var(--notes-mobile-pressed-width)] data-[pressed=true]:outline-danger data-[pressed=true]:-outline-offset-[length:var(--notes-mobile-pressed-width)]"
-      data-card-list={list}
       data-dragging={dragging}
       data-drop={dropPlacement}
       data-pressed={pressed}

@@ -78,7 +78,7 @@ function MobileBatchCopyEntryRow({
 
   return (
     <li data-reorder-id={entry.id}>
-      <ReorderableTextCard list="confirmation" dragging={dragging} dropPlacement={dropPlacement} label={itemLabel}>
+      <ReorderableTextCard dragging={dragging} dropPlacement={dropPlacement} label={itemLabel}>
         <ReorderableTextCardHeader>
           <ReorderHandle
             aria-label={`${itemLabel} 이동`}

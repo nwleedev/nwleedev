@@ -41,7 +41,6 @@ export function MobileNoteCard({
 
   return (
     <ReorderableTextCard
-      list="notes"
       dragging={dragging}
       dropPlacement={dropPlacement}
       label={`메모, ${summary}`}

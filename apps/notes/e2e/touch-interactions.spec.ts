@@ -145,7 +145,7 @@ test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 
     })
   }
 
-  async function inspectDrag(card: Locator, destination: Locator, last: Locator, headerHeight: number, screenshot: string) {
+  async function inspectDrag(card: Locator, destination: Locator, last: Locator, screenshot: string) {
     const handle = card.getByRole("button", { name: / 이동$/u })
     const action = card.getByRole("button", { name: /(?:더보기|항목 동작)$/u })
     const body = card.getByRole("button", { name: / 복사$/u }).or(card.getByRole("paragraph"))
@@ -160,7 +160,7 @@ test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 
       }
       const bounds = (await card.boundingBox())!
       const bodyBounds = (await body.boundingBox())!
-      expect(bodyBounds.y - bounds.y - 1).toBeCloseTo(headerHeight, 0)
+      expect(bodyBounds.y - bounds.y - 1).toBeCloseTo(44, 0)
     }
     const [handleBox, actionBox, bodyBox] = await Promise.all([
       handle.boundingBox(), action.boundingBox(), body.boundingBox(),
@@ -235,14 +235,14 @@ test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 
     return idle
   }
 
-  const main = await inspectDrag(first, second, third, 39, "main-card-drag.png")
+  const main = await inspectDrag(first, second, third, "main-card-drag.png")
   await expect(page.getByRole("article")).toContainText(contents)
   await addMobileNoteToBatch(page, first)
   await addMobileNoteToBatch(page, second)
   await addMobileNoteToBatch(page, third)
   await page.getByRole("link", { name: `일괄 복사 확인, ${contents.length}개` }).tap()
   const entries = page.getByRole("article", { name: /번째 일괄 복사 항목$/u })
-  const confirmation = await inspectDrag(entries.filter({ hasText: contents[0] }), entries.filter({ hasText: contents[1] }), entries.filter({ hasText: contents[2] }), 43, "confirmation-card-drag.png")
+  const confirmation = await inspectDrag(entries.filter({ hasText: contents[0] }), entries.filter({ hasText: contents[1] }), entries.filter({ hasText: contents[2] }), "confirmation-card-drag.png")
   expect(confirmation).toEqual(main)
   await expect(entries).toContainText(contents)
 })
