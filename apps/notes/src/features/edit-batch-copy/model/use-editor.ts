@@ -32,6 +32,7 @@ type BatchCopyCommands = {
   moveItem(itemId: string, index: number): Promise<EditBatchCopyResult>
   redo(): Promise<EditBatchCopyResult>
   removeItem(itemId: string): Promise<EditBatchCopyResult>
+  reset(): Promise<EditBatchCopyResult>
   retry(): void
   undo(): Promise<EditBatchCopyResult>
 }

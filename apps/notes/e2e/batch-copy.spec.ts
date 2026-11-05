@@ -280,6 +280,42 @@ test("넓은 저장 목록의 메뉴에서 이동과 복제 후 포커스를 유
   await expect(items).toContainText([secondContent, secondContent])
 })
 
+test("패널 초기화 실패 시 항목을 보존하고 재시도하면 빈 목록을 저장한다", async ({ page }) => {
+  const { panel, firstContent, secondContent } = await createDesktopBatchCopy(page)
+  const reset = panel.getByRole("button", { name: "초기화" })
+  const copy = panel.getByRole("button", { name: "복사", exact: true })
+  const [left, right] = await Promise.all([visibleBox(reset), visibleBox(copy)])
+  expect(left.height).toBe(44)
+  expect(right.height).toBe(left.height)
+  expect(left.x + left.width).toBeLessThan(right.x)
+  await page.getByRole("separator", { name: "일괄 복사 너비" }).press("Home")
+  for (const button of [reset, copy]) {
+    expect(await button.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+    expect((await visibleBox(button)).height).toBe(44)
+  }
+  await page.evaluate(() => {
+    const transaction = IDBDatabase.prototype.transaction
+    IDBDatabase.prototype.transaction = function (...args: Parameters<IDBDatabase["transaction"]>) {
+      if (args[0] === "batchCopyLists" && args[1] === "readwrite") {
+        IDBDatabase.prototype.transaction = transaction
+        throw new DOMException("Controlled reset failure", "AbortError")
+      }
+      return transaction.apply(this, args)
+    }
+  })
+  await reset.click()
+  await expect(panel.getByRole("alert")).toContainText("초기화하지 못했습니다")
+  await expect(panel.getByRole("listitem")).toContainText([firstContent, secondContent])
+  await reset.click()
+  await expect(panel.getByRole("listitem")).toHaveCount(0)
+  await expect(reset).toBeDisabled()
+  await expect(copy).toBeDisabled()
+  await page.reload()
+  await page.getByRole("button", { name: "일괄 복사 0개" }).click()
+  await expect(panel.getByRole("listitem")).toHaveCount(0)
+  await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveCount(2)
+})
+
 test("패널 너비를 조절하고 취소, 새로고침과 창 크기 변경에서 유지한다", async ({ page }) => {
   const { panel } = await createDesktopBatchCopy(page)
   const resize = page.getByRole("separator", { name: "일괄 복사 너비" })
@@ -861,7 +897,10 @@ test.describe("320px 일괄 복사", () => {
     await openCurrent(page, 1)
     await inspectFocus(page.getByRole("button", { name: "1번째 일괄 복사 항목 이동" }))
     await expect(page.getByRole("article")).toHaveText(content)
-    await page.getByRole("button", { exact: true, name: "취소" }).click()
+    await page.getByRole("button", { exact: true, name: "초기화" }).click()
+    await expect(page.getByText("복사할 항목이 없습니다.", { exact: true })).toBeVisible()
+    await expect(page.getByRole("button", { name: "일괄 복사하기" })).toBeDisabled()
+    await page.getByRole("button", { name: "메모 목록으로 돌아가기" }).click()
     await expect(note).toBeVisible()
   })
 
@@ -888,7 +927,7 @@ test.describe("320px 일괄 복사", () => {
     expect(moreShadow).toBe("none")
   })
 
-  test("긴 확인 및 저장 목록을 스크롤해도 하단 복사와 취소에 접근한다", async ({ page }) => {
+  test("긴 확인 및 저장 목록을 스크롤해도 하단 복사와 목록별 보조 동작에 접근한다", async ({ page }) => {
     const contents = fc.sample(fc.uniqueArray(fc.stringMatching(/^[a-z]{64,72}$/u), { minLength: 5, maxLength: 5 }), 1)[0]
     await page.setViewportSize({ height: 720, width: 1000 })
     for (const content of contents) {
@@ -912,22 +951,27 @@ test.describe("320px 일괄 복사", () => {
     await openCurrent(page, contents.length)
     const entries = page.getByRole("article", { name: /번째 일괄 복사 항목$/u })
     await expect(entries).toHaveCount(contents.length)
-    const cancel = page.getByRole("button", { exact: true, name: "취소" })
+    const reset = page.getByRole("button", { exact: true, name: "초기화" })
     const copy = page.getByRole("button", { name: "일괄 복사하기" })
-    const cancelBefore = await visibleBox(cancel)
+    const resetBefore = await visibleBox(reset)
     const copyBefore = await visibleBox(copy)
     await entries.filter({ hasText: contents.at(-1)! }).scrollIntoViewIfNeeded()
-    expect((await visibleBox(cancel)).y).toBeCloseTo(cancelBefore.y, 0)
+    expect((await visibleBox(reset)).y).toBeCloseTo(resetBefore.y, 0)
     expect((await visibleBox(copy)).y).toBeCloseTo(copyBefore.y, 0)
     await copy.click()
     await expect(page.getByRole("button", { name: "알림 닫기" })).toBeVisible()
-    await cancel.click()
-    await expect(page).toHaveURL("/")
+    const confirmationUrl = page.url()
+    await reset.click()
+    await expect(page.getByText("복사할 항목이 없습니다.", { exact: true })).toBeVisible()
+    await expect(page).toHaveURL(confirmationUrl)
+    await expect(page.getByText("0개", { exact: true })).toBeVisible()
+    await expect(reset).toBeDisabled()
+    await expect(copy).toBeDisabled()
     await page.goto("/batch-copy/")
     await expect(managed).toHaveCount(contents.length)
   })
 
-  test("실제 항목 수를 반영하고 복제, 이동, 삭제와 취소 후 메인 복귀를 유지한다", async ({ page }) => {
+  test("실제 항목 수를 반영하고 복제, 이동, 삭제와 초기화 후 메인 복귀를 유지한다", async ({ page }) => {
     await setReorderButtons(page, true)
     await page.goto("/")
     const firstContent = "모바일 첫 번째 메모"
@@ -971,8 +1015,10 @@ test.describe("320px 일괄 복사", () => {
     await page.getByRole("button", { name: "메모 목록으로 돌아가기" }).click()
     await expect(page.getByRole("link", { name: "일괄 복사 확인, 3개" })).toHaveText("3")
     await openCurrent(page, 3)
-    await expect(page.getByRole("button", { exact: true, name: "초기화" })).toHaveCount(0)
-    await page.getByRole("button", { exact: true, name: "취소" }).click()
+    await page.getByRole("button", { exact: true, name: "초기화" }).click()
+    await expect(page.getByText("복사할 항목이 없습니다.", { exact: true })).toBeVisible()
+    await expect(page.getByRole("button", { name: "일괄 복사하기" })).toBeDisabled()
+    await page.getByRole("button", { name: "메모 목록으로 돌아가기" }).click()
     await expect(page).toHaveURL("/")
     await expect(firstNote).toBeVisible()
     await expect(secondNote).toBeVisible()
@@ -1019,7 +1065,7 @@ test.describe("320px 일괄 복사", () => {
     await expect(page.getByRole("article", { name: /번째 일괄 복사 항목$/u })).toContainText([firstContent, secondContent])
   })
 
-  test("현재 작업은 내부 이동에서 유지하고 새로고침과 명시적 취소에서 비운다", async ({ page }) => {
+  test("현재 작업은 내부 이동에서 유지하고 새로고침과 초기화에서 비운다", async ({ page }) => {
     const content = `실행 중 원문 ${crypto.randomUUID()}`
     const secondContent = `실행 중 다른 원문 ${crypto.randomUUID()}`
     const note = await createMobileNoteThroughUi(page, content)
@@ -1042,7 +1088,10 @@ test.describe("320px 일괄 복사", () => {
     await expect(page.getByRole("link", { name: "일괄 복사 확인, 0개" })).toBeDisabled()
     await addMobileNoteToBatch(page, note)
     await openCurrent(page, 1)
-    await page.getByRole("button", { exact: true, name: "취소" }).click()
+    await page.getByRole("button", { exact: true, name: "초기화" }).click()
+    await expect(page.getByText("복사할 항목이 없습니다.", { exact: true })).toBeVisible()
+    await expect(page.getByRole("button", { name: "일괄 복사하기" })).toBeDisabled()
+    await page.getByRole("button", { name: "메모 목록으로 돌아가기" }).click()
     await expect(page).toHaveURL("/")
     await expect(page.getByRole("link", { name: "일괄 복사 확인, 0개" })).toBeDisabled()
     await page.reload()

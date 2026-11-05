@@ -11,6 +11,7 @@ export {
   duplicateBatchCopyItem,
   redoBatchCopyItemRemoval,
   removeBatchCopyItem,
+  resetBatchCopyList,
   saveBatchCopyItemPosition,
   undoBatchCopyItemRemoval,
   type EditBatchCopyExecution,

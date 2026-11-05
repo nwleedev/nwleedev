@@ -56,6 +56,11 @@ function reviseBatchCopyList(
   }
 }
 
+export function clearBatchCopyList(list: BatchCopyList, updatedAt: string) {
+  if (list.content.items.length === 0) return null
+  return reviseBatchCopyList(list, [], updatedAt)
+}
+
 export function combineBatchCopyText(list: BatchCopyList) {
   return list.content.items
     .map(({ textSnapshot }) => textSnapshot)

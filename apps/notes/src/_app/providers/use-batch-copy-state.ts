@@ -25,6 +25,7 @@ import {
   duplicateBatchCopyItem,
   redoBatchCopyItemRemoval,
   removeBatchCopyItem,
+  resetBatchCopyList,
   saveBatchCopyItemPosition,
   undoBatchCopyItemRemoval,
   type EditBatchCopyContextValue,
@@ -210,6 +211,10 @@ export function useBatchCopyState({
     )
   }
 
+  function reset() {
+    return runEdit((current) => resetBatchCopyList(editDependencies, current))
+  }
+
   function undo() {
     return runEdit((current) =>
       undoBatchCopyItemRemoval(editDependencies, current),
@@ -254,6 +259,7 @@ export function useBatchCopyState({
       redo,
       reorderButtonsEnabled,
       removeItem,
+      reset,
       retry,
       separator: state.session.list.content.separator,
       status: "ready",
@@ -270,6 +276,7 @@ export function useBatchCopyState({
       redo,
       reorderButtonsEnabled,
       removeItem,
+      reset,
       retry,
       status: state.status,
       undo,

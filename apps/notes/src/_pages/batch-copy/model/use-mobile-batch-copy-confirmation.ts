@@ -15,7 +15,6 @@ import { useActionToast } from "@/shared/ui/action-toast"
 export function useMobileBatchCopyConfirmation(
   draft: MobileBatchCopyDraft,
   onReturnToNotes: () => Promise<boolean>,
-  onCancelConfirmation: () => Promise<boolean>,
 ) {
   const batchCopy = useMobileBatchCopy()
   const toast = useActionToast()
@@ -61,14 +60,14 @@ export function useMobileBatchCopyConfirmation(
     )
   }
 
-  async function cancel() {
-    if (await onCancelConfirmation()) {
+  async function reset() {
+    if (await batchCopy.reset()) {
       clearFailure()
       return
     }
 
-    showFailure("이번 일괄 복사 작업을 취소하지 못했습니다.", () =>
-      void cancel(),
+    showFailure("일괄 복사 항목을 초기화하지 못했습니다.", () =>
+      void reset(),
     )
   }
 
@@ -103,7 +102,7 @@ export function useMobileBatchCopyConfirmation(
   }
 
   return {
-    cancel: () => void cancel(),
+    reset: () => void reset(),
     copy: batchCopy.copy,
     copyDisabled: batchCopy.pending || entries.length === 0,
     duplicate,

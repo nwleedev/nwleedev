@@ -13,19 +13,16 @@ import { MobileBatchCopyConfirmationList } from "./mobile-batch-copy-confirmatio
 
 type MobileBatchCopyConfirmationProps = {
   draft: MobileBatchCopyDraft
-  onCancelConfirmation(): Promise<boolean>
   onReturnToNotes(): Promise<boolean>
 }
 
 export function MobileBatchCopyConfirmation({
   draft,
-  onCancelConfirmation,
   onReturnToNotes,
 }: MobileBatchCopyConfirmationProps) {
   const confirmation = useMobileBatchCopyConfirmation(
     draft,
     onReturnToNotes,
-    onCancelConfirmation,
   )
 
   return (
@@ -50,7 +47,7 @@ export function MobileBatchCopyConfirmation({
       <section className="min-h-0 overflow-auto px-4 py-5">
         {confirmation.entries.length === 0 ? (
           <p className="grid min-h-40 place-items-center text-sm text-soft-ink">
-            일괄 복사 항목이 없습니다.
+            복사할 항목이 없습니다.
           </p>
         ) : null}
         <MobileBatchCopyConfirmationList
@@ -64,12 +61,12 @@ export function MobileBatchCopyConfirmation({
       </section>
       <footer className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-3 border-t border-line bg-surface-raised px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         <Button
-          disabled={confirmation.pending}
-          onClick={confirmation.cancel}
+          disabled={confirmation.copyDisabled}
+          onClick={confirmation.reset}
           size="large"
           tone="quiet"
         >
-          취소
+          초기화
         </Button>
         <CopyBatchTextAction
           disabled={confirmation.copyDisabled}

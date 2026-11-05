@@ -88,22 +88,17 @@ function BatchCopyPageContent() {
 export function BatchCopyStartPage() {
   const {
     batchCopy,
-    cancelConfirmation,
     mobileDraft,
-    returningConfirmation,
     returnToNotes,
     showCopyResult,
   } = useBatchCopyPage()
   const copyDisabled =
     batchCopy.status !== "ready" || batchCopy.items.length === 0
 
-  const confirmingDraft = returningConfirmation ?? mobileDraft
-
-  if (confirmingDraft !== null) {
+  if (mobileDraft !== null) {
     return (
         <MobileBatchCopyConfirmation
-          draft={confirmingDraft}
-          onCancelConfirmation={cancelConfirmation}
+          draft={mobileDraft}
           onReturnToNotes={returnToNotes}
         />
     )

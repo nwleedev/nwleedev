@@ -392,6 +392,14 @@ test("낮은 모바일 화면에서도 항목 동작을 누르고 삭제 뒤 남
   await remainingAction.tap()
   await sheet.getByRole("button", { name: "동작 선택창 닫기" }).tap()
   await expect(remainingAction).toBeFocused()
+  const confirmationUrl = page.url()
+  await remainingAction.tap()
+  await sheet.getByRole("button", { name: "삭제" }).tap()
+  await expect(page.getByText("복사할 항목이 없습니다.", { exact: true })).toBeVisible()
+  await expect(page.getByText("0개", { exact: true })).toBeVisible()
+  await expect(page).toHaveURL(confirmationUrl)
+  await expect(page.getByRole("button", { name: "초기화", exact: true })).toBeDisabled()
+  await expect(page.getByRole("button", { name: "일괄 복사하기" })).toBeDisabled()
 })
 
 test("메모 삭제 단계는 같은 높이를 유지하고 5초 후에도 복원한다", async ({ page }) => {

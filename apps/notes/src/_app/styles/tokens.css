@@ -55,6 +55,7 @@
   --notes-batch-item-text-size: 1.0625rem;
   --notes-batch-panel-width: 320px;
   --notes-batch-panel-header-height: 60px;
+  --notes-batch-footer-button-height: 2.75rem;
   --notes-batch-panel-inset: 0.75rem;
   --notes-panel-width: clamp(22rem, 30vw, 32rem);
   --notes-workspace-panel-width: var(--notes-panel-width);

@@ -1,6 +1,6 @@
 "use client"
 
-import type { PropsWithChildren, RefObject } from "react"
+import { useState, type PropsWithChildren, type RefObject } from "react"
 
 import {
   BatchCopyList,
@@ -138,9 +138,20 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
     "absolute top-3 z-20 hidden @3xl/notes-workspace:block",
     showInlinePanel ? "right-[calc(var(--notes-workspace-panel-width)+0.75rem)]" : "right-3 sm:right-4",
   )
-  const batchCopyBody =
-    batchCopy.status === "ready" && batchCopyItems.length > 0 ? (
-      <div className="flex min-h-0 flex-1 flex-col">
+  const [resetFailed, setResetFailed] = useState(false)
+  const footerDisabled = batchCopy.pending || batchCopyItems.length === 0
+
+  async function reset() {
+    const result = await batchCopy.reset()
+    setResetFailed(result.status === "failure")
+    if (result.status === "saved" && selectedBatchCopyItemId !== null) {
+      session.forgetBatchCopyItem(selectedBatchCopyItemId)
+    }
+  }
+
+  const batchCopyBody = (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {batchCopy.status === "ready" && batchCopyItems.length > 0 ? (
         <div className="min-h-0 flex-1 overflow-auto px-[var(--notes-batch-panel-inset)] py-[var(--notes-panel-inset)]">
           <BatchCopyList
             actionPresentation="popover"
@@ -155,22 +166,23 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
             selectedItemId={selectedBatchCopyItemId}
           />
         </div>
-        <div className="flex shrink-0 px-[var(--notes-batch-panel-inset)] py-[var(--notes-panel-inset)]">
-          <CopyBatchTextAction
-            className="w-full"
-            size="large"
-            disabled={batchCopy.pending}
-            onCopy={batchCopy.copyAll}
-            onResult={showCopyResult}
-          />
-        </div>
+      ) : (
+        <EmptyBatchCopyContent onRetry={batchCopy.retry} status={batchCopy.status} />
+      )}
+      {resetFailed ? <p className="px-3 text-sm text-danger" role="alert">항목을 초기화하지 못했습니다. 다시 시도하세요.</p> : null}
+      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,2fr)] gap-2 p-[var(--notes-batch-panel-inset)]">
+        <Button className="min-h-[var(--notes-batch-footer-button-height)]!" disabled={footerDisabled} onClick={reset} tone="quiet">
+          초기화
+        </Button>
+        <CopyBatchTextAction
+          className="min-h-[var(--notes-batch-footer-button-height)]!"
+          disabled={footerDisabled}
+          onCopy={batchCopy.copyAll}
+          onResult={showCopyResult}
+        />
       </div>
-    ) : (
-      <EmptyBatchCopyContent
-        onRetry={batchCopy.retry}
-        status={batchCopy.status}
-      />
-    )
+    </div>
+  )
 
   return (
     <BatchCopyWorkspaceContext value={workspaceContext}>

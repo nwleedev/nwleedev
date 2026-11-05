@@ -1,4 +1,6 @@
 import {
+  clearBatchCopyList,
+  createBatchCopySession,
   duplicateBatchCopyItem as duplicateItem,
   redoBatchCopyItemRemoval as redoRemoval,
   removeFromBatchCopySession,
@@ -70,6 +72,16 @@ async function saveRemovalTransition(
     ...execution,
     result: { removedItemId, status: "saved" },
   }
+}
+
+export function resetBatchCopyList(
+  dependencies: EditBatchCopyDependencies,
+  session: BatchCopySession,
+) {
+  return saveTransition(dependencies, session, (current, updatedAt) => {
+    const list = clearBatchCopyList(current.list, updatedAt)
+    return list === null ? null : createBatchCopySession(list)
+  })
 }
 
 export function saveBatchCopyItemPosition(

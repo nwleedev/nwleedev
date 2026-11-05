@@ -20,7 +20,6 @@ type MobileBatchCopyContextValue = {
   pending: boolean
   reorderButtonsEnabled: boolean
   add(note: Note): Promise<AddMobileBatchCopyResult>
-  cancel(): Promise<void>
   copy(): Promise<CopyMobileBatchTextResult>
   duplicate(entryId: string): Promise<boolean>
   flush(): Promise<boolean>
@@ -109,11 +108,7 @@ export function useMobileBatchCopyState({ clipboard, createId, now, reorderButto
     return copyMobileBatchText(clipboard, latest)
   }
 
-  function cancel() {
-    return enqueue(async () => publish(null))
-  }
-
-  return { add, cancel, copy, draft, duplicate, flush, move, pending, removeEntry, reorderButtonsEnabled, reset }
+  return { add, copy, draft, duplicate, flush, move, pending, removeEntry, reorderButtonsEnabled, reset }
 }
 
 export function useMobileBatchCopy() {

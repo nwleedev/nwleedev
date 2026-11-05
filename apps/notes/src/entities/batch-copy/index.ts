@@ -8,6 +8,7 @@ export {
   type BatchCopyRepository,
 } from "./model/batch-copy-list"
 export {
+  clearBatchCopyList,
   combineBatchCopyText,
   duplicateBatchCopyItem,
   itemIndexForInsertionSlot,

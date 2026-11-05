@@ -224,7 +224,7 @@ test("목록 끝에서 추가해도 현재 작업 링크와 새 메모 제어에
   await ready.click()
   await expect(page.getByRole("heading", { name: "일괄 복사 확인" })).toBeVisible()
   await expect(page.getByRole("article", { name: "1번째 일괄 복사 항목" })).toContainText(lastContent)
-  await page.getByRole("button", { exact: true, name: "취소" }).click()
+  await page.getByRole("button", { name: "메모 목록으로 돌아가기" }).click()
   await expect(page.getByRole("button", { name: "새 메모" })).toBeInViewport()
 })
 
