@@ -84,8 +84,8 @@ function ActionPopoverRow({
   action,
 }: ActionPopoverRowProps) {
   const rowClassName = joinClassNames(
-    "flex min-h-10 w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm font-semibold outline-none data-focused:bg-canvas data-focus-visible:outline data-focus-visible:outline-[0.2rem] data-focus-visible:outline-offset-[-0.2rem] data-focus-visible:outline-[var(--notes-color-focus)] data-pressed:bg-feedback data-pressed:text-on-accent",
-    action.tone === "danger" ? "text-danger data-focused:bg-danger/10 data-pressed:bg-danger/15" : "text-text",
+    "flex min-h-10 w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm font-semibold outline-none data-focused:bg-canvas data-focus-visible:outline-solid data-focus-visible:outline-[0.2rem] data-focus-visible:outline-offset-[-0.2rem] data-focus-visible:outline-[var(--notes-color-focus)]",
+    action.tone === "danger" ? "text-danger data-focused:bg-danger/10 data-pressed:bg-danger/15" : "text-text data-pressed:bg-feedback data-pressed:text-on-accent",
   )
 
   return (

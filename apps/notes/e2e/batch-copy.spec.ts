@@ -1070,3 +1070,21 @@ test("이동 저장 중 시작한 메모 입력은 저장 완료 후에도 포�
   await page.keyboard.type(" 계속")
   await expect(editor).toHaveValue("저장 중 입력 계속")
 })
+
+
+test("메뉴의 삭제 항목은 포커스를 표시하고 클릭 시 한 항목만 제거한다", async ({ page }, testInfo) => {
+  const { panel, secondContent } = await createDesktopBatchCopy(page)
+  await panel.getByRole("button", { name: "1번째 일괄 복사 항목 동작" }).press("Enter")
+  const menu = page.getByRole("menu", { name: "1번째 일괄 복사 항목 동작" })
+  await menu.getByRole("menuitem", { name: "복제", exact: true }).press("End")
+  await expect(menu.getByRole("menuitem", { name: "삭제", exact: true })).toBeFocused()
+  await page.screenshot({ path: testInfo.outputPath("delete-focused.png") })
+  const deletion = await visibleBox(menu.getByRole("menuitem", { name: "삭제", exact: true }))
+  await page.mouse.move(deletion.x + deletion.width / 2, deletion.y + deletion.height / 2)
+  await page.mouse.down()
+  await expect(menu).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath("delete-pressed.png") })
+  await page.mouse.up()
+  await expect(menu).toBeHidden()
+  await expect(panel.getByRole("listitem")).toHaveText([secondContent])
+})
