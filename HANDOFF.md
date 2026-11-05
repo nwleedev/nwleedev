@@ -1,6 +1,12 @@
 # 메모 사용 경험과 서버 저장 설계
 
-CSS 호환성 조사에서 Tailwind CSS 4의 공식 Firefox 기준 128과 현재 선언 125의 차이를 확인했다. 현재 빌드 CSS에는 구버전용 초기값 보완이 있어 전체 실패로 단정하지 않았다. 최소 버전 유지와 Chrome/Edge 114, Safari 17, Firefox 128 이상으로 변경하는 선택지를 질문했다. 답변 전에는 선언 및 팝오버를 변경하지 않는다. 카드 외형 선택, 로고 자산 및 실제 휴대전화 확인도 아직 남아 있다.
+[요구사항의 데스크탑 액션 메뉴와 키보드 접근성](docs/designs/personal-notes-app-8fd/requirements.md#데스크탑-액션-메뉴와-키보드-접근성)에 React Aria 표준 Menu 구성을 반영했다. 메뉴 내부 Tab 탐색과 ARIA menu 금지 조건은 대체됐다. 메뉴 밖 탐색, 항목 본문의 방향키 재정렬과 모바일 액션 시트는 유지한다. 이번 변경은 요구사항 문서에 한정하며 라이브러리 설치, 소스 및 테스트 변경은 하지 않았다.
+
+[플랜의 React Aria 액션 메뉴 전환](docs/designs/personal-notes-app-8fd/plan.md#react-aria-액션-메뉴-전환)에 버전 및 모달 확인, 공통 메뉴와 스타일, 명령 연결, 화면 통합의 네 단계를 추가했다. 각 단계에 패턴, 서비스 구성, 파일 배치, 공학적 근거와 테스트 및 TDD 판단이 있다. 이전 네이티브 팝오버 절차는 교체 전 증거로 구분했다. 설치와 코드 및 테스트 변경은 아직 하지 않았다.
+
+메뉴 적용 시 기존 결정 기록의 네이티브 우선 설명보다 최신 요구사항과 전환 계획을 우선한다. 조사한 npm 배포 후보는 react-aria-components 1.22.1이며 배포 버전의 실제 연결과 과거 최소 브라우저 실행은 미확인이다. 근거는 [React Aria Menu](https://react-aria.adobe.com/Menu), [스타일 지침](https://react-aria.adobe.com/styling)과 [W3C 메뉴 키보드 규칙](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/#keyboardinteraction)이다. 다음 구현은 버전, 모달 표시, Tab 이탈과 바깥 클릭 확인부터 시작한다.
+
+CSS 호환성 조사에서 Tailwind CSS 4의 공식 Firefox 기준 128과 현재 선언 125의 차이를 확인했다. 현재 빌드 CSS에는 구버전용 초기값 보완이 있어 전체 실패로 단정하지 않았다. 최소 버전 유지와 Chrome/Edge 114, Safari 17, Firefox 128 이상으로 변경하는 선택지를 질문했다. 브라우저 최소 버전 변경은 아직 결정되지 않았다. 팝오버 교체 방식은 위의 React Aria Menu 요구사항으로 정해졌으며 실제 구현은 남아 있다. 카드 외형 선택, 로고 자산 및 실제 휴대전화 확인도 아직 남아 있다.
 
 최소 브라우저 조사에서 Popover API의 제공 버전과 package.json 선언의 불일치를 확인했다. 상세 근거는 `references/desktop-panel-readiness.md`, 후속 절차는 플랜에 추가했다. 구버전 실행이나 대체 구현은 아직 하지 않았다. Tailwind CSS의 최소 버전도 함께 확인한 뒤 대체 처리의 작업량과 적용 가능성을 판단해야 한다.
 
