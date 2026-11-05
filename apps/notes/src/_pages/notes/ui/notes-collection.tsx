@@ -85,7 +85,7 @@ export function NotesCollection({
             selectedNoteId={selectedNoteId}
           />
           <Button
-            className="absolute left-[var(--notes-board-action-inset)] top-[var(--notes-board-action-inset)] z-30 [--notes-control-size:var(--notes-touch-target)] md:text-base"
+            className="absolute left-[var(--notes-board-action-side)] top-[var(--notes-board-action-top)] z-30 min-w-[var(--notes-create-min-width)] whitespace-nowrap md:text-base"
             disabled={creationPending}
             onClick={createNewNote}
             ref={createButton}

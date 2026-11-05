@@ -135,8 +135,8 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
     batchCopyActive && showInlinePanel ? "invisible" : undefined,
   )
   const batchCopyTriggerPositionClassName = joinClassNames(
-    "absolute top-3 z-20 hidden @3xl/notes-workspace:block",
-    showInlinePanel ? "right-[calc(var(--notes-workspace-panel-width)+0.75rem)]" : "right-3 sm:right-4",
+    "absolute top-[var(--notes-board-action-top)] z-20 hidden @3xl/notes-workspace:block",
+    showInlinePanel ? "right-[calc(var(--notes-workspace-panel-width)+0.75rem)]" : "right-3 sm:right-[var(--notes-board-action-side)]",
   )
   const [resetFailed, setResetFailed] = useState(false)
   const footerDisabled = batchCopy.pending || batchCopyItems.length === 0
