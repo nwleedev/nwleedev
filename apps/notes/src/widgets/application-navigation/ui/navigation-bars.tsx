@@ -2,6 +2,8 @@
 
 import Link from "next/link"
 
+import { ServiceLogo } from "@/shared/ui/service-logo"
+
 import { useBarNavigation } from "../model/use-bar-navigation"
 import { MobileNavigation } from "./mobile-navigation"
 import { NavigationLinks } from "./navigation-links"
@@ -33,12 +35,12 @@ function NavigationBar({
     <header className={headerClasses[mode]}>
       <div className="flex min-h-14 items-center justify-between gap-5 px-4 sm:px-5 md:min-h-[calc(var(--notes-navigation-height)-1px)] xl:px-6">
         <Link
-          className="shrink-0 whitespace-nowrap py-3 text-sm font-semibold tracking-[-0.015em] md:py-0 md:text-[length:var(--notes-brand-text-size)]"
+          className="inline-flex min-h-11 shrink-0 items-center md:min-h-[calc(var(--notes-navigation-height)-1px)]"
           href="/"
           onNavigate={(event) => navigate("/", event)}
           tabIndex={2}
         >
-          개인 메모
+          <ServiceLogo />
         </Link>
         {documentMode ? (
           <div className="md:hidden">

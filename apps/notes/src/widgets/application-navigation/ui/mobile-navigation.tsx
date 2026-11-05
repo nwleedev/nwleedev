@@ -4,6 +4,7 @@ import Link from "next/link"
 
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
+import { ServiceLogo } from "@/shared/ui/service-logo"
 import { CloseIcon, MenuIcon } from "@/shared/ui/icons"
 
 import { useNavigationDrawer } from "../model/use-navigation-drawer"
@@ -51,7 +52,7 @@ export function MobileNavigation({
       >
         <div className="flex h-full min-h-0 flex-col bg-surface-raised px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] shadow-floating">
           <div className="flex min-h-12 items-center justify-between gap-2 px-3">
-            <p className="text-sm font-semibold text-text">개인 메모</p>
+            <ServiceLogo />
             <IconButton aria-label="탐색 닫기" onClick={close} size="compact">
               <CloseIcon />
             </IconButton>

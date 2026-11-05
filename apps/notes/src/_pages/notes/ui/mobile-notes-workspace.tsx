@@ -9,6 +9,7 @@ import { usePointerReorder } from "@/shared/lib/pointer-reorder"
 import { Button } from "@/shared/ui/button"
 import { useActionToast } from "@/shared/ui/action-toast"
 import { IconButton } from "@/shared/ui/icon-button"
+import { ServiceLogo } from "@/shared/ui/service-logo"
 import { BatchCopyIcon, PlusIcon } from "@/shared/ui/icons"
 import { ReorderHandle } from "@/shared/ui/reorderable-text-card"
 import { MobileNavigation, type SavedBatchCopyLink } from "@/widgets/application-navigation"
@@ -61,7 +62,10 @@ export function MobileNotesWorkspace({ creationPending, notes, onCreate }: Mobil
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       <header className="relative z-20 flex h-14 shrink-0 items-center justify-between border-b border-line bg-surface-raised/95 px-3 backdrop-blur-sm">
-        <div className="flex items-center gap-3"><MobileNavigation pathname="/" savedBatchCopy={savedBatchCopyLink} /><h1 className="text-lg font-semibold">메모</h1></div>
+        <div className="flex items-center gap-3">
+          <MobileNavigation pathname="/" savedBatchCopy={savedBatchCopyLink} />
+          <h1><ServiceLogo alt="메모" /></h1>
+        </div>
         <IconButton
           aria-label={`일괄 복사 확인, ${countText}개`}
           className="relative h-[var(--notes-touch-target)] w-[var(--notes-touch-target)]"
