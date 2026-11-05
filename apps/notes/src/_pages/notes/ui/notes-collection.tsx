@@ -55,7 +55,7 @@ export function NotesCollection({
   })
 
   return (
-    <div className="relative h-full min-h-0 overflow-clip bg-canvas" ref={container}>
+    <div className="relative h-full min-h-0 overflow-clip bg-canvas" data-notes-layout={layout} ref={container}>
       {empty ? (
         <p
           className="pointer-events-none absolute inset-0 grid place-items-center p-6 text-sm text-soft-ink"

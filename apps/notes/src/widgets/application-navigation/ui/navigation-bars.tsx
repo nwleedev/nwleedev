@@ -13,7 +13,7 @@ type NavigationBarProps = {
 type BarMode = "desktop-only" | "document"
 
 const headerClasses: Record<BarMode, string> = {
-  "desktop-only": "hidden shrink-0 border-b border-border bg-surface-raised text-text md:block",
+  "desktop-only": "hidden shrink-0 border-b border-border bg-surface-raised text-text md:block group-has-[[data-notes-layout=mobile]]/notes-frame:hidden",
   document: "shrink-0 border-b border-border bg-surface-raised text-text",
 }
 

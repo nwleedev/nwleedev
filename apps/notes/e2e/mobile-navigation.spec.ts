@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 import * as fc from "fast-check"
 
-import { addMobileNoteToBatch, createMobileNoteThroughUi, openMobileNoteEditor } from "./support/create-note-through-ui"
+import { addMobileNoteToBatch, createMobileNoteThroughUi, createNoteThroughUi, openMobileNoteEditor } from "./support/create-note-through-ui"
 
 test.use({ viewport: { height: 720, width: 320 } })
 
@@ -326,7 +326,7 @@ test("긴 메모를 스크롤해도 편집 이력 버튼과 저장 상태가 화
 test("데스크탑 탐색은 글자를 두 배로 키워도 메뉴를 읽고 이동할 수 있다", async ({ page }, testInfo) => {
   for (const width of [1280, 768]) {
     await page.setViewportSize({ width, height: 720 })
-    await page.goto("/")
+    await page.goto("/usage/")
     const navigation = page.getByRole("navigation", { name: "주요 화면", exact: true })
     const links = navigation.getByRole("link")
     const originalFont = await navigation.getByRole("link", { name: "메모", exact: true }).evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
@@ -359,4 +359,39 @@ test("데스크탑 탐색은 글자를 두 배로 키워도 메뉴를 읽고 이
     await brand.click()
     await expect(page).toHaveURL("/")
   }
+})
+
+test("메모 화면은 글자 확대와 복원에서 탐색 헤더를 중복 표시하지 않는다", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await page.goto("/")
+  const content = fc.sample(fc.stringMatching(/^[a-z]{16,24}$/u), 1)[0]
+  await createNoteThroughUi(page, content)
+  const navigation = page.getByRole("navigation", { name: "주요 화면", exact: true })
+  const trigger = page.getByRole("button", { name: "탐색 열기", exact: true })
+  await expect(navigation).toBeVisible()
+  await expect(trigger).toBeHidden()
+
+  await page.evaluate(() => { document.documentElement.style.fontSize = "200%" })
+  for (const width of [1280, 768]) {
+    await page.setViewportSize({ width, height: 720 })
+    await expect(navigation).toBeHidden()
+    await expect(trigger).toBeVisible()
+    await expect(page.getByRole("article").filter({ hasText: content })).toBeVisible()
+    await page.screenshot({ path: testInfo.outputPath(`notes-text-200-${width}.png`) })
+  }
+  await trigger.click()
+  const drawer = page.getByRole("dialog", { name: "주요 화면 탐색" })
+  await drawer.getByRole("link", { name: "설정", exact: true }).click()
+  await expect(page).toHaveURL("/settings/")
+  await expect(navigation.getByRole("link", { name: "설정", exact: true })).toHaveAttribute("aria-current", "page")
+  await page.getByRole("link", { name: "개인 메모", exact: true }).click()
+  await expect(page).toHaveURL("/")
+  await expect(trigger).toBeVisible()
+  await expect(navigation).toBeHidden()
+
+  await page.evaluate(() => { document.documentElement.style.fontSize = "100%" })
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await expect(navigation).toBeVisible()
+  await expect(trigger).toBeHidden()
+  await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(content)
 })
