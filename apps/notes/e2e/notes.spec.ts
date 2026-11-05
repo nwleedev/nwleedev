@@ -2157,6 +2157,22 @@ test("가장 최근에 활성화한 오른쪽 패널 하나만 표시한다", as
   await batchPanel.getByRole("button", { name: "일괄 복사 패널 닫기" }).click()
   await expect(batchPanel).toHaveCount(0)
   await expect(properties).toHaveCount(0)
+
+  await page.setViewportSize({ width: 1000, height: 720 })
+  await note.press("Enter")
+  const propertiesDialog = page.getByRole("dialog", { name: "메모 속성" })
+  await expect(propertiesDialog).toBeVisible()
+  const storedX = await propertiesDialog.getByRole("spinbutton", { name: "X" }).inputValue()
+  await page.keyboard.press("Escape")
+  await expect(propertiesDialog).toBeVisible()
+  await page.keyboard.press("Escape")
+  await expect(propertiesDialog).toHaveCount(0)
+  await note.press("Enter")
+  await expect(propertiesDialog).toBeVisible()
+  await expect(propertiesDialog.getByRole("spinbutton", { name: "X" })).toHaveValue(storedX)
+  await page.setViewportSize({ width: 1280, height: 720 })
+  await expect(propertiesDialog).toHaveCount(0)
+  await expect(properties.getByRole("spinbutton", { name: "X" })).toHaveValue(storedX)
 })
 
 test("메모 삭제를 알리고 같은 메모를 취소로 복원한다", async ({ page }) => {

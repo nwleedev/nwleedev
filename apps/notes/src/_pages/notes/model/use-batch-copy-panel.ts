@@ -112,7 +112,7 @@ export function useBatchCopyPanel({
   }
 
   function handleDialogClose() {
-    if (switchingToInline.current) {
+    if (switchingToInline.current || dialog.current?.open) {
       switchingToInline.current = false
       return
     }
@@ -131,12 +131,19 @@ export function useBatchCopyPanel({
   }
 
   function handleDialogCancel(event: SyntheticEvent<HTMLDialogElement>) {
-    if (!workspaceSelectionActive) {
+    event.preventDefault()
+
+    if (workspaceSelectionActive) {
+      clearSelections()
       return
     }
 
-    event.preventDefault()
-    clearSelections()
+    event.currentTarget.close()
+    closePanel()
+
+    if (batchCopyActive) {
+      trigger.current?.focus()
+    }
   }
 
   return {

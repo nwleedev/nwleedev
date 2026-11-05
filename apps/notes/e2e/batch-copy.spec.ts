@@ -561,6 +561,13 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   const firstModalSelection = dialog.getByRole("button", {
     name: `일괄 복사 항목 선택: ${firstContent}`,
   })
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await expect(firstModalSelection).toBeVisible()
+    await page.keyboard.press("Escape")
+    await expect(dialog).toHaveCount(0)
+    await expect(batchCopyTrigger).toBeFocused()
+    await batchCopyTrigger.press("Enter")
+  }
   const modalHandle = dialog.getByRole("listitem").filter({ hasText: firstContent })
     .getByRole("button", { name: /번째 일괄 복사 항목 이동$/u })
   const modalHandleBox = await visibleBox(modalHandle)
