@@ -19,7 +19,7 @@ type NavigationLinksProps = {
 }
 
 const presentationClasses = {
-  bar: "min-h-[calc(var(--notes-navigation-height)-1px)] px-4 text-[length:var(--notes-navigation-text-size)]",
+  bar: "shrink-0 whitespace-nowrap min-h-[calc(var(--notes-navigation-height)-1px)] px-4 text-[length:var(--notes-navigation-text-size)]",
   drawer: "min-h-12 rounded-control px-3 text-base",
 } as const
 

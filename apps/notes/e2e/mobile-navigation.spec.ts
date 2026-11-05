@@ -322,3 +322,41 @@ test("긴 메모를 스크롤해도 편집 이력 버튼과 저장 상태가 화
   await expect(page.getByRole("status").filter({ hasText: "저장됨" })).toBeVisible()
   await expect(editor).toHaveValue(content)
 })
+
+test("데스크탑 탐색은 글자를 두 배로 키워도 메뉴를 읽고 이동할 수 있다", async ({ page }, testInfo) => {
+  for (const width of [1280, 768]) {
+    await page.setViewportSize({ width, height: 720 })
+    await page.goto("/")
+    const navigation = page.getByRole("navigation", { name: "주요 화면", exact: true })
+    const links = navigation.getByRole("link")
+    const originalFont = await navigation.getByRole("link", { name: "메모", exact: true }).evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
+    await page.evaluate(() => { document.documentElement.style.fontSize = "200%" })
+    const enlargedFont = await navigation.getByRole("link", { name: "메모", exact: true }).evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))
+    expect(enlargedFont).toBe(originalFont * 2)
+    const bounds = await links.evaluateAll((elements) => elements.map((element) => {
+      const box = element.getBoundingClientRect()
+      const range = document.createRange()
+      range.selectNodeContents(element)
+      const text = range.getBoundingClientRect()
+      return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, textLeft: text.left, textRight: text.right, textTop: text.top, textBottom: text.bottom, textHeight: text.height, lineHeight: Number.parseFloat(getComputedStyle(element).lineHeight) }
+    }))
+    for (const box of bounds) {
+      expect(box.left).toBeGreaterThanOrEqual(0)
+      expect(box.right).toBeLessThanOrEqual(width)
+      expect(box.textLeft).toBeGreaterThanOrEqual(box.left)
+      expect(box.textRight).toBeLessThanOrEqual(box.right)
+      expect(box.textHeight).toBeLessThanOrEqual(box.lineHeight)
+      expect(box.textTop).toBeGreaterThanOrEqual(box.top)
+      expect(box.textBottom).toBeLessThanOrEqual(box.bottom)
+    }
+    const brand = page.getByRole("link", { name: "개인 메모", exact: true })
+    const brandBox = (await brand.boundingBox())!
+    expect(brandBox.x + brandBox.width).toBeLessThanOrEqual(bounds[0].left)
+    await page.screenshot({ path: testInfo.outputPath(`navigation-text-200-${width}.png`) })
+    await navigation.getByRole("link", { name: "설정", exact: true }).click()
+    await expect(page).toHaveURL("/settings/")
+    await expect(navigation.getByRole("link", { name: "설정", exact: true })).toHaveAttribute("aria-current", "page")
+    await brand.click()
+    await expect(page).toHaveURL("/")
+  }
+})
