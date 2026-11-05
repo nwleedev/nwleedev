@@ -4,6 +4,8 @@ import {
   Fragment,
   type PointerEvent as ReactPointerEvent,
 } from "react"
+import { Menu, MenuItem, MenuTrigger, Popover, Pressable, Separator } from "react-aria-components"
+import { UNSAFE_PortalProvider } from "react-aria/PortalProvider"
 
 import { joinClassNames } from "@/shared/lib/join-class-names"
 import { IconButton } from "@/shared/ui/icon-button"
@@ -82,20 +84,21 @@ function ActionPopoverRow({
   action,
 }: ActionPopoverRowProps) {
   const rowClassName = joinClassNames(
-    "flex min-h-10 w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm font-semibold hover:bg-canvas focus-visible:outline focus-visible:outline-[0.2rem] focus-visible:outline-offset-[-0.2rem] focus-visible:outline-[var(--notes-color-focus)] active:bg-feedback active:text-on-accent",
-    action.tone === "danger" ? "text-danger hover:bg-danger/10 active:bg-danger/15" : "text-text",
+    "flex min-h-10 w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm font-semibold outline-none data-focused:bg-canvas data-focus-visible:outline data-focus-visible:outline-[0.2rem] data-focus-visible:outline-offset-[-0.2rem] data-focus-visible:outline-[var(--notes-color-focus)] data-pressed:bg-feedback data-pressed:text-on-accent",
+    action.tone === "danger" ? "text-danger data-focused:bg-danger/10 data-pressed:bg-danger/15" : "text-text",
   )
 
   return (
-    <button
+    <MenuItem
+      id={action.id}
+      textValue={action.label}
       aria-label={action.label}
       className={rowClassName}
-      onClick={action.onSelect}
-      type="button"
+      onAction={action.onSelect}
     >
       <ActionPopoverIcon icon={action.icon} />
       {action.label}
-    </button>
+    </MenuItem>
   )
 }
 
@@ -108,12 +111,12 @@ export function ActionPopover({
   const {
     close,
     expanded,
-    handleToggle,
-    popoverId,
+    setExpanded,
+    getContainer,
+    handleKeyDown,
     popoverRef,
-    toggle,
     triggerRef,
-  } = useActionPopover()
+  } = useActionPopover(disabled)
 
   function stopPointer(event: ReactPointerEvent<HTMLElement>) {
     event.stopPropagation()
@@ -122,48 +125,49 @@ export function ActionPopover({
   const closeThenRunActions = actions.map((action) => ({
     ...action,
     onSelect() {
-      close()
+      close(action.icon !== "properties" && action.icon !== "remove")
       action.onSelect()
     },
   }))
 
   return (
-    <>
-      <IconButton
-        aria-controls={popoverId}
-        aria-expanded={expanded}
-        aria-label={label}
-        className={triggerClassName}
-        disabled={disabled}
-        onClick={toggle}
-        onPointerDown={stopPointer}
-        popoverTarget={popoverId}
-        popoverTargetAction="toggle"
-        ref={triggerRef}
-        size="compact"
-        tone="quiet"
-      >
-        <MoreIcon />
-      </IconButton>
-      <div
-        aria-label={label}
-        className="fixed inset-auto z-50 m-0 w-52 max-w-[calc(100vw-2rem)] rounded-panel border border-border-strong bg-surface-raised p-1.5 text-text shadow-floating"
-        id={popoverId}
-        onPointerDown={stopPointer}
-        onToggle={handleToggle}
-        popover="auto"
-        ref={popoverRef}
-        role="group"
-      >
-        {closeThenRunActions.map((action, index) => (
-          <Fragment key={action.id}>
-            {index > 0 && (
-              action.group !== actions[index - 1].group || action.tone === "danger"
-            ) ? <hr className="mx-2 my-1 border-0 border-t border-line" /> : null}
-            <ActionPopoverRow action={action} />
-          </Fragment>
-        ))}
-      </div>
-    </>
+    <UNSAFE_PortalProvider getContainer={getContainer}>
+      <MenuTrigger isOpen={expanded} onOpenChange={setExpanded}>
+        <Pressable isDisabled={disabled}>
+          <IconButton
+            aria-label={label}
+            className={triggerClassName}
+            disabled={disabled}
+            onPointerDown={stopPointer}
+            ref={triggerRef}
+            size="compact"
+            tone="quiet"
+          >
+            <MoreIcon />
+          </IconButton>
+        </Pressable>
+        <Popover
+          className="z-50 w-52 max-w-[calc(100vw-2rem)] overflow-auto rounded-panel border border-border-strong bg-surface-raised p-1.5 text-text shadow-floating"
+          containerPadding={12}
+          isNonModal
+          offset={6}
+          placement="bottom end"
+          ref={popoverRef}
+        >
+          <div onKeyDown={handleKeyDown} onPointerDown={stopPointer}>
+            <Menu aria-label={label} className="outline-none">
+              {closeThenRunActions.map((action, index) => (
+                <Fragment key={action.id}>
+                  {index > 0 && (
+                    action.group !== actions[index - 1].group || action.tone === "danger"
+                  ) ? <Separator className="mx-2 my-1 border-0 border-t border-line" /> : null}
+                  <ActionPopoverRow action={action} />
+                </Fragment>
+              ))}
+            </Menu>
+          </div>
+        </Popover>
+      </MenuTrigger>
+    </UNSAFE_PortalProvider>
   )
 }

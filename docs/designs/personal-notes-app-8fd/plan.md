@@ -23,7 +23,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ### 1. 배포 버전과 모달 연결 확인
 
-진행 상태: 의존성 설치를 마쳤으며 메뉴 연결과 브라우저 동작 확인은 남아 있다. `react-aria-components` 1.22.1을 고정했고 React 19.2.8을 유지한 운영 빌드가 통과했다. 아직 화면에서 라이브러리를 사용하지 않으므로 이 빌드는 메뉴 동작이나 추가 번들 크기의 검증 근거가 아니다.
+진행 상태: 공통 메뉴에 React Aria를 연결했다. 일반 패널과 모달에서 방향키 탐색, Tab 및 Shift+Tab 이탈, Escape 복귀, 이동 후 더보기 포커스와 바깥 닫기 버튼 실행을 세 브라우저의 여섯 검사로 확인했다. 운영 빌드와 lint도 통과했다. 최소 브라우저 버전, 메모 속성 및 삭제 후 포커스, 기존 회귀 검사 전환과 시각 비교는 남아 있으므로 전체 전환은 진행 중이다.
 
 배포 버전의 [Popover 소스](https://github.com/adobe/react-spectrum/blob/740c6c5c4a717ca8c82fc4d15d199f6166cd42dc/packages/react-aria-components/src/Popover.tsx)와 [usePopover 소스](https://github.com/adobe/react-spectrum/blob/740c6c5c4a717ca8c82fc4d15d199f6166cd42dc/packages/react-aria/src/overlays/usePopover.ts)를 대조하면 기본 구성은 바깥 요소를 inert로 처리하고 화면을 덮는 요소로 바깥 클릭을 받는다. 따라서 다른 조작 요소를 한 번 클릭해 메뉴를 닫으면서 그 동작도 실행하는 요구를 기본값만으로 충족한다고 볼 수 없다. `isNonModal`은 이 제한을 없애지만 바깥 클릭 종료 처리도 달라진다. 다음 연결 작업에서는 이 차이와 Tab 이탈을 함께 확인하고 접근성 동작을 유지하는 데 필요한 처리만 공통 메뉴에 둔다.
 
@@ -35,6 +35,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 - 다음 단계 조건: 선언된 환경에서 동작 가능한 버전과 모달 연결 방식을 설명할 수 있어야 한다. 표준 Menu의 Tab 이탈 또는 바깥 클릭이 요구사항과 다르면 실제 동작을 기록하고 연결 방법을 조사한다. 라이브러리 기본값에 맞춰 요구사항을 바꾸거나 `isNonModal`만 켜서 해결됐다고 판단하지 않는다.
 
 ### 2. 공통 메뉴와 상태별 스타일 전환
+
+표준 메뉴와 기존 디자인 토큰을 연결했으며 상태별 시각 비교는 남아 있다. 기존 훅은 직접 위치를 계산하지 않고 열림, 바깥 클릭과 명령 후 포커스만 처리한다. `react-aria`의 `UNSAFE_PortalProvider`로 모달 안에서 연 메뉴를 같은 dialog에 표시하고 `useInteractOutside`로 바깥 요소의 클릭을 막지 않으면서 메뉴를 종료한다. 이 두 API를 직접 사용하므로 이미 설치된 3.53.1을 직접 의존성에도 명시했다. `isNonModal` 구성의 보조 기술 조작은 별도 확인 대상이다.
 
 - 디자인 패턴: `MenuTrigger`, `Popover`, `Menu`, `MenuItem`의 합성과 기능별 명령 목록. 하나의 공통 메뉴로 메모 및 일괄 복사의 같은 표시 규칙을 유지한다.
 - 서비스 구성: `shared/ui`는 항목의 이름, 아이콘, 그룹, 위험 동작 표시와 실행 함수를 받아 표시한다. 어떤 이동이 가능한지는 기존 기능 모듈이 정한다. 메뉴에 전역 상태나 저장 책임을 추가하지 않는다. 열린 메뉴의 측정과 이벤트만 유지하며 닫힌 모든 카드에 위치 추적을 반복하지 않는다.

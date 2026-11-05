@@ -997,3 +997,42 @@ test.describe("320px 일괄 복사", () => {
     await expect(second).toBeVisible()
   })
 })
+
+for (const { width, role } of [{ width: 1280, role: "complementary" }, { width: 1000, role: "dialog" }] as const) {
+  test(`standard action menu preserves commands and outside navigation at ${width}px`, async ({ page }) => {
+    const { firstContent, secondContent } = await createDesktopBatchCopy(page)
+    await page.setViewportSize({ width, height: 800 })
+    const panel = page.getByRole(role, { name: "일괄 복사", exact: true })
+    await expect(panel).toBeVisible()
+    const trigger = panel.getByRole("button", { name: "1번째 일괄 복사 항목 동작" })
+    const menu = page.getByRole("menu", { name: "1번째 일괄 복사 항목 동작" })
+    await trigger.press("Enter")
+    await expect(menu.getByRole("menuitem", { name: "복제", exact: true })).toBeFocused()
+    await page.keyboard.press("ArrowDown")
+    await expect(menu.getByRole("menuitem", { name: "아래로 이동", exact: true })).toBeFocused()
+    await expect(panel.getByRole("listitem")).toHaveText([firstContent, secondContent])
+    await page.keyboard.press("Escape")
+    await expect(menu).toBeHidden()
+    await expect(trigger).toBeFocused()
+    await expect(panel).toBeVisible()
+
+    await trigger.press("Space")
+    await page.keyboard.press("Tab")
+    await expect(menu).toBeHidden()
+    await expect(panel.getByRole("button", { name: `일괄 복사 항목 선택: ${firstContent}`, exact: true })).toBeFocused()
+
+    await trigger.press("Enter")
+    await page.keyboard.press("Shift+Tab")
+    await expect(menu).toBeHidden()
+    await expect(panel.getByRole("button", { name: "1번째 일괄 복사 항목 이동", exact: true })).toBeFocused()
+
+    await trigger.press("Enter")
+    await menu.getByRole("menuitem", { name: "아래로 이동", exact: true }).click()
+    await expect(menu).toBeHidden()
+    await expect(panel.getByRole("listitem")).toHaveText([secondContent, firstContent])
+    await expect(panel.getByRole("button", { name: "2번째 일괄 복사 항목 동작" })).toBeFocused()
+    await trigger.click()
+    await panel.getByRole("button", { name: "일괄 복사 패널 닫기" }).click()
+    await expect(panel).toBeHidden()
+  })
+}
