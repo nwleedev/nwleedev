@@ -286,6 +286,40 @@ test("패널 너비를 조절하고 취소, 새로고침과 창 크기 변경에
   await expect.poll(async () => (await visibleBox(panel)).width).toBe(280)
 })
 
+test("확대된 일괄 복사 패널은 최소 너비에서도 제목과 항목 조작을 읽을 수 있다", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 2560, height: 1080 })
+  const { panel, firstContent } = await createDesktopBatchCopy(page)
+  await page.evaluate(() => { document.documentElement.style.fontSize = "200%" })
+  const resize = page.getByRole("separator", { name: "일괄 복사 너비" })
+  await resize.press("Home")
+  await expect.poll(async () => (await visibleBox(panel)).width).toBe(280)
+  const title = panel.getByRole("heading", { name: "일괄 복사", exact: true })
+  await page.screenshot({ path: testInfo.outputPath("panel-text-200.png") })
+  const titleBounds = await title.evaluate((element) => {
+    const box = element.getBoundingClientRect()
+    const range = document.createRange()
+    range.selectNodeContents(element)
+    const text = range.getBoundingClientRect()
+    return { left: box.left, right: box.right, textLeft: text.left, textRight: text.right, textHeight: text.height, lineHeight: Number.parseFloat(getComputedStyle(element).lineHeight) }
+  })
+  expect(titleBounds.textLeft).toBeGreaterThanOrEqual(titleBounds.left)
+  expect(titleBounds.textRight).toBeLessThanOrEqual(titleBounds.right)
+  expect(titleBounds.textHeight).toBeLessThanOrEqual(titleBounds.lineHeight)
+  await expect(panel.getByText("2개", { exact: true })).toBeInViewport({ ratio: 1 })
+  const item = panel.getByRole("listitem", { name: "1번째 일괄 복사 항목", exact: true })
+  const selection = item.getByRole("button", { name: `일괄 복사 항목 선택: ${firstContent}`, exact: true })
+  await expect(selection).toBeInViewport({ ratio: 1 })
+  const overflow = await selection.evaluate((element) => element.scrollWidth - element.clientWidth)
+  expect(overflow).toBe(0)
+  await selection.click()
+  await expect(selection).toHaveAttribute("aria-pressed", "true")
+  await item.getByRole("button", { name: / 항목 동작$/u }).click()
+  await item.getByRole("button", { name: "아래로 이동", exact: true }).click()
+  await expect(panel.getByRole("listitem", { name: "2번째 일괄 복사 항목", exact: true })).toContainText(firstContent)
+  await panel.getByRole("button", { name: "일괄 복사 패널 닫기" }).click()
+  await expect(panel).toBeHidden()
+})
+
 test("브라우저가 너비 보관을 거부해도 현재 패널의 크기는 조절할 수 있다", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, "localStorage", {

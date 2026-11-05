@@ -77,16 +77,16 @@ function BatchCopyPanelContent({
       className="flex h-full min-h-0 flex-col bg-surface-raised"
       data-batch-copy-panel-boundary
     >
-      <header className="flex min-h-[var(--notes-batch-panel-header-height)] shrink-0 items-center gap-2 border-b border-line px-[var(--notes-batch-panel-inset)] py-2">
+      <header className="flex min-h-[var(--notes-batch-panel-header-height)] shrink-0 flex-wrap items-center gap-2 border-b border-line px-[var(--notes-batch-panel-inset)] py-2">
         <h2
-          className="min-w-0 text-lg font-semibold tracking-[-0.01em]"
+          className="shrink-0 whitespace-nowrap text-lg font-semibold tracking-[-0.01em]"
           id={headingId}
           ref={headingRef}
           tabIndex={-1}
         >
           일괄 복사
         </h2>
-        <span className="rounded-full bg-surface px-3 py-1 text-sm tabular-nums">{countText}</span>
+        <span className="shrink-0 whitespace-nowrap rounded-full bg-surface px-3 py-1 text-sm tabular-nums">{countText}</span>
         <IconButton
           className="ml-auto"
           aria-label="일괄 복사 패널 닫기"
