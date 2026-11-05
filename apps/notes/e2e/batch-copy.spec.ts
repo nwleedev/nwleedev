@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test"
 import * as fc from "fast-check"
 
+import { delayNextWriteCompletion } from "./support/delay-write-completion"
 import { preparePointerCaptureRelease, releasePointerCapture } from "./support/pointer-capture"
 import {
   addMobileNoteToBatch,
@@ -1049,3 +1050,23 @@ for (const { width, role } of [{ width: 1280, role: "complementary" }, { width: 
     await expect(panel).toBeHidden()
   })
 }
+
+test("이동 저장 중 시작한 메모 입력은 저장 완료 후에도 포커스를 유지한다", async ({ page }) => {
+  const { firstContent, panel, secondContent } = await createDesktopBatchCopy(page)
+  const note = await createNoteThroughUi(page, "이동 저장 중 편집할 메모")
+  const editor = note.getByRole("textbox", { name: "메모 내용" })
+  const write = await delayNextWriteCompletion(page, "batchCopyLists")
+  await panel.getByRole("button", { name: "1번째 일괄 복사 항목 동작" }).click()
+  await page.getByRole("menu").getByRole("menuitem", { name: "아래로 이동", exact: true }).click()
+  await write.waitUntilCommitted()
+  await expect(panel.getByRole("button", { name: "2번째 일괄 복사 항목 동작" })).toBeDisabled()
+  await editor.click()
+  await editor.fill("저장 중 입력")
+  await expect(editor).toBeFocused()
+  await write.release()
+  await expect(panel.getByRole("button", { name: "2번째 일괄 복사 항목 동작" })).toBeEnabled()
+  await expect(panel.getByRole("listitem")).toHaveText([secondContent, firstContent])
+  await expect(editor).toBeFocused()
+  await page.keyboard.type(" 계속")
+  await expect(editor).toHaveValue("저장 중 입력 계속")
+})

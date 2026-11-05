@@ -263,19 +263,20 @@ export function BatchCopyList({
   function actionsFor(item: BatchCopyItem, position: number) {
     const panelActions = (actionPresentation === "popover") && (presentation === "panel")
     const showMoves = panelActions || reorderButtonsEnabled
+    const restoreHandleFocus = actionPresentation !== "popover"
 
     return createBatchCopyItemActions({
       canMoveDown: showMoves && (position < editing.items.length - 1),
       canMoveUp: showMoves && (position > 0),
       ends: panelActions
         ? {
-            onMoveFirst: () => { moveTo(item.id, position, 0) },
-            onMoveLast: () => { moveTo(item.id, position, editing.items.length - 1) },
+            onMoveFirst: () => { moveTo(item.id, position, 0, restoreHandleFocus) },
+            onMoveLast: () => { moveTo(item.id, position, editing.items.length - 1, restoreHandleFocus) },
           }
         : undefined,
       onDuplicate: () => editing.duplicate(item.id),
-      onMoveDown: () => { moveBy(item.id, position, 1) },
-      onMoveUp: () => { moveBy(item.id, position, -1) },
+      onMoveDown: () => { moveBy(item.id, position, 1, restoreHandleFocus) },
+      onMoveUp: () => { moveBy(item.id, position, -1, restoreHandleFocus) },
       onRemove: () => editing.remove(item.id),
     })
   }

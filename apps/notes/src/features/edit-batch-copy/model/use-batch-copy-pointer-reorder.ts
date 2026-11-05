@@ -125,7 +125,10 @@ export function useBatchCopyPointerReorder({
     const target = itemHandles.current.get(focusAfterMove.current)
     if (target?.disabled) return
     focusAfterMove.current = null
-    target?.focus()
+    if (target === undefined) return
+    const activeElement = target.ownerDocument.activeElement
+    if (activeElement !== target.ownerDocument.body && activeElement !== target) return
+    target.focus()
   })
 
   function stopAutoScroll() {
@@ -370,13 +373,13 @@ export function useBatchCopyPointerReorder({
     }
   }
 
-  function moveTo(itemId: string, position: number, targetIndex: number) {
+  function moveTo(itemId: string, position: number, targetIndex: number, restoreFocus = true) {
 
     if (targetIndex === position || targetIndex < 0 || targetIndex >= items.length) {
       return false
     }
 
-    focusAfterMove.current = itemId
+    focusAfterMove.current = restoreFocus ? itemId : null
     void onMove(itemId, targetIndex).then((saved) => {
       if (saved) {
         setAnnouncement(`${position + 1}번째 항목을 ${targetIndex + 1}번째로 옮겼습니다.`)
@@ -385,8 +388,8 @@ export function useBatchCopyPointerReorder({
     return true
   }
 
-  function moveBy(itemId: string, position: number, offset: -1 | 1) {
-    return moveTo(itemId, position, position + offset)
+  function moveBy(itemId: string, position: number, offset: -1 | 1, restoreFocus = true) {
+    return moveTo(itemId, position, position + offset, restoreFocus)
   }
 
   function onKeyDown(

@@ -17,7 +17,11 @@ export function useActionPopover(disabled: boolean) {
   useEffect(() => {
     if (expanded || disabled || !restoreAfterAction.current) return
     restoreAfterAction.current = false
-    triggerRef.current?.focus({ preventScroll: true })
+    const trigger = triggerRef.current
+    if (trigger === null) return
+    const activeElement = trigger.ownerDocument.activeElement
+    if (activeElement !== trigger.ownerDocument.body && activeElement !== trigger) return
+    trigger.focus({ preventScroll: true })
   }, [expanded, disabled])
 
   useInteractOutside({
