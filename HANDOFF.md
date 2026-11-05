@@ -1,16 +1,18 @@
 # 메모 사용 경험과 서버 저장 설계
 
+현재 검증은 설치된 브라우저만 사용하며 VoiceOver 관련 작업은 진행하지 않는다. [요구사항의 현재 검증 환경](docs/designs/personal-notes-app-8fd/requirements.md#현재-검증-환경)과 플랜에 반영했다. 구버전 브라우저 설치 및 VoiceOver 허용 질문은 더 이상 현재 작업의 대기 조건이 아니다. 보류한 검사를 통과한 것으로 해석하지 않고 기존 실행 증거와 미검증 환경을 구분한다. 앱 의존성, 브라우저 버전 선언과 소스 및 테스트는 변경하지 않았다.
+
 최소 브라우저 확인에서 기존 캐시의 Firefox 128.0 실행을 확인했다. 현재 선언인 Firefox 125는 설치돼 있지 않으며 기존 Chromium 캐시는 128이다. React Aria 전환 뒤 `apps/notes/src`에는 `togglePopover`, `hidePopover`, `showPopover` 직접 호출이 없다. 이전 참고 문서의 네이티브 API 제한과 최소 버전 상향 제안을 과거 구현 조건으로 구분했다.
 
-현재 Playwright 1.64.1에서 Firefox 128 실행 파일을 지정해 기존 메뉴 과업 다섯 건을 시도했다. 브라우저 시작 및 버전 반환은 성공했지만 모두 `Browser.setDefaultViewport`의 `screenSize`를 구버전이 인식하지 못해 페이지 생성 전에 실패했다. 실행 자료는 `temps/notes-compat-r81/results`다. 서비스 호환성 실패나 통과로 세지 않는다. 임시 설정 파일은 제거했으며 의존성과 공식 검사 설정은 변경하지 않았다. 이후 구버전 실행은 호환되는 드라이버를 확보한 뒤 진행한다.
+현재 Playwright 1.64.1에서 Firefox 128 실행 파일을 지정해 기존 메뉴 과업 다섯 건을 시도했다. 브라우저 시작 및 버전 반환은 성공했지만 모두 `Browser.setDefaultViewport`의 `screenSize`를 구버전이 인식하지 못해 페이지 생성 전에 실패했다. 실행 자료는 `temps/notes-compat-r81/results`다. 서비스 호환성 실패나 통과로 세지 않는다. 임시 설정 파일은 제거했으며 의존성과 공식 검사 설정은 변경하지 않았다. 이 기록은 이전 시도의 실행 조건이며 현재 후속 설치 절차는 진행하지 않는다.
 
-Firefox 125 유지와 128 이상 변경을 묻는 질문은 답변 대기 중이다. Chrome 및 Edge 111과 Safari 16.4 선언은 유지한다. VoiceOver 허용 답변도 아직 없어 실제 보조 기술 검증은 수행하지 않았다. 이번에는 코드 변경이 없고 앞서 마친 메뉴 코드 검토를 반복하지 않았다.
+Chrome 및 Edge 111과 Safari 16.4 및 Firefox 125 선언은 유지한다. 현재 검증 환경 조건에 따라 버전 상향 결정과 VoiceOver 허용 답변을 기다리지 않는다.
 
 React Aria 메뉴 전환의 코드 검토를 마쳤다. 검토한 변경은 `606b536..5ec2045`의 공통 메뉴, 일괄 복사 이동 훅 및 목록 연결, E2E와 의존성 선언이다. `note-card.tsx`의 키보드 이벤트 조건과 기존 모바일 액션 시트 연결도 대조했다. 추가 수정이 필요한 코드 결함은 찾지 못했으며 서비스 코드나 테스트를 더 작성하지 않았다.
 
 직접 위치 계산은 제거됐고 모달 안 메뉴는 실행 버튼을 감싸는 가장 가까운 dialog에 삽입한다. 메뉴 명령의 더보기 복귀와 드래그의 핸들 복귀는 분리돼 있으며 저장 대기 중 다른 입력이 포커스를 받으면 이를 유지한다. 기존 저장 및 실패 복구 단언을 제거하지 않았고 완료 통지 보류 도구는 실제 IndexedDB 쓰기를 실행한다. 저장 형식과 모바일 시트의 명령 종류는 전환 변경분에 포함되지 않는다.
 
-공식 [Menu 설명](https://react-aria.adobe.com/Menu), [W3C 메뉴 조작 규칙](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/)과 배포 소스의 [usePopover](https://github.com/adobe/react-spectrum/blob/740c6c5c4a717ca8c82fc4d15d199f6166cd42dc/packages/react-aria/src/overlays/usePopover.ts)를 대조했다. `isNonModal`의 보조 기술 영향은 소스에도 명시돼 있으므로 자동화된 키보드 검사만으로 이 항목을 통과 처리하지 않는다. VoiceOver 활성화 허용 답변은 아직 없으며 실제 검사도 진행하지 않았다.
+공식 [Menu 설명](https://react-aria.adobe.com/Menu), [W3C 메뉴 조작 규칙](https://www.w3.org/WAI/ARIA/apg/patterns/menubar/)과 배포 소스의 [usePopover](https://github.com/adobe/react-spectrum/blob/740c6c5c4a717ca8c82fc4d15d199f6166cd42dc/packages/react-aria/src/overlays/usePopover.ts)를 대조했다. `isNonModal`의 보조 기술 영향은 소스에도 명시돼 있으므로 자동화된 키보드 검사만으로 이 항목을 통과 처리하지 않는다. 실제 VoiceOver 검사는 수행하지 않았으며 현재 진행 대상에서도 제외한다.
 
 기존 실행 자료의 `.last-run.json`에서 메모 전체, 일괄 복사 전체, 저장 지연, 메뉴 스타일, 포인터 상태와 저장 목록 검사의 성공 상태를 확인했다. 새로 실행한 검사로 계산하지 않는다. 코드 검토는 마쳤으나 실제 스크린리더 및 최소 브라우저 조건 때문에 메뉴 전환 전체는 진행 중이다. 후속 변경이 없으면 같은 코드 검토와 통과한 검사를 반복하지 않는다.
 
