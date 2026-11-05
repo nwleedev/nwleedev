@@ -275,6 +275,7 @@ test("패널 너비를 조절하고 취소, 새로고침과 창 크기 변경에
   await resize.press("ArrowRight")
   await expect.poll(async () => (await visibleBox(panel)).width).toBe(440)
   await page.setViewportSize({ width: 1600, height: 720 })
+  await expect(resize).toHaveAttribute("aria-valuemax", "640")
   await resize.press("End")
   await expect.poll(async () => (await visibleBox(panel)).width).toBe(640)
   await page.setViewportSize({ width: 1280, height: 720 })
@@ -487,7 +488,7 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   const modalHandleBox = await visibleBox(modalHandle)
   await modalHandle.hover()
   await page.mouse.down()
-  await page.mouse.move(modalHandleBox.x + 24, modalHandleBox.y + 24)
+  await page.mouse.move(modalHandleBox.x + modalHandleBox.width, modalHandleBox.y + modalHandleBox.height)
   const modalPreview = dialog.getByRole("paragraph", { includeHidden: true })
     .filter({ hasText: firstContent })
   await expect(modalPreview).toBeVisible()
@@ -558,7 +559,7 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
 })
 
 test("긴 메모를 잡고 목록 끝까지 자동 스크롤한 뒤 원문과 이동 순서를 저장한다", async ({ page }, testInfo) => {
-  const longContent = "검토할 내용\n" + "진행 일정과 전달 자료를 확인합니다.\n".repeat(20)
+  const longContent = "검토할 내용\n" + "진행 일정과 전달 자료를 확인합니다.\n".repeat(40)
   const shortContent = "검토 완료"
   const first = await createNoteThroughUi(page, longContent)
   const second = await createNoteThroughUi(page, shortContent)

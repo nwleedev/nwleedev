@@ -44,13 +44,14 @@
   --notes-touch-target: 2.75rem;
   --notes-mobile-card-min-height: 3.5rem;
   --notes-mobile-card-max-height: 12rem;
-  --notes-mobile-card-padding: 0.25rem;
   --notes-mobile-pressed-width: 3px;
   --notes-mobile-sheet-height: 30rem;
   --notes-mobile-sheet-radius: 1.25rem;
   --notes-mobile-sheet-inset: 16px;
   --notes-mobile-sheet-top-gap: 1rem;
   --notes-mobile-menu-row-height: 56px;
+  --notes-card-header-height: 2.75rem;
+  --notes-batch-item-text-size: 1.0625rem;
   --notes-batch-panel-width: 320px;
   --notes-batch-panel-header-height: 60px;
   --notes-batch-panel-inset: 0.75rem;

@@ -5,7 +5,7 @@ import type { ReactNode } from "react"
 import type { Note } from "@/entities/note"
 import { IconButton } from "@/shared/ui/icon-button"
 import { MoreIcon } from "@/shared/ui/icons"
-import { ReorderableTextCard } from "@/shared/ui/reorderable-text-card"
+import { ReorderableTextCard, ReorderableTextCardHeader } from "@/shared/ui/reorderable-text-card"
 
 import { useMobileNoteLongPress } from "../model/use-mobile-note-long-press"
 
@@ -46,24 +46,26 @@ export function MobileNoteCard({
       label={`메모, ${summary}`}
       pressed={longPress.pressed}
     >
-      {children}
+      <ReorderableTextCardHeader>
+        {children}
+        <IconButton
+          aria-label={`${summary} 더보기`}
+          className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)] self-start"
+          id={`mobile-note-actions-${note.id}`}
+          onClick={(event) => onOpenActions(note, event.currentTarget)}
+        >
+          <MoreIcon />
+        </IconButton>
+      </ReorderableTextCardHeader>
       <button
         aria-label={`${summary} 복사`}
-        className="line-clamp-6 max-h-[calc(var(--notes-mobile-card-max-height)-var(--notes-mobile-card-padding)*2-2px)] min-h-[var(--notes-touch-target)] min-w-0 w-full touch-pan-y select-none overflow-hidden whitespace-pre-wrap break-words py-1 text-left"
+        className="line-clamp-6 max-h-[calc(var(--notes-mobile-card-max-height)-var(--notes-card-header-height)-2px)] min-h-[var(--notes-touch-target)] min-w-0 w-full touch-pan-y select-none overflow-hidden whitespace-pre-wrap break-words px-3 py-2 text-left"
         disabled={disabled}
         type="button"
         {...longPress.handlers}
       >
         {text}
       </button>
-      <IconButton
-        aria-label={`${summary} 더보기`}
-        className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)] self-start"
-        id={`mobile-note-actions-${note.id}`}
-        onClick={(event) => onOpenActions(note, event.currentTarget)}
-      >
-        <MoreIcon />
-      </IconButton>
     </ReorderableTextCard>
   )
 }

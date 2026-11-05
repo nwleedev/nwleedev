@@ -35,13 +35,21 @@ export function ReorderableTextCard({
   return (
     <article
       aria-label={label}
-      className="relative grid min-h-[var(--notes-mobile-card-min-height)] grid-cols-[var(--notes-touch-target)_minmax(0,1fr)_auto] items-center gap-1 rounded-note border border-border bg-surface-raised p-[var(--notes-mobile-card-padding)] text-base leading-7 text-ink transition-[border-color,opacity] data-[dragging=true]:opacity-35 data-[pressed=true]:outline data-[pressed=true]:outline-[length:var(--notes-mobile-pressed-width)] data-[pressed=true]:outline-danger data-[pressed=true]:-outline-offset-[length:var(--notes-mobile-pressed-width)] data-[drop=before]:before:absolute data-[drop=before]:before:-top-2 data-[drop=before]:before:left-1 data-[drop=before]:before:right-1 data-[drop=before]:before:h-1 data-[drop=before]:before:rounded-full data-[drop=before]:before:bg-action data-[drop=after]:after:absolute data-[drop=after]:after:-bottom-2 data-[drop=after]:after:left-1 data-[drop=after]:after:right-1 data-[drop=after]:after:h-1 data-[drop=after]:after:rounded-full data-[drop=after]:after:bg-action"
+      className="relative flex min-h-[var(--notes-mobile-card-min-height)] flex-col rounded-note border border-border bg-surface-raised text-base leading-7 text-ink transition-[border-color,opacity] data-[dragging=true]:opacity-35 data-[pressed=true]:outline data-[pressed=true]:outline-[length:var(--notes-mobile-pressed-width)] data-[pressed=true]:outline-danger data-[pressed=true]:-outline-offset-[length:var(--notes-mobile-pressed-width)] data-[drop=before]:before:absolute data-[drop=before]:before:-top-2 data-[drop=before]:before:left-1 data-[drop=before]:before:right-1 data-[drop=before]:before:h-1 data-[drop=before]:before:rounded-full data-[drop=before]:before:bg-action data-[drop=after]:after:absolute data-[drop=after]:after:-bottom-2 data-[drop=after]:after:left-1 data-[drop=after]:after:right-1 data-[drop=after]:after:h-1 data-[drop=after]:after:rounded-full data-[drop=after]:after:bg-action"
       data-dragging={dragging}
       data-drop={dropPlacement}
       data-pressed={pressed}
     >
       {children}
     </article>
+  )
+}
+
+export function ReorderableTextCardHeader({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-h-[var(--notes-card-header-height)] shrink-0 items-center justify-between rounded-t-[inherit] bg-canvas px-1">
+      {children}
+    </div>
   )
 }
 

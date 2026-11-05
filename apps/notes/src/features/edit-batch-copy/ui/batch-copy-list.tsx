@@ -17,6 +17,7 @@ import {
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
 import { GripIcon, MoreIcon } from "@/shared/ui/icons"
+import { ReorderableTextCardHeader } from "@/shared/ui/reorderable-text-card"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
 import { createBatchCopyItemActions } from "../model/batch-copy-item-actions"
@@ -97,8 +98,8 @@ function BatchCopyRow({
   const itemLabel = `${positionText}번째 일괄 복사 항목`
   const handleLabel = `${itemLabel} 이동`
   const rowClassName = joinClassNames(
-    "relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-control border border-border bg-surface-raised p-2 transition-[border-color,opacity] duration-[var(--notes-motion-fast)] motion-reduce:transition-none",
-    presentation === "panel" ? "border-transparent" : undefined,
+    "relative rounded-control border border-border bg-surface-raised transition-[border-color,opacity] duration-[var(--notes-motion-fast)] motion-reduce:transition-none",
+    presentation === "panel" ? "flex flex-col" : "grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 p-2",
     selected ? "border-selection ring-1 ring-inset ring-selection" : undefined,
     dragging && actionPresentation === "popover" ? "opacity-35" : undefined,
     dragging && actionPresentation !== "popover" ? "-translate-y-0.5 border-border-strong opacity-85 shadow-floating" : undefined,
@@ -136,43 +137,25 @@ function BatchCopyRow({
     onOpenActions(item.id)
   }
 
-  return (
-    <li
-      aria-label={itemLabel}
-      className={rowClassName}
-      data-batch-copy-position={position}
+  const handle = (
+    <button
+      aria-label={handleLabel}
+      className="flex min-h-[var(--notes-card-header-height)] min-w-[var(--notes-card-header-height)] touch-none cursor-grab items-center justify-center rounded-control border-0 bg-transparent text-icon active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-45"
+      disabled={pending}
+      onKeyDown={moveFromKeyboard}
+      onLostPointerCapture={onPointerCancel}
+      onPointerCancel={onPointerCancel}
+      onPointerDown={startPointer}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      ref={registerHandle}
+      type="button"
     >
-      <button
-        aria-label={handleLabel}
-        className="flex min-h-10 min-w-10 touch-none cursor-grab items-center justify-center rounded-control border-0 bg-transparent text-icon active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-45"
-        disabled={pending}
-        onKeyDown={moveFromKeyboard}
-        onLostPointerCapture={onPointerCancel}
-        onPointerCancel={onPointerCancel}
-        onPointerDown={startPointer}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        ref={registerHandle}
-        type="button"
-      >
-        <GripIcon />
-      </button>
-      {presentation === "panel" ? (
-        <button
-          aria-label={`일괄 복사 항목 선택: ${text}`}
-          aria-pressed={selected}
-          className="min-h-10 min-w-0 whitespace-pre-wrap break-words rounded-control border-0 bg-transparent px-1 py-2 text-left text-[length:var(--notes-panel-text-size)] leading-7 text-text disabled:opacity-45"
-          disabled={pending}
-          onClick={selectItem}
-          type="button"
-        >
-          {text}
-        </button>
-      ) : (
-        <p className="min-w-0 whitespace-pre-wrap break-words px-1 py-2 text-sm leading-6 text-text">
-          {text}
-        </p>
-      )}
+      <GripIcon />
+    </button>
+  )
+  const actions = (
+    <>
       {actionPresentation === "popover" ? (
         <ActionPopover
           actions={popoverActions}
@@ -193,6 +176,38 @@ function BatchCopyRow({
           <MoreIcon />
         </IconButton>
       ) : null}
+    </>
+  )
+
+  return (
+    <li
+      aria-label={itemLabel}
+      className={rowClassName}
+      data-batch-copy-position={position}
+    >
+      {presentation === "panel" ? (
+        <ReorderableTextCardHeader>
+          {handle}
+          {actions}
+        </ReorderableTextCardHeader>
+      ) : handle}
+      {presentation === "panel" ? (
+        <button
+          aria-label={`일괄 복사 항목 선택: ${text}`}
+          aria-pressed={selected}
+          className="min-h-10 min-w-0 whitespace-pre-wrap break-words rounded-control border-0 bg-transparent w-full px-3 py-2 text-left text-[length:var(--notes-batch-item-text-size)] leading-7 text-text disabled:opacity-45"
+          disabled={pending}
+          onClick={selectItem}
+          type="button"
+        >
+          {text}
+        </button>
+      ) : (
+        <p className="min-w-0 whitespace-pre-wrap break-words px-1 py-2 text-sm leading-6 text-text">
+          {text}
+        </p>
+      )}
+      {presentation === "management" ? actions : null}
       {dragging && outside ? (
         <p className="col-span-3 text-xs font-semibold text-danger" role="status">
           패널 밖에 놓으면 삭제됩니다.
@@ -335,12 +350,14 @@ export function BatchCopyList({
       {draggedItem !== undefined && drag !== null && actionPresentation === "popover" ? createPortal(
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed left-0 top-0 z-[var(--notes-layer-drag-preview)] max-h-[var(--notes-drag-preview-max-height)] overflow-hidden grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2 rounded-control border border-border bg-surface-raised p-2 text-[length:var(--notes-panel-text-size)] leading-7 text-text shadow-floating"
+          className="pointer-events-none fixed left-0 top-0 z-[var(--notes-layer-drag-preview)] max-h-[var(--notes-drag-preview-max-height)] overflow-hidden flex flex-col rounded-control border border-border bg-surface-raised text-[length:var(--notes-batch-item-text-size)] leading-7 text-text shadow-floating"
           ref={registerPreview}
         >
-          <span className="flex min-h-10 min-w-10 items-center justify-center text-icon"><GripIcon /></span>
-          <p className="min-w-0 whitespace-pre-wrap break-words px-1 py-2">{draggedItem.textSnapshot || "빈 메모"}</p>
-          <span className="p-2 text-icon"><MoreIcon /></span>
+          <ReorderableTextCardHeader>
+            <span className="flex min-h-[var(--notes-card-header-height)] min-w-[var(--notes-card-header-height)] items-center justify-center text-icon"><GripIcon /></span>
+            <span className="p-2 text-icon"><MoreIcon /></span>
+          </ReorderableTextCardHeader>
+          <p className="min-w-0 whitespace-pre-wrap break-words px-3 py-2">{draggedItem.textSnapshot || "빈 메모"}</p>
         </div>,
         drag.container,
       ) : null}

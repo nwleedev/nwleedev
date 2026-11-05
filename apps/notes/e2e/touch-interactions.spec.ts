@@ -145,8 +145,15 @@ test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 
 
   async function inspectDrag(card: Locator, destination: Locator, screenshot: string) {
     const handle = card.getByRole("button", { name: / 이동$/u })
-    const [cardCenter, handleCenter] = await Promise.all([center(card), center(handle)])
-    expect(handleCenter.y).toBeCloseTo(cardCenter.y, 1)
+    const action = card.getByRole("button", { name: /(?:더보기|항목 동작)$/u })
+    const body = card.getByRole("button", { name: / 복사$/u }).or(card.getByRole("paragraph"))
+    const [handleBox, actionBox, bodyBox] = await Promise.all([
+      handle.boundingBox(), action.boundingBox(), body.boundingBox(),
+    ])
+    expect(handleBox!.y).toBeCloseTo(actionBox!.y, 1)
+    expect(bodyBox!.y).toBeGreaterThanOrEqual(handleBox!.y + handleBox!.height)
+    expect(bodyBox!.x).toBeLessThanOrEqual(handleBox!.x)
+    expect(bodyBox!.x + bodyBox!.width).toBeGreaterThanOrEqual(actionBox!.x + actionBox!.width)
     async function verticalGap() {
       const [source, target] = await Promise.all([center(card, 0), center(destination, 0)])
       return source.y - target.y

@@ -11,7 +11,7 @@ import {
 import { usePointerReorder } from "@/shared/lib/pointer-reorder"
 import { IconButton } from "@/shared/ui/icon-button"
 import { MoreIcon } from "@/shared/ui/icons"
-import { ReorderableTextCard, ReorderHandle } from "@/shared/ui/reorderable-text-card"
+import { ReorderableTextCard, ReorderableTextCardHeader, ReorderHandle } from "@/shared/ui/reorderable-text-card"
 
 type MobileBatchCopyConfirmationListProps = {
   disabled: boolean
@@ -79,30 +79,33 @@ function MobileBatchCopyEntryRow({
   return (
     <li data-reorder-id={entry.id}>
       <ReorderableTextCard dragging={dragging} dropPlacement={dropPlacement} label={itemLabel}>
-        <ReorderHandle
-          aria-label={`${itemLabel} 이동`}
-          disabled={disabled}
-          onLostPointerCapture={onPointerCancel}
-          onPointerCancel={onPointerCancel}
-          onPointerDown={beginPointer}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          ref={registerHandle}
-        />
-        <p className="min-w-0 whitespace-pre-wrap break-words py-1">
+        <ReorderableTextCardHeader>
+          <ReorderHandle
+            aria-label={`${itemLabel} 이동`}
+            disabled={disabled}
+            onLostPointerCapture={onPointerCancel}
+            onPointerCancel={onPointerCancel}
+            onPointerDown={beginPointer}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            ref={registerHandle}
+          />
+
+          <IconButton
+            aria-expanded={actionsOpen}
+            aria-haspopup="dialog"
+            aria-label={`${itemLabel} 동작`}
+            className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)] self-start"
+            disabled={disabled}
+            onClick={openActions}
+            ref={registerActionTrigger}
+          >
+            <MoreIcon />
+          </IconButton>
+        </ReorderableTextCardHeader>
+        <p className="min-w-0 whitespace-pre-wrap break-words px-3 py-2">
           {entry.textSnapshot || "빈 메모"}
         </p>
-        <IconButton
-          aria-expanded={actionsOpen}
-          aria-haspopup="dialog"
-          aria-label={`${itemLabel} 동작`}
-          className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)] self-start"
-          disabled={disabled}
-          onClick={openActions}
-          ref={registerActionTrigger}
-        >
-          <MoreIcon />
-        </IconButton>
       </ReorderableTextCard>
     </li>
   )
