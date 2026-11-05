@@ -1,5 +1,7 @@
 # 메모 사용 경험과 서버 저장 설계
 
+[전체 진행 상태와 남은 작업](docs/designs/personal-notes-app-8fd/plan.md#전체-진행-상태와-남은-작업)에서 화면 구현, 실기기 확인, 대표 자료량 측정, 서버 전환과 백로그를 구분한다. 이전 로컬 계획의 작업 번호와 검사 결과는 당시 버전의 기록이다.
+
 [데스크탑 새 메모 버튼 배치](docs/designs/personal-notes-app-8fd/plan.md#데스크탑-새-메모-버튼-배치)는 적용과 측정을 마쳤다. 기본 상태의 화면은 `temps/new-note-r85/desktop.png`에 있다.
 
 [일괄 복사 하단 버튼](docs/designs/personal-notes-app-8fd/plan.md#일괄-복사-하단-버튼-변경)은 두 화면에 적용했다. 모바일 확인 화면의 초기화와 마지막 항목 삭제는 같은 빈 화면으로 이어진다. 데스크탑에서는 저장 실패 시 기존 항목을 유지하고 재시도할 수 있다. 검사 자료는 `temps/batch-reset-r84/`에 있다.
