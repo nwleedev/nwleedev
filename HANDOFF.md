@@ -1,5 +1,7 @@
 # 메모 사용 경험과 서버 저장 설계
 
+로고 후보 비교에는 [서비스 로고를 고르는 기준](docs/designs/personal-notes-app-8fd/references/service-logo-criteria.md)을 사용한다. 헤더에 적용할 후보는 아직 선택되지 않았다.
+
 [전체 진행 상태와 남은 작업](docs/designs/personal-notes-app-8fd/plan.md#전체-진행-상태와-남은-작업)에서 화면 구현, 실기기 확인, 대표 자료량 측정, 서버 전환과 백로그를 구분한다. 이전 로컬 계획의 작업 번호와 검사 결과는 당시 버전의 기록이다.
 
 [데스크탑 새 메모 버튼 배치](docs/designs/personal-notes-app-8fd/plan.md#데스크탑-새-메모-버튼-배치)는 적용과 측정을 마쳤다. 기본 상태의 화면은 `temps/new-note-r85/desktop.png`에 있다.
