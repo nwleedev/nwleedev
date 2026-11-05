@@ -16,6 +16,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 현재 엔진의 일반 패널, 모달과 넓은 저장 목록 검사는 통과했다. 일반 및 삭제 행의 대표 상태와 Chrome의 실제 확대도 확인했다. 남은 조건은 `isNonModal` 구성의 실제 스크린리더 조작과 선언된 최소 브라우저 환경이다. 보조 기술 확인에는 메뉴 이름 및 열림 상태 인식, 첫 항목 진입, 탐색, 실행과 종료 후 포커스를 포함한다. 최소 버전은 기존 선언을 임의로 올리지 않고 호환성 판단을 마친 뒤 검증한다. 이 조건이 확인되기 전까지 전체 전환은 진행 중이다.
 
+Firefox 128 실행 파일로 기존 메뉴 검사를 시도했으나 현재 Playwright와의 통신 규격 차이로 페이지 생성 전에 중단됐다. 이 결과는 애플리케이션 호환성 판정이 아니다. 최소 Firefox 125 검증을 대체하지 않으며 구버전 실행에는 호환되는 검사 도구가 필요하다. 네이티브 Popover API 제거에 따라 Chrome 및 Edge 114와 Safari 17로 기준을 높이는 이전 제안은 적용하지 않는다. Firefox 125 유지와 128 이상 변경 중 선택은 미정이며 현재 선언은 유지한다.
+
 ### 유지할 디자인과 비교 기준
 
 [디자인 시스템 결정](decisions/application-design-system.md)과 `_app/styles/tokens.css`를 시각 기준으로 사용한다. [React Aria 스타일 지침](https://react-aria.adobe.com/styling)은 기본 스타일을 제공하지 않고 클래스와 상태 속성으로 외형을 정의하도록 한다. 공식 데모의 색상과 크기를 복사하지 않는다.

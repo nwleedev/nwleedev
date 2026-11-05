@@ -13,7 +13,7 @@
 
 ## 현재 코드와 남은 영향
 
-이동 메뉴의 설정 분리와 패널 크기 조절은 현재 코드에 반영돼 있다. `use-action-popover.ts`도 위치 상태를 없애고 열기, 측정과 좌표 적용을 같은 클릭 처리에서 수행한다. 위의 초기 원인 후보를 현재 결함으로 간주하지 않는다. [MDN showPopover 설명](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/showPopover)의 top layer 표시와 실제 위치 계산은 별개이므로 카드 배치 변경 후 화면 아래 항목과 패널 너비 변경 조건을 다시 확인해야 한다.
+이동 메뉴의 설정 분리와 패널 크기 조절은 현재 코드에 반영돼 있다. 공통 액션 메뉴는 이후 React Aria 구성으로 교체했으며 `use-action-popover.ts`의 직접 좌표 계산과 네이티브 Popover API 호출은 제거했다. 위의 초기 원인 후보를 현재 결함으로 간주하지 않는다. 현재 구현과 실행 증거는 [메뉴 전환 계획](../plan.md#react-aria-액션-메뉴-전환)을 따른다.
 
 `tokens.css`에는 일괄 복사 전용 기본 너비 320px, 헤더 60px와 좌우 여백 0.75rem이 있다. `panel-width-storage.ts`는 너비만 localStorage에 보관한다. 카드 변경 전 본문 크기 1.125rem은 속성 패널과 공유했고 `batch-copy-list.tsx`의 실제 항목과 이동 카드 모두 가로 세 열이었다. 카드 후보 구현은 본문 전용 토큰과 두 표시의 상하 배치를 함께 적용한다. 모바일 글자 크기까지 변경할 이유는 없다.
 
@@ -25,6 +25,8 @@
 
 ## 팝오버의 첫 표시
 
+다음은 React Aria 전환 전에 검토한 네이티브 팝오버의 표시 원리다. 현재 구현 선택은 위의 메뉴 전환 계획을 따른다.
+
 목표는 처음 보이는 프레임부터 버튼에 맞는 위치에 표시하는 것이다. 기존 네이티브 popover와 포커스 복귀, 바깥 누르기 닫힘은 유지한다. 열기 전 준비와 크기 측정, 위치 확정을 한 표시 과정으로 다루고 위치가 준비되기 전의 내용을 보이지 않게 하는 방법을 검토한다. 닫힌 요소의 크기가 항상 측정된다고 가정하지 않는다.
 
 [MDN의 beforetoggle 설명](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/beforetoggle_event)은 상태 변경 전 이벤트를, [toggle 설명](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/toggle_event)은 상태 변경 후 이벤트를 구분한다. [React의 useLayoutEffect](https://react.dev/reference/react/useLayoutEffect)는 화면에 그리기 전에 측정과 재배치를 완료하는 tooltip 예제를 제공한다. 그러나 네이티브 popover가 이미 표시된 뒤 발생한 이벤트를 Effect로 옮기기만 하면 첫 프레임까지 소급해서 숨길 수 있는 것은 아니다. 열기와 측정의 전체 순서를 확인해야 한다.
@@ -33,11 +35,11 @@ CSS anchor positioning을 유일한 방법으로 정하지 않는다. 저장소�
 
 ## 선언된 최소 버전과 Popover API
 
-현재 최소 버전 선언과 팝오버 호출에는 불일치가 있다. `apps/notes/package.json`은 Chrome 및 Edge 111 이상과 Safari 16.4 이상을 선언하지만 `use-action-popover.ts`는 기능 검사 없이 `togglePopover()`와 `hidePopover()`를 호출한다.
+React Aria 전환으로 네이티브 Popover API의 버전 제한은 공통 액션 메뉴에 더 이상 적용되지 않는다. 전환 전 `use-action-popover.ts`는 `togglePopover()`와 `hidePopover()`를 직접 호출했으며 Chrome 및 Edge 111과 Safari 16.4라는 최소 버전 선언과 맞지 않았다. 현재 소스에는 두 호출이 없다.
 
-2026년 11월 5일 확인한 [MDN 호환성 자료의 HTMLElement 항목](https://github.com/mdn/browser-compat-data/blob/8d371e9fb68c0cdc1908fa370358f6659aaec513/api/HTMLElement.json)은 두 API의 제공 시작을 Chrome 114, Safari 17과 Firefox 125로 기록한다. 따라서 현재 선언의 모든 버전에서 메뉴가 작동한다는 판단은 성립하지 않는다. 이는 소스 및 호환성 자료 대조이며 해당 구버전 브라우저에서 실행한 결과는 아니다.
+2026년 11월 5일 확인한 [MDN 호환성 자료의 HTMLElement 항목](https://github.com/mdn/browser-compat-data/blob/8d371e9fb68c0cdc1908fa370358f6659aaec513/api/HTMLElement.json)은 두 API의 제공 시작을 Chrome 114, Safari 17과 Firefox 125로 기록한다. 따라서 전환 전 구현을 선언된 모든 버전에서 사용할 수 있다는 판단은 성립하지 않았다. 이는 소스 및 호환성 자료 대조이며 해당 구버전 브라우저에서 실행한 결과는 아니다.
 
-최소 버전을 임의로 올리지 않고 기존 지원 조건을 유지하는 대체 처리를 우선 조사한다. 공통 팝오버의 첫 위치, 바깥 누르기, Escape와 포커스 복귀가 같은 결과를 내야 한다. API 부재만 흉내 낸 검사로 구버전 CSS와 전체 화면 호환성까지 증명하지 않는다. 스타일 도구가 요구하는 브라우저 버전도 함께 확인한 뒤 변경 대상을 정한다.
+최소 버전을 임의로 올리지 않고 현재 React Aria 구현을 기존 지원 조건에서 검증한다. 공통 팝오버의 첫 위치, 바깥 누르기, Escape와 포커스 복귀가 같은 결과를 내야 한다. API 부재만 흉내 낸 검사로 구버전 CSS와 전체 화면 호환성까지 증명하지 않는다. 스타일 도구가 요구하는 브라우저 버전도 함께 확인한 뒤 변경 대상을 정한다.
 
 ### CSS 도구의 조건과 선택지
 
@@ -47,9 +49,9 @@ Popover API 보완만으로 최소 버전 검증이 끝나지는 않는다. [Tai
 
 `globals.css`의 탐색 서랍은 기본 열린 상태의 opacity와 transform을 별도로 정의한다. `@starting-style`과 `allow-discrete`는 진입 및 종료 효과에 사용한다. 이 구문을 처리하지 못하는 브라우저에서 효과가 생략되는 것과 서랍 자체를 열 수 없는 문제는 구분해서 확인한다.
 
-선택지는 현재 최소 버전을 유지하고 팝오버 대체 처리 및 구버전 실행 증거를 추가하는 안과 Chrome 및 Edge 114, Safari 17, Firefox 128 이상으로 기준을 변경하는 안이다. 후자는 현재 조사한 필수 API와 CSS 도구의 기준을 맞추는 제안이며 전체 기능 호환성을 보증하는 숫자는 아니다. 지원 조건 변경은 아직 결정하지 않았다.
+네이티브 Popover API 때문에 Chrome 및 Edge 114와 Safari 17로 올리는 이전 제안은 현재 메뉴에 적용하지 않는다. 남은 선택지는 Firefox 125를 유지하면서 호환성을 검증하고 필요한 부분을 보완하는 안과 Firefox만 Tailwind의 공식 기준인 128 이상으로 변경하는 안이다. 후자도 전체 기능의 실행 증거를 대신하지 않는다. 지원 조건 변경은 아직 결정하지 않았다.
 
-현재 기준을 유지한다면 공통 팝오버에서 열린 상태, 화면 기준 배치, 바깥 누르기와 Escape, 포커스 복귀를 처리해야 한다. 단순히 API 호출을 건너뛰면 메뉴가 열리지 않거나 지원되지 않는 `popover` 속성을 가진 내용이 상시 표시될 수 있다. 메모 카드의 변환과 모달 안에서도 잘림 없이 동작해야 하므로 일반 fixed 요소로 바꾸기만 하는 안은 충분하지 않다. 기존 카드별 명령은 유지하고 공통 UI 안에서 처리하는 방향을 우선한다.
+구버전 검사는 브라우저 실행 파일과 검사 도구의 호환성도 확인해야 한다. [Playwright 실행 옵션](https://playwright.dev/docs/api/class-browsertype#browser-type-launch-option-executable-path)은 지정된 실행 파일을 사용할 수 있지만 함께 배포한 브라우저 외에는 동작을 보장하지 않는다. 브라우저를 시작할 수 있다는 사실과 실제 페이지 과업을 실행했다는 사실을 구분한다.
 
 ## 패널 크기와 기기별 보관
 
