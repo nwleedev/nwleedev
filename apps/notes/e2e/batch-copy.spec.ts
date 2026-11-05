@@ -1013,7 +1013,7 @@ test.describe("320px 일괄 복사", () => {
 })
 
 for (const { width, role } of [{ width: 1280, role: "complementary" }, { width: 1000, role: "dialog" }] as const) {
-  test(`standard action menu preserves commands and outside navigation at ${width}px`, async ({ page }) => {
+  test(`standard action menu preserves commands and outside navigation at ${width}px`, async ({ page }, testInfo) => {
     const { firstContent, secondContent } = await createDesktopBatchCopy(page)
     await page.setViewportSize({ width, height: 800 })
     const panel = page.getByRole(role, { name: "일괄 복사", exact: true })
@@ -1024,6 +1024,7 @@ for (const { width, role } of [{ width: 1280, role: "complementary" }, { width: 
     await expect(menu.getByRole("menuitem", { name: "복제", exact: true })).toBeFocused()
     await page.keyboard.press("ArrowDown")
     await expect(menu.getByRole("menuitem", { name: "아래로 이동", exact: true })).toBeFocused()
+    await page.screenshot({ path: testInfo.outputPath("move-focused.png") })
     await expect(panel.getByRole("listitem")).toHaveText([firstContent, secondContent])
     await page.keyboard.press("Escape")
     await expect(menu).toBeHidden()
@@ -1040,8 +1041,16 @@ for (const { width, role } of [{ width: 1280, role: "complementary" }, { width: 
     await expect(menu).toBeHidden()
     await expect(panel.getByRole("button", { name: "1번째 일괄 복사 항목 이동", exact: true })).toBeFocused()
 
-    await trigger.press("Enter")
-    await menu.getByRole("menuitem", { name: "아래로 이동", exact: true }).click()
+    await trigger.click()
+    const moveItem = menu.getByRole("menuitem", { name: "아래로 이동", exact: true })
+    const move = await visibleBox(moveItem)
+    await page.mouse.move(move.x + move.width / 2, move.y + move.height / 2)
+    await expect(moveItem).toBeFocused()
+    await page.screenshot({ path: testInfo.outputPath("move-hovered.png") })
+    await page.mouse.down()
+    await expect(panel.getByRole("listitem")).toHaveText([firstContent, secondContent])
+    await page.screenshot({ path: testInfo.outputPath("move-pressed.png") })
+    await page.mouse.up()
     await expect(menu).toBeHidden()
     await expect(panel.getByRole("listitem")).toHaveText([secondContent, firstContent])
     await expect(panel.getByRole("button", { name: "2번째 일괄 복사 항목 동작" })).toBeFocused()
