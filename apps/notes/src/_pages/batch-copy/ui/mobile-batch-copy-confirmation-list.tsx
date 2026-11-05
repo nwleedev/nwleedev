@@ -78,7 +78,7 @@ function MobileBatchCopyEntryRow({
 
   return (
     <li data-reorder-id={entry.id}>
-      <ReorderableTextCard dragging={dragging} dropPlacement={dropPlacement} label={itemLabel}>
+      <ReorderableTextCard list="confirmation" dragging={dragging} dropPlacement={dropPlacement} label={itemLabel}>
         <ReorderableTextCardHeader>
           <ReorderHandle
             aria-label={`${itemLabel} 이동`}
@@ -95,7 +95,7 @@ function MobileBatchCopyEntryRow({
             aria-expanded={actionsOpen}
             aria-haspopup="dialog"
             aria-label={`${itemLabel} 동작`}
-            className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)] self-start"
+            className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)]"
             disabled={disabled}
             onClick={openActions}
             ref={registerActionTrigger}

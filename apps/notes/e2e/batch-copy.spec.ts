@@ -274,6 +274,7 @@ test("넓은 저장 목록의 메뉴에서 이동과 복제 후 포커스를 유
   await expect(menu).toBeHidden()
   await expect(items).toHaveCount(2)
   await expect(items).toContainText([secondContent, secondContent])
+  await expect(movedTrigger).toBeEnabled()
   await page.reload()
   await expect(items).toHaveCount(2)
   await expect(items).toContainText([secondContent, secondContent])
@@ -287,6 +288,9 @@ test("패널 너비를 조절하고 취소, 새로고침과 창 크기 변경에
     (heading) => heading.parentElement!.getBoundingClientRect().height,
   )
   expect(headerHeight).toBe(60)
+  const row = panel.getByRole("listitem", { name: "1번째 일괄 복사 항목", exact: true })
+  const body = await visibleBox(row.getByRole("button", { name: /일괄 복사 항목 선택/u }))
+  expect(body.y - (await visibleBox(row)).y - 1).toBeCloseTo(34, 0)
   const edge = await visibleBox(resize)
   const x = edge.x + edge.width / 2
   const y = edge.y + 120

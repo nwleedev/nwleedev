@@ -121,9 +121,10 @@ test("짧은 터치는 복사하고 긴 터치는 손을 떼기 전에 한 번�
 
 test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 통일한다", async ({ context, page }, testInfo) => {
   await page.goto("/")
-  const contents = [`카드 ${crypto.randomUUID().slice(0, 8)}`, `여러 줄 카드 비교 원문\n다음 줄 내용 ${crypto.randomUUID()}`]
+  const contents = [`카드 ${crypto.randomUUID().slice(0, 8)}`, `여러 줄 카드 비교 원문\n다음 줄 내용 ${crypto.randomUUID()}`, `마지막 카드 ${crypto.randomUUID().slice(0, 8)}`]
   const first = await createMobileNoteThroughUi(page, contents[0])
   const second = await createMobileNoteThroughUi(page, contents[1])
+  const third = await createMobileNoteThroughUi(page, contents[2])
   const session = await context.newCDPSession(page)
 
   async function appearance(card: Locator) {
@@ -133,7 +134,8 @@ test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 
         background: style.backgroundColor,
         border: style.borderColor,
         font: style.fontSize,
-        height: element.getBoundingClientRect().height,
+        outline: style.outline,
+        borderWidth: style.borderWidth,
         gap: style.gap,
         lineHeight: style.lineHeight,
         padding: style.padding,
@@ -143,13 +145,30 @@ test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 
     })
   }
 
-  async function inspectDrag(card: Locator, destination: Locator, screenshot: string) {
+  async function inspectDrag(card: Locator, destination: Locator, last: Locator, headerHeight: number, screenshot: string) {
     const handle = card.getByRole("button", { name: / 이동$/u })
     const action = card.getByRole("button", { name: /(?:더보기|항목 동작)$/u })
     const body = card.getByRole("button", { name: / 복사$/u }).or(card.getByRole("paragraph"))
+    for (const width of [390, 430, 320]) {
+      await page.setViewportSize({ height: 720, width })
+      for (const target of [handle, action]) {
+        const upperEdgeReachesButton = await target.evaluate((button) => {
+          const bounds = button.getBoundingClientRect()
+          return button.contains(document.elementFromPoint(bounds.x + bounds.width / 2, bounds.y + 1))
+        })
+        expect(upperEdgeReachesButton).toBe(true)
+      }
+      const bounds = (await card.boundingBox())!
+      const bodyBounds = (await body.boundingBox())!
+      expect(bodyBounds.y - bounds.y - 1).toBeCloseTo(headerHeight, 0)
+    }
     const [handleBox, actionBox, bodyBox] = await Promise.all([
       handle.boundingBox(), action.boundingBox(), body.boundingBox(),
     ])
+    for (const bounds of [handleBox!, actionBox!]) {
+      expect(bounds.height).toBeGreaterThanOrEqual(44)
+      expect(bounds.width).toBeGreaterThanOrEqual(44)
+    }
     expect(handleBox!.y).toBeCloseTo(actionBox!.y, 1)
     expect(bodyBox!.y).toBeGreaterThanOrEqual(handleBox!.y + handleBox!.height)
     expect(bodyBox!.x).toBeLessThanOrEqual(handleBox!.x)
@@ -159,6 +178,8 @@ test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 
       return source.y - target.y
     }
     const idle = await appearance(card)
+    const targetIdle = await appearance(destination)
+    const lastIdle = await appearance(last)
     await handle.tap()
     await expect(card).toHaveCSS("outline-style", "none")
     await expect(handle).toHaveCSS("outline-style", "none")
@@ -199,7 +220,14 @@ test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 
     expect(line.dotRight).toBeLessThan(0)
     expect(line.dotWidth).toBeGreaterThan(line.height)
     await page.screenshot({ path: testInfo.outputPath(screenshot) })
+    expect(await appearance(destination)).toEqual(targetIdle)
+    for (const fraction of [0.15, 0.8]) {
+      await moveTouch(session, await center(last, fraction))
+      expect(await appearance(destination)).toEqual(targetIdle)
+      expect(await appearance(last)).toEqual(lastIdle)
+    }
     await cancelTouch(session)
+    expect(await appearance(last)).toEqual(lastIdle)
     await expect(preview).toHaveCount(0)
     await expect.poll(verticalGap).toBeCloseTo(idleGap, 1)
     await expect(card).toHaveCSS("opacity", "1")
@@ -207,13 +235,14 @@ test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 
     return idle
   }
 
-  const main = await inspectDrag(first, second, "main-card-drag.png")
+  const main = await inspectDrag(first, second, third, 39, "main-card-drag.png")
   await expect(page.getByRole("article")).toContainText(contents)
   await addMobileNoteToBatch(page, first)
   await addMobileNoteToBatch(page, second)
+  await addMobileNoteToBatch(page, third)
   await page.getByRole("link", { name: `일괄 복사 확인, ${contents.length}개` }).tap()
   const entries = page.getByRole("article", { name: /번째 일괄 복사 항목$/u })
-  const confirmation = await inspectDrag(entries.filter({ hasText: contents[0] }), entries.filter({ hasText: contents[1] }), "confirmation-card-drag.png")
+  const confirmation = await inspectDrag(entries.filter({ hasText: contents[0] }), entries.filter({ hasText: contents[1] }), entries.filter({ hasText: contents[2] }), 43, "confirmation-card-drag.png")
   expect(confirmation).toEqual(main)
   await expect(entries).toContainText(contents)
 })

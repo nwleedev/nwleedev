@@ -76,6 +76,18 @@
   --notes-shadow-action: 0 2px 6px oklch(18% 0.01 255deg / 18%), 0 6px 12px oklch(18% 0.01 255deg / 12%);
 }
 
+[data-card-list="panel"] {
+  --notes-card-header-height: 2.125rem;
+}
+
+[data-card-list="notes"] {
+  --notes-card-header-height: 2.4375rem;
+}
+
+[data-card-list="confirmation"] {
+  --notes-card-header-height: 2.6875rem;
+}
+
 .notes-navigation-drawer::backdrop {
   --notes-drawer-backdrop-clear: oklch(18% 0.01 255deg / 0%);
   --notes-drawer-backdrop-visible: oklch(18% 0.01 255deg / 48%);

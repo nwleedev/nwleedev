@@ -178,6 +178,7 @@ function BatchCopyRow({
     <li
       aria-label={itemLabel}
       className={rowClassName}
+      data-card-list={presentation}
       data-batch-copy-position={position}
     >
       {presentation === "panel" ? (
@@ -348,6 +349,7 @@ export function BatchCopyList({
         <div
           aria-hidden="true"
           className="pointer-events-none fixed left-0 top-0 z-[var(--notes-layer-drag-preview)] max-h-[var(--notes-drag-preview-max-height)] overflow-hidden flex flex-col rounded-control border border-border bg-surface-raised text-[length:var(--notes-batch-item-text-size)] leading-7 text-text shadow-floating"
+          data-card-list={presentation}
           ref={registerPreview}
         >
           <ReorderableTextCardHeader>

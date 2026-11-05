@@ -41,6 +41,7 @@ export function MobileNoteCard({
 
   return (
     <ReorderableTextCard
+      list="notes"
       dragging={dragging}
       dropPlacement={dropPlacement}
       label={`메모, ${summary}`}
@@ -50,7 +51,7 @@ export function MobileNoteCard({
         {children}
         <IconButton
           aria-label={`${summary} 더보기`}
-          className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)] self-start"
+          className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)]"
           id={`mobile-note-actions-${note.id}`}
           onClick={(event) => onOpenActions(note, event.currentTarget)}
         >
