@@ -649,7 +649,7 @@ test("긴 메모를 잡고 목록 끝까지 자동 스크롤한 뒤 원문과 �
     while (parent !== null) {
       if (getComputedStyle(parent).overflowY === "auto") {
         const bounds = parent.getBoundingClientRect()
-        return { left: bounds.left, bottom: bounds.bottom }
+        return { left: bounds.left, top: bounds.top, bottom: bounds.bottom }
       }
       parent = parent.parentElement
     }
@@ -657,6 +657,21 @@ test("긴 메모를 잡고 목록 끝까지 자동 스크롤한 뒤 원문과 �
   })
   await handle.hover()
   await page.mouse.down()
+  const intervalsPromise = page.evaluate(() => new Promise<number[]>((resolve) => {
+    const intervals: number[] = []
+    let previous = performance.now()
+    let frame = 0
+    function observe(now: number) {
+      intervals.push(now - previous)
+      previous = now
+      frame = requestAnimationFrame(observe)
+    }
+    frame = requestAnimationFrame(observe)
+    window.addEventListener("pointerup", () => {
+      cancelAnimationFrame(frame)
+      resolve(intervals)
+    }, { once: true })
+  }))
   await page.mouse.move(scrollBounds.left + 32, scrollBounds.bottom - 2)
   await expect.poll(async () => {
     const bounds = await shortItem.boundingBox()
@@ -664,10 +679,41 @@ test("긴 메모를 잡고 목록 끝까지 자동 스크롤한 뒤 원문과 �
   }, { timeout: 15_000 }).toBeLessThan(scrollBounds.bottom)
   const destination = await visibleBox(shortItem)
   await page.mouse.move(destination.x + 32, destination.y + destination.height - 2)
+  const endLine = await shortItem.evaluate((item) => {
+    const line = item.querySelector(".notes-drop-indicator")!
+    const bounds = line.getBoundingClientRect()
+    const dot = getComputedStyle(line, "::before")
+    const radius = Number.parseFloat(dot.height) / 2
+    return { center: bounds.y + bounds.height / 2, radius }
+  })
+  expect(endLine.center - endLine.radius).toBeGreaterThan(destination.y + destination.height)
+  expect(endLine.center + endLine.radius).toBeLessThan(scrollBounds.bottom)
   await page.screenshot({ path: testInfo.outputPath("long-drag-destination.png") })
   await page.mouse.up()
+  const intervals = await intervalsPromise
+  await testInfo.attach("auto-scroll-frame-intervals", {
+    body: JSON.stringify({ unit: "ms", itemCount: 2, contentLines: longContent.split("\n").length, intervals }),
+    contentType: "application/json",
+  })
   await expect(items).toContainText([shortContent, longContent])
   await expect(handle).toBeFocused()
+  await shortItem.scrollIntoViewIfNeeded()
+  const firstBounds = await visibleBox(shortItem)
+  await handle.hover()
+  await page.mouse.down()
+  await page.mouse.move(firstBounds.x + 32, firstBounds.y + 2)
+  const startLine = await shortItem.evaluate((item) => {
+    const line = item.querySelector(".notes-drop-indicator")!
+    const bounds = line.getBoundingClientRect()
+    const dot = getComputedStyle(line, "::before")
+    return { center: bounds.y + bounds.height / 2, radius: Number.parseFloat(dot.height) / 2 }
+  })
+  expect(startLine.center + startLine.radius).toBeLessThan(firstBounds.y)
+  expect(startLine.center - startLine.radius).toBeGreaterThan(scrollBounds.top)
+  await page.screenshot({ path: testInfo.outputPath("first-drop-destination.png") })
+  await page.keyboard.press("Escape")
+  await page.mouse.up()
+  await expect(items).toContainText([shortContent, longContent])
   await page.goto("/batch-copy/")
   await page.reload()
   const savedItems = page.getByRole("region", { name: "일괄 복사 항목 관리" }).getByRole("listitem")
