@@ -30,7 +30,7 @@ export function MobileBatchCopyConfirmation({
       className="relative grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] bg-canvas"
       id="main-content"
     >
-      <header className="grid min-h-14 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-line bg-surface-raised px-3 py-2">
+      <header className="grid min-h-14 grid-cols-[auto_1fr_auto] items-center gap-2 border-b border-line bg-surface-raised px-3 py-2 max-md:min-h-[var(--notes-mobile-page-header-height)] max-md:py-0">
         <IconButton
           aria-label="메모 목록으로 돌아가기"
           disabled={confirmation.pending}

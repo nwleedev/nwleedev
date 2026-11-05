@@ -61,7 +61,7 @@ export function MobileNotesWorkspace({ creationPending, notes, onCreate }: Mobil
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
-      <header className="relative z-20 flex h-14 shrink-0 items-center justify-between border-b border-line bg-surface-raised/95 px-3 backdrop-blur-sm">
+      <header className="relative z-20 flex min-h-[var(--notes-mobile-page-header-height)] shrink-0 items-center justify-between border-b border-line bg-surface-raised/95 px-3 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <MobileNavigation pathname="/" savedBatchCopy={savedBatchCopyLink} />
           <h1><ServiceLogo alt="메모" /></h1>

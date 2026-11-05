@@ -116,7 +116,7 @@ export function BatchCopyStartPage() {
         onUndo={batchCopy.undo}
         pending={batchCopy.pending}
       />
-      <header className="border-b border-line bg-surface-raised px-4 py-3 sm:px-5">
+      <header className="border-b border-line bg-surface-raised px-4 py-3 sm:px-5 max-md:flex max-md:min-h-[var(--notes-mobile-page-header-height)] max-md:items-center max-md:py-0">
         <h1 className="text-lg font-semibold tracking-[-0.02em]">
           일괄 복사
         </h1>

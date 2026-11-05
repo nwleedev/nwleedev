@@ -1,5 +1,7 @@
 # 메모 사용 경험과 서버 저장 설계
 
+[모바일 페이지 헤더 높이](docs/designs/personal-notes-app-8fd/plan.md#모바일-페이지-헤더-높이)는 기본 배율에서 60px다. 편집 화면의 200% 글자 확대 검사는 세 브라우저에서 통과했다.
+
 모바일 메모 목록과 일괄 복사 확인 목록의 카드 헤더는 기본 44px다. [카드 헤더 적용 결과](docs/designs/personal-notes-app-8fd/plan.md#세-화면의-카드-헤더와-드래그-표시)에 너비별 터치 검사 결과를 기록했다.
 
 로고 후보 비교에는 [서비스 로고를 고르는 기준](docs/designs/personal-notes-app-8fd/references/service-logo-criteria.md)을 사용한다. 선택된 자산은 꼬리를 낮춘 까치이며, 배치와 확인 결과는 [서비스 로고 적용](docs/designs/personal-notes-app-8fd/plan.md#서비스-로고-적용)에 있다.

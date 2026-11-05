@@ -23,7 +23,7 @@ export function PageHeading({
   )
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-3">
+    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-3 max-md:min-h-[var(--notes-mobile-page-header-height)] max-md:pb-0">
       <h1 className={titleClassName}>{title}</h1>
       {children}
     </header>
