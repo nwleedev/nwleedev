@@ -3,6 +3,7 @@
 import {
   useEffect,
   useEffectEvent,
+  useLayoutEffect,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -114,9 +115,18 @@ export function useBatchCopyPointerReorder({
   const list = useRef<HTMLOListElement>(null)
   const activeSession = useRef<ActiveSession | null>(null)
   const itemHandles = useRef(new Map<string, HTMLButtonElement>())
+  const focusAfterMove = useRef<string | null>(null)
   const scrollFrame = useRef<number | null>(null)
   const [announcement, setAnnouncement] = useState("")
   const [drag, setDrag] = useState<DragView | null>(null)
+
+  useLayoutEffect(() => {
+    if (pending || focusAfterMove.current === null) return
+    const target = itemHandles.current.get(focusAfterMove.current)
+    if (target?.disabled) return
+    focusAfterMove.current = null
+    target?.focus()
+  })
 
   function stopAutoScroll() {
     if (scrollFrame.current !== null) {
@@ -340,12 +350,11 @@ export function useBatchCopyPointerReorder({
       return
     }
 
+    focusAfterMove.current = current.itemId
     const saved = await onMove(
       completion.command.itemId,
       completion.command.targetIndex,
     )
-
-    requestAnimationFrame(() => itemHandles.current.get(current.itemId)?.focus())
 
     if (saved) {
       if (presentation === "panel" && current.state.snapshot.selectedItemId !== current.itemId) onToggleSelection?.(current.itemId)
@@ -367,9 +376,8 @@ export function useBatchCopyPointerReorder({
       return false
     }
 
+    focusAfterMove.current = itemId
     void onMove(itemId, targetIndex).then((saved) => {
-      requestAnimationFrame(() => itemHandles.current.get(itemId)?.focus())
-
       if (saved) {
         setAnnouncement(`${position + 1}번째 항목을 ${targetIndex + 1}번째로 옮겼습니다.`)
       }
