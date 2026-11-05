@@ -314,7 +314,7 @@ lint, typecheck와 운영 빌드가 통과했다. 최종 편집 브라우저 검
 
 모바일 일괄 복사 확인 화면에 실제 항목 수를 표시하고 하단 취소와 복사 버튼을 1:2 너비 및 56px 높이로 변경했다. 새 메모 버튼은 60px, 더하기 아이콘은 28px로 키웠다. 목록 끝 여백은 버튼 크기 토큰에서 계산하므로 함께 늘어난다. 저장 및 복사 명령과 기존 문구는 유지했다.
 
-모바일 시안 두 장과 변경 후 화면을 같은 비교 입력에서 확인했다. 원본은 `references/images/mobile-note-list-candidate.png` 852×1847과 `mobile-batch-copy-candidate.png` 830×1896이며 설계 문서 폴더 아래에 있다. 구현 기록은 `temps/notes-mobile-x30/list-after.png`와 `batch-after.png`의 390×844 화면이다. 시안의 원래 CSS 배율은 미확인이므로 비율과 배치 비교로 한정한다. 시안의 긴 메모와 드래그 상태는 구현의 짧은 메모 및 정지 상태와 다르다.
+모바일 시안 두 장과 변경 후 화면을 같은 비교 입력에서 확인했다. 원본은 `references/images/mobile-note-list-candidate.png` 852×1847과 `mobile-batch-copy-candidate.png` 830×1896이며 초기 설계 커밋에 보관돼 있다. 구현 기록은 `temps/notes-mobile-x30/list-after.png`와 `batch-after.png`의 390×844 화면이다. 시안의 원래 CSS 배율은 미확인이므로 비율과 배치 비교로 한정한다. 시안의 긴 메모와 드래그 상태는 구현의 짧은 메모 및 정지 상태와 다르다.
 
 변경 전 `list.png`의 48px 새 메모 버튼을 60px로 확대하고 `batch.png`의 하단 버튼을 전체 너비에 배치했다. 글자와 배치는 제목 및 항목 수 구분과 하단 조작을 중심으로 확인했다. 중립 배경, 흰 카드와 붉은 주 동작의 색 토큰은 유지한다. 이미지 자산은 없고 기존 아이콘을 유지한다. 제목은 기존 `일괄 복사 확인`을 사용하며 시안 문구를 확정 문구로 대체하지 않았다. 긴 본문 줄바꿈과 드래그 중 표시의 정밀 비교는 남아 있어 전체 시안 비교 판정은 blocked다.
 
@@ -348,7 +348,7 @@ WebKit의 나머지 실패 세 건은 `temps/notes-webkit-u27`을 사용한 재�
 
 데스크탑 시안과 구현을 1672×941 크기로 함께 비교했다. 기존 패널은 352px로 시안의 약 496px보다 좁았고 제목, 본문과 복사 버튼의 크기도 달랐다. 패널 너비 토큰을 `clamp(22rem, 30vw, 32rem)`로 변경해 같은 화면에서 501.59375px를 확인했다. 제목 옆에 항목 수를 추가하고 복사 버튼을 전체 너비로 표시했다. 목록과 드래그 미리보기의 본문 크기를 함께 변경했다. 메모 속성 패널 너비와 저장된 메모 위치 및 크기는 유지한다.
 
-비교 자료는 `references/images/desktop-batch-copy-candidate.png`와 `temps/notes-visual-s25/desktop-before.png`, `desktop-after.png`다. 시안 이미지는 설계 문서 폴더 아래에 있고 화면 기록은 저장소 최상위 temps 아래에 있다. 두 화면은 같은 픽셀 크기이며 구현의 devicePixelRatio는 1이다. 시안의 원래 CSS 크기와 기기 배율은 확인되지 않아 1:1 이미지 비교로 한정했다. 시안은 네 메모와 드래그 중인 목록이며 구현은 기존 두 메모와 정지한 목록이다. 본문 줄바꿈과 드래그 그림자의 정밀 비교는 아직 하지 않았다.
+비교 자료는 `references/images/desktop-batch-copy-candidate.png`와 `temps/notes-visual-s25/desktop-before.png`, `desktop-after.png`다. 시안 이미지는 초기 설계 커밋에 있고 화면 기록은 저장소 최상위 temps 아래에 있다. 두 화면은 같은 픽셀 크기이며 구현의 devicePixelRatio는 1이다. 시안의 원래 CSS 크기와 기기 배율은 확인되지 않아 1:1 이미지 비교로 한정했다. 시안은 네 메모와 드래그 중인 목록이며 구현은 기존 두 메모와 정지한 목록이다. 본문 줄바꿈과 드래그 그림자의 정밀 비교는 아직 하지 않았다.
 
 패널 제목과 본문의 크기 차이는 줄었고 밝은 패널, 붉은 동작 버튼 및 중립색 본문은 유지했다. 상단 탐색과 새 메모 버튼의 글자 크기는 시안보다 작아 후속 비교가 필요하다. 그림이나 사진은 없고 기존 아이콘을 유지했다. 복사 버튼은 기존 문구 `복사`를 유지하며 시안의 `일괄 복사하기`를 확정 문구로 취급하지 않았다. 액션 화면 기록은 `temps/notes-visual-s25/desktop-actions.png`다. 전체 비교 판정은 아직 blocked다.
 
@@ -427,14 +427,7 @@ WebKit의 나머지 실패 세 건은 `temps/notes-webkit-u27`을 사용한 재�
 
 카피 표현은 `복사했습니다.` 대신 `복사됨`처럼 짧은 상태로 제안했다. `닫기`는 시트를 없애는 버튼이므로 `종료`보다 정확하다. `분석 결과로 이동`은 `분석 화면 열기`도 비교했지만 기존 버튼 이름을 후보로 유지했다. `저장 확인 필요`와 `삭제 확인 필요`는 실패를 단정하지 않는 후보이나 사용자가 취할 행동의 이해도는 시안에서 확인해야 한다.
 
-화면 이미지 여섯 장은 확정 시안이 아닌 후보로 보관한다. 각 파일은 화면 하나만 표시하며 기기 외곽과 설명판을 포함하지 않는다. 현재 서비스 화면을 내장 브라우저로 확인한 뒤 첫 생성의 참고 이미지로 전달했고 이후 생성에는 같은 묶음의 시안을 전달했다. 로그인 방식은 미정이므로 로그인 화면은 생성하지 않았다. 사용 빈도, 분석, 템플릿과 설정 화면의 이미지도 이번 묶음에 포함하지 않았다.
-
-- [데스크탑 일괄 복사](docs/designs/personal-notes-app-8fd/references/images/desktop-batch-copy-candidate.png)
-- [데스크탑 메모 속성](docs/designs/personal-notes-app-8fd/references/images/desktop-note-properties-candidate.png)
-- [모바일 메모 목록](docs/designs/personal-notes-app-8fd/references/images/mobile-note-list-candidate.png)
-- [모바일 메모 수정](docs/designs/personal-notes-app-8fd/references/images/mobile-note-editor-candidate.png)
-- [모바일 일괄 복사](docs/designs/personal-notes-app-8fd/references/images/mobile-batch-copy-candidate.png)
-- [모바일 삭제 완료](docs/designs/personal-notes-app-8fd/references/images/mobile-note-delete-candidate.png)
+초기 데스크탑 및 모바일 화면 시안 여섯 장은 구현 비교에 사용했다. 원본은 Git 커밋 `c4603ab`의 `docs/designs/personal-notes-app-8fd/references/images/`에서 확인할 수 있다. 현재 서비스가 표시하는 까치 로고는 `apps/notes/public/magpie.png`에 있다.
 
 데스크탑은 1920×1080, 모바일은 1080×2340으로 생성 요청했으나 반환 파일은 각각 1672×941, 목록 852×1847과 나머지 모바일 830×1896이다. 기본 해상도 충족 여부는 needs revision이다.
 
