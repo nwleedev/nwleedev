@@ -166,7 +166,7 @@ export function MobileBatchCopyConfirmationList({
       <p aria-live="polite" className="sr-only" role="status">
         {movingMessage}
       </p>
-      <ol className="grid gap-3" ref={list} tabIndex={-1}>
+      <ol className="grid gap-[var(--notes-reorder-gap)] [--notes-reorder-gap:0.75rem]" ref={list} tabIndex={-1}>
         {entries.map((entry, position) => {
           const dragging = drag?.entryId === entry.id
           const target = (drag?.targetIndex === position) && (drag?.sourceIndex !== position)

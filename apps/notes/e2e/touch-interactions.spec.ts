@@ -187,6 +187,17 @@ test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 
     expect(moved.y - original.y).toBeCloseTo(end.y - start.y, 1)
     expect(moved.width).toBeCloseTo(original.width, 1)
     await expect(preview).not.toHaveCSS("box-shadow", "none")
+    const line = await destination.evaluate((element) => {
+      const indicator = element.querySelector(".notes-drop-indicator")!
+      const bounds = indicator.getBoundingClientRect()
+      const endpoint = getComputedStyle(indicator, "::before")
+      return { y: bounds.y, height: bounds.height, dotRight: Number.parseFloat(endpoint.right), dotWidth: Number.parseFloat(endpoint.width) }
+    })
+    const destinationBox = (await destination.boundingBox())!
+    const gap = Math.abs(idleGap) - original.height
+    expect(line.y + line.height / 2).toBeCloseTo(destinationBox.y + destinationBox.height + gap / 2, 1)
+    expect(line.dotRight).toBeLessThan(0)
+    expect(line.dotWidth).toBeGreaterThan(line.height)
     await page.screenshot({ path: testInfo.outputPath(screenshot) })
     await cancelTouch(session)
     await expect(preview).toHaveCount(0)

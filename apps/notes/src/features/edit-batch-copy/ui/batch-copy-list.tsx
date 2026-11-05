@@ -15,6 +15,7 @@ import {
   type ActionPopoverAction,
 } from "@/shared/ui/action-popover"
 import { Button } from "@/shared/ui/button"
+import { DropIndicator } from "@/shared/ui/drop-indicator"
 import { IconButton } from "@/shared/ui/icon-button"
 import { GripIcon, MoreIcon } from "@/shared/ui/icons"
 import { ReorderableTextCardHeader } from "@/shared/ui/reorderable-text-card"
@@ -104,12 +105,6 @@ function BatchCopyRow({
     dragging && actionPresentation === "popover" ? "opacity-35" : undefined,
     dragging && actionPresentation !== "popover" ? "-translate-y-0.5 border-border-strong opacity-85 shadow-floating" : undefined,
     outside ? "border-danger bg-danger/5" : undefined,
-    dropPlacement === "before"
-      ? "before:pointer-events-none before:absolute before:z-[var(--notes-layer-drop-indicator)] before:-top-1.5 before:left-1 before:right-1 before:h-0.5 before:rounded-full before:bg-accent"
-      : undefined,
-    dropPlacement === "after"
-      ? "after:pointer-events-none after:absolute after:z-[var(--notes-layer-drop-indicator)] after:-bottom-1.5 after:left-1 after:right-1 after:h-0.5 after:rounded-full after:bg-accent"
-      : undefined,
   )
   function registerHandle(element: HTMLButtonElement | null) {
     onRegisterHandle(item.id, element)
@@ -208,6 +203,7 @@ function BatchCopyRow({
         </p>
       )}
       {presentation === "management" ? actions : null}
+      <DropIndicator placement={dropPlacement} end="left" />
       {dragging && outside ? (
         <p className="col-span-3 text-xs font-semibold text-danger" role="status">
           패널 밖에 놓으면 삭제됩니다.
@@ -303,7 +299,7 @@ export function BatchCopyList({
       <p aria-live="polite" className="sr-only">
         {announcement}
       </p>
-      <ol className="grid gap-2" ref={list} tabIndex={-1}>
+      <ol className="grid gap-[var(--notes-reorder-gap)] [--notes-reorder-gap:0.5rem]" ref={list} tabIndex={-1}>
         {editing.items.map((item, position) => {
           const dragging = drag?.active === true && drag.itemId === item.id
           const activeTarget = (drag?.active === true) && (drag.targetIndex === position)

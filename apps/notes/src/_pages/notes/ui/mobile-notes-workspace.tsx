@@ -78,7 +78,7 @@ export function MobileNotesWorkspace({ creationPending, notes, onCreate }: Mobil
       <div className="flex min-h-0 flex-1 flex-col overflow-auto p-4 pb-[var(--notes-mobile-list-end-inset)]">
         {order.failure ? <div className="mb-3 grid gap-2"><p className="text-sm text-danger" role="alert">{order.failure}</p><Button onClick={order.retry} tone="quiet">다시 불러오기</Button></div> : null}
         <p aria-live="polite" className="sr-only" role="status">{reorder.announcement}</p>
-        <ol className="grid gap-3" ref={reorder.list}>
+        <ol className="grid gap-[var(--notes-reorder-gap)] [--notes-reorder-gap:0.75rem]" ref={reorder.list}>
           {order.notes.map((note, index) => (
             <li
               data-reorder-id={note.id}

@@ -203,29 +203,6 @@ export function useBatchCopyPointerReorder({
     const bottom = window.innerHeight - current.preview.height - current.preview.gap
     let y = Math.min(current.y - current.preview.offsetY, bottom)
     y = Math.max(current.preview.gap, y)
-    const targetIndex = current.state.targetIndex
-    const hasPlacement = targetIndex !== null && targetIndex !== current.state.originalIndex
-    const row = hasPlacement && !current.outside
-      ? list.current?.querySelector<HTMLElement>(`[data-batch-copy-position="${targetIndex}"]`)
-      : null
-
-    if (row !== null && row !== undefined) {
-      const bounds = row.getBoundingClientRect()
-      const movingDown = targetIndex! > current.state.originalIndex
-      const edge = movingDown ? bounds.bottom : bounds.top
-      const { gap, height, width } = current.preview
-      const overlapsX = x < bounds.right && (x + width) > bounds.left
-      const overlapsY = y < (edge + gap) && (y + height) > (edge - gap)
-
-      if (overlapsX && overlapsY) {
-        const above = edge - height - gap
-        const below = edge + gap
-        if (movingDown && above >= 0) y = above
-        else if ((below + height) <= window.innerHeight) y = below
-        else y = Math.max(0, above)
-      }
-    }
-
     return `translate(${x}px, ${y}px)`
   }
 

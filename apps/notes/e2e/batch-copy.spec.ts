@@ -558,6 +558,48 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   await expect(managementItems).toContainText([firstContent, secondContent])
 })
 
+test("이동 카드는 포인터를 연속 추적하고 삽입선은 항목 사이 중앙에 표시된다", async ({ page }, testInfo) => {
+  const { firstContent, panel, secondContent } = await createDesktopBatchCopy(page)
+  const items = panel.getByRole("listitem")
+  await panel.getByRole("listitem", { name: "2번째 일괄 복사 항목", exact: true }).getByRole("button", { name: / 항목 동작$/u }).click()
+  await panel.getByRole("listitem", { name: "2번째 일괄 복사 항목", exact: true }).getByRole("button", { name: "복제", exact: true }).click()
+  await expect(items).toHaveCount(3)
+  const handle = panel.getByRole("listitem", { name: "1번째 일괄 복사 항목", exact: true }).getByRole("button", { name: / 항목 이동$/u })
+  const middle = await visibleBox(panel.getByRole("listitem", { name: "2번째 일괄 복사 항목", exact: true }))
+  const last = await visibleBox(panel.getByRole("listitem", { name: "3번째 일괄 복사 항목", exact: true }))
+  const preview = page.getByRole("paragraph", { includeHidden: true }).filter({ hasText: firstContent })
+  const x = middle.x + middle.width / 2
+  await handle.hover()
+  await page.mouse.down()
+  const positions: { pointer: number; preview: number }[] = []
+  for (const fraction of [0.2, 0.35, 0.5, 0.65, 0.8, 0.65]) {
+    const y = Math.round(middle.y + middle.height * fraction)
+    await page.mouse.move(x, y)
+    const box = await visibleBox(preview)
+    positions.push({ pointer: y, preview: box.y })
+  }
+  for (const [index, position] of positions.slice(1).entries()) {
+    const previous = positions[index]
+    expect(position.preview - previous.preview).toBeCloseTo(position.pointer - previous.pointer, 0)
+  }
+  const line = await panel.evaluate((element) => {
+    const indicator = element.querySelector(".notes-drop-indicator")!
+    const bounds = indicator.getBoundingClientRect()
+    const endpoint = getComputedStyle(indicator, "::before")
+    return { y: bounds.y, height: bounds.height, dotWidth: Number.parseFloat(endpoint.width), dotHeight: Number.parseFloat(endpoint.height), dotLeft: Number.parseFloat(endpoint.left) }
+  })
+  expect(line.y + line.height / 2).toBeCloseTo((middle.y + middle.height + last.y) / 2, 1)
+  expect(line.dotWidth).toBeGreaterThan(line.height)
+  expect(line.dotHeight).toBe(line.dotWidth)
+  expect(line.dotLeft).toBeLessThan(0)
+  await page.screenshot({ path: testInfo.outputPath("desktop-drag.png") })
+  await page.keyboard.press("Escape")
+  await page.mouse.up()
+  expect(await panel.evaluate((element) => element.querySelector(".notes-drop-indicator") === null)).toBe(true)
+  await expect(preview).toHaveCount(0)
+  await expect(items).toContainText([firstContent, secondContent, secondContent])
+})
+
 test("긴 메모를 잡고 목록 끝까지 자동 스크롤한 뒤 원문과 이동 순서를 저장한다", async ({ page }, testInfo) => {
   const longContent = "검토할 내용\n" + "진행 일정과 전달 자료를 확인합니다.\n".repeat(40)
   const shortContent = "검토 완료"

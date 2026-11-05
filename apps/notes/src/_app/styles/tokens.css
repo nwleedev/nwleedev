@@ -124,6 +124,40 @@
   padding-block: var(--notes-mobile-sheet-inset);
 }
 
+.notes-drop-indicator {
+  position: absolute;
+  z-index: var(--notes-layer-drop-indicator);
+  pointer-events: none;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--notes-color-accent);
+}
+
+.notes-drop-indicator[data-placement="before"] {
+  top: calc((var(--notes-reorder-gap) / -2) - 1px);
+  transform: translateY(-50%);
+}
+
+.notes-drop-indicator[data-placement="after"] {
+  bottom: calc((var(--notes-reorder-gap) / -2) - 1px);
+  transform: translateY(50%);
+}
+
+.notes-drop-indicator::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: inherit;
+  transform: translateY(-50%);
+}
+
+.notes-drop-indicator[data-end="left"]::before { left: -3px; }
+.notes-drop-indicator[data-end="right"]::before { right: -3px; }
+
 @theme inline {
   --color-action: var(--notes-color-action);
   --color-action-hover: var(--notes-color-action-hover);
