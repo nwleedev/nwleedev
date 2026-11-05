@@ -303,24 +303,43 @@ test("브라우저가 너비 보관을 거부해도 현재 패널의 크기는 �
   await expect.poll(async () => (await visibleBox(panel)).width).toBe(320)
 })
 
-test("항목 메뉴는 첫 화면 프레임부터 실행 버튼 옆에 표시된다", async ({ page }) => {
-  const { firstContent, panel, secondContent } = await createDesktopBatchCopy(page)
+test("항목 메뉴는 크기 조절과 스크롤 뒤에도 첫 프레임부터 버튼 옆에 표시된다", async ({ page }, testInfo) => {
+  const { panel } = await createDesktopBatchCopy(page)
+  const items = panel.getByRole("listitem")
+  const second = panel.getByRole("listitem", { name: "2번째 일괄 복사 항목", exact: true })
+  for (let count = 3; count <= 7; count += 1) {
+    await second.getByRole("button", { name: / 항목 동작$/u }).click()
+    await second.getByRole("button", { name: "복제", exact: true }).click()
+    await expect(items).toHaveCount(count)
+  }
+  const resize = page.getByRole("separator", { name: "일괄 복사 너비" })
+  const cases = [
+    { position: 1, key: "Home", side: "below" },
+    { position: 7, key: "Home", side: "above" },
+    { position: 1, key: "End", side: "below" },
+    { position: 7, key: "End", side: "above" },
+  ] as const
 
-  for (const content of [firstContent, secondContent, firstContent]) {
-    const item = panel.getByRole("listitem").filter({ hasText: content })
+  for (const scenario of cases) {
+    await resize.press(scenario.key)
+    const expectedWidth = await resize.getAttribute(scenario.key === "Home" ? "aria-valuemin" : "aria-valuemax")
+    await expect.poll(async () => (await visibleBox(panel)).width).toBe(Number(expectedWidth))
+    const item = panel.getByRole("listitem", { name: `${scenario.position}번째 일괄 복사 항목`, exact: true })
     const trigger = item.getByRole("button", { name: /번째 일괄 복사 항목 동작$/u })
+    await trigger.scrollIntoViewIfNeeded()
     const label = await trigger.getAttribute("aria-label")
     const popover = item.getByRole("group", { includeHidden: true, name: label! })
     const triggerBounds = await visibleBox(trigger)
     const framesPromise = popover.evaluate((element) => new Promise<{
       right: number
       top: number
+      bottom: number
       width: number
     }[]>((resolve) => {
-      const frames: { right: number; top: number; width: number }[] = []
+      const frames: { right: number; top: number; bottom: number; width: number }[] = []
       function observe() {
         const bounds = element.getBoundingClientRect()
-        frames.push({ right: bounds.right, top: bounds.top, width: bounds.width })
+        frames.push({ right: bounds.right, top: bounds.top, bottom: bounds.bottom, width: bounds.width })
         if (frames.length === 3) resolve(frames)
         else requestAnimationFrame(observe)
       }
@@ -330,10 +349,19 @@ test("항목 메뉴는 첫 화면 프레임부터 실행 버튼 옆에 표시된
     const frames = await framesPromise
 
     for (const frame of frames) {
+      const gaps = {
+        below: frame.top - (triggerBounds.y + triggerBounds.height),
+        above: triggerBounds.y - frame.bottom,
+      }
+      const clearance = gaps[scenario.side]
       expect(frame.width).toBeGreaterThan(0)
       expect(frame.right).toBeCloseTo(triggerBounds.x + triggerBounds.width, 0)
-      expect(frame.top).toBeGreaterThanOrEqual(triggerBounds.y + triggerBounds.height)
+      expect(clearance).toBeGreaterThanOrEqual(0)
+      expect(clearance).toBeLessThan(triggerBounds.height)
+      expect(frame.top).toBeCloseTo(frames[0].top, 1)
     }
+    await expect(popover).toBeInViewport({ ratio: 1 })
+    await page.screenshot({ path: testInfo.outputPath(`popover-${scenario.key}-${scenario.position}.png`) })
     await page.keyboard.press("Escape")
     await expect(popover).toBeHidden()
     await expect(trigger).toBeFocused()
