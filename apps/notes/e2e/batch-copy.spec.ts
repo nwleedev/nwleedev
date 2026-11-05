@@ -174,46 +174,46 @@ test("설정을 꺼도 데스크탑 패널에서 가능한 방향으로 이동�
     .getByRole("button", { name: /번째 일괄 복사 항목 동작$/u })
     .click()
   await expect(
-    page.getByRole("group", { name: /번째 일괄 복사 항목 동작$/u }),
+    page.getByRole("menu", { name: /번째 일괄 복사 항목 동작$/u }),
   ).toBeInViewport()
   await expect(
-    page.getByRole("button", { exact: true, name: "위로 이동" }),
+    page.getByRole("menuitem", { exact: true, name: "위로 이동" }),
   ).toHaveCount(0)
   await page
-    .getByRole("button", { exact: true, name: "아래로 이동" })
+    .getByRole("menuitem", { exact: true, name: "아래로 이동" })
     .click()
   await expect(items).toContainText(movedDownContents)
   await expect(
-    firstItem.getByRole("button", { name: /번째 일괄 복사 항목 이동$/u }),
+    firstItem.getByRole("button", { name: /번째 일괄 복사 항목 동작$/u }),
   ).toBeFocused()
 
   await firstItem
     .getByRole("button", { name: /번째 일괄 복사 항목 동작$/u })
     .click()
   await expect(
-    page.getByRole("button", { exact: true, name: "위로 이동" }),
+    page.getByRole("menuitem", { exact: true, name: "위로 이동" }),
   ).toBeVisible()
   await expect(
-    page.getByRole("button", { exact: true, name: "아래로 이동" }),
+    page.getByRole("menuitem", { exact: true, name: "아래로 이동" }),
   ).toBeVisible()
   await page
-    .getByRole("button", { exact: true, name: "위로 이동" })
+    .getByRole("menuitem", { exact: true, name: "위로 이동" })
     .click()
   await expect(items).toContainText(contents)
 
   await firstItem
     .getByRole("button", { name: /번째 일괄 복사 항목 동작$/u })
     .click()
-  await expect(page.getByRole("button", { exact: true, name: "맨 위로 이동" })).toHaveCount(0)
-  await page.getByRole("button", { exact: true, name: "맨 아래로 이동" }).click()
+  await expect(page.getByRole("menuitem", { exact: true, name: "맨 위로 이동" })).toHaveCount(0)
+  await page.getByRole("menuitem", { exact: true, name: "맨 아래로 이동" }).click()
   await expect(items).toContainText([secondContent, thirdContent, fourthContent, firstContent])
-  await expect(firstItem.getByRole("button", { name: /번째 일괄 복사 항목 이동$/u })).toBeFocused()
+  await expect(firstItem.getByRole("button", { name: /번째 일괄 복사 항목 동작$/u })).toBeFocused()
   await firstItem.getByRole("button", { name: /번째 일괄 복사 항목 동작$/u }).click()
-  await expect(page.getByRole("button", { exact: true, name: "맨 아래로 이동" })).toHaveCount(0)
-  await expect(page.getByRole("button", { exact: true, name: "아래로 이동" })).toHaveCount(0)
-  await page.getByRole("button", { exact: true, name: "맨 위로 이동" }).click()
+  await expect(page.getByRole("menuitem", { exact: true, name: "맨 아래로 이동" })).toHaveCount(0)
+  await expect(page.getByRole("menuitem", { exact: true, name: "아래로 이동" })).toHaveCount(0)
+  await page.getByRole("menuitem", { exact: true, name: "맨 위로 이동" }).click()
   await expect(items).toContainText(contents)
-  await expect(firstItem.getByRole("button", { name: /번째 일괄 복사 항목 이동$/u })).toBeFocused()
+  await expect(firstItem.getByRole("button", { name: /번째 일괄 복사 항목 동작$/u })).toBeFocused()
 
   await page.reload()
   await page.goto("/batch-copy/")
@@ -229,16 +229,16 @@ test("설정을 꺼도 데스크탑 패널에서 가능한 방향으로 이동�
     .getByRole("button", { name: "1번째 일괄 복사 항목 동작" })
     .click()
   await expect(
-    page.getByRole("button", { exact: true, name: "위로 이동" }),
+    page.getByRole("menuitem", { exact: true, name: "위로 이동" }),
   ).toHaveCount(0)
   await expect(
-    page.getByRole("button", { exact: true, name: "아래로 이동" }),
+    page.getByRole("menuitem", { exact: true, name: "아래로 이동" }),
   ).toHaveCount(0)
   await expect(
-    page.getByRole("button", { exact: true, name: "복제" }),
+    page.getByRole("menuitem", { exact: true, name: "복제" }),
   ).toBeVisible()
   await expect(
-    page.getByRole("button", { exact: true, name: "삭제" }),
+    page.getByRole("menuitem", { exact: true, name: "삭제" }),
   ).toBeVisible()
 })
 
@@ -314,7 +314,7 @@ test("확대된 일괄 복사 패널은 최소 너비에서도 제목과 항목 
   await selection.click()
   await expect(selection).toHaveAttribute("aria-pressed", "true")
   await item.getByRole("button", { name: / 항목 동작$/u }).click()
-  await item.getByRole("button", { name: "아래로 이동", exact: true }).click()
+  await page.getByRole("menuitem", { name: "아래로 이동", exact: true }).click()
   await expect(panel.getByRole("listitem", { name: "2번째 일괄 복사 항목", exact: true })).toContainText(firstContent)
   await panel.getByRole("button", { name: "일괄 복사 패널 닫기" }).click()
   await expect(panel).toBeHidden()
@@ -328,7 +328,7 @@ test("확대된 일괄 복사 패널은 최소 너비에서도 제목과 항목 
   const moved = modal.getByRole("listitem", { name: "2번째 일괄 복사 항목", exact: true })
   await expect(moved).toContainText(firstContent)
   await moved.getByRole("button", { name: / 항목 동작$/u }).click()
-  await expect(moved.getByRole("button", { name: "위로 이동", exact: true })).toBeInViewport({ ratio: 1 })
+  await expect(page.getByRole("menuitem", { name: "위로 이동", exact: true })).toBeInViewport({ ratio: 1 })
   await page.screenshot({ path: testInfo.outputPath("modal-text-200.png") })
   await page.keyboard.press("Escape")
   await modal.getByRole("button", { name: "일괄 복사 패널 닫기" }).click()
@@ -359,7 +359,7 @@ test("항목 메뉴는 크기 조절과 스크롤 뒤에도 첫 프레임부터 
   const second = panel.getByRole("listitem", { name: "2번째 일괄 복사 항목", exact: true })
   for (let count = 3; count <= 7; count += 1) {
     await second.getByRole("button", { name: / 항목 동작$/u }).click()
-    await second.getByRole("button", { name: "복제", exact: true }).click()
+    await page.getByRole("menuitem", { name: "복제", exact: true }).click()
     await expect(items).toHaveCount(count)
   }
   const resize = page.getByRole("separator", { name: "일괄 복사 너비" })
@@ -378,9 +378,9 @@ test("항목 메뉴는 크기 조절과 스크롤 뒤에도 첫 프레임부터 
     const trigger = item.getByRole("button", { name: /번째 일괄 복사 항목 동작$/u })
     await trigger.scrollIntoViewIfNeeded()
     const label = await trigger.getAttribute("aria-label")
-    const popover = item.getByRole("group", { includeHidden: true, name: label! })
+    const popover = page.getByRole("menu", { name: label! })
     const triggerBounds = await visibleBox(trigger)
-    const framesPromise = popover.evaluate((element) => new Promise<{
+    const framesPromise = page.evaluate((menuLabel) => new Promise<{
       right: number
       top: number
       bottom: number
@@ -388,13 +388,26 @@ test("항목 메뉴는 크기 조절과 스크롤 뒤에도 첫 프레임부터 
     }[]>((resolve) => {
       const frames: { right: number; top: number; bottom: number; width: number }[] = []
       function observe() {
+        const menu = Array.from(document.querySelectorAll('[role="menu"]')).find(
+          (element) => element.getAttribute("aria-label") === menuLabel,
+        )
+        const element = menu?.closest('[data-trigger="MenuTrigger"]')
+        if (!element) return
         const bounds = element.getBoundingClientRect()
         frames.push({ right: bounds.right, top: bounds.top, bottom: bounds.bottom, width: bounds.width })
         if (frames.length === 3) resolve(frames)
         else requestAnimationFrame(observe)
       }
-      element.addEventListener("beforetoggle", () => requestAnimationFrame(observe), { once: true })
-    }))
+      const observer = new MutationObserver(() => {
+        const menu = Array.from(document.querySelectorAll('[role="menu"]')).find(
+          (element) => element.getAttribute("aria-label") === menuLabel,
+        )
+        if (!menu) return
+        observer.disconnect()
+        requestAnimationFrame(observe)
+      })
+      observer.observe(document.body, { childList: true, subtree: true })
+    }), label)
     await trigger.click()
     const frames = await framesPromise
 
@@ -502,7 +515,7 @@ test("오른쪽 패널에서 선택, 방향키, drag와 직접 제거를 구분�
   await firstItem.getByRole("button", {
     name: /번째 일괄 복사 항목 동작$/u,
   }).click()
-  await page.getByRole("button", { exact: true, name: "삭제" }).click()
+  await page.getByRole("menuitem", { exact: true, name: "삭제" }).click()
   await expect(firstItem).toHaveCount(0)
   await expect(
     panel.getByRole("button", { exact: true, name: "복사" }),
@@ -647,7 +660,7 @@ test("이동 카드는 포인터를 연속 추적하고 삽입선은 항목 사�
   const { firstContent, panel, secondContent } = await createDesktopBatchCopy(page)
   const items = panel.getByRole("listitem")
   await panel.getByRole("listitem", { name: "2번째 일괄 복사 항목", exact: true }).getByRole("button", { name: / 항목 동작$/u }).click()
-  await panel.getByRole("listitem", { name: "2번째 일괄 복사 항목", exact: true }).getByRole("button", { name: "복제", exact: true }).click()
+  await page.getByRole("menuitem", { name: "복제", exact: true }).click()
   await expect(items).toHaveCount(3)
   const handle = panel.getByRole("listitem", { name: "1번째 일괄 복사 항목", exact: true }).getByRole("button", { name: / 항목 이동$/u })
   const middle = await visibleBox(panel.getByRole("listitem", { name: "2번째 일괄 복사 항목", exact: true }))

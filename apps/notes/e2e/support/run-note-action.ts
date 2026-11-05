@@ -11,5 +11,6 @@ export async function runNoteAction(
   name: NoteActionName,
 ) {
   await note.getByRole("button", { name: "메모 동작" }).click()
-  await note.getByRole("button", { exact: true, name }).click()
+  await note.page().getByRole("menu", { name: "메모 동작" })
+    .getByRole("menuitem", { exact: true, name }).click()
 }

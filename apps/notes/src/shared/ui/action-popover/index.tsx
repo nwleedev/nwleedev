@@ -136,7 +136,7 @@ export function ActionPopover({
         <Pressable isDisabled={disabled}>
           <IconButton
             aria-label={label}
-            className={triggerClassName}
+            className={joinClassNames("active:translate-y-0!", triggerClassName)}
             disabled={disabled}
             onPointerDown={stopPointer}
             ref={triggerRef}
