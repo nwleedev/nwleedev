@@ -23,6 +23,7 @@ import {
 import {
   EntityIdSchema,
   IsoDateTimeSchema,
+  toTimestamp,
   RevisionSchema,
 } from "@/shared/lib/entity-metadata"
 
@@ -175,16 +176,22 @@ export function migrateNotePositions(database: IDBDatabase, transaction: IDBTran
   }
 }
 
-export function migrateNoteBodies(transaction: IDBTransaction) {
+export function migrateNoteBodies(transaction: IDBTransaction, oldVersion: number) {
   const notes = transaction.objectStore(NOTE_STORE_NAME)
   const cursor = notes.openCursor()
   const previous = NoteRecordSchema.extend({ position: z.number().finite() })
+  const withBody = previous.omit({ content: true }).extend({ body: z.instanceof(Uint8Array) })
   cursor.onsuccess = () => {
     const entry = cursor.result
     if (!entry) return
     try {
-      const { position, ...note } = previous.parse(entry.value)
-      entry.update(storeNote(note, position))
+      if (oldVersion === 8) {
+        const record = withBody.parse(entry.value)
+        entry.update({ ...record, createdAt: toTimestamp(record.createdAt), updatedAt: toTimestamp(record.updatedAt) })
+      } else {
+        const { position, ...note } = previous.parse(entry.value)
+        entry.update(storeNote(note, position))
+      }
       entry.continue()
     } catch {
       transaction.abort()

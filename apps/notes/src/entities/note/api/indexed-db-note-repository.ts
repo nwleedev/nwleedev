@@ -41,7 +41,12 @@ export class IndexedDbNoteRepository implements NoteRepository {
       const notes = await Promise.all(records.map(async (value) => {
         const record = StoredNoteSchema.parse(value)
         const { body } = await readStoredBody(record, updates)
-        return NoteFields.parse({ ...record, content: body.text })
+        return NoteFields.parse({
+          ...record,
+          content: body.text,
+          createdAt: new Date(record.createdAt).toISOString(),
+          updatedAt: new Date(record.updatedAt).toISOString(),
+        })
       }))
       await completion
       return notes

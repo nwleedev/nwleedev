@@ -205,8 +205,34 @@ describe("personal notes IndexedDB storage", () => {
     const read = database.transaction("notes")
     const [record] = await Promise.all([readRequest(read.objectStore("notes").get(note.id)), waitForTransaction(read)])
     expect(record).not.toHaveProperty("content")
-    expect(record).toMatchObject({ position: -1.5, updatedAt: note.updatedAt })
+    expect(record).toMatchObject({ position: -1.5, updatedAt: Date.parse(note.updatedAt) })
     expect(new NoteBody(record.body).text).toBe(note.content)
+  })
+
+  it("v8 본문의 시간대와 밀리초 미만 시각을 정수 밀리초로 이전한다", async () => {
+    const previous = await openIndexedDatabase({
+      name: PERSONAL_NOTES_DATABASE_NAME,
+      version: 8,
+      upgrade(database) {
+        database.createObjectStore("notes", { keyPath: "id" }).createIndex("position", "position")
+        database.createObjectStore("updates", { keyPath: ["id", "noteId"] }).createIndex("noteId", "noteId")
+      },
+    })
+    const { content, ...fields } = note
+    const body = NoteBody.fromText(content).snapshot()
+    const write = previous.transaction("notes", "readwrite")
+    const saved = waitForTransaction(write)
+    write.objectStore("notes").put({
+      ...fields, body, position: 0,
+      createdAt: "1970-01-01T08:59:59.999999+09:00",
+      updatedAt: "2026-08-31T10:00:00.123456+09:00",
+    })
+    await saved
+    previous.close()
+    const database = await createConnection().get()
+    const read = database.transaction("notes")
+    const [record] = await Promise.all([readRequest(read.objectStore("notes").get(note.id)), waitForTransaction(read)])
+    expect(record).toMatchObject({ body, createdAt: -1, updatedAt: Date.UTC(2026, 7, 31, 1, 0, 0, 123) })
   })
 
   it("v3의 메모를 바꾸지 않고 기존 탐색 순서로 모바일 순서를 읽는다", async () => {

@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { EntityIdSchema } from "@/shared/lib/entity-metadata"
+import { EntityIdSchema, toTimestamp } from "@/shared/lib/entity-metadata"
 import { readRequest } from "@/shared/lib/indexed-db"
 
 import { NoteRecordSchema, type Note } from "../model/note"
@@ -10,6 +10,8 @@ export const NOTE_STORE_NAME = "notes"
 export const NOTE_POSITION_INDEX = "position"
 export const StoredNoteSchema = NoteRecordSchema.omit({ content: true }).extend({
   body: z.instanceof(Uint8Array),
+  createdAt: z.int(),
+  updatedAt: z.int(),
   position: z.number().finite(),
 })
 
@@ -31,7 +33,7 @@ export function storeNote(note: Note, position: number, previous?: z.infer<typeo
     edited.updateText(content)
     body = edited.snapshot()
   }
-  return { ...fields, body, position }
+  return { ...fields, body, position, createdAt: toTimestamp(note.createdAt), updatedAt: toTimestamp(note.updatedAt) }
 }
 
 export async function readStoredBody(record: z.infer<typeof StoredNoteSchema>, updates: IDBObjectStore) {

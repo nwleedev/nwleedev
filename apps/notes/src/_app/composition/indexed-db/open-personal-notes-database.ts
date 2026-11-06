@@ -19,7 +19,7 @@ import {
 } from "./migrate-personal-notes-database"
 
 export const PERSONAL_NOTES_DATABASE_NAME = "personal-notes"
-export const PERSONAL_NOTES_DATABASE_VERSION = 8
+export const PERSONAL_NOTES_DATABASE_VERSION = 9
 
 type PersonalNotesDatabaseCallbacks = {
   onBlocked?(): void
@@ -62,7 +62,7 @@ export function openPersonalNotesDatabase(
       }
 
       if (oldVersion >= 6) {
-        migrateNoteBodies(transaction)
+        migrateNoteBodies(transaction, oldVersion)
         return
       }
       ensureBatchCopyListStore(database, transaction)
