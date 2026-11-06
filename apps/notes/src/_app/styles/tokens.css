@@ -212,3 +212,16 @@
 .note-light.is-saved { background-color: var(--notes-color-success); }
 .note-light.is-saving { border: 2px solid currentColor; border-inline-end-color: transparent; }
 .note-light.is-deleted { background-color: var(--notes-color-danger); }
+
+.note-card-status .is-saved {
+  position: relative;
+}
+
+.note-card-status .is-saved::after {
+  position: absolute;
+  inset: 18% 32% 28%;
+  content: "";
+  border: solid var(--notes-color-surface-raised);
+  border-width: 0 1px 1px 0;
+  transform: rotate(45deg);
+}

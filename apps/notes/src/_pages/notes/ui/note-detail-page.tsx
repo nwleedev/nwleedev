@@ -15,6 +15,8 @@ import {
 } from "../model/use-note-detail-editing"
 import { useNotesData } from "../model/notes-data-provider"
 
+import { NoteStatusLight } from "./note-status-light"
+
 const backLinkClassName =
   "inline-flex h-[var(--notes-touch-target)] w-[var(--notes-touch-target)] items-center justify-center rounded-control text-icon hover:bg-canvas hover:text-text active:translate-y-px"
 
@@ -79,8 +81,6 @@ function UnsavedChangesDialog({
     </dialog>
   )
 }
-
-const statusLight = { "저장됨": "note-light is-saved", "저장 중": "note-light is-saving" }
 
 const editorClassName = "h-full min-h-0 w-full resize-none border-0 bg-surface-raised px-4 py-5 text-base leading-7 outline-none"
 
@@ -192,7 +192,7 @@ function ReadyNoteDetail({
             </IconButton>
         </EditorActions>
         <EditorStatus>
-          <span aria-hidden="true" className={statusLight[saveLabel]} />
+          <NoteStatusLight status={saveLabel} />
           {saveLabel}
         </EditorStatus>
       </EditorHeader>
@@ -236,7 +236,7 @@ function DeletedNoteDetail({ content, restore }: { content: string; restore(): P
           </IconButton>
         </EditorActions>
         <EditorStatus>
-          <span className="note-light is-deleted" aria-hidden="true" />
+          <NoteStatusLight status="삭제됨" />
           <button className="underline decoration-dotted underline-offset-4" onClick={() => dialog.current?.showModal()} type="button">삭제됨</button>
         </EditorStatus>
       </EditorHeader>

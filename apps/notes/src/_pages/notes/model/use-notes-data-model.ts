@@ -62,6 +62,7 @@ type NotesDataContextValue = NotesDataState & {
   batchCopyShortcutEnabled: boolean
   moveNoteToBack(noteId: string): Promise<readonly Note[]>
   moveNoteToFront(noteId: string): Promise<readonly Note[]>
+  onRemoteRemoval(listener: (id: string) => void): () => void
   watchEditor(id: string, onDeleted: (note: Note) => void): () => void
   removeNote(note: Note): Promise<Note>
   restoreNote(note: Note, position?: MobileNotePosition): Promise<Note>
@@ -141,6 +142,12 @@ export function useNotesDataModel({
   const draftContentReference = useRef<NoteDraftContent>({})
   const mutationQueue = useRef<Promise<void>>(Promise.resolve())
 
+  const removalListeners = useRef(new Set<(id: string) => void>())
+  const onRemoteRemoval = useCallback((listener: (id: string) => void) => {
+    const listeners = removalListeners.current
+    listeners.add(listener)
+    return () => { listeners.delete(listener) }
+  }, [])
   const editors = useRef(new Map<string, (note: Note) => void>())
   const watchEditor = useCallback((id: string, onDeleted: (note: Note) => void) => {
     let active = true
@@ -230,6 +237,7 @@ export function useNotesDataModel({
             if (active && removed) listener(removed)
           }
           if (!active) return
+          for (const notify of removalListeners.current) notify(noteId)
           const nextDrafts = { ...draftContentReference.current }
           delete nextDrafts[noteId]
           publishAvailable(current.filter(({ id }) => id !== noteId), nextDrafts)
@@ -446,6 +454,7 @@ export function useNotesDataModel({
 
   return {
     ...state,
+    onRemoteRemoval,
     watchEditor,
     copyNote,
     createNote,

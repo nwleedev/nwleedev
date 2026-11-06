@@ -1,4 +1,4 @@
-import { useRef, type RefObject } from "react"
+import { useEffect, useEffectEvent, useRef, type RefObject } from "react"
 
 import {
   createNoteGeometryDraft,
@@ -29,6 +29,7 @@ export function useNoteCardActions(
   createButton: RefObject<HTMLButtonElement | null>,
 ) {
   const {
+    onRemoteRemoval,
     moveNoteToBack,
     moveNoteToFront,
     removeNote,
@@ -45,6 +46,11 @@ export function useNoteCardActions(
   const batchCopy = useAddNoteToBatchCopy()
   const batchCopyWorkspace = useBatchCopyWorkspace()
   const toast = useActionToast()
+  const showRemoteRemoval = useEffectEvent((id: string) => {
+    session.forgetNote(id)
+    toast.show({ message: "다른 창에서 메모를 삭제했습니다." })
+  })
+  useEffect(() => onRemoteRemoval((id) => showRemoteRemoval(id)), [onRemoteRemoval])
   const batchCopyNoticeRevision = useRef<number | null>(null)
   const copy = useNoteCopyAction()
   const orderedNotes = [...notes].sort(byTabIndex)

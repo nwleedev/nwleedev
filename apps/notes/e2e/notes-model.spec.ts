@@ -58,6 +58,20 @@ test("서로 다른 창에서 만든 메모가 양쪽 목록에 새로고침 없
   await expect(other.getByRole("article", cards)).toHaveCount(2)
 })
 
+test("데스크탑 편집 카드의 저장 상태와 다른 창에서 삭제한 결과를 표시한다", async ({ page, context }) => {
+  const card = await createNoteThroughUi(page, "첫 번째")
+  const other = await context.newPage()
+  await other.goto("/")
+  const peer = other.getByRole("article", { name: "메모", exact: true })
+  const editor = peer.getByRole("textbox", { name: "메모 내용" })
+  await editor.fill("첫 번째 수정")
+  await expect(peer.getByRole("status")).toHaveText("저장 중")
+  await expect(peer.getByRole("status")).toHaveText("저장됨")
+  await runNoteAction(card, "메모 삭제")
+  await expect(peer).toHaveCount(0)
+  await expect(other.getByText("다른 창에서 메모를 삭제했습니다.")).toBeVisible()
+})
+
 test("삭제한 창을 닫아도 열려 있던 모바일 화면에서만 저장 본문을 복원한다", async ({ page, context }) => {
   const card = await createNoteThroughUi(page, "구매 목록")
   const url = await noteDetailUrl(card)

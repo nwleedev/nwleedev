@@ -17,6 +17,7 @@ import {
 import { IconButton } from "@/shared/ui/icon-button"
 import { CopyIcon } from "@/shared/ui/icons"
 
+import { NoteStatusLight } from "./note-status-light"
 import type { SaveNoteContentResult } from "../model/save-note-content"
 import { useNoteCardEditor } from "../model/use-note-card-editor"
 import {
@@ -148,6 +149,7 @@ export function NoteCard({
     note,
     onSave: onSaveContent,
   })
+  const saveLabel = editor.autosave.pending ? "저장 중" : "저장됨"
   const interactionPending = editor.autosave.status === "saving"
   const gesture = useNoteGeometryGesture({
     disabled: interactionPending,
@@ -163,7 +165,7 @@ export function NoteCard({
   const controlsDisabled = interactionPending || gesture.saving
   const selectedVisible = selected && !commandPressed
   const headerClassName = joinClassNames(
-    "flex h-9 shrink-0 items-center justify-between",
+    "relative flex h-9 shrink-0 items-center justify-between",
     commandPressed ? "[&_button]:invisible" : undefined,
   )
   const cardClassName = joinClassNames(
@@ -373,6 +375,10 @@ export function NoteCard({
           tabIndex={-1}
           type="button"
         />
+        <span className="note-card-status pointer-events-none absolute left-4 inline-flex items-center" role="status">
+          <NoteStatusLight status={saveLabel} />
+          <span className="sr-only">{saveLabel}</span>
+        </span>
         <div
           className="flex items-center gap-0.5 pr-1.5"
           data-note-header-actions=""
