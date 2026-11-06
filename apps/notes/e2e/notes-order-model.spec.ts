@@ -229,25 +229,13 @@ function articleForId(page: Page, noteId: string) {
 
 async function installBlockedStackMove(page: Page) {
   await page.evaluate(() => {
-    window.addEventListener(
-      "click",
-      (event) => {
-        const button = (event.target as Element | null)?.closest("button")
-        const label = button?.getAttribute("aria-label")
-        if (label !== "메모를 맨 앞으로" && label !== "메모를 맨 뒤로") {
-          return
-        }
-        Reflect.set(window, "controlledStackMoveBlocked", true)
-        const popover = button?.closest<HTMLElement>("[popover]")
-
-        if (popover?.matches(":popover-open")) {
-          popover.hidePopover()
-        }
-        event.preventDefault()
-        event.stopImmediatePropagation()
-      },
-      true,
-    )
+    const put = IDBObjectStore.prototype.put
+    IDBObjectStore.prototype.put = function (...args: Parameters<IDBObjectStore["put"]>) {
+      const [value] = args
+      if (this.name !== "notes" || !Reflect.get(window, "blockStackWrites")) return put.apply(this, args)
+      Reflect.set(window, "controlledStackMoveBlocked", true)
+      return this.get(value.id)
+    }
   })
 }
 
@@ -473,11 +461,11 @@ async function executeStackCommands(
       })
     }
 
-    if (defect === "block-stack-move") {
-      await installBlockedStackMove(page)
-    } else if (defect === "partial-stack-save") {
-      await installPartialStackSave(page)
+    async function installDefect() {
+      if (defect === "block-stack-move") await installBlockedStackMove(page)
+      else if (defect === "partial-stack-save") await installPartialStackSave(page)
     }
+    await installDefect()
 
     const real: StackReal = {
       async inspect(expected) {
@@ -539,14 +527,16 @@ async function executeStackCommands(
       async move(noteId, edge) {
         const label = edge === "front" ? "메모를 맨 앞으로" : "메모를 맨 뒤로"
         const before = await storedStackSignature(page, noteIds)
-        await page.evaluate(() => {
+        await page.evaluate((blocked) => {
+          Reflect.set(window, "blockStackWrites", blocked)
           Reflect.set(window, "controlledStackMoveBlocked", false)
-        })
+        }, defect === "block-stack-move")
         await runNoteAction(articleForId(page, noteId), label)
         if (defect === "block-stack-move") {
           await page.waitForFunction(
             () => Reflect.get(window, "controlledStackMoveBlocked") === true,
           )
+          await page.evaluate(() => Reflect.set(window, "blockStackWrites", false))
           return
         }
         await expect
@@ -555,11 +545,13 @@ async function executeStackCommands(
       },
       async reload() {
         await page.reload()
+        await installDefect()
         await expect(page.getByRole("article", { exact: true, name: "메모" })).toHaveCount(3)
       },
       async seedDuplicateStack() {
         await writeDuplicateStack(page, noteIds)
         await page.reload()
+        await installDefect()
         await expect(page.getByRole("article", { exact: true, name: "메모" })).toHaveCount(3)
       },
     }

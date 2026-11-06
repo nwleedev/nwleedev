@@ -12,8 +12,6 @@ import {
   findNewNoteGeometry,
   isRecoverableNoteDraft,
   nextNoteTabIndex,
-  sendNoteToBack,
-  sendNoteToFront,
   type Note,
   type NoteDraftRepository,
   type NoteGeometry,
@@ -389,12 +387,12 @@ export function useNotesDataModel({
   async function changeStack(noteId: string, edge: "back" | "front") {
     return enqueue(async () => {
       const notes = availableNotesReference.current
-      const timestamp = now()
-      const ordered = edge === "front"
-        ? sendNoteToFront(notes, noteId, timestamp)
-        : sendNoteToBack(notes, noteId, timestamp)
-      const savedNotes = await repository.saveAll(ordered)
-
+      const target = notes.find(({ id }) => id === noteId)
+      if (!target) return notes
+      const { notes: savedNotes, changedIds } = await repository.moveInStack(target, edge, now())
+      for (const id of changedIds) {
+        changes.current?.postMessage({ type: "edited", noteId: id })
+      }
       publishAvailable(savedNotes, draftContentReference.current)
       return savedNotes
     })

@@ -16,6 +16,7 @@ import {
   type NoteReference,
   type NoteRepository,
 } from "../model/note"
+import { sendNoteToFront, sendNoteToBack } from "../model/note-order"
 import { insertMobileNote, type MobileNotePosition } from "../model/mobile-note-order"
 import { allocatePosition, readMobileIds } from "./indexed-db-mobile-note-order-repository"
 import { NOTE_STORE_NAME, NoteFields, readStoredBody, storeNote, StoredNoteSchema } from "./stored-note"
@@ -202,30 +203,38 @@ export class IndexedDbNoteRepository implements NoteRepository {
     }
   }
 
-  async saveAll(notes: readonly Note[]) {
-    const records = notes.map(parseNoteRecord)
+  async moveInStack(target: Note, edge: "front" | "back", updatedAt: string) {
     const database = await this.#connection.get()
     const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
     const completion = waitForTransaction(transaction)
-    const store = transaction.objectStore(NOTE_STORE_NAME)
-
     try {
-      const ids = await readMobileIds(store)
-      const savedNotes: Note[] = []
-      for (const record of records) {
-        const stored: unknown = await readRequest(store.get(record.id))
-        if (isRemoved(stored)) continue
-        const previous = stored === undefined ? undefined : StoredNoteSchema.parse(stored)
-        const position = previous === undefined
-          ? await allocatePosition(store, ids, ids.length)
-          : previous.position
-        const next = storeNote(record, position, previous)
-        store.put(next)
-        savedNotes.push(await this.#readNote(next, transaction.objectStore("updates")))
-        if (stored === undefined) ids.push(record.id)
+      const store = transaction.objectStore(NOTE_STORE_NAME)
+      const values: unknown[] = await readRequest(store.getAll())
+      const records = values.filter((value) => !isRemoved(value)).map((value) => StoredNoteSchema.parse(value))
+      const updates = transaction.objectStore("updates")
+      const current = await Promise.all(records.map((record) => this.#readNote(record, updates)))
+      const opened = savedNoteBody(target)
+      const byId = new Map(current.map((note, index) => [note.id, { note, record: records[index] }]))
+      const selected = byId.get(target.id)
+      if (!selected || !opened || savedNoteBody(selected.note)?.restoration !== opened.restoration) {
+        await completion
+        return { notes: current, changedIds: [] }
+      }
+      const move = edge === "front" ? sendNoteToFront : sendNoteToBack
+      const ordered = move(current, target.id, updatedAt)
+      const changedIds: string[] = []
+      for (const note of ordered) {
+        const previous = byId.get(note.id)
+        if (!previous) throw new Error("Unknown note in stacking order")
+        const body = savedNoteBody(previous.note)
+        if (body) rememberNoteBody(note, body)
+        if (previous.record.geometry.zIndex !== note.geometry.zIndex) {
+          store.put(storeNote(note, previous.record.position, previous.record))
+          changedIds.push(note.id)
+        }
       }
       await completion
-      return savedNotes
+      return { notes: ordered, changedIds }
     } catch (error) {
       await abortTransaction(transaction, completion)
       throw error

@@ -4,7 +4,6 @@ import {
   NoteBody,
   mobileNotePosition,
   reviseNote,
-  sendNoteToFront,
   type Note,
 } from "@/entities/note"
 import {
@@ -167,6 +166,21 @@ describe("메모 저장소 모델", () => {
     expect((await second.get(note.id))?.geometry).toMatchObject({ x: 140, width: 540 })
   })
 
+  it("다른 창의 삭제와 새 메모를 반영한 최신 카드들 사이에서만 겹침 순서를 바꾼다", async () => {
+    const board = new IndexedDbNoteRepository(createConnection())
+    const peer = new IndexedDbNoteRepository(createConnection())
+    const target = await board.save(note)
+    const removed = await board.save({ ...note, id: "removed" })
+    await peer.remove(removed)
+    const added = await peer.save({ ...note, id: "added", geometry: { ...note.geometry, zIndex: 2 } })
+    await peer.saveEdit(added, reviseNote(added, { content: "새 본문", updatedAt: timestamp }))
+    await board.moveInStack(target, "front", timestamp)
+    const saved = await peer.getAll()
+    expect(saved).toHaveLength(2)
+    expect(noteById(saved, target.id).geometry.zIndex).toBe(2)
+    expect(noteById(saved, added.id)).toMatchObject({ content: "새 본문", geometry: { zIndex: 1 } })
+  })
+
   it("두 창이 같은 본문에서 편집하고 정리 도중 들어온 변경도 새 연결에서 읽는다", async () => {
     const first = new IndexedDbNoteRepository(createConnection())
     const second = new IndexedDbNoteRepository(createConnection())
@@ -228,7 +242,7 @@ describe("메모 저장소 모델", () => {
       id: crypto.randomUUID(),
       tabIndex: note.tabIndex + index,
     }))
-    await notes.saveAll(originals)
+    for (const entry of [...originals].reverse()) await notes.save(entry)
     const before = await order.read()
     const [first, second, third, fourth] = originals as [Note, Note, Note, Note]
     await order.move({ visibleIds: before.ids, noteId: first.id, targetIndex: 3 })
@@ -247,7 +261,7 @@ describe("메모 저장소 모델", () => {
     const connection = createConnection()
     const notes = new IndexedDbNoteRepository(connection)
     const companion = { ...note, id: crypto.randomUUID(), tabIndex: note.tabIndex + 1 }
-    await notes.saveAll([note, companion])
+    for (const entry of [companion, note]) await notes.save(entry)
     const first = new IndexedDbMobileNoteOrderRepository(connection)
     const second = new IndexedDbMobileNoteOrderRepository(createConnection())
     const old = await second.read()
@@ -270,7 +284,7 @@ describe("메모 저장소 모델", () => {
       ...note, id, tabIndex: note.tabIndex + index,
     }))
     const notes = new IndexedDbNoteRepository(first)
-    await notes.saveAll(originals)
+    for (const entry of [...originals].reverse()) await notes.save(entry)
     const order = new IndexedDbMobileNoteOrderRepository(second)
     const before = await order.read()
     const add = () => notes.save({ ...note, id: "라", tabIndex: note.tabIndex + originals.length })
@@ -285,7 +299,7 @@ describe("메모 저장소 모델", () => {
     const notes = new IndexedDbNoteRepository(connection)
     const order = new IndexedDbMobileNoteOrderRepository(connection)
     const companion = { ...note, id: crypto.randomUUID(), tabIndex: note.tabIndex + 1 }
-    await notes.saveAll([note, companion])
+    for (const entry of [companion, note]) await notes.save(entry)
     const before = await order.read()
     const position = mobileNotePosition(before.ids, note.id)
     const originalDelete = IDBObjectStore.prototype.delete
@@ -357,7 +371,7 @@ describe("메모 저장소 모델", () => {
       id: "note-storage-model-three",
       tabIndex: 1002,
     }
-    await notes.saveAll([note, secondNote, thirdNote])
+    for (const entry of [thirdNote, secondNote, note]) await notes.save(entry)
     await notes.remove({ id: secondNote.id, revision: secondNote.revision })
     const afterRemoval = await notes.getAll()
     expect(afterRemoval).toHaveLength(2)
@@ -365,12 +379,7 @@ describe("메모 저장소 모델", () => {
     expect(noteById(afterRemoval, thirdNote.id)).toEqual(thirdNote)
     expect(afterRemoval.some((current) => current.id === secondNote.id)).toBe(false)
 
-    const afterMove = sendNoteToFront(
-      [note, thirdNote],
-      note.id,
-      "2026-09-01T00:00:01.000Z",
-    )
-    await notes.saveAll(afterMove)
+    await notes.moveInStack(noteById(afterRemoval, note.id), "front", "2026-09-01T00:00:01.000Z")
     await notes.save(secondNote)
     firstConnection.close()
 
@@ -388,12 +397,7 @@ describe("메모 저장소 모델", () => {
       geometry: { ...thirdNote.geometry, zIndex: 1 },
     })
 
-    const afterSecondMove = sendNoteToFront(
-      restored,
-      secondNote.id,
-      "2026-09-01T00:00:02.000Z",
-    )
-    await restoredNotes.saveAll(afterSecondMove)
+    await restoredNotes.moveInStack(noteById(restored, secondNote.id), "front", "2026-09-01T00:00:02.000Z")
     restoredConnection.close()
 
     const finalConnection = createConnection()
@@ -421,8 +425,8 @@ describe("메모 저장소 모델", () => {
       tabIndex: note.tabIndex + 1,
     }
     const original = [note, companion]
-    await notes.saveAll(original)
-    const moved = sendNoteToFront(original, note.id, timestamp)
+    for (const entry of [...original].reverse()) await notes.save(entry)
+    const target = noteById(await notes.getAll(), note.id)
     const originalPut = IDBObjectStore.prototype.put
     let writes = 0
     const put = vi.spyOn(IDBObjectStore.prototype, "put")
@@ -430,7 +434,7 @@ describe("메모 저장소 모델", () => {
       const request = originalPut.call(this, value, key)
       if (this.name === "notes") {
         writes += 1
-        if (writes === moved.length) {
+        if (writes === original.length) {
           queueMicrotask(() => this.transaction.abort())
         }
       }
@@ -438,7 +442,7 @@ describe("메모 저장소 모델", () => {
     })
 
     try {
-      await expect(notes.saveAll(moved)).rejects.toThrow()
+      await expect(notes.moveInStack(target, "front", timestamp)).rejects.toThrow()
     } finally {
       put.mockRestore()
     }

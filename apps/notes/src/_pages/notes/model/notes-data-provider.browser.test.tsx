@@ -159,7 +159,7 @@ function createRepository(
     async get(id) { return (await this.getAll()).find((record) => record.id === id) ?? null },
     saveGeometry(note, geometry, updatedAt) { return this.save({ ...note, geometry, updatedAt }) },
     saveEdit(_original, edited) { return this.save(edited) },
-    saveAll: async (notes) => notes,
+    async moveInStack() { return { notes: await this.getAll(), changedIds: [] } },
   }
 }
 
@@ -202,7 +202,7 @@ function createDelayedSaveRepository(note: Note) {
     async get(id) { return (await this.getAll()).find((record) => record.id === id) ?? null },
     saveGeometry(note, geometry, updatedAt) { return this.save({ ...note, geometry, updatedAt }) },
     saveEdit(_original, edited) { return this.save(edited) },
-    saveAll: async (notes) => notes,
+    async moveInStack() { return { notes: await this.getAll(), changedIds: [] } },
   }
 
   return {

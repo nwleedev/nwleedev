@@ -59,7 +59,7 @@ function createStorage(initialNote: Note, rejectFirstSave = true) {
     async get(id) { return (await this.getAll()).find((record) => record.id === id) ?? null },
     saveGeometry(note, geometry, updatedAt) { return this.save({ ...note, geometry, updatedAt }) },
     saveEdit(_original, edited) { return this.save(edited) },
-    saveAll: async (records) => records,
+    async moveInStack() { return { notes: await this.getAll(), changedIds: [] } },
   }
   const drafts: NoteDraftRepository = {
     get: async (reference) =>
