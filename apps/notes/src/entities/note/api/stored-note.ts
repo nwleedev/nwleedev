@@ -23,11 +23,11 @@ const UpdateSchema = z.object({
   payload: z.instanceof(Uint8Array),
 })
 
-export function storeNote(note: Note, position: number, previous?: z.infer<typeof StoredNoteSchema>) {
+export function storeNote(note: Note, position: number, previous?: z.infer<typeof StoredNoteSchema>, restored = false) {
   const { content, ...fields } = note
   let body: Uint8Array | undefined = previous?.body
   if (body === undefined) {
-    body = NoteBody.fromText(content).snapshot()
+    body = (restored ? NoteBody.restore(content) : NoteBody.fromText(content)).snapshot()
   } else if (previous && note.contentRevision > previous.contentRevision) {
     const edited = new NoteBody(body)
     edited.updateText(content)

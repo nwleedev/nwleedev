@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, assert, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   IndexedDbNoteDraftRepository,
@@ -93,6 +93,25 @@ describe("메모 저장소 모델", () => {
     await first.remove(note)
     await expect(second.appendUpdate(update)).resolves.toBe(false)
     expect(await readUpdates()).toEqual([])
+  })
+
+  it("삭제 시점의 저장 본문만 같은 ID로 복원하고 삭제 전 편집기의 늦은 저장을 거절한다", async () => {
+    const writer = new IndexedDbNoteRepository(createConnection())
+    const remover = new IndexedDbNoteRepository(createConnection())
+    const opened = await writer.save({ ...note, content: "빵" })
+    const empty = await writer.saveEdit(opened, reviseNote(opened, { content: "", updatedAt: timestamp }))
+    assert(empty)
+    const deleted = await remover.remove(opened)
+    expect(deleted?.content).toBe("")
+    assert(deleted)
+    const late = reviseNote(empty, { content: "달걀", updatedAt: timestamp })
+    await expect(writer.saveEdit(empty, late)).resolves.toBeNull()
+    const [restored] = await Promise.all([writer.restore(deleted), remover.restore(deleted)])
+    await expect(writer.saveEdit(empty, late)).resolves.toBeNull()
+    await writer.saveEdit(restored, reviseNote(restored, { content: "우유", updatedAt: timestamp }))
+    await remover.restore(deleted)
+    expect((await new IndexedDbNoteRepository(createConnection()).getAll()).map(({ id, content }) => [id, content]))
+      .toEqual([[note.id, "우유"]])
   })
 
   it("두 창이 같은 본문에서 편집하고 정리 도중 들어온 변경도 새 연결에서 읽는다", async () => {

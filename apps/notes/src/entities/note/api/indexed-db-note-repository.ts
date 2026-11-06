@@ -1,6 +1,6 @@
 import { toTimestamp, RevisionSchema } from "@/shared/lib/entity-metadata"
 
-import { openNoteBody, rememberNoteBody } from "../model/note-body"
+import { NoteBody, openNoteBody, rememberNoteBody } from "../model/note-body"
 import {
   abortTransaction,
   readRequest,
@@ -31,7 +31,7 @@ type TextUpdate = { id: string; noteId: string; payload: Uint8Array }
 
 export class IndexedDbNoteRepository implements NoteRepository {
   readonly #connection: IndexedDbConnection
-  readonly #pendingEdits = new WeakMap<Note, { text: string; snapshot: Uint8Array; update: TextUpdate }>()
+  readonly #pendingEdits = new WeakMap<Note, { text: string; restoration?: string; snapshot: Uint8Array; update: TextUpdate }>()
 
   constructor(connection: IndexedDbConnection) {
     this.#connection = connection
@@ -112,6 +112,14 @@ export class IndexedDbNoteRepository implements NoteRepository {
   }
 
   async save(note: Note, position?: MobileNotePosition) {
+    return this.#save(note, position, false)
+  }
+
+  async restore(note: Note, position?: MobileNotePosition) {
+    return this.#save(note, position, true)
+  }
+
+  async #save(note: Note, position: MobileNotePosition | undefined, restoring: boolean) {
     const record = parseNoteRecord(note)
     const database = await this.#connection.get()
     const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
@@ -120,6 +128,11 @@ export class IndexedDbNoteRepository implements NoteRepository {
       const store = transaction.objectStore(NOTE_STORE_NAME)
       const stored: unknown = await readRequest(store.get(record.id))
       const previous = stored === undefined ? undefined : StoredNoteSchema.parse(stored)
+      if (restoring && previous) {
+        const existing = await this.#readNote(previous, transaction.objectStore("updates"))
+        await completion
+        return existing
+      }
       let rank: number
       if (previous === undefined) {
         const ids = await readMobileIds(store)
@@ -128,7 +141,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
       } else {
         rank = previous.position
       }
-      const next = storeNote(record, rank, previous)
+      const next = storeNote(record, rank, previous, restoring)
       store.put(next)
       const saved = await this.#readNote(next, transaction.objectStore("updates"))
       await completion
@@ -177,11 +190,12 @@ export class IndexedDbNoteRepository implements NoteRepository {
       change = {
         update: { id: crypto.randomUUID(), noteId: original.id, payload },
         text: edited.content,
+        restoration: body.restoration,
         snapshot: body.snapshot(),
       }
       this.#pendingEdits.set(original, change)
     }
-    const stored = await this.#writeUpdate(change.update, edited.updatedAt)
+    const stored = await this.#writeUpdate(change.update, edited.updatedAt, change.restoration)
     if (!stored) return null
     const saved = { ...edited, revision: stored.revision, contentRevision: stored.contentRevision }
     rememberNoteBody(saved, change.snapshot)
@@ -193,7 +207,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
     return (await this.#writeUpdate(update)) !== null
   }
 
-  async #writeUpdate(update: TextUpdate, updatedAt?: string) {
+  async #writeUpdate(update: TextUpdate, updatedAt?: string, restoration?: string) {
     const database = await this.#connection.get()
     const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
     const completion = waitForTransaction(transaction)
@@ -206,6 +220,10 @@ export class IndexedDbNoteRepository implements NoteRepository {
       }
       const updates = transaction.objectStore("updates")
       let record = StoredNoteSchema.parse(value)
+      if (new NoteBody(record.body).restoration !== restoration) {
+        await completion
+        return null
+      }
       const previous = await readRequest(updates.get([update.id, update.noteId]))
       if (previous === undefined) {
         updates.add(update)
@@ -244,20 +262,16 @@ export class IndexedDbNoteRepository implements NoteRepository {
 
       if (stored === undefined) {
         await completion
-        return
-      }
-
-      const note = StoredNoteSchema.parse(stored)
-
-      if (note.revision !== reference.revision) {
-        throw new StaleNoteRevisionError()
+        return null
       }
 
       const updates = transaction.objectStore("updates")
+      const note = await this.#readNote(stored, updates)
       const keys = await readRequest(updates.index("noteId").getAllKeys(reference.id))
       for (const key of keys) updates.delete(key)
       store.delete(reference.id)
       await completion
+      return note
     } catch (error) {
       await abortTransaction(transaction, completion)
       throw error

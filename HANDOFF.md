@@ -6,7 +6,7 @@
 
 [모바일 목록 순서](docs/designs/personal-notes-app-8fd/requirements.md#모바일-메모-목록의-순서)는 `notes.position`에 저장한다. 다른 창에서 새 메모를 추가하는 동안에도 기존 메모의 드래그를 반영한다.
 
-[편집 중 다른 창에서 메모를 삭제한 경우](docs/designs/personal-notes-app-8fd/requirements.md#편집-중-다른-창에서-메모를-삭제한-경우)에 모바일 편집 잠금과 명시적 복원, 데스크탑 토스트의 동작을 정했다. 모바일 복원은 삭제 전에 저장된 본문만 사용한다. [미저장 입력을 포함하는 복원](docs/designs/personal-notes-app-8fd/requirements.md#그-밖의-후속-항목)은 백로그다. 최종 서버 저장 방식은 미정이다.
+[편집 중 다른 창에서 메모를 삭제한 경우](docs/designs/personal-notes-app-8fd/requirements.md#편집-중-다른-창에서-메모를-삭제한-경우)에 모바일 편집 잠금과 명시적 복원, 데스크탑 토스트의 동작을 정했다. 모바일 복원은 삭제 전에 저장된 본문만 사용한다. 삭제 당시 열려 있던 모바일 편집 화면은 각 화면을 나갈 때까지 복원할 수 있다. 마지막 복원 기회가 끝나면 보관한 본문을 정리한다. [미저장 입력을 포함하는 복원](docs/designs/personal-notes-app-8fd/requirements.md#그-밖의-후속-항목)은 백로그다. 최종 서버 저장 방식은 미정이다.
 
 [본문 자동 저장 실패](docs/designs/personal-notes-app-8fd/requirements.md#본문-자동-저장-실패)는 데스크탑과 모바일 모두 내부 재시도로 처리한다. 현재 편집기에는 수동 재시도 버튼이 있어 구현과 동작 확인이 남아 있다.
 

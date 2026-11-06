@@ -385,21 +385,22 @@ export function useNotesDataModel({
         throw new Error("Cannot remove a missing note")
       }
 
-      await repository.remove(createNoteReference(currentNote))
+      const deleted = await repository.remove(createNoteReference(currentNote))
+      if (!deleted) throw new Error("Cannot remove a missing note")
       const notes = availableNotesReference.current.filter(
         ({ id }) => id !== currentNote.id,
       )
       const draftContentById = { ...draftContentReference.current }
       delete draftContentById[currentNote.id]
       publishAvailable(notes, draftContentById)
-      return currentNote
+      return deleted
     })
   }
 
   async function restoreNote(note: Note, position?: MobileNotePosition) {
     return enqueue(async () => {
-      const savedNote = await repository.save(note, position)
-      const notes = [...availableNotesReference.current, savedNote]
+      const savedNote = await repository.restore(note, position)
+      const notes = [...availableNotesReference.current.filter(({ id }) => id !== note.id), savedNote]
       publishAvailable(notes, draftContentReference.current)
       return savedNote
     })

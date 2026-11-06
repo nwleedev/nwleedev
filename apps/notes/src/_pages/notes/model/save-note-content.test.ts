@@ -56,7 +56,8 @@ function createStorage(options: {
   }
   const notes: NoteRepository = {
     getAll: async () => [storedNote],
-    remove: async () => undefined,
+    remove(note) { return this.get(note.id) },
+    restore(note) { return this.save(note) },
     save: async (nextNote) => {
       if (options.noteFailure) {
         throw new Error("Note storage failed")

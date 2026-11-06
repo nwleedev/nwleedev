@@ -50,6 +50,16 @@ export class NoteBody {
     return body
   }
 
+  static restore(value: string) {
+    const body = NoteBody.fromText(value)
+    body.#document.getMap("metadata").set("restoration", crypto.randomUUID())
+    return body
+  }
+
+  get restoration() {
+    return this.#document.getMap<string>("metadata").get("restoration")
+  }
+
   get text() {
     return this.#text.toString()
   }
