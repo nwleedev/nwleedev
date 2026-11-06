@@ -23,6 +23,11 @@ async function createNotesBeyondViewport(page: Page) {
   return contents.reverse()
 }
 
+test("사용 기록 주소는 서버 구현 전까지 열리지 않는다", async ({ page }) => {
+  const response = await page.goto("/usage/")
+  expect(response?.status()).toBe(404)
+})
+
 test("좁은 메모 목록의 탐색을 닫은 뒤 보조 화면으로 이동한다", async ({ page }) => {
   await page.goto("/")
   const trigger = page.getByRole("button", { name: "탐색 열기" })
@@ -38,11 +43,11 @@ test("좁은 메모 목록의 탐색을 닫은 뒤 보조 화면으로 이동한
   await expect(trigger).toBeFocused()
 
   await trigger.click()
-  await drawer.getByRole("link", { name: "사용 빈도" }).click()
-  await expect(page).toHaveURL("/usage/")
-  await expect(page.getByRole("heading", { name: "사용 빈도" })).toBeVisible()
+  await drawer.getByRole("link", { name: "텍스트 분석" }).click()
+  await expect(page).toHaveURL("/analysis/")
+  await expect(page.getByRole("heading", { name: "텍스트 분석" })).toBeVisible()
   await page.getByRole("button", { name: "탐색 열기" }).click()
-  await expect(drawer.getByRole("link", { name: "사용 빈도" })).toHaveAttribute("aria-current", "page")
+  await expect(drawer.getByRole("link", { name: "텍스트 분석" })).toHaveAttribute("aria-current", "page")
   await drawer.getByRole("button", { name: "탐색 닫기" }).click()
   await expect(drawer).toBeHidden()
 })
@@ -67,12 +72,6 @@ test("보조 화면은 내용에 맞게 문서 스크롤을 허용한다", async
   const viewport = page.viewportSize()
   expect(viewport).not.toBeNull()
   const screens = [
-    {
-      heading: "사용 빈도",
-      endContent: () =>
-        page.getByRole("status").filter({ hasText: "복사 기록이 없습니다." }),
-      route: "/usage/",
-    },
     {
       heading: "텍스트 분석",
       endContent: () => page.getByText("아직 분석하지 않았습니다."),
@@ -329,7 +328,7 @@ test("긴 메모를 스크롤해도 편집 이력 버튼과 저장 상태가 화
 test("데스크탑 탐색은 글자를 두 배로 키워도 메뉴를 읽고 이동할 수 있다", async ({ page }, testInfo) => {
   for (const width of [1280, 768]) {
     await page.setViewportSize({ width, height: 720 })
-    await page.goto("/usage/")
+    await page.goto("/analysis/")
     const navigation = page.getByRole("navigation", { name: "주요 화면", exact: true })
     const links = navigation.getByRole("link")
     const originalFont = await navigation.getByRole("link", { name: "메모", exact: true }).evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize))

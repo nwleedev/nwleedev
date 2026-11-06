@@ -5,8 +5,6 @@ import type { MobileNotePosition } from "./mobile-note-order"
 import {
   EntityIdSchema,
   TimestampSchema,
-  RevisionSchema,
-  type Revision,
 } from "@/shared/lib/entity-metadata"
 
 export const NOTE_CANVAS_SIZE = 4096
@@ -45,7 +43,6 @@ export const NoteTabIndexSchema = z
 export const NoteRecordSchema = z
   .object({
     content: z.string(),
-    contentRevision: RevisionSchema,
     createdAt: TimestampSchema,
     geometry: NoteGeometrySchema,
     id: EntityIdSchema,
@@ -54,17 +51,9 @@ export const NoteRecordSchema = z
   })
   .strict()
 
-export const NoteContentReferenceSchema = z
-  .object({
-    contentRevision: RevisionSchema,
-    id: EntityIdSchema,
-  })
-  .strict()
-
 export type NoteGeometry = z.infer<typeof NoteGeometrySchema>
 export type NoteTabIndex = z.infer<typeof NoteTabIndexSchema>
 export type Note = z.infer<typeof NoteRecordSchema>
-export type NoteContentReference = z.infer<typeof NoteContentReferenceSchema>
 
 export interface NoteReader {
   getAll(): Promise<readonly Note[]>
@@ -82,7 +71,7 @@ export interface NoteRepository extends NoteReader {
   restore(note: Note, position?: MobileNotePosition): Promise<Note>
 }
 
-export type NoteRevision = {
+export type NoteChange = {
   content?: string
   geometry?: NoteGeometry
   updatedAt: number
@@ -98,15 +87,7 @@ export function geometriesAreEqual(left: NoteGeometry, right: NoteGeometry) {
   )
 }
 
-function incrementRevision(revision: Revision) {
-  if (revision >= Number.MAX_SAFE_INTEGER) {
-    throw new RangeError("Revision cannot exceed the safe integer range")
-  }
-
-  return revision + 1
-}
-
-export function reviseNote(note: Note, change: NoteRevision): Note {
+export function reviseNote(note: Note, change: NoteChange): Note {
   const contentChanged =
     change.content !== undefined && change.content !== note.content
   const geometryChanged =
@@ -121,9 +102,6 @@ export function reviseNote(note: Note, change: NoteRevision): Note {
     ...note,
     ...(contentChanged ? { content: change.content } : {}),
     ...(geometryChanged ? { geometry: change.geometry } : {}),
-    contentRevision: contentChanged
-      ? incrementRevision(note.contentRevision)
-      : note.contentRevision,
     updatedAt: change.updatedAt,
   }
 }

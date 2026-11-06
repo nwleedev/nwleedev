@@ -24,7 +24,6 @@ function createStoredNote(): Note {
 
   return {
     content: "저장된 원문",
-    contentRevision: 0,
     createdAt: timestamp,
     geometry: { height: 240, width: 320, x: 20, y: 20, zIndex: 1 },
     id: crypto.randomUUID(),
@@ -103,7 +102,6 @@ async function renderDetail(noteId: string, storage: ReturnType<typeof createSto
           moveMobileNote={unexpectedMobileOrderAccess}
           repository={storage.notes}
           storageMonitor={monitor}
-          usage={{ recordIndividualCopy: async () => undefined }}
         >
           <NoteDetailPage noteId={noteId} />
         </NotesDataProvider>

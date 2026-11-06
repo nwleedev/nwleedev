@@ -3,7 +3,6 @@ import { z } from "zod"
 import {
   EntityIdSchema,
   TimestampSchema,
-  RevisionSchema,
 } from "@/shared/lib/entity-metadata"
 
 const LiteralSegmentSchema = z
@@ -71,7 +70,6 @@ export const TemplateRecordSchema = z
   .object({
     createdAt: TimestampSchema,
     id: EntityIdSchema,
-    revision: RevisionSchema,
     segments: z.array(TemplateSegmentSchema),
     title: TemplateTitleSchema,
     updatedAt: TimestampSchema,

@@ -7,7 +7,6 @@ import {
   useNoteSessionCommands,
 } from "@/_pages/notes/composition"
 import { useInteractionPreferences } from "@/_pages/settings/composition"
-import { UsageReaderProvider } from "@/_pages/usage/composition"
 import { SelectedSourceLinesProvider } from "@/features/suggest-template"
 import { ActionToastProvider } from "@/shared/ui/action-toast"
 
@@ -18,7 +17,6 @@ import { Note } from "../composition/note"
 import { Preference } from "../composition/preference"
 import { Template } from "../composition/template"
 import { useDatabase } from "../composition/use-database"
-import { useUsageRepository } from "../composition/use-usage-repository"
 import { BatchCopyProvider } from "./batch-copy-provider"
 
 type ConnectedProvidersProps = PropsWithChildren<{
@@ -31,7 +29,6 @@ function ConnectedProviders({
 }: ConnectedProvidersProps) {
   const { forgetBatchCopyItem } = useNoteSessionCommands()
   const preferenceState = useInteractionPreferences()
-  const usage = useUsageRepository(database)
   const batchCopyShortcutEnabled =
     "preferences" in preferenceState
       ? preferenceState.preferences.batchCopyShortcutEnabled
@@ -42,28 +39,24 @@ function ConnectedProviders({
       : false
 
   return (
-    <UsageReaderProvider reader={usage}>
-      <MobileBatchCopy
+    <MobileBatchCopy
+      reorderButtonsEnabled={batchCopyReorderButtonsEnabled}
+    >
+      <BatchCopyProvider
         database={database}
+        onItemRemoved={forgetBatchCopyItem}
         reorderButtonsEnabled={batchCopyReorderButtonsEnabled}
       >
-        <BatchCopyProvider
-          database={database}
-          onItemRemoved={forgetBatchCopyItem}
-          reorderButtonsEnabled={batchCopyReorderButtonsEnabled}
-        >
-          <Analysis database={database}>
-            <Note
-              batchCopyShortcutEnabled={batchCopyShortcutEnabled}
-              database={database}
-              usage={usage}
-            >
-              {children}
-            </Note>
-          </Analysis>
-        </BatchCopyProvider>
-      </MobileBatchCopy>
-    </UsageReaderProvider>
+        <Analysis database={database}>
+          <Note
+            batchCopyShortcutEnabled={batchCopyShortcutEnabled}
+            database={database}
+          >
+            {children}
+          </Note>
+        </Analysis>
+      </BatchCopyProvider>
+    </MobileBatchCopy>
   )
 }
 

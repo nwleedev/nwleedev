@@ -10,46 +10,26 @@ import {
 } from "@/entities/batch-copy"
 import type { Note } from "@/entities/note"
 
-import type { MobileBatchCopyUsageWriter } from "./mobile-batch-copy-usage-writer"
-
 type MobileBatchCopyDependencies = {
   createId(): string
   now(): number
 }
 
-export type AddMobileBatchCopyResult =
-  | { draft: MobileBatchCopyDraft; status: "added" }
-  | { status: "failure" }
-
-export async function addNoteToMobileBatchCopy(
-  dependencies: MobileBatchCopyDependencies & {
-    writer: MobileBatchCopyUsageWriter
-  },
+export function addNoteToMobileBatchCopy(
+  dependencies: MobileBatchCopyDependencies,
   draft: MobileBatchCopyDraft | null,
   note: Note,
-): Promise<AddMobileBatchCopyResult> {
+): MobileBatchCopyDraft {
   const updatedAt = dependencies.now()
   const entry: MobileBatchCopyEntry = {
     id: dependencies.createId(),
-    sourceNote: {
-      contentRevision: note.contentRevision,
-      id: note.id,
-    },
+    sourceNote: { id: note.id },
     textSnapshot: note.content,
-  }
-
-  try {
-    await dependencies.writer.record(note, updatedAt)
-  } catch {
-    return { status: "failure" }
   }
 
   const current = draft ?? beginMobileBatchCopy({ id: dependencies.createId(), startedAt: updatedAt })
 
-  return {
-    draft: addMobileBatchCopyEntry(current, entry, updatedAt),
-    status: "added",
-  }
+  return addMobileBatchCopyEntry(current, entry, updatedAt)
 }
 
 export function resetMobileBatchCopySession(

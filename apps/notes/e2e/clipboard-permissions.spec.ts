@@ -13,7 +13,6 @@ import { ExplorationInvariantError } from "@/shared/lib/note-model-exploration"
 
 import { readAppRevision } from "../test-app-revision.js"
 import { createNoteThroughUi } from "./support/create-note-through-ui"
-import { readStoredNote } from "./support/read-stored-note"
 import { selectTextRange } from "./support/select-text-range"
 
 const applicationOrigin = "http://localhost:4173"
@@ -192,7 +191,7 @@ async function createGeneratedTemplate(page: Page) {
   }
 }
 
-test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", async ({
+test("Command 키로 원문을 복사하고 일괄 복사 패널에 담는다", async ({
   context,
   page,
 }) => {
@@ -210,8 +209,6 @@ test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", 
   const replacementEditor = replacementNote.getByRole("textbox", {
     name: "메모 내용",
   })
-  let originalIndividualCopies = 0
-  let batchCopies = 0
 
   async function copyIndividual(editorToCopy: Locator) {
     await editorToCopy.click({ modifiers: ["Meta"] })
@@ -219,7 +216,6 @@ test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", 
 
   async function copyOriginalIndividual() {
     await copyIndividual(editor)
-    originalIndividualCopies += 1
   }
 
   await editor.focus()
@@ -266,7 +262,7 @@ test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", 
   expect(
     Math.abs(desktopToast!.x + desktopToast!.width / 2 - desktopViewport!.width / 2),
   ).toBeLessThanOrEqual(1)
-  await page.getByRole("link", { exact: true, name: "사용 빈도" }).click()
+  await page.getByRole("link", { exact: true, name: "설정" }).click()
   await expect(copyNotice).toBeVisible()
   const desktopToastAfterNavigation = await readStableScreenPosition(copyNotice)
   expect(desktopToastAfterNavigation).toEqual(desktopToastBeforeNavigation)
@@ -294,27 +290,12 @@ test("Command 키로 원문을 복사하고 두 사용 횟수를 구분한다", 
   await page.clock.fastForward(toastLifetimeMs / 2)
   await expect(copyNotice).toBeHidden()
   await editor.click({ modifiers: ["Meta", "Alt"] })
-  batchCopies += 1
   const panel = page.getByRole("complementary", { name: "일괄 복사" })
   await expect(panel).toBeVisible()
   await panel.getByRole("button", { name: "일괄 복사 패널 닫기" }).click()
-  await page.getByRole("link", { exact: true, name: "사용 빈도" }).click()
-  await page.setViewportSize({ height: 720, width: 320 })
-
-  const usageRow = page.getByRole("row").filter({ hasText: content })
-  const totalCopies = originalIndividualCopies + batchCopies
-  await expect(
-    usageRow.getByRole("cell", { name: `개별 복사 ${originalIndividualCopies}회` }),
-  ).toBeVisible()
-  await expect(
-    usageRow.getByRole("cell", { name: `일괄 복사 ${batchCopies}회` }),
-  ).toBeVisible()
-  await expect(
-    usageRow.getByRole("cell", { name: `합계 ${totalCopies}회` }),
-  ).toBeVisible()
 })
 
-test("클립보드 권한이 거절되면 원인을 알리고 일반 복사 횟수를 늘리지 않는다", async ({
+test("클립보드 권한이 거절되면 원인을 알린다", async ({
   context,
   page,
 }) => {
@@ -373,18 +354,6 @@ test("클립보드 권한이 거절되면 원인을 알리고 일반 복사 횟�
   await expect(batchCopyAlert).toBeVisible()
 
   await panel.getByRole("button", { name: "일괄 복사 패널 닫기" }).click()
-  await page.getByRole("link", { exact: true, name: "사용 빈도" }).click()
-  await page.setViewportSize({ height: 720, width: 320 })
-  const usageRow = page.getByRole("row").filter({ hasText: content })
-  await expect(
-    usageRow.getByRole("cell", { name: "개별 복사 0회" }),
-  ).toBeVisible()
-  await expect(
-    usageRow.getByRole("cell", { name: "일괄 복사 1회" }),
-  ).toBeVisible()
-  await expect(
-    usageRow.getByRole("cell", { name: "합계 1회" }),
-  ).toBeVisible()
 })
 
 test("권한 거절 뒤 다시 시도하면 같은 메모 원문을 복사한다", async ({
@@ -424,101 +393,6 @@ test("권한 거절 뒤 다시 시도하면 같은 메모 원문을 복사한다
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()))
     .toBe(content)
 
-  await page.getByRole("link", { exact: true, name: "사용 빈도" }).click()
-  await page.setViewportSize({ height: 720, width: 320 })
-  const usageRow = page.getByRole("row").filter({ hasText: content })
-  await expect(usageRow.getByRole("cell", { name: "개별 복사 1회" })).toBeVisible()
-})
-
-test("원문을 수정한 뒤 복사하면 이전 기록과 새 기록을 나누고 실패한 횟수는 더하지 않는다", async ({
-  context,
-  page,
-}) => {
-  await context.grantPermissions(
-    ["clipboard-read", "clipboard-write"],
-    { origin: applicationOrigin },
-  )
-  await page.goto("/")
-  const firstContent = crypto.randomUUID()
-  const secondContent = crypto.randomUUID()
-  const note = await createNoteThroughUi(page, firstContent)
-  const editor = note.getByRole("textbox", { name: "메모 내용" })
-  const articleId = await note.getAttribute("id")
-  expect(articleId).not.toBeNull()
-  const noteId = decodeURIComponent(
-    articleId!.slice("note-".length, -"-board".length),
-  )
-
-  await note.getByRole("button", { name: "메모 복사" }).click()
-  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toBe(firstContent)
-  await editor.click({ modifiers: ["Meta", "Alt"] })
-  const batchPanel = page.getByRole("complementary", { name: "일괄 복사" })
-  await expect(batchPanel).toBeVisible()
-  await batchPanel.getByRole("button", { name: "일괄 복사 패널 닫기" }).click()
-
-  await editor.fill(secondContent)
-  await editor.press("Tab")
-  await expect.poll(async () => (await readStoredNote(page, noteId))?.content)
-    .toBe(secondContent)
-  await page.reload()
-  const revisedNote = page.getByRole("article", { name: "메모" })
-  await expect(revisedNote.getByRole("textbox", { name: "메모 내용" }))
-    .toHaveValue(secondContent)
-  await revisedNote.getByRole("button", { name: "메모 복사" }).click()
-  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toBe(secondContent)
-
-  await page.evaluate(() => {
-    const originalPut = IDBObjectStore.prototype.put
-    let failOnce = true
-
-    IDBObjectStore.prototype.put = function (value: unknown, key?: IDBValidKey) {
-      const request = key === undefined
-        ? originalPut.call(this, value)
-        : originalPut.call(this, value, key)
-
-      if (this.name === "usage" && failOnce) {
-        failOnce = false
-        this.transaction.abort()
-      }
-
-      return request
-    }
-  })
-  await revisedNote.getByRole("button", { name: "메모 복사" }).click()
-  await expect(page.getByRole("alert").filter({
-    hasText: "텍스트는 복사했지만 사용 횟수를 기록하지 못했습니다.",
-  })).toBeVisible()
-  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()))
-    .toBe(secondContent)
-
-  await page.getByRole("link", { exact: true, name: "사용 빈도" }).click()
-  await page.setViewportSize({ height: 720, width: 320 })
-  const firstRow = page.getByRole("row").filter({ hasText: firstContent })
-  const secondRow = page.getByRole("row").filter({ hasText: secondContent })
-  await expect(firstRow.getByRole("cell", { name: "개별 복사 1회" })).toBeVisible()
-  await expect(firstRow.getByRole("cell", { name: "일괄 복사 1회" })).toBeVisible()
-  await expect(firstRow.getByRole("cell", { name: "합계 2회" })).toBeVisible()
-  await expect(secondRow.getByRole("cell", { name: "개별 복사 1회" })).toBeVisible()
-  await expect(secondRow.getByRole("cell", { name: "일괄 복사 0회" })).toBeVisible()
-  await expect(secondRow.getByRole("cell", { name: "합계 1회" })).toBeVisible()
-
-  const firstLabel = await firstRow.getByText(/원문 버전/u).textContent()
-  const secondLabel = await secondRow.getByText(/원문 버전/u).textContent()
-  const firstRevision = firstLabel?.match(/원문 버전 ([\d,]+)/u)?.[1]
-  const secondRevision = secondLabel?.match(/원문 버전 ([\d,]+)/u)?.[1]
-  expect(firstRevision).toBeDefined()
-  expect(secondRevision).toBeDefined()
-  expect(Number(secondRevision?.replaceAll(",", ""))).toBe(
-    Number(firstRevision?.replaceAll(",", "")) + 1,
-  )
-
-  await page.reload()
-  await expect(page.getByRole("row").filter({ hasText: firstContent }))
-    .toHaveCount(1)
-  await expect(page.getByRole("row").filter({ hasText: secondContent }))
-    .toHaveCount(1)
 })
 
 test("템플릿으로 만든 텍스트를 클립보드에 쓴다", async ({

@@ -27,15 +27,12 @@ export async function addNoteToBatchCopy(
   const item: BatchCopyItem = {
     addedAt: dependencies.now(),
     id: dependencies.createId(),
-    sourceNote: {
-      contentRevision: note.contentRevision,
-      id: note.id,
-    },
+    sourceNote: { id: note.id },
     textSnapshot: note.content,
   }
 
   try {
-    const list = await dependencies.writer.addAndRecordUsage(item)
+    const list = await dependencies.writer.add(item)
     return { item, list, status: "added" }
   } catch {
     return { status: "failure" }

@@ -15,7 +15,6 @@ import {
 
 const firstNote: Note = {
   content: "첫 번째",
-  contentRevision: 2,
   createdAt: Date.parse("2026-09-01T01:00:00.000Z"),
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: "note-1",

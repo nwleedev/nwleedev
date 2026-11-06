@@ -292,10 +292,7 @@ test("메모 누르기의 시간과 이동 기준 및 취소에서 추가와 복
   await body.tap()
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(content)
   await page.getByRole("button", { name: "탐색 열기" }).tap()
-  await page.getByRole("link", { exact: true, name: "사용 빈도" }).tap()
-  const row = page.getByRole("row").filter({ hasText: content })
-  await expect(row.getByRole("cell", { name: "개별 복사 2회" })).toBeVisible()
-  await expect(row.getByRole("cell", { name: "일괄 복사 2회" })).toBeVisible()
+  await expect(page.getByRole("link", { name: "사용 빈도" })).toHaveCount(0)
 })
 
 test("네 메모의 비인접 삽입을 브라우저 재실행 후에도 유지하고 데스크톱 자료를 보존한다", async ({ baseURL }, testInfo) => {

@@ -1,4 +1,3 @@
-import { RevisionSchema } from "@/shared/lib/entity-metadata"
 
 import { NoteBody, openNoteBody, rememberNoteBody, savedNoteBody } from "../model/note-body"
 import {
@@ -285,7 +284,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
     }
     const stored = await this.#writeUpdate(change.update, edited.updatedAt, change.restoration)
     if (!stored) return null
-    const saved = { ...edited, contentRevision: stored.contentRevision }
+    const saved = edited
     rememberNoteBody(saved, { bytes: change.snapshot, restoration: change.restoration })
     this.#pendingEdits.delete(original)
     return saved
@@ -318,7 +317,6 @@ export class IndexedDbNoteRepository implements NoteRepository {
         if (updatedAt !== undefined) {
           record = {
             ...record,
-            contentRevision: RevisionSchema.parse(record.contentRevision + 1),
             updatedAt,
           }
           notes.put(record)

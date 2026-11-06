@@ -15,7 +15,6 @@ import { saveNoteContent } from "./save-note-content"
 const initialTimestamp = Date.now()
 const initialNote: Note = {
   content: "저장된 원문",
-  contentRevision: 0,
   createdAt: initialTimestamp,
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: crypto.randomUUID(),

@@ -102,7 +102,6 @@ export function useTemplateDataState({
       const template = parseTemplateRecord({
         createdAt: timestamp,
         id: createId(),
-        revision: 0,
         segments: input.segments,
         title: input.title,
         updatedAt: timestamp,

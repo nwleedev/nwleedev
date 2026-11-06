@@ -12,7 +12,6 @@ import {
 
 const note: Note = {
   content: "저장된 원문",
-  contentRevision: 2,
   createdAt: Date.parse("2026-09-01T00:00:00.000Z"),
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: "note-save-state",
@@ -40,7 +39,6 @@ describe("note content save state", () => {
     const savedNote = {
       ...note,
       content: request.content,
-      contentRevision: 3,
     }
     const completed = completeNoteContentSave(saving.state, savedNote)
     const nextSave = beginNoteContentSave(
@@ -49,7 +47,7 @@ describe("note content save state", () => {
     )
 
     expect(nextSave.state).toMatchObject({
-      note: { content: "먼저 저장할 원문", contentRevision: 3 },
+      note: { content: "먼저 저장할 원문" },
       status: "saving",
     })
     expect(nextSave.request?.content).toBe("저장 중에 추가한 원문")

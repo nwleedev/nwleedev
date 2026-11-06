@@ -17,7 +17,6 @@ export {
   NOTE_TAB_INDEX_MIN,
   NOTE_WIDTH_MAX,
   NOTE_WIDTH_MIN,
-  NoteContentReferenceSchema,
   NoteGeometrySchema,
   NoteRecordSchema,
   NoteTabIndexSchema,
@@ -25,11 +24,10 @@ export {
   parseNoteRecord,
   reviseNote,
   type Note,
-  type NoteContentReference,
   type NoteGeometry,
   type NoteReader,
   type NoteRepository,
-  type NoteRevision,
+  type NoteChange,
   type NoteTabIndex,
 } from "./model/note"
 export {

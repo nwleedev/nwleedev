@@ -2,7 +2,7 @@
 
 [여러 창 편집과 모바일 순서 구현 계획](docs/designs/personal-notes-app-8fd/plan.md#여러-창-편집과-모바일-목록-순서-구현-계획)은 CRDT 가능성 확인, 저장 자료 이전, 편집 및 복원 연결, 실제 브라우저 인수 순서로 진행한다. 저장과 구독은 기능 훅에 연결하고 표시 컴포넌트에는 값과 UI 이벤트만 전달한다. 저장 구조 이전에는 기존 ISO 시각을 밀리초 타임스탬프로 옮기는 작업도 포함한다.
 
-현재 IndexedDB 버전은 13이다. 메모, 일괄 복사, 사용 기록, 템플릿과 설정의 시각은 정수 밀리초로 저장한다. 구버전의 복구 가능한 초안은 저장된 CRDT 변경분으로 이전한다. 메모 전체의 `revision`은 제거했고, 복사 원문을 구별하는 데 쓰는 `contentRevision`의 제거는 남아 있다. [스키마 요구사항](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)
+현재 IndexedDB 버전은 14다. 사용 기록은 서버 구현 이후로 미뤘으며, 이전 시 로컬 사용 기록을 제거한다. 메모, 일괄 복사, 템플릿과 설정의 시각은 정수 밀리초로 저장한다. 메모의 원문 변경은 CRDT에 기록하고, 일괄 복사에 담은 항목은 메모 ID와 담을 당시 원문을 유지한다. 메모, 일괄 복사 목록, 템플릿의 수정 횟수는 저장하지 않는다. [스키마 요구사항](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)
 
 [모바일 목록 순서](docs/designs/personal-notes-app-8fd/requirements.md#모바일-메모-목록의-순서)는 `notes.position`에 저장한다. 다른 창에서 새 메모를 추가하는 동안에도 기존 메모의 드래그를 반영한다.
 

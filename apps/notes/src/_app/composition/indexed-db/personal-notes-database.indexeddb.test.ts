@@ -1,9 +1,7 @@
-import * as fc from "fast-check"
 import { afterEach, assert, beforeEach, describe, expect, it } from "vitest"
 
 import {
   IndexedDbBatchCopyItemWriter,
-  IndexedDbMobileBatchCopyUsageWriter,
 } from "@/features/add-note-to-batch-copy/index.browser"
 import {
   PRIMARY_BATCH_COPY_LIST_ID,
@@ -31,22 +29,11 @@ import {
   TEMPLATE_STORE_NAME,
   IndexedDbTemplateRepository,
 } from "@/entities/template/index.browser"
-import { TextUsageRecordSchema } from "@/entities/usage"
-import {
-  IndexedDbUsageRepository,
-  USAGE_BY_NOTE_CONTENT_INDEX,
-  USAGE_STORE_NAME,
-} from "@/entities/usage/index.browser"
-import {
-  CryptoEntityIdGenerator,
-  type EntityIdGenerator,
-} from "@/shared/lib/id-generation"
 import {
   openIndexedDatabase,
   readRequest,
   waitForTransaction,
 } from "@/shared/lib/indexed-db/index.browser"
-import { ExplorationInvariantError } from "@/shared/lib/note-model-exploration"
 
 import {
   DatabaseConnectionClosedError,
@@ -63,7 +50,6 @@ const timestamp = "2026-08-31T01:00:00.000Z"
 
 const note: Note = {
   content: "저장한 메모",
-  contentRevision: 0,
   createdAt: Date.parse(timestamp),
   geometry: { height: 240, width: 320, x: 40, y: 60, zIndex: 1 },
   id: "note-1",
@@ -74,7 +60,6 @@ const note: Note = {
 const template: TextTemplate = {
   createdAt: Date.parse(timestamp),
   id: "template-1",
-  revision: 0,
   segments: [{ kind: "literal", value: "저장한 문장" }],
   title: "저장한 템플릿",
   updatedAt: Date.parse(timestamp),
@@ -83,13 +68,13 @@ const template: TextTemplate = {
 const batchCopyItem: BatchCopyItem = {
   addedAt: Date.parse(timestamp),
   id: "item-1",
-  sourceNote: { contentRevision: 0, id: "note-1" },
+  sourceNote: { id: "note-1" },
   textSnapshot: "저장한 메모",
 }
 
 const noteDraft: NoteDraft = {
   content: "저장 전 메모",
-  note: { contentRevision: note.contentRevision, id: note.id },
+  note: { contentRevision: 0, id: note.id },
   updatedAt: timestamp,
 }
 
@@ -199,7 +184,7 @@ describe("personal notes IndexedDB storage", () => {
     })
     const write = previous.transaction("notes", "readwrite")
     const saved = waitForTransaction(write)
-    write.objectStore("notes").put({ ...note, createdAt: timestamp, updatedAt: timestamp, position: -1.5 })
+    write.objectStore("notes").put({ ...note, contentRevision: 0, createdAt: timestamp, updatedAt: timestamp, position: -1.5 })
     await saved
     previous.close()
 
@@ -226,7 +211,7 @@ describe("personal notes IndexedDB storage", () => {
     const write = previous.transaction(["notes", "updates", "noteDrafts"], "readwrite")
     const committed = waitForTransaction(write)
     write.objectStore("notes").put({
-      ...fields, position: 0, body: baseline.snapshot(),
+      ...fields, contentRevision: 0, position: 0, body: baseline.snapshot(),
       createdAt: note.createdAt, updatedAt: note.updatedAt,
     })
     write.objectStore("updates").put({ id: "saved", noteId: note.id, payload: baseline.updateText("편집 중 원문") })
@@ -269,7 +254,7 @@ describe("personal notes IndexedDB storage", () => {
     const write = previous.transaction("notes", "readwrite")
     const saved = waitForTransaction(write)
     write.objectStore("notes").put({
-      ...fields, body, position: 0,
+      ...fields, contentRevision: 0, body, position: 0,
       createdAt: "1970-01-01T08:59:59.999999+09:00",
       updatedAt: "2026-08-31T10:00:00.123456+09:00",
     })
@@ -292,8 +277,8 @@ describe("personal notes IndexedDB storage", () => {
     const companion = { ...note, id: crypto.randomUUID(), tabIndex: note.tabIndex + 1 }
     const transaction = previous.transaction(NOTE_STORE_NAME, "readwrite")
     const completed = waitForTransaction(transaction)
-    transaction.objectStore(NOTE_STORE_NAME).put({ ...companion, createdAt: timestamp, updatedAt: timestamp })
-    transaction.objectStore(NOTE_STORE_NAME).put({ ...note, createdAt: timestamp, updatedAt: timestamp })
+    transaction.objectStore(NOTE_STORE_NAME).put({ ...companion, contentRevision: 0, createdAt: timestamp, updatedAt: timestamp })
+    transaction.objectStore(NOTE_STORE_NAME).put({ ...note, contentRevision: 0, createdAt: timestamp, updatedAt: timestamp })
     await completed
     previous.close()
     const connection = createConnection()
@@ -314,8 +299,8 @@ describe("personal notes IndexedDB storage", () => {
     const companion = { ...note, id: crypto.randomUUID(), tabIndex: note.tabIndex + 1 }
     const write = previous.transaction(["notes", "mobileNoteOrder"], "readwrite")
     const saved = waitForTransaction(write)
-    write.objectStore("notes").put({ ...note, createdAt: timestamp, updatedAt: timestamp })
-    write.objectStore("notes").put({ ...companion, createdAt: timestamp, updatedAt: timestamp })
+    write.objectStore("notes").put({ ...note, contentRevision: 0, createdAt: timestamp, updatedAt: timestamp })
+    write.objectStore("notes").put({ ...companion, contentRevision: 0, createdAt: timestamp, updatedAt: timestamp })
     write.objectStore("mobileNoteOrder").put({ ids: [companion.id, note.id], revision: 4 }, "current")
     await saved
     previous.close()
@@ -348,10 +333,38 @@ describe("personal notes IndexedDB storage", () => {
     const [active, deleted] = await Promise.all([
       readRequest(store.get(record.id)), readRequest(store.get(otherId)), waitForTransaction(tx),
     ])
+    expect(active).not.toHaveProperty("contentRevision")
+    expect(deleted.removed).not.toHaveProperty("contentRevision")
     expect(active).not.toHaveProperty("revision")
     expect(deleted.removed).not.toHaveProperty("revision")
     expect(new NoteBody(deleted.removed.body).text).toBe(note.content)
     expect(active.geometry).toEqual(record.geometry)
+  })
+
+  it("v13을 열면 사용 기록을 제거하고 일괄 복사 원문과 목록 순서를 보존한다", async () => {
+    const item = { ...batchCopyItem, sourceNote: { id: note.id, contentRevision: 7 } }
+    const list = { id: "primary", content: { items: [item], separator: "/" }, revision: 3, updatedAt: note.updatedAt }
+    const previous = await openIndexedDatabase({
+      name: PERSONAL_NOTES_DATABASE_NAME,
+      version: 13,
+      upgrade(database) {
+        database.createObjectStore("templates", { keyPath: "id" }).add({ ...template, revision: 3 })
+        database.createObjectStore("usage", { keyPath: "id" }).add({ id: "old-copy" })
+        database.createObjectStore("batches", { keyPath: "id" }).add(list)
+      },
+    })
+    previous.close()
+    const database = await createConnection().get()
+    expect(database.objectStoreNames.contains("usage")).toBe(false)
+    const transaction = database.transaction(["batches", "templates"])
+    const [stored, savedTemplate] = await Promise.all([
+      readRequest(transaction.objectStore("batches").get(list.id)),
+      readRequest(transaction.objectStore("templates").get(template.id)),
+      waitForTransaction(transaction),
+    ])
+    expect(savedTemplate).not.toHaveProperty("revision")
+    expect(stored).not.toHaveProperty("revision")
+    expect(stored).toEqual({ id: list.id, updatedAt: list.updatedAt, content: { ...list.content, items: [{ ...item, sourceNote: { id: note.id } }] } })
   })
 
   it("v10 일괄 복사 항목과 목록의 시각을 밀리초로 이전하고 다음 쓰기에도 유지한다", async () => {
@@ -380,7 +393,7 @@ describe("personal notes IndexedDB storage", () => {
       return record
     }
     const expected = {
-      ...legacy,
+      id: legacy.id,
       updatedAt: Date.parse(timestamp),
       content: { ...legacy.content, items: [{ ...batchCopyItem, addedAt: -1 }] },
     }
@@ -393,51 +406,30 @@ describe("personal notes IndexedDB storage", () => {
   })
 
   it("restores all persistent records through a new connection", async () => {
-    const identifiers = new CryptoEntityIdGenerator()
     const firstConnection = createConnection()
     const notes = new IndexedDbNoteRepository(firstConnection)
-    const usage = new IndexedDbUsageRepository(
-      firstConnection,
-      identifiers,
-      () => Date.parse(timestamp),
-    )
     const templates = new IndexedDbTemplateRepository(firstConnection)
-    const mobileBatchCopyWriter = new IndexedDbMobileBatchCopyUsageWriter(
-      firstConnection,
-      identifiers,
-    )
     const preferences = new IndexedDbInteractionPreferencesRepository(
       firstConnection,
     )
     const batchCopyWriter = new IndexedDbBatchCopyItemWriter(
       firstConnection,
-      identifiers,
     )
 
     await notes.save(note)
-    await mobileBatchCopyWriter.record(note, Date.parse(timestamp))
     await templates.save(template)
     await preferences.save({
       batchCopyReorderButtonsEnabled: false,
       batchCopyShortcutEnabled: true,
       updatedAt: Date.parse(timestamp),
     })
-    await usage.recordIndividualCopy({
-      note: batchCopyItem.sourceNote,
-      textSnapshot: batchCopyItem.textSnapshot,
-    })
-    await batchCopyWriter.addAndRecordUsage(batchCopyItem)
+    await batchCopyWriter.add(batchCopyItem)
     firstConnection.close()
 
     const restoredConnection = createConnection()
     const restoredNotes = new IndexedDbNoteRepository(restoredConnection)
     const restoredBatchCopy = new IndexedDbBatchCopyRepository(
       restoredConnection,
-    )
-    const restoredUsage = new IndexedDbUsageRepository(
-      restoredConnection,
-      identifiers,
-      () => Date.parse(timestamp),
     )
     const restoredTemplates = new IndexedDbTemplateRepository(
       restoredConnection,
@@ -452,173 +444,12 @@ describe("personal notes IndexedDB storage", () => {
     expect(await restoredBatchCopy.get()).toMatchObject({
       content: { items: [{ id: batchCopyItem.id }] },
     })
-    expect(await restoredUsage.getAll()).toMatchObject([
-      { counts: { batchCopy: 2, individualCopy: 1 } },
-    ])
     expect(await restoredTemplates.getAll()).toMatchObject([
       { id: template.id, title: template.title },
     ])
     expect(await restoredPreferences.get()).toMatchObject({
       batchCopyShortcutEnabled: true,
     })
-  })
-
-  it("복사 당시 원문 버전별 횟수를 새 연결에서도 유지한다", async () => {
-    type UsageScenario = {
-      firstCopies: number
-      firstText: string
-      revision: number
-      secondCopies: number
-      suffix: string
-    }
-    const scenario = fc.record({
-      firstCopies: fc.integer({ min: 1, max: 3 }),
-      firstText: fc.string({ minLength: 1, maxLength: 16 }),
-      revision: fc.integer({ min: 0, max: 100 }),
-      secondCopies: fc.integer({ min: 1, max: 3 }),
-      suffix: fc.string({ minLength: 1, maxLength: 16 }),
-    })
-
-    async function run(
-      input: UsageScenario,
-      wrongRevision: boolean,
-    ) {
-      const firstConnection = createConnection()
-      const identifiers = new CryptoEntityIdGenerator()
-      const notes = new IndexedDbNoteRepository(firstConnection)
-      const usage = new IndexedDbUsageRepository(
-        firstConnection,
-        identifiers,
-        () => Date.parse(timestamp),
-      )
-      const batch = new IndexedDbBatchCopyItemWriter(
-        firstConnection,
-        identifiers,
-      )
-      const noteId = crypto.randomUUID()
-      const firstReference = {
-        contentRevision: input.revision,
-        id: noteId,
-      }
-      const secondReference = {
-        contentRevision: input.revision + 1,
-        id: noteId,
-      }
-      const secondText = input.firstText + input.suffix
-
-      const opened = await notes.save({
-        ...note,
-        content: input.firstText,
-        contentRevision: input.revision,
-        id: noteId,
-      })
-      for (let copy = 0; copy < input.firstCopies; copy += 1) {
-        await usage.recordIndividualCopy({
-          note: firstReference,
-          textSnapshot: input.firstText,
-        })
-      }
-      await batch.addAndRecordUsage({
-        ...batchCopyItem,
-        id: crypto.randomUUID(),
-        sourceNote: firstReference,
-        textSnapshot: input.firstText,
-      })
-      await notes.saveEdit(opened, {
-        ...opened,
-        content: secondText,
-        contentRevision: secondReference.contentRevision,
-        id: noteId,
-      })
-      for (let copy = 0; copy < input.secondCopies; copy += 1) {
-        await usage.recordIndividualCopy({
-          note: wrongRevision ? firstReference : secondReference,
-          textSnapshot: secondText,
-        })
-      }
-      firstConnection.close()
-
-      const restoredConnection = createConnection()
-      const restoredUsage = new IndexedDbUsageRepository(
-        restoredConnection,
-        identifiers,
-        () => Date.parse(timestamp),
-      )
-      const observed = (await restoredUsage.getAll())
-        .filter((record) => record.note.id === noteId)
-        .map((record) => ({
-          counts: record.counts,
-          revision: record.note.contentRevision,
-          text: record.textSnapshot,
-        }))
-        .sort((left, right) => left.revision - right.revision)
-      const expected = [
-        {
-          counts: { batchCopy: 1, individualCopy: input.firstCopies },
-          revision: input.revision,
-          text: input.firstText,
-        },
-        {
-          counts: { batchCopy: 0, individualCopy: input.secondCopies },
-          revision: input.revision + 1,
-          text: secondText,
-        },
-      ]
-
-      if (JSON.stringify(observed) !== JSON.stringify(expected)) {
-        throw new ExplorationInvariantError(
-          "usage-counts-follow-content-revision",
-          expected,
-          observed,
-        )
-      }
-    }
-
-    let normalRuns = 0
-    await fc.assert(
-      fc.asyncProperty(scenario, async (input) => {
-        normalRuns += 1
-        await run(input, false)
-      }),
-      { numRuns: 5, verbose: true },
-    )
-
-    const faulty = await fc.check(
-      fc.asyncProperty(scenario, async (input) => run(input, true)),
-      { numRuns: 10, verbose: true },
-    )
-    expect(faulty.failed).toBe(true)
-    expect(faulty.errorInstance).toBeInstanceOf(ExplorationInvariantError)
-    expect(faulty.counterexample).not.toBeNull()
-    const reduced = faulty.counterexample![0]
-
-    const replay = await fc.check(
-      fc.asyncProperty(scenario, async (input) => run(input, true)),
-      {
-        endOnFailure: true,
-        numRuns: 1,
-        path: faulty.counterexamplePath ?? undefined,
-        seed: faulty.seed,
-      },
-    )
-    expect(replay.errorInstance).toBeInstanceOf(ExplorationInvariantError)
-    await expect(run(reduced, true)).rejects.toMatchObject({
-      invariant: "usage-counts-follow-content-revision",
-    })
-    await expect(run(reduced, false)).resolves.toBeUndefined()
-
-    const failure = faulty.errorInstance as ExplorationInvariantError
-    console.info(JSON.stringify({
-      expected: failure.expected,
-      feature: "usage-projection",
-      initial: faulty.failures[0]?.[0] ?? null,
-      observed: failure.observed,
-      path: faulty.counterexamplePath,
-      reduced,
-      runs: normalRuns,
-      seed: faulty.seed,
-      shrinks: faulty.numShrinks,
-    }))
   })
 
   it("이전 자료를 옮기며 유효한 너비와 저장된 텍스트 순서를 보존한다", async () => {
@@ -630,11 +461,11 @@ describe("personal notes IndexedDB storage", () => {
         database.createObjectStore(previousBatchCopyStoreName, {
           keyPath: "id",
         })
-        const usageStore = database.createObjectStore(USAGE_STORE_NAME, {
+        const usageStore = database.createObjectStore("usage", {
           keyPath: "id",
         })
         usageStore.createIndex(
-          USAGE_BY_NOTE_CONTENT_INDEX,
+          "by-note-content",
           ["note.id", "note.contentRevision", "textSnapshot"],
           { unique: true },
         )
@@ -645,7 +476,7 @@ describe("personal notes IndexedDB storage", () => {
     })
     const previousNoteFields = {
       content: note.content,
-      contentRevision: note.contentRevision,
+      contentRevision: 0,
       createdAt: timestamp,
       geometry: note.geometry,
       id: note.id,
@@ -701,7 +532,7 @@ describe("personal notes IndexedDB storage", () => {
       [
         "notes",
         previousBatchCopyStoreName,
-        USAGE_STORE_NAME,
+        "usage",
         "preferences",
       ],
       "readwrite",
@@ -715,7 +546,7 @@ describe("personal notes IndexedDB storage", () => {
     transaction
       .objectStore(previousBatchCopyStoreName)
       .put(previousBatchCopyList)
-    transaction.objectStore(USAGE_STORE_NAME).put(previousUsage)
+    transaction.objectStore("usage").put(previousUsage)
     transaction.objectStore("preferences").put(
       { metaClickEnabled: false, updatedAt: timestamp },
       "interaction",
@@ -733,11 +564,6 @@ describe("personal notes IndexedDB storage", () => {
     const migratedBatchCopy = await new IndexedDbBatchCopyRepository(
       connection,
     ).get()
-    const migratedUsage = await new IndexedDbUsageRepository(
-      connection,
-      new CryptoEntityIdGenerator(),
-      () => Date.parse(timestamp),
-    ).getAll()
     const migratedPreferences =
       await new IndexedDbInteractionPreferencesRepository(connection).get()
 
@@ -747,9 +573,6 @@ describe("personal notes IndexedDB storage", () => {
     expect(migratedBatchCopy?.content.items.map(({ id }) => id)).toEqual([
       "item-1",
       "item-2",
-    ])
-    expect(migratedUsage).toMatchObject([
-      { counts: { batchCopy: 3, individualCopy: 2 } },
     ])
     expect(migratedPreferences).toMatchObject({
       batchCopyShortcutEnabled: false,
@@ -780,11 +603,11 @@ describe("personal notes IndexedDB storage", () => {
           keyPath: "id",
         })
         database.createObjectStore("mobileBatchCopyDrafts")
-        const usageStore = database.createObjectStore(USAGE_STORE_NAME, {
+        const usageStore = database.createObjectStore("usage", {
           keyPath: "id",
         })
         usageStore.createIndex(
-          USAGE_BY_NOTE_CONTENT_INDEX,
+          "by-note-content",
           ["note.id", "note.contentRevision", "textSnapshot"],
           { unique: true },
         )
@@ -802,7 +625,7 @@ describe("personal notes IndexedDB storage", () => {
     const usageRecord = {
       counts: { batchCopy: 3, individualCopy: 2 },
       id: "usage-preserved",
-      note: { contentRevision: note.contentRevision, id: note.id },
+      note: { contentRevision: 0, id: note.id },
       textSnapshot: note.content,
       updatedAt: timestamp,
     }
@@ -817,7 +640,7 @@ describe("personal notes IndexedDB storage", () => {
         "noteDrafts",
         "batchCopyLists",
         "mobileBatchCopyDrafts",
-        USAGE_STORE_NAME,
+        "usage",
         TEMPLATE_STORE_NAME,
         PREFERENCE_STORE_NAME,
       ],
@@ -825,14 +648,14 @@ describe("personal notes IndexedDB storage", () => {
     )
     const completed = waitForTransaction(transaction)
 
-    transaction.objectStore(NOTE_STORE_NAME).put({ ...note, createdAt: timestamp, updatedAt: timestamp })
+    transaction.objectStore(NOTE_STORE_NAME).put({ ...note, contentRevision: 0, createdAt: timestamp, updatedAt: timestamp })
     transaction.objectStore("noteDrafts").put(noteDraft)
     transaction.objectStore("batchCopyLists").put(batchCopyList)
     transaction.objectStore("mobileBatchCopyDrafts").put(
       { id: "active" },
       "active",
     )
-    transaction.objectStore(USAGE_STORE_NAME).put(usageRecord)
+    transaction.objectStore("usage").put(usageRecord)
     transaction.objectStore(TEMPLATE_STORE_NAME).put({ ...template, createdAt: timestamp, updatedAt: timestamp })
     transaction.objectStore(PREFERENCE_STORE_NAME).put(
       preferences,
@@ -843,192 +666,29 @@ describe("personal notes IndexedDB storage", () => {
 
     const connection = createConnection()
     const database = await connection.get()
-    const dates = database.transaction([USAGE_STORE_NAME, TEMPLATE_STORE_NAME, PREFERENCE_STORE_NAME])
-    const [used, savedTemplate, settings] = await Promise.all([
-      readRequest(dates.objectStore(USAGE_STORE_NAME).get(usageRecord.id)),
+    const dates = database.transaction([ TEMPLATE_STORE_NAME, PREFERENCE_STORE_NAME])
+    const [savedTemplate, settings] = await Promise.all([
       readRequest(dates.objectStore(TEMPLATE_STORE_NAME).get(template.id)),
       readRequest(dates.objectStore(PREFERENCE_STORE_NAME).get("interaction")),
       waitForTransaction(dates),
     ])
     const milliseconds = Date.parse(timestamp)
-    expect(used).toMatchObject({ updatedAt: milliseconds })
     expect(savedTemplate).toMatchObject({ createdAt: milliseconds, updatedAt: milliseconds })
     expect(settings).toMatchObject({ updatedAt: milliseconds })
     const stores = Array.from(database.objectStoreNames)
-    expect(stores).toContain("batches")
+    expect(stores.sort()).toEqual(["batches", "notes", "preferences", "templates", "updates"])
     expect(stores).not.toContain("batchCopyLists")
     expect(stores).not.toContain("noteDrafts")
     await expect(new IndexedDbNoteRepository(connection).getAll()).resolves.toMatchObject([
       { id: note.id, content: noteDraft.content },
     ])
     await expect(new IndexedDbBatchCopyRepository(connection).get()).resolves
-      .toEqual({ ...batchCopyList, updatedAt: milliseconds, content: { ...batchCopyList.content, items: [batchCopyItem] } })
-    await expect(new IndexedDbUsageRepository(
-      connection,
-      new CryptoEntityIdGenerator(),
-      () => Date.parse(timestamp),
-    ).getAll()).resolves.toEqual([{ ...usageRecord, updatedAt: milliseconds }])
+      .toEqual({ id: batchCopyList.id, updatedAt: milliseconds, content: { ...batchCopyList.content, items: [batchCopyItem] } })
     await expect(new IndexedDbTemplateRepository(connection).getAll()).resolves
       .toEqual([template])
     await expect(
       new IndexedDbInteractionPreferencesRepository(connection).get(),
     ).resolves.toEqual({ ...preferences, updatedAt: milliseconds })
-  })
-
-  it("does not append an item when its usage record cannot be read", async () => {
-    const identifiers = new CryptoEntityIdGenerator()
-    const connection = createConnection()
-    const batchCopyWriter = new IndexedDbBatchCopyItemWriter(
-      connection,
-      identifiers,
-    )
-    const batchCopy = new IndexedDbBatchCopyRepository(connection)
-    await batchCopyWriter.addAndRecordUsage(batchCopyItem)
-
-    const database = await connection.get()
-    const transaction = database.transaction(USAGE_STORE_NAME, "readwrite")
-    const completion = waitForTransaction(transaction)
-    const usageStore = transaction.objectStore(USAGE_STORE_NAME)
-    const [storedUsage] = await readRequest<unknown[]>(usageStore.getAll())
-    const validUsage = TextUsageRecordSchema.parse(storedUsage)
-    usageStore.put({
-      ...validUsage,
-      counts: { batchCopy: -1, individualCopy: 0 },
-    })
-    await completion
-
-    await expect(
-      batchCopyWriter.addAndRecordUsage({
-        ...batchCopyItem,
-        id: "item-2",
-      }),
-    ).rejects.toThrow()
-    expect(await batchCopy.get()).toMatchObject({
-      content: { items: [{ id: "item-1" }] },
-    })
-  })
-
-  it("rolls back a batch copy write when the following usage write fails", async () => {
-    const databaseName = "personal-notes-atomic-write-check"
-    const failureIndexName = "usage-by-unique-updated-at"
-    await deleteDatabase(databaseName)
-    const database = await openIndexedDatabase({
-      name: databaseName,
-      upgrade: (upgradedDatabase) => {
-        upgradedDatabase.createObjectStore(BATCH_COPY_LIST_STORE_NAME, {
-          keyPath: "id",
-        })
-        const usageStore = upgradedDatabase.createObjectStore(
-          USAGE_STORE_NAME,
-          { keyPath: "id" },
-        )
-        usageStore.createIndex(
-          USAGE_BY_NOTE_CONTENT_INDEX,
-          ["note.id", "note.contentRevision", "textSnapshot"],
-          { unique: true },
-        )
-        usageStore.createIndex(failureIndexName, "updatedAt", {
-          unique: true,
-        })
-      },
-      version: 1,
-    })
-    const connection = { get: () => Promise.resolve(database) }
-    const identifiers: EntityIdGenerator = {
-      create: () => "usage-created-after-batch-copy",
-    }
-    const existingUsage = {
-      counts: { batchCopy: 1, individualCopy: 0 },
-      id: "usage-existing",
-      note: { contentRevision: 0, id: "note-existing" },
-      textSnapshot: "기존 사용 기록",
-      updatedAt: Date.parse(timestamp),
-    }
-    const seedTransaction = database.transaction(
-      USAGE_STORE_NAME,
-      "readwrite",
-    )
-    const seeded = waitForTransaction(seedTransaction)
-    seedTransaction.objectStore(USAGE_STORE_NAME).put(existingUsage)
-    await seeded
-    const batchCopyWriter = new IndexedDbBatchCopyItemWriter(
-      connection,
-      identifiers,
-    )
-    const batchCopy = new IndexedDbBatchCopyRepository(connection)
-    const usage = new IndexedDbUsageRepository(
-      connection,
-      identifiers,
-      () => Date.parse(timestamp),
-    )
-
-    await expect(
-      batchCopyWriter.addAndRecordUsage(batchCopyItem),
-    ).rejects.toThrow()
-    expect(await batchCopy.get()).toBeNull()
-    expect(await usage.getAll()).toEqual([existingUsage])
-
-    database.close()
-    await deleteDatabase(databaseName)
-  })
-
-  it("keeps usage data unchanged when a mobile usage update fails", async () => {
-    const databaseName = "personal-notes-mobile-usage-atomic-write-check"
-    const failureIndexName = "usage-by-unique-updated-at"
-    await deleteDatabase(databaseName)
-    const database = await openIndexedDatabase({
-      name: databaseName,
-      upgrade: (upgradedDatabase) => {
-        const usageStore = upgradedDatabase.createObjectStore(
-          USAGE_STORE_NAME,
-          { keyPath: "id" },
-        )
-        usageStore.createIndex(
-          USAGE_BY_NOTE_CONTENT_INDEX,
-          ["note.id", "note.contentRevision", "textSnapshot"],
-          { unique: true },
-        )
-        usageStore.createIndex(failureIndexName, "updatedAt", {
-          unique: true,
-        })
-      },
-      version: 1,
-    })
-    const connection = { get: () => Promise.resolve(database) }
-    const identifiers: EntityIdGenerator = {
-      create: () => "usage-created-after-mobile-copy",
-    }
-    const existingUsage = {
-      counts: { batchCopy: 1, individualCopy: 0 },
-      id: "usage-existing",
-      note: { contentRevision: 0, id: "note-existing" },
-      textSnapshot: "기존 사용 기록",
-      updatedAt: Date.parse(timestamp),
-    }
-    const seedTransaction = database.transaction(
-      USAGE_STORE_NAME,
-      "readwrite",
-    )
-    const seeded = waitForTransaction(seedTransaction)
-    seedTransaction.objectStore(USAGE_STORE_NAME).put(existingUsage)
-    await seeded
-    const writer = new IndexedDbMobileBatchCopyUsageWriter(
-      connection,
-      identifiers,
-    )
-    const usage = new IndexedDbUsageRepository(
-      connection,
-      identifiers,
-      () => Date.parse(timestamp),
-    )
-
-    await expect(
-      writer.record(note, Date.parse(timestamp)),
-    ).rejects.toThrow()
-    expect(await usage.getAll()).toEqual([existingUsage])
-
-    database.close()
-    await deleteDatabase(databaseName)
   })
 
   it("closes the current connection when another version opens", async () => {

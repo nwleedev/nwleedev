@@ -24,7 +24,6 @@ const timestamp = Date.parse("2026-09-01T00:00:00.000Z")
 
 const note: Note = {
   content: "저장된 원문",
-  contentRevision: 0,
   createdAt: timestamp,
   geometry: { height: 240, width: 320, x: 32, y: 32, zIndex: 1 },
   id: "note-storage-model",

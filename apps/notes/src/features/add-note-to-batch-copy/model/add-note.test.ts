@@ -8,7 +8,6 @@ import type { BatchCopyItemWriter } from "./batch-copy-item-writer"
 
 const note: Note = {
   content: "일괄 복사할 메모 원문",
-  contentRevision: 2,
   createdAt: Date.parse("2026-09-01T01:00:00.000Z"),
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: "note-batch-copy",
@@ -21,7 +20,7 @@ class InMemoryBatchCopyItemWriter implements BatchCopyItemWriter {
 
   constructor(private readonly failure: Error | null = null) {}
 
-  async addAndRecordUsage(item: BatchCopyItem) {
+  async add(item: BatchCopyItem) {
     if (this.failure !== null) {
       throw this.failure
     }
@@ -30,7 +29,6 @@ class InMemoryBatchCopyItemWriter implements BatchCopyItemWriter {
     return {
       content: { items: [...this.items], separator: "\n" },
       id: "primary",
-      revision: this.items.length - 1,
       updatedAt: item.addedAt,
     }
   }
@@ -47,10 +45,7 @@ describe("일괄 복사 항목 추가", () => {
     const expectedItem = {
       addedAt: commandDependencies.now(),
       id: commandDependencies.createId(),
-      sourceNote: {
-        contentRevision: note.contentRevision,
-        id: note.id,
-      },
+      sourceNote: { id: note.id },
       textSnapshot: note.content,
     }
 
@@ -63,7 +58,6 @@ describe("일괄 복사 항목 추가", () => {
       list: {
         content: { items: [expectedItem], separator: "\n" },
         id: "primary",
-        revision: 0,
         updatedAt: expectedItem.addedAt,
       },
       item: expectedItem,

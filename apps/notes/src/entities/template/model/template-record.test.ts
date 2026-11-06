@@ -8,7 +8,6 @@ import {
 const templateRecord = {
   createdAt: Date.parse("2026-08-31T01:00:00.000Z"),
   id: "template-1",
-  revision: 0,
   segments: [
     { kind: "literal", value: "안녕하세요, " },
     { key: "name", kind: "placeholder", label: "이름" },

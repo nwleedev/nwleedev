@@ -1,18 +1,15 @@
 import { z } from "zod"
 
-import type { NoteContentReference } from "@/entities/note/@x/batch-copy"
 import {
   EntityIdSchema,
   TimestampSchema,
-  RevisionSchema,
 } from "@/shared/lib/entity-metadata"
 
 const SourceNoteSchema = z
   .object({
-    contentRevision: RevisionSchema,
     id: EntityIdSchema,
   })
-  .strict() satisfies z.ZodType<NoteContentReference>
+  .strict()
 
 export const PRIMARY_BATCH_COPY_LIST_ID = "primary"
 
@@ -47,7 +44,6 @@ export const BatchCopyListSchema = z
   .object({
     content: BatchCopyContentSchema,
     id: EntityIdSchema,
-    revision: RevisionSchema,
     updatedAt: TimestampSchema,
   })
   .strict()

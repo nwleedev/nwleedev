@@ -47,8 +47,9 @@ export function MobileNotesWorkspace({ creationPending, notes, onCreate }: Mobil
   if (savedBatchCopy.status === "failure") savedBatchCopyLink = { onRetry: savedBatchCopy.retry, status: "failure" }
 
   async function addToBatchCopy(note: Note) {
-    const result = await batchCopy.add(note)
-    if (result.status === "failure") {
+    try {
+      await batchCopy.add(note)
+    } catch {
       toast.show({ actionLabel: "다시 시도", kind: "error", message: "일괄 복사 항목을 추가하지 못했습니다. 다시 시도하세요.", onAction: () => void addToBatchCopy(note) })
     }
   }

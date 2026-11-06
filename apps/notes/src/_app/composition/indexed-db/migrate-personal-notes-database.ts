@@ -20,12 +20,11 @@ import { TemplateRecordSchema } from "@/entities/template"
 import { TEMPLATE_STORE_NAME } from "@/entities/template/index.browser"
 import { InteractionPreferencesRecordSchema } from "@/entities/preference"
 import { PREFERENCE_STORE_NAME } from "@/entities/preference/index.browser"
-import { TextUsageRecordSchema } from "@/entities/usage"
-import { USAGE_STORE_NAME } from "@/entities/usage/index.browser"
 import {
   EntityIdSchema,
   IsoDateTimeSchema,
   toTimestamp,
+  TimestampSchema,
   RevisionSchema,
 } from "@/shared/lib/entity-metadata"
 
@@ -36,22 +35,25 @@ const PREVIOUS_MOBILE_BATCH_COPY_DRAFT_STORE_NAME = "mobileBatchCopyDrafts"
 const INTERACTION_PREFERENCE_KEY = "interaction"
 
 const previousTimestamp = IsoDateTimeSchema.transform(toTimestamp)
-const PreviousBatchSchema = BatchCopyListSchema.extend({
+const storedTimestamp = z.union([TimestampSchema, previousTimestamp])
+const PreviousBatchSchema = BatchCopyListSchema.strip().extend({
   content: z.strictObject({
     ...BatchCopyListSchema.shape.content.shape,
-    items: z.array(BatchCopyItemSchema.extend({ addedAt: previousTimestamp })),
+    items: z.array(BatchCopyItemSchema.extend({
+      addedAt: storedTimestamp,
+      sourceNote: z.object({ id: EntityIdSchema }),
+    })),
   }),
-  updatedAt: previousTimestamp,
+  updatedAt: storedTimestamp,
 }).pipe(BatchCopyListSchema)
-const PreviousCopyCountsSchema = TextUsageRecordSchema.extend({ updatedAt: previousTimestamp })
-const PreviousTemplateSchema = z.strictObject({
+const PreviousTemplateSchema = z.object({
   ...TemplateRecordSchema.shape,
-  createdAt: previousTimestamp,
-  updatedAt: previousTimestamp,
+  createdAt: storedTimestamp,
+  updatedAt: storedTimestamp,
 }).pipe(TemplateRecordSchema)
 const PreviousPreferencesSchema = InteractionPreferencesRecordSchema.extend({ updatedAt: previousTimestamp })
 
-const PreviousTextNoteSchema = NoteRecordSchema.strip().extend({ createdAt: previousTimestamp, updatedAt: previousTimestamp })
+const PreviousTextNoteSchema = NoteRecordSchema.strip().extend({ contentRevision: RevisionSchema, createdAt: previousTimestamp, updatedAt: previousTimestamp })
 
 const PreviousNoteRecordSchema = z
   .object({
@@ -74,26 +76,6 @@ const PreviousNoteRecordSchema = z
   })
   .strict()
 
-const PreviousUsageRecordSchema = z
-  .object({
-    counts: z
-      .object({
-        accumulation: z.number().int().nonnegative().safe(),
-        ordinaryCopy: z.number().int().nonnegative().safe(),
-      })
-      .strict(),
-    id: EntityIdSchema,
-    note: z
-      .object({
-        contentRevision: RevisionSchema,
-        id: EntityIdSchema,
-      })
-      .strict(),
-    textSnapshot: z.string(),
-    updatedAt: IsoDateTimeSchema,
-  })
-  .strict()
-
 const PreviousInteractionPreferencesSchema = z
   .object({
     metaClickEnabled: z.boolean(),
@@ -107,14 +89,6 @@ function compareIdentity(
 ) {
   const creationOrder = left.createdAt - right.createdAt
   return creationOrder === 0 ? left.id.localeCompare(right.id) : creationOrder
-}
-
-function incrementRevision(revision: number) {
-  if (revision >= Number.MAX_SAFE_INTEGER) {
-    throw new RangeError("Revision cannot exceed the safe integer range")
-  }
-
-  return revision + 1
 }
 
 function migrateNoteRecords(records: unknown[]) {
@@ -143,14 +117,14 @@ function migrateNoteRecords(records: unknown[]) {
       ...note.geometry,
       zIndex,
     })
-    return NoteRecordSchema.strip().parse({ ...note, geometry })
+    return { ...NoteRecordSchema.strip().parse({ ...note, geometry }), contentRevision: note.contentRevision }
   })
 }
 
 export function recoverNoteDrafts(transaction: IDBTransaction) {
   const previousStore = "noteDrafts"
   const database = transaction.db
-  if (!database.objectStoreNames.contains(previousStore)) return
+  if (!database.objectStoreNames.contains(previousStore)) return removeNoteRevision(transaction)
   const notes = transaction.objectStore(NOTE_STORE_NAME)
   const updates = transaction.objectStore("updates")
   const cursor = transaction.objectStore(previousStore).openCursor()
@@ -158,13 +132,14 @@ export function recoverNoteDrafts(transaction: IDBTransaction) {
     const entry = cursor.result
     if (!entry) {
       database.deleteObjectStore(previousStore)
+      removeNoteRevision(transaction)
       return
     }
     try {
       const draft = NoteDraftSchema.parse(entry.value)
       const value = await readRequest(notes.get(draft.note.id))
       if (value && !("removed" in value)) {
-        const record = StoredNoteSchema.parse(value)
+        const record = StoredNoteSchema.strip().extend({ contentRevision: RevisionSchema }).parse(value)
         if (record.contentRevision === draft.note.contentRevision) {
           const { body } = await readStoredBody(record, updates)
           if (isRecoverableNoteDraft(draft, { ...record, content: body.text })) {
@@ -173,7 +148,6 @@ export function recoverNoteDrafts(transaction: IDBTransaction) {
             notes.put({
               ...record,
               updatedAt: Math.max(record.updatedAt, toTimestamp(draft.updatedAt)),
-              contentRevision: incrementRevision(record.contentRevision),
             })
           }
         }
@@ -185,15 +159,12 @@ export function recoverNoteDrafts(transaction: IDBTransaction) {
   }
 }
 
-export function removeNoteRevision(transaction: IDBTransaction, recoverDrafts: boolean) {
+function removeNoteRevision(transaction: IDBTransaction) {
   if (!transaction.objectStoreNames.contains(NOTE_STORE_NAME)) return
   const cursor = transaction.objectStore(NOTE_STORE_NAME).openCursor()
   cursor.onsuccess = () => {
     const row = cursor.result
-    if (!row) {
-      if (recoverDrafts) recoverNoteDrafts(transaction)
-      return
-    }
+    if (!row) return
     try {
       const value = row.value
       if ("removed" in value) {
@@ -274,37 +245,6 @@ export function migrateNoteBodies(transaction: IDBTransaction, oldVersion: numbe
   }
 }
 
-function migrateUsage(transaction: IDBTransaction) {
-  const store = transaction.objectStore(USAGE_STORE_NAME)
-  const request = store.getAll()
-
-  request.onsuccess = () => {
-    try {
-      for (const stored of request.result) {
-        const current = PreviousCopyCountsSchema.safeParse(stored)
-
-        if (current.success) {
-          store.put(current.data)
-          continue
-        }
-
-        const previous = PreviousUsageRecordSchema.parse(stored)
-        const migrated = TextUsageRecordSchema.parse({
-          ...previous,
-          updatedAt: toTimestamp(previous.updatedAt),
-          counts: {
-            batchCopy: previous.counts.accumulation,
-            individualCopy: previous.counts.ordinaryCopy,
-          },
-        })
-        store.put(migrated)
-      }
-    } catch {
-      transaction.abort()
-    }
-  }
-}
-
 function migratePreferences(transaction: IDBTransaction) {
   const store = transaction.objectStore(PREFERENCE_STORE_NAME)
   const request = store.get(INTERACTION_PREFERENCE_KEY)
@@ -362,12 +302,10 @@ function convertStoredRecords(
 }
 
 export function migrateTimestamps(transaction: IDBTransaction, oldVersion: number) {
-  if (oldVersion < 11) {
-    convertStoredRecords(transaction, BATCH_COPY_LIST_STORE_NAME, (value) => PreviousBatchSchema.parse(value))
-  }
+  convertStoredRecords(transaction, BATCH_COPY_LIST_STORE_NAME, (value) => PreviousBatchSchema.parse(value))
   convertStoredRecords(transaction, TEMPLATE_STORE_NAME, (value) => PreviousTemplateSchema.parse(value))
+  if (oldVersion >= 12) return
   if (oldVersion === 1) return
-  convertStoredRecords(transaction, USAGE_STORE_NAME, (value) => PreviousCopyCountsSchema.parse(value))
   convertStoredRecords(transaction, PREFERENCE_STORE_NAME, (value) =>
     PreviousPreferencesSchema.parse(value), INTERACTION_PREFERENCE_KEY)
 }
@@ -399,7 +337,6 @@ export function migratePersonalNotesDatabase(
 ) {
 
   migrateNotes(transaction)
-  migrateUsage(transaction)
   migratePreferences(transaction)
 }
 

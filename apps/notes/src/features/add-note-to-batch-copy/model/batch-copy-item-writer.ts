@@ -4,5 +4,5 @@ import type {
 } from "@/entities/batch-copy"
 
 export interface BatchCopyItemWriter {
-  addAndRecordUsage(item: BatchCopyItem): Promise<BatchCopyList>
+  add(item: BatchCopyItem): Promise<BatchCopyList>
 }

@@ -13,21 +13,20 @@ import {
 const firstItem = {
   addedAt: Date.parse("2026-09-02T03:00:00.000Z"),
   id: "batch-item-1",
-  sourceNote: { contentRevision: 2, id: "note-1" },
+  sourceNote: { id: "note-1" },
   textSnapshot: "첫 번째 문장",
 }
 
 const secondItem = {
   addedAt: Date.parse("2026-09-02T03:01:00.000Z"),
   id: "batch-item-2",
-  sourceNote: { contentRevision: 4, id: "note-1" },
+  sourceNote: { id: "note-1" },
   textSnapshot: "두 번째 문장",
 }
 
 const list: BatchCopyList = {
   content: { items: [firstItem, secondItem], separator: "\n---\n" },
   id: "primary",
-  revision: 2,
   updatedAt: secondItem.addedAt,
 }
 
@@ -45,7 +44,6 @@ describe("일괄 복사 목록 편집", () => {
     )
 
     expect(moved?.content.items).toEqual([secondItem, firstItem])
-    expect(moved?.revision).toBe(3)
   })
 
   it("항목 복제는 새 ID로 대상 바로 뒤에 원문 스냅샷을 추가한다", () => {
@@ -62,7 +60,6 @@ describe("일괄 복사 목록 편집", () => {
       { ...firstItem, id: duplicateId },
       secondItem,
     ])
-    expect(duplicated?.revision).toBe(list.revision + 1)
   })
 
   it("제거한 항목과 위치를 보존해 같은 자리에 복원한다", () => {
@@ -81,7 +78,6 @@ describe("일괄 복사 목록 편집", () => {
       : null
 
     expect(restored?.content.items).toEqual([firstItem, secondItem])
-    expect(restored?.revision).toBe(4)
   })
 
   it("첫 항목의 마지막 삽입 위치를 마지막 index로 바꾼다", () => {

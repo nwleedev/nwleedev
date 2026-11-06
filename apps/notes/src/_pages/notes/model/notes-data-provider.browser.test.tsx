@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { page, userEvent } from "vitest/browser"
 
 import type { Note, NoteRepository } from "@/entities/note"
-import type { IndividualCopyUsageWriter } from "@/entities/usage"
 import type {
   NoteStorageEvent,
   NoteStorageMonitor,
@@ -21,9 +20,6 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const timestamp = Date.parse("2026-08-31T01:00:00.000Z")
 const clipboard = {
   writeText: async () => ({ status: "written" }) as const,
-}
-const usage: IndividualCopyUsageWriter = {
-  recordIndividualCopy: async () => undefined,
 }
 
 
@@ -121,7 +117,6 @@ function createDeferred<T>() {
 function createNote(id: string, content: string): Note {
   return {
     content,
-    contentRevision: 0,
     createdAt: timestamp,
     geometry: { height: 240, width: 320, x: 20, y: 20, zIndex: 1 },
     id,
@@ -262,7 +257,6 @@ describe("NotesDataProvider", () => {
           moveMobileNote={unexpectedMobileOrderAccess}
           repository={repository}
           storageMonitor={storageMonitor}
-          usage={usage}
         >
           <NotesDataProbe />
         </NotesDataProvider>,

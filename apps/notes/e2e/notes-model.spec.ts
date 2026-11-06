@@ -206,8 +206,8 @@ test("800ms 타이머와 blur 및 내부 이동이 최신 원문을 저장한다
       .toBe("blur로 저장할 원문")
 
     await editor.fill("내부 이동 전에 저장할 원문")
-    await page.getByRole("link", { name: "사용 빈도" }).click()
-    await expect(page.getByRole("heading", { name: "사용 빈도" })).toBeVisible()
+    await page.getByRole("link", { name: "텍스트 분석" }).click()
+    await expect(page.getByRole("heading", { name: "텍스트 분석" })).toBeVisible()
     await expect
       .poll(async () => (await readStoredNote(page, noteId))?.content)
       .toBe("내부 이동 전에 저장할 원문")

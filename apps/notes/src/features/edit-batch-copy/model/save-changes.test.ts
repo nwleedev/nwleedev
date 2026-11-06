@@ -16,21 +16,20 @@ import {
 const firstItem = {
   addedAt: Date.parse("2026-09-02T03:00:00.000Z"),
   id: "batch-item-1",
-  sourceNote: { contentRevision: 2, id: "note-1" },
+  sourceNote: { id: "note-1" },
   textSnapshot: "첫 번째 문장",
 }
 
 const secondItem = {
   addedAt: Date.parse("2026-09-02T03:01:00.000Z"),
   id: "batch-item-2",
-  sourceNote: { contentRevision: 1, id: "note-2" },
+  sourceNote: { id: "note-2" },
   textSnapshot: "두 번째 문장",
 }
 
 const list: BatchCopyList = {
   content: { items: [firstItem, secondItem], separator: "\n" },
   id: "primary",
-  revision: 1,
   updatedAt: secondItem.addedAt,
 }
 

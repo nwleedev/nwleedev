@@ -12,7 +12,6 @@ import { NOTE_TAB_INDEX_MIN, type Note } from "./note"
 
 const firstNote: Note = {
   content: "첫 번째",
-  contentRevision: 1,
   createdAt: Date.parse("2026-09-01T01:00:00.000Z"),
   geometry: { height: 240, width: 320, x: 20, y: 20, zIndex: 1 },
   id: "note-1",
@@ -89,7 +88,6 @@ describe("메모 겹침 순서", () => {
           const notes: Note[] = ids.map((id, index) => ({
             ...firstNote,
             content: id,
-            contentRevision: index,
             createdAt: index * 1000,
             geometry: { ...firstNote.geometry, zIndex: index + 1 },
             id,
@@ -118,7 +116,6 @@ describe("메모 겹침 순서", () => {
             }
             expect(moved).toMatchObject({
               content: original.content,
-              contentRevision: original.contentRevision,
               tabIndex: original.tabIndex,
             })
           }

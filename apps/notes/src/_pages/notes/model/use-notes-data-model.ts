@@ -18,7 +18,6 @@ import {
   type MoveMobileNoteInput,
   type MoveMobileNoteResult,
 } from "@/entities/note"
-import type { IndividualCopyUsageWriter } from "@/entities/usage"
 import { z } from "zod"
 import { EntityIdSchema } from "@/shared/lib/entity-metadata"
 import type { ClipboardWriter } from "@/shared/lib/clipboard"
@@ -89,7 +88,6 @@ export type NotesDataDependencies = {
   readMobileOrder(): Promise<MobileNoteOrder>
   moveMobileNote(input: MoveMobileNoteInput): Promise<MoveMobileNoteResult>
   storageMonitor: NoteStorageMonitor
-  usage: IndividualCopyUsageWriter
 }
 
 export function useNotesDataModel({
@@ -101,7 +99,6 @@ export function useNotesDataModel({
   readMobileOrder,
   moveMobileNote,
   storageMonitor,
-  usage,
 }: NotesDataDependencies) {
   const [state, setState] = useState<NotesDataState>({ status: "loading" })
   const readSequence = useRef(0)
@@ -239,7 +236,6 @@ export function useNotesDataModel({
       const timestamp = now()
       const note: Note = {
         content: "",
-        contentRevision: 0,
         createdAt: timestamp,
         geometry: findNewNoteGeometry(notes.map(({ geometry }) => geometry)),
         id: createId(),
@@ -257,7 +253,7 @@ export function useNotesDataModel({
   }
 
   function copyNote(note: Note) {
-    return executeCopyNote({ clipboard, usage }, note)
+    return executeCopyNote(clipboard, note)
   }
 
   async function saveContent(original: Note, content: string) {

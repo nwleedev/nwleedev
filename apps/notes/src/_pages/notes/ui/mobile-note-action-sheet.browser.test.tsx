@@ -14,7 +14,6 @@ it("삭제와 복원 결과가 도착할 때까지 시트를 닫지 않고 완�
   const timestamp = Date.now()
   const note: Note = {
     content: "처리 중에도 보존할 메모",
-    contentRevision: 0,
     createdAt: timestamp,
     geometry: { height: 240, width: 320, x: 20, y: 20, zIndex: 1 },
     id: crypto.randomUUID(),

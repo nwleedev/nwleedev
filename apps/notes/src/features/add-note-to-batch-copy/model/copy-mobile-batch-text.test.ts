@@ -12,12 +12,12 @@ const draft: MobileBatchCopyDraft = {
   entries: [
     {
       id: "entry-1",
-      sourceNote: { contentRevision: 1, id: "note-1" },
+      sourceNote: { id: "note-1" },
       textSnapshot: "첫 문장",
     },
     {
       id: "entry-2",
-      sourceNote: { contentRevision: 2, id: "note-2" },
+      sourceNote: { id: "note-2" },
       textSnapshot: "둘째 문장",
     },
   ],

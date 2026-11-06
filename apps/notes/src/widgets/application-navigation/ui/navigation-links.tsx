@@ -6,7 +6,6 @@ import { joinClassNames } from "@/shared/lib/join-class-names"
 
 export const destinations = [
   { href: "/", label: "메모" },
-  { href: "/usage/", label: "사용 빈도" },
   { href: "/analysis/", label: "텍스트 분석" },
   { href: "/templates/", label: "템플릿" },
   { href: "/settings/", label: "설정" },

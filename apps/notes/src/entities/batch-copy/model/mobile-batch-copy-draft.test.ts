@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { addMobileBatchCopyEntry, beginMobileBatchCopy, duplicateMobileBatchCopyEntry, moveMobileBatchCopyEntry, removeMobileBatchCopyEntry, resetMobileBatchCopy, type MobileBatchCopyEntry } from "./mobile-batch-copy-draft"
 
 function entry(textSnapshot: string): MobileBatchCopyEntry {
-  return { id: crypto.randomUUID(), sourceNote: { id: crypto.randomUUID(), contentRevision: 1 }, textSnapshot }
+  return { id: crypto.randomUUID(), sourceNote: { id: crypto.randomUUID() }, textSnapshot }
 }
 
 function draftWith(entries: readonly MobileBatchCopyEntry[]) {

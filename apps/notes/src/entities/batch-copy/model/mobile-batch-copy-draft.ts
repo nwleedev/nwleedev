@@ -1,11 +1,8 @@
-import type { NoteContentReference } from "@/entities/note/@x/batch-copy"
 import { EntityIdSchema } from "@/shared/lib/entity-metadata"
 
-export type MobileBatchCopyEntry = {
-  id: string
-  sourceNote: NoteContentReference
-  textSnapshot: string
-}
+import type { BatchCopyItem } from "./batch-copy-list"
+
+export type MobileBatchCopyEntry = Pick<BatchCopyItem, "id" | "sourceNote" | "textSnapshot">
 
 export type MobileBatchCopyDraft = {
   entries: MobileBatchCopyEntry[]

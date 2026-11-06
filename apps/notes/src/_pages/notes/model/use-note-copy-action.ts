@@ -23,14 +23,6 @@ export function useNoteCopyAction() {
       return
     }
 
-    if (result.status === "usage-failure") {
-      toast.show({
-        kind: "error",
-        message: "텍스트는 복사했지만 사용 횟수를 기록하지 못했습니다.",
-      })
-      return
-    }
-
     toast.show({
       actionLabel: "다시 시도",
       kind: "error",

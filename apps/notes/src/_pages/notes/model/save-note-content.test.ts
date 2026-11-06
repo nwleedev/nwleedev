@@ -6,7 +6,6 @@ import { saveNoteContent } from "./save-note-content"
 const timestamp = Date.parse("2026-09-01T03:00:00.000Z")
 const note: Note = {
   content: "저장된 원문",
-  contentRevision: 0,
   createdAt: Date.parse("2026-09-01T00:00:00.000Z"),
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: "note-save-command",

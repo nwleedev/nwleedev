@@ -1,6 +1,5 @@
 import {
   EntityIdSchema,
-  type Revision,
 } from "@/shared/lib/entity-metadata"
 
 import type { BatchCopyItem, BatchCopyList } from "./batch-copy-list"
@@ -35,14 +34,6 @@ export function itemIndexForInsertionSlot(
     : insertionSlot
 }
 
-function nextRevision(revision: Revision) {
-  if (revision >= Number.MAX_SAFE_INTEGER) {
-    throw new RangeError("Batch copy revision cannot exceed the safe integer range")
-  }
-
-  return revision + 1
-}
-
 function reviseBatchCopyList(
   list: BatchCopyList,
   items: readonly BatchCopyItem[],
@@ -51,7 +42,6 @@ function reviseBatchCopyList(
   return {
     ...list,
     content: { ...list.content, items: [...items] },
-    revision: nextRevision(list.revision),
     updatedAt,
   }
 }

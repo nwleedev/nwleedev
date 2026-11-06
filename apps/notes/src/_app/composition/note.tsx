@@ -1,7 +1,6 @@
 import type { PropsWithChildren } from "react"
 
 import { NotesDataProvider } from "@/_pages/notes/composition"
-import type { IndividualCopyUsageWriter } from "@/entities/usage"
 
 import type { PersonalNotesDatabase } from "./indexed-db/personal-notes-database"
 import { useNoteServices } from "./use-note-services"
@@ -9,14 +8,12 @@ import { useNoteServices } from "./use-note-services"
 type NoteProps = PropsWithChildren<{
   batchCopyShortcutEnabled: boolean
   database: PersonalNotesDatabase
-  usage: IndividualCopyUsageWriter
 }>
 
 export function Note({
   batchCopyShortcutEnabled,
   children,
   database,
-  usage,
 }: NoteProps) {
   const { clipboard, createId, now, repository, storageMonitor, readMobileOrder, moveMobileNote } =
     useNoteServices(database)
@@ -31,7 +28,6 @@ export function Note({
       moveMobileNote={moveMobileNote}
       repository={repository}
       storageMonitor={storageMonitor}
-      usage={usage}
     >
       {children}
     </NotesDataProvider>

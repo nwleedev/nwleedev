@@ -5,21 +5,19 @@ import type { Note } from "@/entities/note"
 import type { ClipboardWriter } from "@/shared/lib/clipboard"
 
 import { copyMobileBatchText, type CopyMobileBatchTextResult } from "./copy-mobile-batch-text"
-import type { MobileBatchCopyUsageWriter } from "./mobile-batch-copy-usage-writer"
 import {
   addNoteToMobileBatchCopy,
   duplicateMobileBatchCopySessionEntry,
   moveMobileBatchCopySessionEntry,
   removeMobileBatchCopySessionEntry,
   resetMobileBatchCopySession,
-  type AddMobileBatchCopyResult,
 } from "./mobile-batch-copy-session"
 
 type MobileBatchCopyContextValue = {
   draft: MobileBatchCopyDraft | null
   pending: boolean
   reorderButtonsEnabled: boolean
-  add(note: Note): Promise<AddMobileBatchCopyResult>
+  add(note: Note): Promise<void>
   copy(): Promise<CopyMobileBatchTextResult>
   duplicate(entryId: string): Promise<boolean>
   flush(): Promise<boolean>
@@ -33,12 +31,11 @@ export type MobileBatchCopyDependencies = {
   createId(): string
   now(): number
   reorderButtonsEnabled: boolean
-  writer: MobileBatchCopyUsageWriter
 }
 
 export const MobileBatchCopyContext = createContext<MobileBatchCopyContextValue | null>(null)
 
-export function useMobileBatchCopyState({ clipboard, createId, now, reorderButtonsEnabled, writer }: MobileBatchCopyDependencies) {
+export function useMobileBatchCopyState({ clipboard, createId, now, reorderButtonsEnabled }: MobileBatchCopyDependencies) {
   const [draft, setDraft] = useState<MobileBatchCopyDraft | null>(null)
   const [pending, setPending] = useState(false)
   const current = useRef<MobileBatchCopyDraft | null>(null)
@@ -66,9 +63,7 @@ export function useMobileBatchCopyState({ clipboard, createId, now, reorderButto
 
   function add(note: Note) {
     return enqueue(async () => {
-      const result = await addNoteToMobileBatchCopy({ createId, now, writer }, current.current, note)
-      if (result.status === "added") publish(result.draft)
-      return result
+      publish(addNoteToMobileBatchCopy({ createId, now }, current.current, note))
     }, false)
   }
 

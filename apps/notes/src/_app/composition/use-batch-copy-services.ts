@@ -16,7 +16,7 @@ export function useBatchCopyServices(database: PersonalNotesDatabase) {
       createId: () => identifiers.create(),
       now: Date.now,
       repository: new IndexedDbBatchCopyRepository(database),
-      writer: new IndexedDbBatchCopyItemWriter(database, identifiers),
+      writer: new IndexedDbBatchCopyItemWriter(database),
     }
   })
 

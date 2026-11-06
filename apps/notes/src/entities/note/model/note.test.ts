@@ -1,11 +1,10 @@
 import * as fc from "fast-check"
 import { describe, expect, it } from "vitest"
 
-import { NoteRecordSchema, reviseNote, type Note, type NoteRevision } from "./note"
+import { NoteRecordSchema, reviseNote, type Note, type NoteChange } from "./note"
 
 const originalNote = {
   content: "첫 메모",
-  contentRevision: 2,
   createdAt: Date.parse("2026-08-31T01:00:00.000Z"),
   geometry: {
     height: 240,
@@ -27,20 +26,19 @@ describe("reviseNote", () => {
     })
 
     expect(revised).toMatchObject({
-      contentRevision: 3,
       content: "수정한 메모",
     })
   })
 
-  it("keeps the content revision when only geometry changes", () => {
+  it("preserves content when only geometry changes", () => {
     const revised = reviseNote(originalNote, {
       geometry: { ...originalNote.geometry, x: 80 },
       updatedAt: Date.parse("2026-08-31T02:00:00.000Z"),
     })
 
     expect(revised).toMatchObject({
-      contentRevision: 2,
       geometry: { x: 80 },
+      content: originalNote.content,
     })
   })
 
@@ -52,12 +50,11 @@ describe("reviseNote", () => {
     })
 
     expect(revised).toMatchObject({
-      contentRevision: 3,
       content: "수정한 메모",
     })
   })
 
-  it("does not create a revision for an unchanged value", () => {
+  it("returns the original note for an unchanged value", () => {
     const revised = reviseNote(originalNote, {
       content: originalNote.content,
       geometry: originalNote.geometry,
@@ -76,7 +73,6 @@ describe("NoteRecordSchema", () => {
   it("rejects a record with a missing field", () => {
     const incompleteRecord = {
       content: originalNote.content,
-      contentRevision: originalNote.contentRevision,
       createdAt: originalNote.createdAt,
       id: originalNote.id,
       updatedAt: originalNote.updatedAt,
@@ -84,15 +80,6 @@ describe("NoteRecordSchema", () => {
 
     expect(NoteRecordSchema.safeParse(incompleteRecord).success).toBe(false)
   })
-
-  it.each([-1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
-    "rejects an invalid revision",
-    (revision) => {
-      expect(
-        NoteRecordSchema.safeParse({ ...originalNote, contentRevision: revision }).success,
-      ).toBe(false)
-    },
-  )
 
   it("rejects a blank identifier", () => {
     expect(
@@ -128,62 +115,55 @@ describe("NoteRecordSchema", () => {
   })
 })
 
-type RevisionExpectation = {
+type EditExpectation = {
   content: string
-  contentRevision: number
   x: number
 }
 
-type RevisionExecution = {
+type EditExecution = {
   actions: string[]
   note: Note
   revise: typeof reviseNote
 }
 
-class RevisionMismatch extends Error {
+class EditMismatch extends Error {
   constructor(
-    readonly expected: RevisionExpectation,
-    readonly observed: RevisionExpectation,
+    readonly expected: EditExpectation,
+    readonly observed: EditExpectation,
   ) {
-    super("Note content or revision differs from the applied inputs")
+    super("Note content or position differs from the applied inputs")
   }
 }
 
-function expectRevision(model: RevisionExpectation, real: RevisionExecution) {
+function expectEdit(model: EditExpectation, real: EditExecution) {
   const observed = {
     content: real.note.content,
-    contentRevision: real.note.contentRevision,
     x: real.note.geometry.x,
   }
 
   if (
     observed.content !== model.content ||
-    observed.contentRevision !== model.contentRevision ||
     observed.x !== model.x
   ) {
-    throw new RevisionMismatch({ ...model }, observed)
+    throw new EditMismatch({ ...model }, observed)
   }
 }
 
-class ReplaceContent implements fc.Command<RevisionExpectation, RevisionExecution> {
+class ReplaceContent implements fc.Command<EditExpectation, EditExecution> {
   constructor(private readonly content: string) {}
 
   check() {
     return true
   }
 
-  run(model: RevisionExpectation, real: RevisionExecution) {
+  run(model: EditExpectation, real: EditExecution) {
     real.actions.push(this.toString())
-    const changed = this.content !== model.content
     real.note = real.revise(real.note, {
       content: this.content,
       updatedAt: originalNote.updatedAt,
     })
     model.content = this.content
-    if (changed) {
-      model.contentRevision += 1
-    }
-    expectRevision(model, real)
+    expectEdit(model, real)
   }
 
   toString() {
@@ -191,21 +171,21 @@ class ReplaceContent implements fc.Command<RevisionExpectation, RevisionExecutio
   }
 }
 
-class MoveX implements fc.Command<RevisionExpectation, RevisionExecution> {
+class MoveX implements fc.Command<EditExpectation, EditExecution> {
   constructor(private readonly x: number) {}
 
   check() {
     return true
   }
 
-  run(model: RevisionExpectation, real: RevisionExecution) {
+  run(model: EditExpectation, real: EditExecution) {
     real.actions.push(this.toString())
     real.note = real.revise(real.note, {
       geometry: { ...real.note.geometry, x: this.x },
       updatedAt: originalNote.updatedAt,
     })
     model.x = this.x
-    expectRevision(model, real)
+    expectEdit(model, real)
   }
 
   toString() {
@@ -213,18 +193,18 @@ class MoveX implements fc.Command<RevisionExpectation, RevisionExecution> {
   }
 }
 
-class ReapplyContent implements fc.Command<RevisionExpectation, RevisionExecution> {
+class ReapplyContent implements fc.Command<EditExpectation, EditExecution> {
   check() {
     return true
   }
 
-  run(model: RevisionExpectation, real: RevisionExecution) {
+  run(model: EditExpectation, real: EditExecution) {
     real.actions.push(this.toString())
     real.note = real.revise(real.note, {
       content: model.content,
       updatedAt: originalNote.updatedAt,
     })
-    expectRevision(model, real)
+    expectEdit(model, real)
   }
 
   toString() {
@@ -241,7 +221,7 @@ const spacedAction = fc.string({ maxLength: 16 }).map(
 const multilineAction = fc
   .tuple(fc.string({ maxLength: 8 }), fc.string({ maxLength: 8 }))
   .map(([first, second]) => new ReplaceContent(`${first}\n${second}`))
-const revisionActions = [
+const editActions = [
   contentAction,
   spacedAction,
   multilineAction,
@@ -250,29 +230,28 @@ const revisionActions = [
   fc.constant(new ReapplyContent()),
   fc.integer({ min: -50, max: 50 }).map((x) => new MoveX(x)),
 ]
-const maxRevisionCommands = 8
+const maxEditCommands = 8
 
-function runRevisionCommands(
-  commands: Iterable<fc.Command<RevisionExpectation, RevisionExecution>>,
+function runEditCommands(
+  commands: Iterable<fc.Command<EditExpectation, EditExecution>>,
   revise: typeof reviseNote,
   failures?: {
     actions: string[]
-    expected: RevisionExpectation
-    observed: RevisionExpectation
+    expected: EditExpectation
+    observed: EditExpectation
   }[],
 ) {
   const note = NoteRecordSchema.parse(originalNote)
-  const model: RevisionExpectation = {
+  const model: EditExpectation = {
     content: note.content,
-    contentRevision: note.contentRevision,
     x: note.geometry.x,
   }
-  const real: RevisionExecution = { actions: [], note, revise }
+  const real: EditExecution = { actions: [], note, revise }
 
   try {
     fc.modelRun(() => ({ model, real }), commands)
   } catch (error) {
-    if (error instanceof RevisionMismatch) {
+    if (error instanceof EditMismatch) {
       failures?.push({
         actions: [...real.actions],
         expected: error.expected,
@@ -283,79 +262,79 @@ function runRevisionCommands(
   }
 }
 
-function revisionReplay(
+function editReplay(
   details: fc.RunDetails<[
-    Iterable<fc.Command<RevisionExpectation, RevisionExecution>>,
+    Iterable<fc.Command<EditExpectation, EditExecution>>,
   ]>,
 ) {
   const commands = details.counterexample?.[0]
   const path = details.counterexamplePath
   if (commands === undefined || path === null) {
-    throw new Error("Missing reduced revision sequence")
+    throw new Error("Missing reduced edit sequence")
   }
 
   const replayPath = String(commands).match(/\/\*replayPath="([^"]+)"\*\//u)?.[1]
   if (replayPath === undefined) {
-    throw new Error("Missing revision command replay path")
+    throw new Error("Missing edit command replay path")
   }
 
   return { commands, path, replayPath }
 }
 
-const trimRevision: typeof reviseNote = (note, change: NoteRevision) =>
+const trimEdit: typeof reviseNote = (note, change: NoteChange) =>
   reviseNote(note, {
     ...change,
     content: change.content?.trim(),
   })
 
-const geometryRevision: typeof reviseNote = (note, change: NoteRevision) => {
+const geometryEdit: typeof reviseNote = (note, change: NoteChange) => {
   const revised = reviseNote(note, change)
   if (change.geometry === undefined || revised === note) {
     return revised
   }
-  return { ...revised, contentRevision: revised.contentRevision + 1 }
+  return { ...revised, content: "" }
 }
 
-describe("content and revision action sequences", () => {
-  it("preserves the chosen content and changes its revision only for edits", () => {
+describe("text and movement action sequences", () => {
+  it("preserves the chosen content when moving the note", () => {
     const details = fc.check(
       fc.property(
-        fc.commands(revisionActions, { maxCommands: maxRevisionCommands }),
-        (commands) => runRevisionCommands(commands, reviseNote),
+        fc.commands(editActions, { maxCommands: maxEditCommands }),
+        (commands) => runEditCommands(commands, reviseNote),
       ),
       { numRuns: 100 },
     )
     expect(details.failed).toBe(false)
   })
 
-  it("shrinks content loss and geometry-only revision changes", () => {
-    for (const [name, defectiveRevision] of [
-      ["trim-content", trimRevision],
-      ["geometry-revision", geometryRevision],
+  it("shrinks text loss during editing and movement", () => {
+    for (const [name, defectiveEdit] of [
+      ["trim-content", trimEdit],
+      ["geometry-clears-content", geometryEdit],
     ] as const) {
       const failures: {
         actions: string[]
-        expected: RevisionExpectation
-        observed: RevisionExpectation
+        expected: EditExpectation
+        observed: EditExpectation
       }[] = []
       const details = fc.check(
         fc.property(
-          fc.commands(revisionActions, { maxCommands: maxRevisionCommands }),
-          (commands) => runRevisionCommands(commands, defectiveRevision, failures),
+          fc.commands(editActions, { maxCommands: maxEditCommands }),
+          (commands) => runEditCommands(commands, defectiveEdit, failures),
         ),
         { numRuns: 100 },
       )
 
       expect(details.failed).toBe(true)
-      expect(details.errorInstance).toBeInstanceOf(RevisionMismatch)
-      const reduced = revisionReplay(details)
+      expect(details.errorInstance).toBeInstanceOf(EditMismatch)
+      const reduced = editReplay(details)
       const replay = fc.check(
         fc.property(
-          fc.commands(revisionActions, {
-            maxCommands: maxRevisionCommands,
+          fc.commands(editActions, {
+            maxCommands: maxEditCommands,
             replayPath: reduced.replayPath,
           }),
-          (commands) => runRevisionCommands(commands, defectiveRevision),
+          (commands) => runEditCommands(commands, defectiveEdit),
         ),
         {
           endOnFailure: true,
@@ -366,18 +345,18 @@ describe("content and revision action sequences", () => {
       )
 
       expect(replay.failed).toBe(true)
-      expect(replay.errorInstance).toBeInstanceOf(RevisionMismatch)
+      expect(replay.errorInstance).toBeInstanceOf(EditMismatch)
       const directCommands = [...reduced.commands]
       const reproduced: typeof failures = []
-      expect(() => runRevisionCommands(directCommands, defectiveRevision, reproduced)).toThrowError(
-        RevisionMismatch,
+      expect(() => runEditCommands(directCommands, defectiveEdit, reproduced)).toThrowError(
+        EditMismatch,
       )
       expect(reproduced).toHaveLength(1)
       expect(reproduced[0].actions.length).toBeLessThanOrEqual(failures[0].actions.length)
-      expect(() => runRevisionCommands(directCommands, reviseNote)).not.toThrow()
+      expect(() => runEditCommands(directCommands, reviseNote)).not.toThrow()
       process.stdout.write(`${JSON.stringify({
         classification: "controlled-domain-defect",
-        feature: "note-content-revision",
+        feature: "note-content-editing",
         firstFailure: failures[0],
         layer: "note-domain",
         name,

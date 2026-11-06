@@ -5,10 +5,6 @@ import {
 } from "@/entities/note/index.browser"
 import { PREFERENCE_STORE_NAME } from "@/entities/preference/index.browser"
 import { TEMPLATE_STORE_NAME } from "@/entities/template/index.browser"
-import {
-  USAGE_BY_NOTE_CONTENT_INDEX,
-  USAGE_STORE_NAME,
-} from "@/entities/usage/index.browser"
 import { openIndexedDatabase } from "@/shared/lib/indexed-db/index.browser"
 
 import {
@@ -18,11 +14,11 @@ import {
   migratePersonalNotesDatabase,
   migrateNotePositions,
   migrateNoteBodies,
-  removeNoteRevision,
+  recoverNoteDrafts,
 } from "./migrate-personal-notes-database"
 
 export const PERSONAL_NOTES_DATABASE_NAME = "personal-notes"
-export const PERSONAL_NOTES_DATABASE_VERSION = 13
+export const PERSONAL_NOTES_DATABASE_VERSION = 14
 
 type PersonalNotesDatabaseCallbacks = {
   onBlocked?(): void
@@ -48,24 +44,17 @@ export function openPersonalNotesDatabase(
         database.createObjectStore(BATCH_COPY_LIST_STORE_NAME, {
           keyPath: "id",
         })
-        const usage = database.createObjectStore(USAGE_STORE_NAME, {
-          keyPath: "id",
-        })
-        usage.createIndex(
-          USAGE_BY_NOTE_CONTENT_INDEX,
-          ["note.id", "note.contentRevision", "textSnapshot"],
-          { unique: true },
-        )
         database.createObjectStore(TEMPLATE_STORE_NAME, { keyPath: "id" })
         database.createObjectStore(PREFERENCE_STORE_NAME)
         return
       }
 
+      if (database.objectStoreNames.contains("usage")) database.deleteObjectStore("usage")
       if (oldVersion < 6) ensureBatchCopyListStore(database, transaction)
-      if (oldVersion < 12) migrateTimestamps(transaction, oldVersion)
+      migrateTimestamps(transaction, oldVersion)
 
       if (oldVersion >= 9) {
-        removeNoteRevision(transaction, oldVersion === 9)
+        recoverNoteDrafts(transaction)
         return
       }
 

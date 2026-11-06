@@ -38,10 +38,9 @@ function requireValue<T>(value: T | null, message: string): T {
   return value
 }
 
-function createNote(contentRevision: number): Note {
+function createNote(): Note {
   return {
     content: "같은 줄\n같은 줄",
-    contentRevision,
     createdAt: timestamp,
     geometry: { height: 240, width: 320, x: 20, y: 20, zIndex: 1 },
     id: "note-one",
@@ -124,7 +123,7 @@ describe("TextAnalysisProvider", () => {
         return request.promise
       },
     }
-    const reader: NoteReader = { getAll: async () => [createNote(1)] }
+    const reader: NoteReader = { getAll: async () => [createNote()] }
     await renderProvider(analyzer, reader)
     const run = page.getByRole("button", { name: "분석 실행" })
 
@@ -154,7 +153,7 @@ describe("TextAnalysisProvider", () => {
 
   it("marks a response stale when note content changes during analysis", async () => {
     const deferred = createDeferred<AnalysisResponseMessage>()
-    let notes: readonly Note[] = [createNote(1)]
+    let notes: readonly Note[] = [createNote()]
     const requestInput: { current: AnalysisInput | null } = { current: null }
     const analyzer: TextAnalyzer = {
       analyze(input) {
@@ -168,7 +167,7 @@ describe("TextAnalysisProvider", () => {
     await act(async () =>
       userEvent.click(page.getByRole("button", { name: "분석 실행" })),
     )
-    notes = [{ ...createNote(1), content: "분석 도중 변경된 원문" }]
+    notes = [{ ...createNote(), content: "분석 도중 변경된 원문" }]
 
     const input = requireValue(
       requestInput.current,
@@ -202,7 +201,7 @@ describe("TextAnalysisProvider", () => {
         }
       },
     }
-    const reader: NoteReader = { getAll: async () => [createNote(1)] }
+    const reader: NoteReader = { getAll: async () => [createNote()] }
     await renderProvider(analyzer, reader)
 
     await act(async () =>

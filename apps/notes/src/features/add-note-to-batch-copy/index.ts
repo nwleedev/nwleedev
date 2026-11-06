@@ -1,5 +1,4 @@
 export type { BatchCopyItemWriter } from "./model/batch-copy-item-writer"
-export type { MobileBatchCopyUsageWriter } from "./model/mobile-batch-copy-usage-writer"
 export {
   AddNoteToBatchCopyProvider,
   useAddNoteToBatchCopy,
@@ -22,5 +21,4 @@ export {
   moveMobileBatchCopySessionEntry,
   removeMobileBatchCopySessionEntry,
   resetMobileBatchCopySession,
-  type AddMobileBatchCopyResult,
 } from "./model/mobile-batch-copy-session"

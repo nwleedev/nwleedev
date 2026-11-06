@@ -52,7 +52,6 @@ function emptyBatchCopyList(updatedAt: number): BatchCopyList {
   return {
     content: { items: [], separator: "\n" },
     id: PRIMARY_BATCH_COPY_LIST_ID,
-    revision: 0,
     updatedAt,
   }
 }

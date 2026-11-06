@@ -101,6 +101,10 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 - **2.2 같은 문구로 돌아온 원문 구분.** 메모를 편집하고 처음 문구로 되돌리면 CRDT 본문에서 계산한 원문 식별값은 처음과 다르다. 현재 변경분을 기준 본문에 합치고 새 DB 연결에서 읽어도 식별값은 유지된다. 실제 IndexedDB를 사용하는 세 브라우저에서 해당 저장소 검사 57건이 통과했다. 이 검사는 원문 식별과 편집 횟수 표시를 구분한다.
 
+- **2.1 서버 구현 전 사용 기록 중단.** 새 DB와 구버전 이전 결과를 다섯 저장소로 통일한다. 삭제 후 복원용 본문과 일괄 복사에 담긴 원문 참조도 확인한다. v12 메모의 편집 횟수가 이전 후 남는 현상을 세 브라우저에서 재현했다.
+
+- **2.1 v14 저장 구조와 복사.** 구버전 초안을 먼저 복구한 뒤 활성 메모와 복원 대기 메모를 같은 필드 구성으로 정리한다. 일괄 복사 항목의 원문 참조는 메모 ID만 보존한다. 목록과 템플릿의 수정 횟수도 이전 시 제거한다. 사용 빈도 페이지와 복사 횟수 집계를 분리해 로컬에 기록을 쓰지 않는다. 다섯 저장소와 이전 자료를 검사하는 브라우저 검사 전체 144건, 텍스트 편집과 복사를 포함한 단위 검사 181건이 통과했다.
+
 ### 모든 절차의 착수 조건
 
 - 각 절차에서 코드를 열기 전에 [저장소 개발 지침](../../dev/README.md), [메모 앱 안티패턴](../../dev/personal-notes-app/anti-patterns.md), [입력 상태](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md) 중 적용할 규칙을 확인한다. 아래 파일은 `apps/notes` 기준이다. 실제 호출자와 재사용 여부를 확인하고 다음 절차에 필요한 코드를 먼저 지우지 않는다.
@@ -127,7 +131,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ### 2. 저장 구조, 이전과 모바일 순서
 
-1. **새 DB와 기존 DB의 자료 이전.** `src/_app/composition/indexed-db/{open-personal-notes-database,migrate-personal-notes-database}.ts`와 note, usage, batch-copy의 레코드 해석 코드 및 일괄 복사 writer를 함께 수정한다. 업그레이드 트랜잭션에서 복구할 기존 초안을 반영한 기준 본문, 메모별 `position`, `updates`의 키와 인덱스를 구성한다. 이전 목록의 순서, 저장 목록과 원문 스냅샷, 사용 횟수를 보존한다. `accumulators` 및 `batchCopyLists`에서 `batches`로 옮기되 현재 목록 단위와 구분자는 유지한다. 같은 원문으로 되돌아간 두 사용 기록을 원문만으로 합치지 않는다. 기존 자료를 구별할 방법을 확인하기 전 사용 기록 인덱스를 교체하지 않는다. 이전 판독기는 남기고 새 DB에는 초안 및 순서 전용 저장소를 만들지 않는다. **TDD 필요.** 기존 `personal-notes-database.indexeddb.test.ts`에서 실제 이전 DB를 열어 결과를 읽는다. 빈 DB, 이전 도중 중단 후 재시도, 이전 탭이 열린 경우를 구분한다. [IndexedDB 업그레이드 트랜잭션](https://www.w3.org/TR/IndexedDB-3/#upgrade-transaction-construct)
+1. **새 DB와 기존 DB의 자료 이전.** `src/_app/composition/indexed-db/{open-personal-notes-database,migrate-personal-notes-database}.ts`와 note, batch-copy의 레코드 해석 코드 및 일괄 복사 writer를 함께 수정한다. 업그레이드 트랜잭션에서 복구할 기존 초안을 반영한 기준 본문, 메모별 `position`, `updates`의 키와 인덱스를 구성한다. 이전 목록의 순서, 저장 목록과 원문 스냅샷을 보존한다. `accumulators` 및 `batchCopyLists`에서 `batches`로 옮기되 현재 목록 단위와 구분자는 유지한다. 이전 로컬 사용 기록은 저장소와 인덱스를 함께 제거한다. 이전 판독기는 남기고 새 DB에는 초안 및 순서 전용 저장소를 만들지 않는다. **TDD 필요.** 기존 `personal-notes-database.indexeddb.test.ts`에서 실제 이전 DB를 열어 결과를 읽는다. 빈 DB, 이전 도중 중단 후 재시도, 이전 탭이 열린 경우를 구분한다. [IndexedDB 업그레이드 트랜잭션](https://www.w3.org/TR/IndexedDB-3/#upgrade-transaction-construct)
 
    이전은 한 번 성공하면 같은 DB에서 다시 재현하기 어려워 코드로 검증한다. 기존 실제 스키마를 만드는 테스트 설정을 재사용한다. `shared/lib/entity-metadata`의 ISO 판독은 이전에만 남기고 note, batch, usage, template의 시각 필드와 중첩 항목, 시계 공급자 및 날짜 문자열 비교 호출자를 조사한다. 시간대 오프셋이 다른 기존 문자열도 이전 후 밀리초 단위로 같은 순간과 기존 표시를 유지하는지 확인한다. 변환 실패를 현재 시각으로 대체하지 않는다. [ECMAScript 시간 값](https://tc39.es/ecma262/#sec-time-values-and-time-range)
 
@@ -139,7 +143,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
    순서 변경은 이웃 메모를 기준으로 적용한다. 실행 순서에 따라 새 메모나 다른 창의 좌표가 사라지는 회귀를 잡으려면 두 커밋 순서를 반복 가능한 사례로 남겨야 한다. [겹치는 쓰기 트랜잭션](https://www.w3.org/TR/IndexedDB-3/#transaction-scheduling)
 
-4. **대단원 코드 리뷰와 반영.** 신규 생성과 구버전 이전 결과를 대조하고 부분 커밋, 남은 구 저장소 호출자, 사용 횟수와 저장 목록의 변형을 검토한다. 실제 IndexedDB에서 해당 사례를 재실행해 수정 결과를 확인한 뒤 새 저장 방식을 화면에 연결한다.
+4. **대단원 코드 리뷰와 반영.** 신규 생성과 구버전 이전 결과를 대조하고 부분 커밋, 남은 구 저장소 호출자와 저장 목록의 변형을 검토한다. 실제 IndexedDB에서 해당 사례를 재실행해 수정 결과를 확인한 뒤 새 저장 방식을 화면에 연결한다.
 
    **TDD 없음.** [IndexedDB의 트랜잭션 완료와 중단](https://www.w3.org/TR/IndexedDB-3/#transaction-lifetime)을 기준으로 실제 이전 전후 자료를 대조한다. 재현된 결함만 수정하고 리뷰 전용 fixture와 스크립트는 만들지 않는다.
 
@@ -169,7 +173,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
    각 진입점에서 다시 내보내는 모듈까지 따라가 직접 및 간접 순환을 확인한다. 같은 slice 내부는 자기 진입점을 통해 다시 가져오지 않는다. 정규표현식과 숫자 기준을 옮길 때도 역방향 import를 만들지 않는다. [FSD 진입점과 순환 참조](https://feature-sliced.design/docs/reference/public-api)
 
-2. **실제 서비스에서 보존 동작 확인.** 신규 앱 코드와 테스트 파일 추가 없이 `apps/notes`의 기존 `test`, `test:browser`, `test:e2e`를 실행한다. 같은 브라우저 프로필의 탭 두 개와 별도 창에서 본문 병합, 새 메모와 드래그, 저장 재시도, 삭제 및 복원을 실제 IndexedDB로 확인한다. 새로고침 후 본문과 순서, 일괄 복사 원문 및 횟수를 다시 읽는다. 기존 캔버스 앞뒤 이동, 탭 탐색, 선택, 템플릿과 모바일 복사 확인까지 회귀를 확인한다. 구독 메시지만 보거나 서로 저장소가 분리된 브라우저 컨텍스트로 성공을 판정하지 않는다. **TDD 없음.**
+2. **실제 서비스에서 보존 동작 확인.** 신규 앱 코드와 테스트 파일 추가 없이 `apps/notes`의 기존 `test`, `test:browser`, `test:e2e`를 실행한다. 같은 브라우저 프로필의 탭 두 개와 별도 창에서 본문 병합, 새 메모와 드래그, 저장 재시도, 삭제 및 복원을 실제 IndexedDB로 확인한다. 새로고침 후 본문과 순서, 일괄 복사 원문과 항목 순서를 다시 읽는다. 기존 캔버스 앞뒤 이동, 탭 탐색, 선택, 템플릿과 모바일 복사 확인까지 회귀를 확인한다. 구독 메시지만 보거나 서로 저장소가 분리된 브라우저 컨텍스트로 성공을 판정하지 않는다. **TDD 없음.**
 
    브라우저 검사의 목적은 탭별 실행 수명과 공유 저장소가 실제로 함께 작동하는지 판별하는 것이다. 하나의 컨텍스트에 같은 사이트의 페이지 두 개를 열고, 쓰기 후 다른 쪽의 화면과 재실행 결과를 관찰한다. 기존 도구로 가능한 과업을 별도 실행기로 복제하지 않는다. [Playwright의 다중 페이지](https://playwright.dev/docs/pages)
 
