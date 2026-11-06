@@ -1,6 +1,6 @@
 # 메모 사용 경험과 서버 저장 설계
 
-[IndexedDB 스키마 개선](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)은 메모별 기준 레코드를 `notes`에 저장하고 본문 변경분은 `updates`에서 복합 키 `[id, noteId]`로 식별한다. 기존 일괄 복사 목록은 `batches`로 옮긴다. 모바일에서는 새 메모만 맨 앞에 넣는다. [편집 중 다른 창에서 메모를 삭제한 경우](docs/designs/personal-notes-app-8fd/requirements.md#편집-중-다른-창에서-메모를-삭제한-경우)에 모바일 편집 잠금과 명시적 복원, 데스크탑 토스트의 동작을 정했다. 모바일 복원은 삭제 전에 저장된 본문만 사용한다. [미저장 입력을 포함하는 복원](docs/designs/personal-notes-app-8fd/requirements.md#그-밖의-후속-항목)은 백로그다. 최종 서버 저장 방식은 미정이다.
+[IndexedDB 스키마 개선](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)은 메모별 기준 레코드를 `notes`에 저장하고 본문 변경분은 `updates`에서 복합 키 `[id, noteId]`로 식별한다. 기존 일괄 복사 목록은 `batches`로 옮긴다. 모바일 목록 순서는 `positions`에 저장하고 재정렬할 때 목록의 `version`을 비교한다. 새 메모는 맨 앞에 넣는다. [편집 중 다른 창에서 메모를 삭제한 경우](docs/designs/personal-notes-app-8fd/requirements.md#편집-중-다른-창에서-메모를-삭제한-경우)에 모바일 편집 잠금과 명시적 복원, 데스크탑 토스트의 동작을 정했다. 모바일 복원은 삭제 전에 저장된 본문만 사용한다. [미저장 입력을 포함하는 복원](docs/designs/personal-notes-app-8fd/requirements.md#그-밖의-후속-항목)은 백로그다. 최종 서버 저장 방식은 미정이다.
 
 [본문 자동 저장 실패](docs/designs/personal-notes-app-8fd/requirements.md#본문-자동-저장-실패)는 데스크탑과 모바일 모두 내부 재시도로 처리한다. 현재 편집기에는 수동 재시도 버튼이 있어 구현과 동작 확인이 남아 있다.
 
