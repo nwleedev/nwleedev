@@ -2,6 +2,7 @@ import { afterEach, assert, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   NoteBody,
+  identifyNoteContent,
   mobileNotePosition,
   reviseNote,
   type Note,
@@ -139,6 +140,22 @@ describe("메모 저장소 모델", () => {
     expect((await second.deletedNote(note.id))?.content).toBe(note.content)
     await leaveSecond()
     expect(await deletion.deletedNote(note.id)).toBeNull()
+  })
+
+  it("같은 문구로 돌아와도 이전 분석 원문과 구분하고 변경분 정리 후에도 현재 원문을 식별한다", async () => {
+    const writer = new IndexedDbNoteRepository(createConnection())
+    const first = await writer.save(note)
+    const changed = await writer.saveEdit(first, reviseNote(first, { content: "바뀐 원문", updatedAt: timestamp }))
+    assert(changed)
+    const reverted = await writer.saveEdit(changed, reviseNote(changed, { content: first.content, updatedAt: timestamp }))
+    assert(reverted)
+    const current = identifyNoteContent(reverted)
+    expect(current).not.toEqual(identifyNoteContent(first))
+    await writer.compactBody(first.id)
+    const reopened = await new IndexedDbNoteRepository(createConnection()).get(first.id)
+    assert(reopened)
+    expect(reopened.content).toBe(first.content)
+    expect(identifyNoteContent(reopened)).toEqual(current)
   })
 
   it("반복해서 저장한 메모를 다시 열면 본문을 유지하면서 누적 변경분이 줄어든다", async () => {
