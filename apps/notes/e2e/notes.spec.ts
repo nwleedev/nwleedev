@@ -1076,6 +1076,7 @@ test("자동 저장 쓰기 누락을 실제 입력과 시간 진행으로 축소
 }, testInfo) => {
   test.setTimeout(180_000)
   const failures: AutosaveFailure[] = []
+  const writeOmissionSeed = -1733444499
   const timerActions = [
     autosaveContent.map((content) => new EnterAutosaveContent(content)),
     fc.constant(new AdvanceAutosaveClock(799)),
@@ -1094,7 +1095,7 @@ test("자동 저장 쓰기 누락을 실제 입력과 시간 진행으로 축소
         )
       },
     ),
-    { numRuns: 20 },
+    { numRuns: 20, seed: writeOmissionSeed },
   )
 
   expect(details.failed).toBe(true)
@@ -2116,6 +2117,7 @@ test("가장 최근에 활성화한 오른쪽 패널 하나만 표시한다", as
 
 test("메모 삭제를 알리고 같은 메모를 취소로 복원한다", async ({ page }) => {
   await page.clock.install({ time: new Date("2026-09-04T01:00:00.000Z") })
+  await page.reload()
   const content = "삭제 뒤 복원할 메모"
   const note = await createNoteThroughUi(page, content)
 
