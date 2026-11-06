@@ -3,6 +3,18 @@ import { describe, expect, it } from "vitest"
 import { NoteBody } from "./note-body"
 
 describe("같은 메모를 여러 창에서 편집", () => {
+  it("오래된 본문에는 이미 저장한 삭제가 없고 병합된 본문에는 남는다", () => {
+    const base = NoteBody.fromText("가나다").snapshot()
+    const mobile = new NoteBody(base)
+    const desktop = new NoteBody(base)
+    const deletion = mobile.replace(1, 2, "")
+    desktop.replace(0, 0, "제목 ")
+    expect(desktop.contains(mobile.snapshot())).toBe(false)
+    desktop.receive(deletion)
+    expect(desktop.contains(mobile.snapshot())).toBe(true)
+    expect(mobile.contains(desktop.snapshot())).toBe(false)
+  })
+
   it("선택 구간을 지워도 다른 창이 그 안에 넣은 글자는 남고 중복 수신해도 같은 본문을 읽는다", () => {
     const original = NoteBody.fromText("가나다라").snapshot()
     const first = new NoteBody(original)

@@ -71,6 +71,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 - **2.2 생성과 배치 쓰기 분리.** 같은 ID로 새 메모 생성을 요청해도 이미 편집 중인 메모를 덮어쓸 수 없다. 생성과 명시적 복원만 기준 본문을 만들며, 배치 저장은 기존 기준 본문과 변경분을 유지한다. 두 창이 같은 ID를 썼을 때 본문과 배치를 보존하는 검사가 수정 전 세 브라우저에서 실패한 뒤 전체 브라우저 검사 147건이 통과했다.
 
+- **3.1 편집기에 도착한 본문 판정.** 이미 저장한 입력이 새로 읽은 CRDT 상태에 들어 있을 때 편집기에 반영한다. 본문 수정 횟수로 선후를 비교하지 않는다. 다른 창이 아직 받지 못한 삭제와 이미 병합한 삭제를 구별하는 Yjs 검사, 전체 단위 검사 190건과 브라우저 검사 147건을 확인했다.
+
 ### 모든 절차의 착수 조건
 
 - 각 절차에서 코드를 열기 전에 [저장소 개발 지침](../../dev/README.md), [메모 앱 안티패턴](../../dev/personal-notes-app/anti-patterns.md), [입력 상태](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md) 중 적용할 규칙을 확인한다. 아래 파일은 `apps/notes` 기준이다. 실제 호출자와 재사용 여부를 확인하고 다음 절차에 필요한 코드를 먼저 지우지 않는다.

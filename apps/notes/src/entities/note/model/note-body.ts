@@ -1,4 +1,4 @@
-import { applyUpdate, createAbsolutePositionFromRelativePosition, createRelativePositionFromTypeIndex, Doc, encodeStateAsUpdate, encodeStateVector } from "yjs"
+import { applyUpdate, createAbsolutePositionFromRelativePosition, createRelativePositionFromTypeIndex, Doc, encodeStateAsUpdate, encodeStateVector, snapshot, snapshotContainsUpdate } from "yjs"
 
 import type { Note } from "./note"
 
@@ -95,6 +95,10 @@ export class NoteBody {
     }
     const first = translate(start)
     return { start: first, end: end === start ? first : translate(end) }
+  }
+
+  contains(update: Uint8Array) {
+    return snapshotContainsUpdate(snapshot(this.#document), update)
   }
 
   receive(update: Uint8Array) {

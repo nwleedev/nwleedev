@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useEffectEvent, useRef, useState, type RefObject } from "react"
 
-import { openNoteBody, type Note } from "@/entities/note"
+import { openNoteBody, savedNoteBody, type Note } from "@/entities/note"
 
 import {
   beginNoteContentSave,
@@ -189,10 +189,12 @@ export function useNoteContentAutosave({
   const receiveSavedNote = useEffectEvent((saved: Note) => {
     if (paused.current || stopped.current || stateReference.current.pendingContent !== null) return
     const previous = noteReference.current
-    if (readContent() !== previous.content || saved.revision < previous.revision) return
+    if (previous === saved || readContent() !== previous.content) return
+    const before = savedNoteBody(previous)
+    const next = openNoteBody(saved)
+    if (before && next && !next.contains(before.bytes)) return
     if (saved.content !== previous.content) {
       const field = editor.current
-      const next = field ? openNoteBody(saved) : null
       const range = field && next ? openNoteBody(previous)?.selectionIn(next, field.selectionStart, field.selectionEnd) : null
       const direction = field?.selectionDirection
       receiveNote(previous, saved)
