@@ -12,10 +12,8 @@ import { StatusNotice } from "@/shared/ui/status-notice"
 import type { SaveNoteContentResult } from "../model/save-note-content"
 import {
   useNoteDetailEditing,
-  type NoteDetailFailure,
 } from "../model/use-note-detail-editing"
 import { useNotesData } from "../model/notes-data-provider"
-import { noteContentFailureMessage } from "./note-content-failure-message"
 
 const backLinkClassName =
   "inline-flex h-[var(--notes-touch-target)] w-[var(--notes-touch-target)] items-center justify-center rounded-control text-icon hover:bg-canvas hover:text-text active:translate-y-px"
@@ -38,14 +36,6 @@ type UnsavedChangesDialogProps = {
   onCancel(event: SyntheticEvent<HTMLDialogElement>): void
   onContinue(): void
   onDiscard(): void
-}
-
-function failureMessage(failure: NoteDetailFailure) {
-  if (failure.kind === "save") {
-    return noteContentFailureMessage(failure.reason)
-  }
-
-  return "편집 중인 내용을 보관하지 못했습니다."
 }
 
 function UnsavedChangesDialog({
@@ -106,11 +96,9 @@ function ReadyNoteDetail({
     dialog,
     dialogTitleId,
     discardChanges,
-    failure,
     navigationConfirmationVisible,
     onBlur,
     requestBackNavigation,
-    retryFailure,
     saveLabel,
     startComposition,
     endComposition,
@@ -182,14 +170,6 @@ function ReadyNoteDetail({
           onSelect={history.select}
           ref={connectEditor}
         />
-        {failure !== null ? (
-          <StatusNotice kind="error">
-            <p>{failureMessage(failure)}</p>
-            <Button onClick={retryFailure} tone="quiet">
-              다시 시도
-            </Button>
-          </StatusNotice>
-        ) : null}
       </div>
       {navigationConfirmationVisible ? (
         <UnsavedChangesDialog

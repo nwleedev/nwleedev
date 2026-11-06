@@ -135,7 +135,7 @@ it("메모 저장 실패 후 다시 열어도 편집 초안을 복구하고 재�
   await act(async () => userEvent.fill(editor, changedContent))
 
   await act(async () => { await expect.poll(() => storage.draft?.content).toBe(changedContent) })
-  await expect.element(page.getByRole("alert")).toBeInTheDocument()
+  expect(page.getByRole("alert").query()).toBeNull()
   expect(storage.note.content).toBe(initialNote.content)
   expect(storage.draft?.content).toBe(changedContent)
 
@@ -151,6 +151,23 @@ it("메모 저장 실패 후 다시 열어도 편집 초안을 복구하고 재�
   expect(storage.draft).toBeNull()
 })
 
+
+it("쓰기 실패 뒤 사용자 조작 없이 현재 입력을 저장하고 그동안 저장 중을 표시한다", async () => {
+  const initialNote = createStoredNote()
+  const storage = createStorage(initialNote)
+  await renderDetail(initialNote.id, storage)
+  const editor = page.getByRole("textbox", { name: "메모 내용" })
+  const status = page.getByRole("status")
+  const content = initialNote.content + " 재시도할 입력"
+  await act(async () => userEvent.fill(editor, content))
+  await act(async () => { await expect.poll(() => storage.draft?.content).toBe(content) })
+  expect(storage.note.content).toBe(initialNote.content)
+  await expect.element(status).toHaveTextContent("저장 중")
+  expect(page.getByRole("button", { name: "다시 시도" }).query()).toBeNull()
+  await act(async () => { await expect.poll(() => storage.note.content).toBe(content) })
+  await expect.element(status).toHaveTextContent("저장됨")
+  await expect.element(editor).toHaveValue(content)
+})
 
 it("자동 저장 뒤에도 편집을 되돌리고 다시 실행하며 새 입력은 이전 Redo를 없앤다", async () => {
   const initialNote = createStoredNote()

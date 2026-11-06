@@ -14,10 +14,8 @@ import {
   ActionPopover,
   type ActionPopoverAction,
 } from "@/shared/ui/action-popover"
-import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
 import { CopyIcon } from "@/shared/ui/icons"
-import { StatusNotice } from "@/shared/ui/status-notice"
 
 import type { SaveNoteContentResult } from "../model/save-note-content"
 import { useNoteCardEditor } from "../model/use-note-card-editor"
@@ -25,7 +23,6 @@ import {
   useNoteGeometryGesture,
   type NoteResizeDirection,
 } from "../model/use-note-geometry-gesture"
-import { noteContentFailureMessage } from "./note-content-failure-message"
 
 type NoteCardProps = {
   batchCopyShortcutEnabled: boolean
@@ -410,14 +407,6 @@ export function NoteCard({
         placeholder="메모를 입력하세요"
         {...editor.registration}
       />
-      {editor.autosave.failureReason !== null ? (
-        <StatusNotice kind="error">
-          <p>{noteContentFailureMessage(editor.autosave.failureReason)}</p>
-          <Button onClick={() => void editor.autosave.save()} tone="quiet">
-            다시 시도
-          </Button>
-        </StatusNotice>
-      ) : null}
       {resizeHandles.map(([direction, positionClassName]) => (
         <ResizeHandle
           direction={direction}

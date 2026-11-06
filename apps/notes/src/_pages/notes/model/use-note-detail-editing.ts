@@ -4,13 +4,11 @@ import {
   useCallback,
   useEffect,
   useRef,
-  useState,
   type ChangeEvent as ReactChangeEvent,
 } from "react"
 import { useForm } from "react-hook-form"
 
 import type { Note } from "@/entities/note"
-import type { NoteDetailFailure } from "./note-detail-failure"
 import type { SaveNoteContentResult } from "./save-note-content"
 import { useNoteContentAutosave } from "./use-note-content-autosave"
 import { useNoteEditHistory } from "./use-note-edit-history"
@@ -21,7 +19,6 @@ type NoteContentFields = {
   content: string
 }
 
-export type { NoteDetailFailure } from "./note-detail-failure"
 
 type UseNoteDetailEditingOptions = {
   initialContent: string
@@ -49,7 +46,6 @@ export function useNoteDetailEditing({
   } = useForm<NoteContentFields>({
     defaultValues: { content: initialContent },
   })
-  const [failure, setFailure] = useState<NoteDetailFailure | null>(null)
   const editor = useRef<HTMLTextAreaElement>(null)
   const noteReference = useRef(note)
   const readContent = useCallback(() => getValues("content"), [getValues])
@@ -64,9 +60,7 @@ export function useNoteDetailEditing({
     note,
     onContentSaved(content) {
       reset({ content }, { keepFieldsRef: true })
-      setFailure(null)
     },
-    onFailure(reason) { setFailure({ kind: "save", reason }) },
     onSave: saveContent,
     readContent,
     saveOnExit: false,
@@ -118,11 +112,6 @@ export function useNoteDetailEditing({
     editor.current = element
   }, [register])
 
-  function retryFailure() {
-    setFailure(null)
-    void autosave.save()
-  }
-
   return {
     cancelDialog: navigation.cancelDialog,
     changeContent,
@@ -133,14 +122,12 @@ export function useNoteDetailEditing({
     dialog: navigation.dialog,
     dialogTitleId: navigation.dialogTitleId,
     discardChanges: navigation.discardChanges,
-    failure,
     navigationConfirmationVisible: navigation.navigationConfirmationVisible,
     onBlur: contentRegistration.onBlur,
     requestBackNavigation: navigation.requestBackNavigation,
-    retryFailure,
     startComposition,
     endComposition,
-    saveLabel: failure !== null ? "저장하지 못함" : autosave.pending ? "저장 중" : "저장됨",
+    saveLabel: autosave.pending ? "저장 중" : "저장됨",
     history,
   }
 }
