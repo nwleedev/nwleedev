@@ -30,7 +30,7 @@ import {
   readStoredNote,
   type StoredNoteObservation,
 } from "./support/read-stored-note"
-import { runNoteAction } from "./support/run-note-action"
+import type { NoteActionName } from "./support/run-note-action"
 
 const initialTime = Date.parse("2026-09-13T01:00:00.000Z")
 const undoDurationMs = 5_000
@@ -277,6 +277,7 @@ class MoveRemovalNoteToFrontCommand extends RemovalCommand {
     }
 
     await real.moveToFront(target.id)
+    await real.flushAnimationFrame()
     model.active = moveModelNoteToFront(model.active, target.id)
     model.expectedFocus = target.id
     model.observationPending = true
@@ -418,6 +419,12 @@ function noteIdFromArticle(note: Locator) {
 
 function articleForId(page: Page, noteId: string) {
   return page.locator(`[id="note-${encodeURIComponent(noteId)}-board"]`)
+}
+
+async function runRemovalMenuAction(page: Page, noteId: string, action: NoteActionName) {
+  const trigger = articleForId(page, noteId).getByRole("button", { name: "메모 동작" })
+  await trigger.press("Enter")
+  await page.getByRole("menuitem", { name: action, exact: true }).press("Enter")
 }
 
 async function focusTarget(page: Page) {
@@ -611,7 +618,7 @@ async function executeRemovalCommands(
       },
       async moveToFront(noteId) {
         const before = await storedStackSignature(page, noteIds)
-        await runNoteAction(articleForId(page, noteId), "메모를 맨 앞으로")
+        await runRemovalMenuAction(page, noteId, "메모를 맨 앞으로")
         await expect
           .poll(() => storedStackSignature(page, noteIds))
           .not.toBe(before)
@@ -625,8 +632,7 @@ async function executeRemovalCommands(
       },
       async remove(noteId) {
         const article = articleForId(page, noteId)
-        await article.hover()
-        await runNoteAction(article, "메모 삭제")
+        await runRemovalMenuAction(page, noteId, "메모 삭제")
         await expect(article).toHaveCount(0)
         await expect.poll(() => readStoredNote(page, noteId)).toBeNull()
       },
@@ -765,7 +771,7 @@ test("삭제 실패를 줄이고 스냅샷, 포커스와 만료 시각으로 재
   const normal = await checkRemovalExploration(browser, "none")
   expect(
     normal.details.failed,
-    fc.defaultReportMessage(normal.details),
+    [fc.defaultReportMessage(normal.details), String(normal.details.errorInstance)].join("\n"),
   ).toBe(false)
   expect(normal.details.interrupted).toBe(false)
   console.info(

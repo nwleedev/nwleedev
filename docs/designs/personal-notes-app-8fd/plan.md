@@ -65,6 +65,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 - **2.1 일괄 복사 시각 이전.** DB v11부터 일괄 복사 목록의 수정 시각과 각 항목을 담은 시각을 정수 밀리초로 저장한다. 목록 전체를 저장하거나 메모를 일괄 복사에 추가할 때 같은 형식을 사용한다. v10 자료를 열고 다시 저장해 항목의 순서, 원문, 구분자 및 시각이 유지되는지 확인했다. 이전 구현에서 세 브라우저 모두 실패했고 변경 후 전체 브라우저 검사 144건, 타입 검사와 lint가 통과했다. 템플릿, 설정 및 사용 기록의 시각 전환은 남아 있다.
 
+- **4.2 삭제 및 복원 모델.** 삭제 토스트의 실행 취소 버튼이 다음 카드의 메뉴 버튼 위에 표시되어 포인터 조작이 대기하는 경우를 재현했다. 삭제와 겹침 순서 메뉴는 키보드로 실행하고 브라우저가 다음 프레임에 포커스를 돌려준 뒤 관찰한다. 정상 복원과 잘못된 겹침 순서 주입을 구별하는 검사가 Chromium, Firefox, WebKit에서 통과했다.
+
 ### 모든 절차의 착수 조건
 
 - 각 절차에서 코드를 열기 전에 [저장소 개발 지침](../../dev/README.md), [메모 앱 안티패턴](../../dev/personal-notes-app/anti-patterns.md), [입력 상태](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md) 중 적용할 규칙을 확인한다. 아래 파일은 `apps/notes` 기준이다. 실제 호출자와 재사용 여부를 확인하고 다음 절차에 필요한 코드를 먼저 지우지 않는다.
