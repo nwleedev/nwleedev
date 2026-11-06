@@ -314,17 +314,18 @@ test("네 메모의 비인접 삽입을 브라우저 재실행 후에도 유지�
   }
   let notes = page.getByRole("article")
   const session = await context.newCDPSession(page)
+  await expect(notes).toContainText([...contents].reverse())
   async function dragFirstToLast() {
-    const handle = notes.filter({ hasText: contents[0] }).getByRole("button", { name: / 이동$/u })
-    const destination = await center(notes.filter({ hasText: contents[3] }), 0.8)
+    const handle = notes.filter({ hasText: contents[3] }).getByRole("button", { name: / 이동$/u })
+    const destination = await center(notes.filter({ hasText: contents[0] }), 0.8)
     await startTouch(session, await center(handle))
     await moveTouch(session, destination)
     await endTouch(session)
   }
   await dragFirstToLast()
-  const expected = [contents[1], contents[2], contents[3], contents[0]]
+  const expected = [contents[2], contents[1], contents[0], contents[3]]
   await expect(notes).toContainText(expected)
-  await expect(notes.filter({ hasText: contents[0] }).getByRole("button", { name: / 이동$/u })).toHaveCSS("outline-style", "none")
+  await expect(notes.filter({ hasText: contents[3] }).getByRole("button", { name: / 이동$/u })).toHaveCSS("outline-style", "none")
   await page.reload()
   await expect(notes).toContainText(expected)
   for (const { id, stored } of before) expect(await readStoredNote(page, id)).toEqual(stored)

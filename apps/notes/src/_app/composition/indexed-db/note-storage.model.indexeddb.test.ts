@@ -5,11 +5,14 @@ import {
   IndexedDbNoteRepository,
   IndexedDbMobileNoteOrderRepository,
   NOTE_STORE_NAME,
+  NoteBody,
   mobileNotePosition,
   reviseNote,
   sendNoteToFront,
   type Note,
 } from "@/entities/note"
+
+import { readRequest, waitForTransaction } from "@/shared/lib/indexed-db"
 
 import {
   PersonalNotesDatabase,
@@ -69,6 +72,28 @@ describe("메모 저장소 모델", () => {
     connections.push(connection)
     return connection
   }
+
+  it("두 연결에서 같은 변경을 재전송해도 한 번만 남고 메모 삭제 뒤에는 다시 쓰지 않는다", async () => {
+    const first = new IndexedDbNoteRepository(createConnection())
+    const second = new IndexedDbNoteRepository(createConnection())
+    await first.save(note)
+    const body = NoteBody.fromText(note.content)
+    const update = { id: crypto.randomUUID(), noteId: note.id, payload: body.replace(0, 0, "추가 ") }
+    await Promise.all([first.appendUpdate(update), second.appendUpdate(update)])
+    const database = await createConnection().get()
+    async function readUpdates() {
+      const transaction = database.transaction("updates")
+      const completed = waitForTransaction(transaction)
+      const records = await readRequest(transaction.objectStore("updates").index("noteId").getAll(note.id))
+      await completed
+      return records
+    }
+    await expect(second.appendUpdate({ ...update, payload: body.replace(0, 1, "") })).rejects.toThrow()
+    expect(await readUpdates()).toEqual([update])
+    await first.remove(note)
+    await expect(second.appendUpdate(update)).resolves.toBe(false)
+    expect(await readUpdates()).toEqual([])
+  })
 
   it("모바일 순서를 새 연결에서 복원하고 원문 및 데스크톱 자료를 보존한다", async () => {
     const connection = createConnection()

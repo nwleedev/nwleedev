@@ -148,18 +148,21 @@ describe("personal notes IndexedDB storage", () => {
     return connection
   }
 
+  async function prepareUpdateDatabase(version: number) {
+    if (version === 0) return
+    const previous = await openIndexedDatabase({
+      name: PERSONAL_NOTES_DATABASE_NAME,
+      version,
+      upgrade(database) {
+        const notes = database.createObjectStore("notes", { keyPath: "id" })
+        notes.createIndex("position", "position")
+      },
+    })
+    previous.close()
+  }
+
   it.each([0, 6])("v%i에서 같은 변경 ID를 메모별로 독립 저장하고 조회한다", async (version) => {
-    if (version === 6) {
-      const previous = await openIndexedDatabase({
-        name: PERSONAL_NOTES_DATABASE_NAME,
-        version,
-        upgrade(database) {
-          const notes = database.createObjectStore("notes", { keyPath: "id" })
-          notes.createIndex("position", "position")
-        },
-      })
-      previous.close()
-    }
+    await prepareUpdateDatabase(version)
     const database = await createConnection().get()
     const write = database.transaction("updates", "readwrite")
     const saved = waitForTransaction(write)

@@ -93,9 +93,39 @@ export class IndexedDbNoteRepository implements NoteRepository {
     }
   }
 
+  async appendUpdate(update: { id: string; noteId: string; payload: Uint8Array }) {
+    const database = await this.#connection.get()
+    const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
+    const completion = waitForTransaction(transaction)
+    try {
+      const notes = transaction.objectStore(NOTE_STORE_NAME)
+      const exists = await readRequest(notes.getKey(update.noteId))
+      if (exists === undefined) {
+        await completion
+        return false
+      }
+      const updates = transaction.objectStore("updates")
+      const previous = await readRequest(updates.get([update.id, update.noteId]))
+      if (previous === undefined) {
+        updates.add(update)
+      } else {
+        const payload: unknown = previous.payload
+        if (!(payload instanceof Uint8Array) || payload.length !== update.payload.length
+          || !payload.every((byte, index) => byte === update.payload[index])) {
+          throw new Error("Note update identifier already used for different content")
+        }
+      }
+      await completion
+      return true
+    } catch (error) {
+      await abortTransaction(transaction, completion)
+      throw error
+    }
+  }
+
   async remove(reference: NoteReference) {
     const database = await this.#connection.get()
-    const transaction = database.transaction(NOTE_STORE_NAME, "readwrite")
+    const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
     const completion = waitForTransaction(transaction)
 
     try {
@@ -113,6 +143,9 @@ export class IndexedDbNoteRepository implements NoteRepository {
         throw new StaleNoteRevisionError()
       }
 
+      const updates = transaction.objectStore("updates")
+      const keys = await readRequest(updates.index("noteId").getAllKeys(reference.id))
+      for (const key of keys) updates.delete(key)
       store.delete(reference.id)
       await completion
     } catch (error) {
