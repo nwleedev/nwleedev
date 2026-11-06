@@ -1,7 +1,6 @@
 import type { Note } from "@/entities/note"
 
 export type NoteContentSaveState = {
-  draftCleanupRequired: boolean
   note: Note
   pendingContent: string | null
   status: "failure" | "idle" | "saving"
@@ -14,10 +13,8 @@ export type NoteContentSaveRequest = {
 
 export function createNoteContentSaveState(
   note: Note,
-  recoveredContent = note.content,
 ): NoteContentSaveState {
   return {
-    draftCleanupRequired: recoveredContent !== note.content,
     note,
     pendingContent: null,
     status: "idle",
@@ -40,7 +37,7 @@ export function beginNoteContentSave(
     }
   }
 
-  if (unchanged && !state.draftCleanupRequired) {
+  if (unchanged) {
     return {
       request: null,
       state: { ...state, status: "idle" },
@@ -51,7 +48,6 @@ export function beginNoteContentSave(
     request: { content, note: state.note },
     state: {
       ...state,
-      draftCleanupRequired: true,
       pendingContent: content,
       status: "saving",
     },
@@ -61,11 +57,9 @@ export function beginNoteContentSave(
 export function completeNoteContentSave(
   state: NoteContentSaveState,
   note: Note,
-  draftCleanupRequired: boolean,
 ): NoteContentSaveState {
   return {
     ...state,
-    draftCleanupRequired,
     note,
     pendingContent: null,
     status: "idle",

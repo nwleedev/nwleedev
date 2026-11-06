@@ -19,9 +19,7 @@ import {
   type NoteDraft,
 } from "@/entities/note"
 import {
-  NOTE_DRAFT_STORE_NAME,
   NOTE_STORE_NAME,
-  IndexedDbNoteDraftRepository,
   IndexedDbNoteRepository,
   IndexedDbMobileNoteOrderRepository,
 } from "@/entities/note/index.browser"
@@ -213,6 +211,50 @@ describe("personal notes IndexedDB storage", () => {
     expect(new NoteBody(record.body).text).toBe(note.content)
   })
 
+  it("v9 초안 이전이 중단되면 이전 변경분을 유지하고 다시 열 때 한 번만 복구한다", async () => {
+    const previous = await openIndexedDatabase({
+      name: PERSONAL_NOTES_DATABASE_NAME,
+      version: 9,
+      upgrade(database) {
+        database.createObjectStore("notes", { keyPath: "id" }).createIndex("position", "position")
+        database.createObjectStore("updates", { keyPath: ["id", "noteId"] }).createIndex("noteId", "noteId")
+        database.createObjectStore("noteDrafts", { keyPath: "note.id" })
+      },
+    })
+    const { content, ...fields } = note
+    const baseline = NoteBody.fromText(content)
+    const write = previous.transaction(["notes", "updates", "noteDrafts"], "readwrite")
+    const committed = waitForTransaction(write)
+    write.objectStore("notes").put({
+      ...fields, position: 0, body: baseline.snapshot(),
+      createdAt: Date.parse(note.createdAt), updatedAt: Date.parse(note.updatedAt),
+    })
+    write.objectStore("updates").put({ id: "saved", noteId: note.id, payload: baseline.updateText("편집 중 원문") })
+    write.objectStore("noteDrafts").put({ ...noteDraft, content: "" })
+    write.objectStore("noteDrafts").put({ note: { id: "z-invalid" } })
+    await committed
+    previous.close()
+
+    const connection = createConnection()
+    await expect(connection.get()).rejects.toThrow()
+    const old = await openIndexedDatabase({
+      name: PERSONAL_NOTES_DATABASE_NAME, version: 9,
+      upgrade() { throw new Error("Expected to reopen the previous database") },
+    })
+    const repair = old.transaction(["updates", "noteDrafts"], "readwrite")
+    const repaired = waitForTransaction(repair)
+    const updatesBeforeRetry = repair.objectStore("updates").count()
+    const draftBeforeRetry = repair.objectStore("noteDrafts").get(note.id)
+    repair.objectStore("noteDrafts").delete("z-invalid")
+    await repaired
+    old.close()
+    expect(updatesBeforeRetry.result).toBe(1)
+    expect(draftBeforeRetry.result.content).toBe("")
+
+    expect((await new IndexedDbNoteRepository(connection).get(note.id))?.content).toBe("")
+    expect((await connection.get()).objectStoreNames.contains("noteDrafts")).toBe(false)
+  })
+
   it("v8 본문의 시간대와 밀리초 미만 시각을 정수 밀리초로 이전한다", async () => {
     const previous = await openIndexedDatabase({
       name: PERSONAL_NOTES_DATABASE_NAME,
@@ -293,7 +335,6 @@ describe("personal notes IndexedDB storage", () => {
       () => timestamp,
     )
     const templates = new IndexedDbTemplateRepository(firstConnection)
-    const noteDrafts = new IndexedDbNoteDraftRepository(firstConnection)
     const mobileBatchCopyWriter = new IndexedDbMobileBatchCopyUsageWriter(
       firstConnection,
       identifiers,
@@ -307,7 +348,6 @@ describe("personal notes IndexedDB storage", () => {
     )
 
     await notes.save(note)
-    await noteDrafts.save(noteDraft)
     await mobileBatchCopyWriter.record(note, timestamp)
     await templates.save(template)
     await preferences.save({
@@ -335,16 +375,13 @@ describe("personal notes IndexedDB storage", () => {
     const restoredTemplates = new IndexedDbTemplateRepository(
       restoredConnection,
     )
-    const restoredNoteDrafts = new IndexedDbNoteDraftRepository(
-      restoredConnection,
-    )
     const restoredPreferences =
       new IndexedDbInteractionPreferencesRepository(restoredConnection)
 
     expect(await restoredNotes.getAll()).toMatchObject([
       { content: note.content, id: note.id },
     ])
-    expect(await restoredNoteDrafts.get(noteDraft.note)).toEqual(noteDraft)
+    expect((await restoredConnection.get()).objectStoreNames.contains("noteDrafts")).toBe(false)
     expect(await restoredBatchCopy.get()).toMatchObject({
       content: { items: [{ id: batchCopyItem.id }] },
     })
@@ -640,7 +677,7 @@ describe("personal notes IndexedDB storage", () => {
 
     expect(storeNames).toContain(BATCH_COPY_LIST_STORE_NAME)
     expect(storeNames).not.toContain(previousBatchCopyStoreName)
-    expect(storeNames).toContain("noteDrafts")
+    expect(storeNames).not.toContain("noteDrafts")
     expect(migratedBatchCopy?.content.items.map(({ id }) => id)).toEqual([
       "item-1",
       "item-2",
@@ -673,7 +710,7 @@ describe("personal notes IndexedDB storage", () => {
       name: PERSONAL_NOTES_DATABASE_NAME,
       upgrade: (database) => {
         database.createObjectStore(NOTE_STORE_NAME, { keyPath: "id" })
-        database.createObjectStore(NOTE_DRAFT_STORE_NAME, {
+        database.createObjectStore("noteDrafts", {
           keyPath: "note.id",
         })
         database.createObjectStore("batchCopyLists", {
@@ -714,7 +751,7 @@ describe("personal notes IndexedDB storage", () => {
     const transaction = previousDatabase.transaction(
       [
         NOTE_STORE_NAME,
-        NOTE_DRAFT_STORE_NAME,
+        "noteDrafts",
         "batchCopyLists",
         "mobileBatchCopyDrafts",
         USAGE_STORE_NAME,
@@ -726,7 +763,7 @@ describe("personal notes IndexedDB storage", () => {
     const completed = waitForTransaction(transaction)
 
     transaction.objectStore(NOTE_STORE_NAME).put(note)
-    transaction.objectStore(NOTE_DRAFT_STORE_NAME).put(noteDraft)
+    transaction.objectStore("noteDrafts").put(noteDraft)
     transaction.objectStore("batchCopyLists").put(batchCopyList)
     transaction.objectStore("mobileBatchCopyDrafts").put(
       { id: "active" },
@@ -745,11 +782,10 @@ describe("personal notes IndexedDB storage", () => {
     const stores = Array.from((await connection.get()).objectStoreNames)
     expect(stores).toContain("batches")
     expect(stores).not.toContain("batchCopyLists")
-    await expect(new IndexedDbNoteRepository(connection).getAll()).resolves
-      .toEqual([note])
-    await expect(
-      new IndexedDbNoteDraftRepository(connection).get(noteDraft.note),
-    ).resolves.toEqual(noteDraft)
+    expect(stores).not.toContain("noteDrafts")
+    await expect(new IndexedDbNoteRepository(connection).getAll()).resolves.toMatchObject([
+      { id: note.id, content: noteDraft.content },
+    ])
     await expect(new IndexedDbBatchCopyRepository(connection).get()).resolves
       .toEqual(batchCopyList)
     await expect(new IndexedDbUsageRepository(

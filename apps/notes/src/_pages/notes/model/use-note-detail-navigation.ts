@@ -20,18 +20,14 @@ type NavigationState =
   | { continueNavigation(): void; phase: "confirming" }
 
 type NoteDetailNavigationOptions = {
-  discardDraft(noteId: string): Promise<void>
   editor: RefObject<HTMLTextAreaElement | null>
-  noteId: string
   noteReference: RefObject<Note>
   readContent(): string
   stopSaving(): void
 }
 
 export function useNoteDetailNavigation({
-  discardDraft,
   editor,
-  noteId,
   noteReference,
   readContent,
   stopSaving,
@@ -103,7 +99,6 @@ export function useNoteDetailNavigation({
     if (navigation.phase !== "confirming") return
     const continueNavigation = navigation.continueNavigation
     stopSaving()
-    void discardDraft(noteId).catch(() => undefined)
     dialog.current?.close()
     setNavigation({ phase: "editing" })
     continueNavigation()

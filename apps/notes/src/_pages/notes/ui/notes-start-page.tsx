@@ -33,7 +33,6 @@ export function NotesStartPage() {
         </p>
         <NotesCollection
           batchCopyShortcutEnabled={notesData.batchCopyShortcutEnabled}
-          draftContentById={notesData.draftContentById}
           notes={notes}
         />
       </BatchCopyWorkspace>

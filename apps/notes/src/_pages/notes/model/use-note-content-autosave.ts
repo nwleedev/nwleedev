@@ -20,7 +20,6 @@ const MAX_RETRY_DELAY_MS = 30_000
 const RETRY_DELAY_MULTIPLIER = 2
 
 type UseNoteContentAutosaveOptions = {
-  initialContent: string
   note: Note
   onContentSaved(content: string): void
   editor: RefObject<HTMLTextAreaElement | null>
@@ -31,7 +30,6 @@ type UseNoteContentAutosaveOptions = {
 }
 
 export function useNoteContentAutosave({
-  initialContent,
   note,
   onContentSaved,
   editor,
@@ -41,9 +39,9 @@ export function useNoteContentAutosave({
   saveOnExit = true,
 }: UseNoteContentAutosaveOptions) {
   const [state, setState] = useState(() =>
-    createNoteContentSaveState(note, initialContent),
+    createNoteContentSaveState(note),
   )
-  const [scheduled, setScheduled] = useState(initialContent !== note.content)
+  const [scheduled, setScheduled] = useState(false)
   const stopped = useRef(false)
   const paused = useRef(false)
   const stateReference = useRef(state)
@@ -139,7 +137,6 @@ export function useNoteContentAutosave({
         const completed = completeNoteContentSave(
           stateReference.current,
           result.note,
-          result.draftCleanupRequired,
         )
         noteReference.current = result.note
         publish(completed)

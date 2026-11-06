@@ -5,7 +5,6 @@ import { IsoDateTimeSchema } from "@/shared/lib/entity-metadata"
 import {
   NoteContentReferenceSchema,
   type Note,
-  type NoteContentReference,
 } from "./note"
 
 export const NoteDraftSchema = z
@@ -18,20 +17,10 @@ export const NoteDraftSchema = z
 
 export type NoteDraft = z.infer<typeof NoteDraftSchema>
 
-export interface NoteDraftRepository {
-  get(note: NoteContentReference): Promise<NoteDraft | null>
-  remove(note: NoteContentReference): Promise<void>
-  save(draft: NoteDraft): Promise<NoteDraft>
-}
-
-export function isRecoverableNoteDraft(draft: NoteDraft, note: Note) {
+export function isRecoverableNoteDraft(draft: NoteDraft, note: Pick<Note, "id" | "content" | "contentRevision">) {
   return (
     draft.note.id === note.id &&
     draft.note.contentRevision === note.contentRevision &&
     draft.content !== note.content
   )
-}
-
-export function parseNoteDraft(value: unknown): NoteDraft {
-  return NoteDraftSchema.parse(value)
 }

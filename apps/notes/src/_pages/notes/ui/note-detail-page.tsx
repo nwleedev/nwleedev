@@ -22,14 +22,11 @@ const backLinkClassName =
 
 type ReadyNoteDetailProps = {
   editorRef: RefObject<HTMLTextAreaElement | null>
-  initialContent: string
   note: Note
   saveContent(
     note: Note,
     content: string,
   ): Promise<SaveNoteContentResult>
-  saveDraft(noteId: string, content: string): Promise<void>
-  discardDraft(noteId: string): Promise<void>
 }
 
 type UnsavedChangesDialogProps = {
@@ -136,11 +133,8 @@ function EditorStatus({ children }: PropsWithChildren) {
 
 function ReadyNoteDetail({
   editorRef,
-  initialContent,
   note,
   saveContent,
-  saveDraft,
-  discardDraft,
 }: ReadyNoteDetailProps) {
   const {
     cancelDialog,
@@ -161,11 +155,8 @@ function ReadyNoteDetail({
     history,
   } = useNoteDetailEditing({
     editorRef,
-    initialContent,
     note,
     saveContent,
-    saveDraft,
-    discardDraft,
   })
 
   return (
@@ -200,7 +191,7 @@ function ReadyNoteDetail({
         <textarea
           aria-label="메모 내용"
           className={editorClassName}
-          defaultValue={initialContent}
+          defaultValue={note.content}
           name={contentName}
           onBlur={onBlur}
           onChange={changeContent}
@@ -301,17 +292,12 @@ export function NoteDetailPage({ noteId }: NoteDetailPageProps) {
     )
   }
 
-  const initialContent = notesData.draftContentById[note.id] ?? note.content
-
   return (
     <ReadyNoteDetail
       editorRef={editor}
-      initialContent={initialContent}
       key={note.id}
       note={note}
       saveContent={notesData.saveContent}
-      saveDraft={notesData.saveDraft}
-      discardDraft={notesData.discardDraft}
     />
   )
 }

@@ -7,7 +7,6 @@ import {
   type Note,
 } from "@/entities/note"
 import {
-  IndexedDbNoteDraftRepository,
   IndexedDbNoteRepository,
   IndexedDbMobileNoteOrderRepository,
   NOTE_STORE_NAME,
@@ -321,37 +320,6 @@ describe("메모 저장소 모델", () => {
     await notes.save(note, position)
     expect((await order.read()).ids).toEqual([note.id, companion.id])
     expect(noteById(await notes.getAll(), note.id)).toEqual(note)
-  })
-
-  it("새 연결에서 저장한 원문과 정리된 초안을 다시 읽는다", async () => {
-    const firstConnection = createConnection()
-    const notes = new IndexedDbNoteRepository(firstConnection)
-    const drafts = new IndexedDbNoteDraftRepository(firstConnection)
-    await notes.save(note)
-
-    const changedContent = "새 원문"
-    await drafts.save({
-      content: changedContent,
-      note: { contentRevision: note.contentRevision, id: note.id },
-      updatedAt: timestamp,
-    })
-    await notes.save(
-      reviseNote(note, { content: changedContent, updatedAt: timestamp }),
-    )
-    await drafts.remove({ contentRevision: note.contentRevision, id: note.id })
-    firstConnection.close()
-
-    const restoredConnection = createConnection()
-    const restoredNotes = new IndexedDbNoteRepository(restoredConnection)
-    const restoredDrafts = new IndexedDbNoteDraftRepository(restoredConnection)
-    const saved = await restoredNotes.getAll()
-
-    expect(saved).toMatchObject([
-      { content: "새 원문", contentRevision: 1, id: note.id },
-    ])
-    expect(
-      await restoredDrafts.get({ contentRevision: note.contentRevision, id: note.id }),
-    ).toBeNull()
   })
 
   it("삭제 직후 부재와 복원한 중복 겹침 순서를 새 연결에서 읽는다", async () => {

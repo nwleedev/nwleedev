@@ -5,8 +5,6 @@ import { page, userEvent } from "vitest/browser"
 
 import type {
   Note,
-  NoteDraft,
-  NoteDraftRepository,
   NoteRepository,
 } from "@/entities/note"
 import { NavigationGuardProvider } from "@/features/navigation-guard"
@@ -38,7 +36,7 @@ function createStoredNote(): Note {
 
 function createStorage(initialNote: Note, rejectFirstSave = true) {
   let storedNote = initialNote
-  let storedDraft: NoteDraft | null = null
+  let failed = false
   let rejectNextNoteSave = rejectFirstSave
 
   const notes: NoteRepository = {
@@ -50,6 +48,7 @@ function createStorage(initialNote: Note, rejectFirstSave = true) {
     async save(note) {
       if (rejectNextNoteSave) {
         rejectNextNoteSave = false
+        failed = true
         throw new Error("Controlled note save failure")
       }
 
@@ -61,23 +60,8 @@ function createStorage(initialNote: Note, rejectFirstSave = true) {
     saveEdit(_original, edited) { return this.save(edited) },
     async moveInStack() { return { notes: await this.getAll(), changedIds: [] } },
   }
-  const drafts: NoteDraftRepository = {
-    get: async (reference) =>
-      storedDraft?.note.id === reference.id ? storedDraft : null,
-    remove: async () => {
-      storedDraft = null
-    },
-    save: async (draft) => {
-      storedDraft = draft
-      return draft
-    },
-  }
-
   return {
-    drafts,
-    get draft() {
-      return storedDraft
-    },
+    get failed() { return failed },
     get note() {
       return storedNote
     },
@@ -115,7 +99,6 @@ async function renderDetail(noteId: string, storage: ReturnType<typeof createSto
           batchCopyShortcutEnabled={false}
           clipboard={{ writeText: async () => ({ status: "written" }) }}
           createId={crypto.randomUUID}
-          drafts={storage.drafts}
           now={() => new Date().toISOString()}
           readMobileOrder={unexpectedMobileOrderAccess}
           moveMobileNote={unexpectedMobileOrderAccess}
@@ -130,33 +113,21 @@ async function renderDetail(noteId: string, storage: ReturnType<typeof createSto
   })
 }
 
-it("메모 저장 실패 후 다시 열어도 편집 초안을 복구하고 재저장한다", async () => {
-  const initialNote = createStoredNote()
-  const changedContent = `${initialNote.content} 다음 입력`
-  const storage = createStorage(initialNote)
-  await renderDetail(initialNote.id, storage)
-
+it("쓰기 실패 뒤 추가로 편집하면 새로 연 화면에서 마지막 입력을 읽는다", async () => {
+  const initial = createStoredNote()
+  const storage = createStorage(initial)
+  await renderDetail(initial.id, storage)
   const editor = page.getByRole("textbox", { name: "메모 내용" })
-  await expect.element(editor).toHaveValue(initialNote.content)
-  await act(async () => userEvent.fill(editor, changedContent))
-
-  await act(async () => { await expect.poll(() => storage.draft?.content).toBe(changedContent) })
-  expect(page.getByRole("alert").query()).toBeNull()
-  expect(storage.note.content).toBe(initialNote.content)
-  expect(storage.draft?.content).toBe(changedContent)
-
+  await act(async () => userEvent.fill(editor, "첫 입력"))
+  await act(async () => { await expect.poll(() => storage.failed).toBe(true) })
+  expect(storage.note.content).toBe(initial.content)
+  await act(async () => userEvent.fill(editor, "첫 입력과 추가 입력"))
+  await act(async () => { await expect.poll(() => storage.note.content).toBe("첫 입력과 추가 입력") })
   await act(async () => root.unmount())
   root = createRoot(container)
-  await renderDetail(initialNote.id, storage)
-  await expect.element(editor).toHaveValue(changedContent)
-
-  await act(async () => userEvent.fill(editor, `${changedContent} 재저장`))
-  await act(async () => { await expect.poll(() => storage.note.content).toBe(`${changedContent} 재저장`) })
-  expect(storage.note.content).toBe(`${changedContent} 재저장`)
-  expect(storage.note.contentRevision).toBe(initialNote.contentRevision + 1)
-  expect(storage.draft).toBeNull()
+  await renderDetail(initial.id, storage)
+  await expect.element(editor).toHaveValue("첫 입력과 추가 입력")
 })
-
 
 it("쓰기 실패 뒤 사용자 조작 없이 현재 입력을 저장하고 그동안 저장 중을 표시한다", async () => {
   const initialNote = createStoredNote()
@@ -166,7 +137,7 @@ it("쓰기 실패 뒤 사용자 조작 없이 현재 입력을 저장하고 그�
   const status = page.getByRole("status")
   const content = initialNote.content + " 재시도할 입력"
   await act(async () => userEvent.fill(editor, content))
-  await act(async () => { await expect.poll(() => storage.draft?.content).toBe(content) })
+  await act(async () => { await expect.poll(() => storage.failed).toBe(true) })
   expect(storage.note.content).toBe(initialNote.content)
   await expect.element(status).toHaveTextContent("저장 중")
   expect(page.getByRole("button", { name: "다시 시도" }).query()).toBeNull()

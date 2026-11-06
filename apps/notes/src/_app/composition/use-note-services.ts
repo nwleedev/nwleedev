@@ -1,7 +1,6 @@
 import { useState } from "react"
 
 import {
-  IndexedDbNoteDraftRepository,
   IndexedDbMobileNoteOrderRepository,
   IndexedDbNoteRepository,
 } from "@/entities/note/index.browser"
@@ -18,7 +17,6 @@ export function useNoteServices(database: PersonalNotesDatabase) {
     return {
       clipboard: new BrowserClipboardWriter(),
       createId: () => identifiers.create(),
-      drafts: new IndexedDbNoteDraftRepository(database),
       now: () => new Date().toISOString(),
       repository: new IndexedDbNoteRepository(database),
       readMobileOrder: () => order.read(),

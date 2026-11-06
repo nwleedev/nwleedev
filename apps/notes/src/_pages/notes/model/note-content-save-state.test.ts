@@ -44,7 +44,7 @@ describe("note content save state", () => {
       contentRevision: 3,
       revision: 5,
     }
-    const completed = completeNoteContentSave(saving.state, savedNote, false)
+    const completed = completeNoteContentSave(saving.state, savedNote)
     const nextSave = beginNoteContentSave(
       completed,
       "저장 중에 추가한 원문",
@@ -79,31 +79,5 @@ describe("note content save state", () => {
 
     expect(result.request).toBeNull()
     expect(result.state.status).toBe("idle")
-  })
-
-  it("removes a recovered draft after the user returns to the stored text", () => {
-    const recovered = createNoteContentSaveState(note, "복구된 원문")
-    const result = beginNoteContentSave(recovered, note.content)
-
-    expect(result.request).toEqual({ content: note.content, note })
-    expect(result.state.status).toBe("saving")
-  })
-
-  it("requests cleanup again after a saved note leaves its draft behind", () => {
-    const saving = beginNoteContentSave(
-      createNoteContentSaveState(note),
-      "저장된 새 원문",
-    )
-    const savedNote = {
-      ...note,
-      content: "저장된 새 원문",
-      contentRevision: 3,
-      revision: 5,
-    }
-    const completed = completeNoteContentSave(saving.state, savedNote, true)
-    const retry = beginNoteContentSave(completed, savedNote.content)
-
-    expect(retry.request).toEqual({ content: savedNote.content, note: savedNote })
-    expect(retry.state.status).toBe("saving")
   })
 })

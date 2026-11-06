@@ -1,16 +1,7 @@
 import { describe, expect, it } from "vitest"
 
-import type {
-  Note,
-  NoteDraft,
-  NoteDraftRepository,
-  NoteRepository,
-} from "@/entities/note"
-
-import {
-  saveNoteContent,
-  type SaveNoteContentResult,
-} from "./save-note-content"
+import type { Note } from "@/entities/note"
+import { saveNoteContent } from "./save-note-content"
 
 const timestamp = "2026-09-01T03:00:00.000Z"
 const note: Note = {
@@ -24,192 +15,25 @@ const note: Note = {
   updatedAt: "2026-09-01T01:00:00.000Z",
 }
 
-function createStorage(options: {
-  draftFailure?: boolean
-  draftRemovalFailure?: boolean
-  draftRemovalFailures?: number
-  initialDraft?: NoteDraft
-  noteFailure?: boolean
-} = {}) {
-  let draft: NoteDraft | null = options.initialDraft ?? null
-  let remainingDraftRemovalFailures =
-    options.draftRemovalFailures ?? (options.draftRemovalFailure ? Infinity : 0)
-  let storedNote = note
-  const drafts: NoteDraftRepository = {
-    get: async () => draft,
-    remove: async () => {
-      if (remainingDraftRemovalFailures > 0) {
-        remainingDraftRemovalFailures -= 1
-        throw new Error("Draft removal failed")
-      }
-
-      draft = null
-    },
-    save: async (nextDraft) => {
-      if (options.draftFailure) {
-        throw new Error("Draft storage failed")
-      }
-
-      draft = nextDraft
-      return nextDraft
-    },
-  }
-  const notes: NoteRepository = {
-    getAll: async () => [storedNote],
-    remove(note) { return this.get(note.id) },
-    openEditor: async () => async () => {},
-    deletedNote: async () => null,
-    restore(note) { return this.save(note) },
-    save: async (nextNote) => {
-      if (options.noteFailure) {
-        throw new Error("Note storage failed")
-      }
-
-      storedNote = nextNote
-      return nextNote
-    },
-    async get(id) { return (await this.getAll()).find((record) => record.id === id) ?? null },
-    saveGeometry(note, geometry, updatedAt) { return this.save({ ...note, geometry, updatedAt }) },
-    saveEdit(_original, edited) { return this.save(edited) },
-    async moveInStack() { return { notes: await this.getAll(), changedIds: [] } },
-  }
-
-  return {
-    drafts,
-    notes,
-    readDraft: () => draft,
-    readNote: () => storedNote,
-  }
-}
-
-function requireSavedResult(result: SaveNoteContentResult) {
-  if (result.status === "failure") {
-    throw new Error("Expected the note to remain saved")
-  }
-
-  return result
-}
-
-describe("saving note content", () => {
-  it("clears the recovery draft only after the changed note is stored", async () => {
-    const storage = createStorage()
-    const result = await saveNoteContent(
-      { drafts: storage.drafts, notes: storage.notes, now: () => timestamp },
-      note,
-      "새 원문",
-    )
-
-    expect(result).toMatchObject({
-      draftCleanupRequired: false,
-      note: { content: "새 원문", contentRevision: 1, revision: 1 },
-      status: "saved",
-    })
-    expect(storage.readNote().content).toBe("새 원문")
-    expect(storage.readDraft()).toBeNull()
+describe("본문 저장", () => {
+  it("같은 본문은 쓰지 않고 현재 메모를 반환한다", async () => {
+    const result = await saveNoteContent({
+      notes: { saveEdit: () => { throw new Error("Unexpected write") } },
+      now: () => timestamp,
+    }, note, note.content)
+    expect(result).toEqual({ status: "unchanged", note })
   })
 
-  it("does not change the note when the recovery draft cannot be stored", async () => {
-    const storage = createStorage({ draftFailure: true })
-    const result = await saveNoteContent(
-      { drafts: storage.drafts, notes: storage.notes, now: () => timestamp },
-      note,
-      "보존해야 할 원문",
-    )
-
-    expect(result).toEqual({ reason: "draft-storage", status: "failure" })
-    expect(storage.readNote()).toEqual(note)
-  })
-
-  it("keeps the recovery draft when storing the note fails", async () => {
-    const storage = createStorage({ noteFailure: true })
-    const result = await saveNoteContent(
-      { drafts: storage.drafts, notes: storage.notes, now: () => timestamp },
-      note,
-      "복구할 원문",
-    )
-
-    expect(result).toEqual({ reason: "note-storage", status: "failure" })
-    expect(storage.readDraft()).toMatchObject({
-      content: "복구할 원문",
-      note: { contentRevision: note.contentRevision, id: note.id },
-    })
-    expect(storage.readNote()).toEqual(note)
-  })
-
-  it("removes a stale recovery draft when content matches the stored note", async () => {
-    const storage = createStorage({
-      initialDraft: {
-        content: "더는 복구하지 않을 원문",
-        note: { contentRevision: note.contentRevision, id: note.id },
-        updatedAt: timestamp,
-      },
-    })
-    const result = await saveNoteContent(
-      { drafts: storage.drafts, notes: storage.notes, now: () => timestamp },
-      note,
-      note.content,
-    )
-
-    expect(result).toEqual({
-      draftCleanupRequired: false,
-      note,
-      status: "unchanged",
-    })
-    expect(storage.readDraft()).toBeNull()
-  })
-
-  it("keeps a discarded recovery draft retryable when removal fails", async () => {
-    const recoveryDraft: NoteDraft = {
-      content: "다시 제거할 원문",
-      note: { contentRevision: note.contentRevision, id: note.id },
-      updatedAt: timestamp,
-    }
-    const storage = createStorage({
-      draftRemovalFailure: true,
-      initialDraft: recoveryDraft,
-    })
-    const result = await saveNoteContent(
-      { drafts: storage.drafts, notes: storage.notes, now: () => timestamp },
-      note,
-      note.content,
-    )
-
-    expect(result).toEqual({ reason: "draft-storage", status: "failure" })
-    expect(storage.readDraft()).toEqual(recoveryDraft)
-  })
-
-  it("retries draft cleanup after saving changed content", async () => {
-    const storage = createStorage({ draftRemovalFailures: 1 })
-    const saved = await saveNoteContent(
-      { drafts: storage.drafts, notes: storage.notes, now: () => timestamp },
-      note,
-      "저장된 새 원문",
-    )
-
-    expect(saved).toMatchObject({
-      draftCleanupRequired: true,
-      note: { content: "저장된 새 원문", contentRevision: 1 },
-      status: "saved",
-    })
-    expect(storage.readDraft()).toMatchObject({
-      content: "저장된 새 원문",
-      note: { contentRevision: 0, id: note.id },
-    })
-
-    const savedNote = requireSavedResult(saved).note
-
-    const retried = await saveNoteContent(
-      { drafts: storage.drafts, notes: storage.notes, now: () => timestamp },
-      savedNote,
-      savedNote.content,
-    )
-
-    expect(retried).toEqual({
-      draftCleanupRequired: false,
-      note: savedNote,
-      status: "unchanged",
-    })
-    expect(storage.readDraft()).toBeNull()
-    expect(storage.readNote()).toEqual(savedNote)
+  it("빈 문자열로 지운 편집과 삭제된 메모에 도착한 편집을 구별한다", async () => {
+    const saved = await saveNoteContent({
+      notes: { saveEdit: async (_original, edited) => edited },
+      now: () => timestamp,
+    }, note, "")
+    expect(saved).toMatchObject({ status: "saved", note: { id: note.id, content: "" } })
+    const deleted = await saveNoteContent({
+      notes: { saveEdit: async () => null },
+      now: () => timestamp,
+    }, note, "")
+    expect(deleted).toEqual({ status: "failure", reason: "note-missing" })
   })
 })

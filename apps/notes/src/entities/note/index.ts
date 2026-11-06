@@ -55,9 +55,7 @@ export {
 export {
   NoteDraftSchema,
   isRecoverableNoteDraft,
-  parseNoteDraft,
   type NoteDraft,
-  type NoteDraftRepository,
 } from "./model/note-draft"
 export {
   NOTE_REMOVAL_UNDO_DURATION_MS,

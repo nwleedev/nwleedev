@@ -13,7 +13,6 @@ import type { Note } from "@/entities/note"
 import type { SaveNoteContentResult } from "./save-note-content"
 import { useNoteContentAutosave } from "./use-note-content-autosave"
 import { useNoteEditHistory } from "./use-note-edit-history"
-import { useNoteDetailDraft } from "./use-note-detail-draft"
 import { useNoteDetailNavigation } from "./use-note-detail-navigation"
 
 type NoteContentFields = {
@@ -23,23 +22,17 @@ type NoteContentFields = {
 
 type UseNoteDetailEditingOptions = {
   editorRef: RefObject<HTMLTextAreaElement | null>
-  initialContent: string
   note: Note
   saveContent(
     note: Note,
     content: string,
   ): Promise<SaveNoteContentResult>
-  saveDraft(noteId: string, content: string): Promise<void>
-  discardDraft(noteId: string): Promise<void>
 }
 
 export function useNoteDetailEditing({
   editorRef,
-  initialContent,
   note,
   saveContent,
-  saveDraft,
-  discardDraft,
 }: UseNoteDetailEditingOptions) {
   const {
     getValues,
@@ -47,18 +40,11 @@ export function useNoteDetailEditing({
     register,
     reset,
   } = useForm<NoteContentFields>({
-    defaultValues: { content: initialContent },
+    defaultValues: { content: note.content },
   })
   const noteReference = useRef(note)
   const readContent = useCallback(() => getValues("content"), [getValues])
-  const draft = useNoteDetailDraft({
-    noteReference,
-    readContent,
-    saveDraft,
-    discardStoredDraft: discardDraft,
-  })
   const autosave = useNoteContentAutosave({
-    initialContent,
     note,
     onContentSaved(content) {
       reset({ content }, { keepFieldsRef: true })
@@ -73,9 +59,7 @@ export function useNoteDetailEditing({
     saveOnExit: false,
   })
   const navigation = useNoteDetailNavigation({
-    discardDraft: draft.discardDraft,
     editor: editorRef,
-    noteId: note.id,
     noteReference,
     readContent,
     stopSaving: autosave.stop,
@@ -89,11 +73,7 @@ export function useNoteDetailEditing({
     },
   })
 
-  const { scheduleSave } = autosave
   useEffect(() => { noteReference.current = note }, [note])
-  useEffect(() => {
-    if (initialContent !== noteReference.current.content) scheduleSave()
-  }, [initialContent, scheduleSave])
 
   const contentRegistration = register("content")
 

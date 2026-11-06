@@ -13,19 +13,17 @@ type NoteContentFields = {
 }
 
 type UseNoteCardEditorOptions = {
-  initialContent: string
   note: Note
   onSave(note: Note, content: string): Promise<SaveNoteContentResult>
 }
 
 export function useNoteCardEditor({
-  initialContent,
   note,
   onSave,
 }: UseNoteCardEditorOptions) {
   const editor = useRef<HTMLTextAreaElement>(null)
   const { getValues, register, reset, setValue } = useForm<NoteContentFields>({
-    defaultValues: { content: initialContent },
+    defaultValues: { content: note.content },
   })
 
   function readContent() {
@@ -39,7 +37,6 @@ export function useNoteCardEditor({
   }
 
   const autosave = useNoteContentAutosave({
-    initialContent,
     note,
     onContentSaved: acceptSavedContent,
     editor,

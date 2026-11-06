@@ -10,10 +10,8 @@ import {
 import {
   createNoteReference,
   findNewNoteGeometry,
-  isRecoverableNoteDraft,
   nextNoteTabIndex,
   type Note,
-  type NoteDraftRepository,
   type NoteGeometry,
   type NoteRepository,
   type MobileNoteOrder,
@@ -39,10 +37,7 @@ import {
 const NOTE_CHANNEL_NAME = "personal-notes-changes"
 const NoteChangeSchema = z.object({ type: z.enum(["created", "edited", "removed"]), noteId: EntityIdSchema })
 
-type NoteDraftContent = Readonly<Record<string, string>>
-
 type AvailableNotesData = {
-  draftContentById: NoteDraftContent
   notes: readonly Note[]
 }
 
@@ -67,8 +62,6 @@ type NotesDataContextValue = NotesDataState & {
   moveMobileNote(input: MoveMobileNoteInput): Promise<MoveMobileNoteResult>
   retry(): void
   saveContent(note: Note, content: string): Promise<SaveNoteContentResult>
-  saveDraft(noteId: string, content: string): Promise<void>
-  discardDraft(noteId: string): Promise<void>
   saveGeometry(
     note: Note,
     geometry: NoteGeometry,
@@ -79,29 +72,10 @@ export const NotesDataContext = createContext<NotesDataContextValue | null>(null
 
 async function readNotes(
   repository: NoteRepository,
-  drafts: NoteDraftRepository,
 ): Promise<NotesDataState> {
   try {
     const notes = await repository.getAll()
-    const draftEntries = await Promise.all(
-      notes.map(async (note) => {
-        const draft = await drafts.get({
-          contentRevision: note.contentRevision,
-          id: note.id,
-        })
-
-        return draft !== null && isRecoverableNoteDraft(draft, note)
-          ? ([note.id, draft.content] as const)
-          : null
-      }),
-    )
-    const draftContentById = Object.fromEntries(
-      draftEntries.filter((entry) => entry !== null),
-    )
-
-    return notes.length === 0
-      ? { draftContentById, notes, status: "empty" }
-      : { draftContentById, notes, status: "ready" }
+    return { notes, status: notes.length === 0 ? "empty" : "ready" }
   } catch {
     return { status: "failure" }
   }
@@ -111,7 +85,6 @@ export type NotesDataDependencies = {
   clipboard: ClipboardWriter
   createId(): string
   batchCopyShortcutEnabled: boolean
-  drafts: NoteDraftRepository
   now(): string
   repository: NoteRepository
   readMobileOrder(): Promise<MobileNoteOrder>
@@ -123,7 +96,6 @@ export type NotesDataDependencies = {
 export function useNotesDataModel({
   clipboard,
   createId,
-  drafts,
   batchCopyShortcutEnabled,
   now,
   repository,
@@ -136,7 +108,6 @@ export function useNotesDataModel({
   const readSequence = useRef(0)
   const changes = useRef<BroadcastChannel | null>(null)
   const availableNotesReference = useRef<readonly Note[]>([])
-  const draftContentReference = useRef<NoteDraftContent>({})
   const mutationQueue = useRef<Promise<void>>(Promise.resolve())
 
   const removalListeners = useRef(new Set<(id: string) => void>())
@@ -169,12 +140,9 @@ export function useNotesDataModel({
 
   const publishAvailable = useCallback((
     notes: readonly Note[],
-    draftContentById: NoteDraftContent,
   ) => {
     availableNotesReference.current = notes
-    draftContentReference.current = draftContentById
     setState({
-      draftContentById,
       notes,
       status: notes.length === 0 ? "empty" : "ready",
     })
@@ -202,11 +170,10 @@ export function useNotesDataModel({
       setState({ status: event })
     })
     void enqueue(async () => {
-      const nextState = await readNotes(repository, drafts)
+      const nextState = await readNotes(repository)
       if (active && readSequence.current === sequence) {
         if (nextState.status === "empty" || nextState.status === "ready") {
           availableNotesReference.current = nextState.notes
-          draftContentReference.current = nextState.draftContentById
         }
 
         setState(nextState)
@@ -235,15 +202,13 @@ export function useNotesDataModel({
           }
           if (!active) return
           for (const notify of removalListeners.current) notify(noteId)
-          const nextDrafts = { ...draftContentReference.current }
-          delete nextDrafts[noteId]
-          publishAvailable(current.filter(({ id }) => id !== noteId), nextDrafts)
+          publishAvailable(current.filter(({ id }) => id !== noteId))
           return
         }
         const next = [...current]
         if (index < 0) next.push(note)
         else next[index] = note
-        publishAvailable(next, draftContentReference.current)
+        publishAvailable(next)
       }).catch(() => undefined)
     }
 
@@ -253,16 +218,15 @@ export function useNotesDataModel({
       channel.close()
       unsubscribe()
     }
-  }, [drafts, publishAvailable, repository, storageMonitor])
+  }, [publishAvailable, repository, storageMonitor])
 
   function retry() {
     const sequence = ++readSequence.current
     setState({ status: "loading" })
-    void readNotes(repository, drafts).then((nextState) => {
+    void readNotes(repository).then((nextState) => {
       if (readSequence.current === sequence) {
         if (nextState.status === "empty" || nextState.status === "ready") {
           availableNotesReference.current = nextState.notes
-          draftContentReference.current = nextState.draftContentById
         }
 
         setState(nextState)
@@ -288,7 +252,6 @@ export function useNotesDataModel({
 
       publishAvailable(
         [...availableNotesReference.current, savedNote],
-        draftContentReference.current,
       )
       changes.current?.postMessage({ type: "created", noteId: savedNote.id })
       return savedNote
@@ -311,7 +274,7 @@ export function useNotesDataModel({
       }
 
       const result = await executeSaveNoteContent(
-        { drafts, notes: repository, now },
+        { notes: repository, now },
         original,
         content,
       )
@@ -325,49 +288,8 @@ export function useNotesDataModel({
       const nextNotes = availableNotesReference.current.map((currentNote) =>
         currentNote.id === result.note.id ? displayed : currentNote,
       )
-      const nextDraftContent = { ...draftContentReference.current }
-      delete nextDraftContent[result.note.id]
-      publishAvailable(nextNotes, nextDraftContent)
+      publishAvailable(nextNotes)
       return result
-    })
-  }
-
-  async function saveDraft(noteId: string, content: string) {
-    return enqueue(async () => {
-      const note = availableNotesReference.current.find(
-        ({ id }) => id === noteId,
-      )
-
-      if (note === undefined) {
-        throw new Error("Cannot save a draft for a missing note")
-      }
-
-      const reference = {
-        contentRevision: note.contentRevision,
-        id: note.id,
-      }
-      const draftContentById = { ...draftContentReference.current }
-
-      if (content === note.content) {
-        await drafts.remove(reference)
-        delete draftContentById[noteId]
-      } else {
-        await drafts.save({ content, note: reference, updatedAt: now() })
-        draftContentById[noteId] = content
-      }
-
-      publishAvailable(availableNotesReference.current, draftContentById)
-    })
-  }
-
-  async function discardDraft(noteId: string) {
-    return enqueue(async () => {
-      const note = availableNotesReference.current.find(({ id }) => id === noteId)
-      if (note === undefined) return
-      await drafts.remove({ id: note.id, contentRevision: note.contentRevision })
-      const nextDraftContent = { ...draftContentReference.current }
-      delete nextDraftContent[noteId]
-      publishAvailable(availableNotesReference.current, nextDraftContent)
     })
   }
 
@@ -379,7 +301,7 @@ export function useNotesDataModel({
       const nextNotes = availableNotesReference.current.map((current) =>
         current.id === savedNote.id ? savedNote : current,
       )
-      publishAvailable(nextNotes, draftContentReference.current)
+      publishAvailable(nextNotes)
       return savedNote
     })
   }
@@ -393,7 +315,7 @@ export function useNotesDataModel({
       for (const id of changedIds) {
         changes.current?.postMessage({ type: "edited", noteId: id })
       }
-      publishAvailable(savedNotes, draftContentReference.current)
+      publishAvailable(savedNotes)
       return savedNotes
     })
   }
@@ -421,9 +343,7 @@ export function useNotesDataModel({
       const notes = availableNotesReference.current.filter(
         ({ id }) => id !== currentNote.id,
       )
-      const draftContentById = { ...draftContentReference.current }
-      delete draftContentById[currentNote.id]
-      publishAvailable(notes, draftContentById)
+      publishAvailable(notes)
       changes.current?.postMessage({ type: "removed", noteId: note.id })
       return deleted
     })
@@ -434,7 +354,7 @@ export function useNotesDataModel({
       const savedNote = await repository.restore(note, position)
       changes.current?.postMessage({ type: "edited", noteId: note.id })
       const notes = [...availableNotesReference.current.filter(({ id }) => id !== note.id), savedNote]
-      publishAvailable(notes, draftContentReference.current)
+      publishAvailable(notes)
       return savedNote
     })
   }
@@ -454,8 +374,6 @@ export function useNotesDataModel({
     restoreNote,
     retry,
     saveContent,
-    saveDraft,
-    discardDraft,
     saveGeometry,
   }
 }

@@ -1,14 +1,19 @@
 import { z } from "zod"
 
+import { readRequest } from "@/shared/lib/indexed-db/index.browser"
+
 import { BATCH_COPY_LIST_STORE_NAME } from "@/entities/batch-copy/index.browser"
 import {
   NoteRecordSchema,
+  NoteDraftSchema,
+  isRecoverableNoteDraft,
   validateAndClampNoteGeometry,
   normalizeNoteTabIndexes,
   reconcileMobileNoteIds,
 } from "@/entities/note"
 import {
-  NOTE_DRAFT_STORE_NAME,
+  StoredNoteSchema,
+  readStoredBody,
   NOTE_STORE_NAME,
   storeNote,
 } from "@/entities/note/index.browser"
@@ -134,6 +139,45 @@ function migrateNoteRecords(records: unknown[]) {
   })
 }
 
+export function recoverNoteDrafts(transaction: IDBTransaction) {
+  const previousStore = "noteDrafts"
+  const database = transaction.db
+  if (!database.objectStoreNames.contains(previousStore)) return
+  const notes = transaction.objectStore(NOTE_STORE_NAME)
+  const updates = transaction.objectStore("updates")
+  const cursor = transaction.objectStore(previousStore).openCursor()
+  cursor.onsuccess = async () => {
+    const entry = cursor.result
+    if (!entry) {
+      database.deleteObjectStore(previousStore)
+      return
+    }
+    try {
+      const draft = NoteDraftSchema.parse(entry.value)
+      const value = await readRequest(notes.get(draft.note.id))
+      if (value && !("removed" in value)) {
+        const record = StoredNoteSchema.parse(value)
+        if (record.contentRevision === draft.note.contentRevision) {
+          const { body } = await readStoredBody(record, updates)
+          if (isRecoverableNoteDraft(draft, { ...record, content: body.text })) {
+            const payload = body.updateText(draft.content)
+            updates.add({ noteId: record.id, id: crypto.randomUUID(), payload })
+            notes.put({
+              ...record,
+              updatedAt: Math.max(record.updatedAt, toTimestamp(draft.updatedAt)),
+              revision: incrementRevision(record.revision),
+              contentRevision: incrementRevision(record.contentRevision),
+            })
+          }
+        }
+      }
+      entry.continue()
+    } catch {
+      transaction.abort()
+    }
+  }
+}
+
 function migrateNotes(transaction: IDBTransaction) {
   const store = transaction.objectStore(NOTE_STORE_NAME)
   const request = store.getAll()
@@ -143,6 +187,7 @@ function migrateNotes(transaction: IDBTransaction) {
       for (const note of migrateNoteRecords(request.result)) {
         store.put(storeNote(note, note.tabIndex))
       }
+      recoverNoteDrafts(transaction)
     } catch {
       transaction.abort()
     }
@@ -166,6 +211,7 @@ export function migrateNotePositions(database: IDBDatabase, transaction: IDBTran
       const ranks = new Map(ids.map((id, index) => [id, index]))
       for (const note of notes) store.put(storeNote(note, ranks.get(note.id) ?? note.tabIndex))
       if (hasOrder) database.deleteObjectStore(PREVIOUS_ORDER_STORE)
+      recoverNoteDrafts(transaction)
     } catch {
       transaction.abort()
     }
@@ -179,7 +225,10 @@ export function migrateNoteBodies(transaction: IDBTransaction, oldVersion: numbe
   const withBody = previous.omit({ content: true }).extend({ body: z.instanceof(Uint8Array) })
   cursor.onsuccess = () => {
     const entry = cursor.result
-    if (!entry) return
+    if (!entry) {
+      recoverNoteDrafts(transaction)
+      return
+    }
     try {
       if (oldVersion === 8) {
         const record = withBody.parse(entry.value)
@@ -281,15 +330,8 @@ export function ensureBatchCopyListStore(
 }
 
 export function migratePersonalNotesDatabase(
-  database: IDBDatabase,
   transaction: IDBTransaction,
 ) {
-
-  if (!database.objectStoreNames.contains(NOTE_DRAFT_STORE_NAME)) {
-    database.createObjectStore(NOTE_DRAFT_STORE_NAME, {
-      keyPath: "note.id",
-    })
-  }
 
   migrateNotes(transaction)
   migrateUsage(transaction)

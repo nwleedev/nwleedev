@@ -28,7 +28,6 @@ import {
 type NoteCardProps = {
   batchCopyShortcutEnabled: boolean
   commandPressed: boolean
-  initialContent: string
   note: Note
   propertiesTarget: boolean
   scale: number
@@ -125,7 +124,6 @@ function stopHeaderAction(event: { stopPropagation(): void }) {
 export function NoteCard({
   batchCopyShortcutEnabled,
   commandPressed,
-  initialContent,
   note,
   onActivateProperties,
   onAddToBatchCopy,
@@ -145,7 +143,6 @@ export function NoteCard({
   selected,
 }: NoteCardProps) {
   const editor = useNoteCardEditor({
-    initialContent,
     note,
     onSave: onSaveContent,
   })

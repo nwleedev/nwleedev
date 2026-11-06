@@ -18,7 +18,7 @@ export function Note({
   database,
   usage,
 }: NoteProps) {
-  const { clipboard, createId, drafts, now, repository, storageMonitor, readMobileOrder, moveMobileNote } =
+  const { clipboard, createId, now, repository, storageMonitor, readMobileOrder, moveMobileNote } =
     useNoteServices(database)
 
   return (
@@ -26,7 +26,6 @@ export function Note({
       batchCopyShortcutEnabled={batchCopyShortcutEnabled}
       clipboard={clipboard}
       createId={createId}
-      drafts={drafts}
       now={now}
       readMobileOrder={readMobileOrder}
       moveMobileNote={moveMobileNote}

@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { page, userEvent } from "vitest/browser"
 
 import type { Note, NoteRepository } from "@/entities/note"
-import type { NoteDraftRepository } from "@/entities/note"
 import type { IndividualCopyUsageWriter } from "@/entities/usage"
 import type {
   NoteStorageEvent,
@@ -26,11 +25,7 @@ const clipboard = {
 const usage: IndividualCopyUsageWriter = {
   recordIndividualCopy: async () => undefined,
 }
-const drafts: NoteDraftRepository = {
-  get: async () => null,
-  remove: async () => undefined,
-  save: async (draft) => draft,
-}
+
 
 async function unexpectedMobileOrderAccess(): Promise<never> {
   throw new Error("This scenario must not access mobile ordering")
@@ -90,9 +85,6 @@ function NotesDataProbe() {
         <NoteCard
           batchCopyShortcutEnabled={false}
           commandPressed={false}
-          initialContent={
-            notesData.draftContentById[firstNote.id] ?? firstNote.content
-          }
           note={firstNote}
           onActivateProperties={() => undefined}
           onAddToBatchCopy={async () => undefined}
@@ -266,7 +258,6 @@ describe("NotesDataProvider", () => {
           batchCopyShortcutEnabled
           clipboard={clipboard}
           createId={() => "created-note"}
-          drafts={drafts}
           now={() => timestamp}
           readMobileOrder={unexpectedMobileOrderAccess}
           moveMobileNote={unexpectedMobileOrderAccess}

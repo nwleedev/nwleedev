@@ -26,8 +26,6 @@ import {
 import {
   noteIdFromHref,
   readStoredNote,
-  readStoredNoteDraft,
-  writeStoredNoteDraft,
 } from "./support/read-stored-note"
 import { delayNextWriteCompletion } from "./support/delay-write-completion"
 import { runNoteAction } from "./support/run-note-action"
@@ -658,9 +656,7 @@ class DiscardMobileContent implements fc.AsyncCommand<MobileSaveModel, MobileSav
     model.input = model.stored
     model.view = "list"
     await expectMobileSaveState(model, real)
-    await expect
-      .poll(() => readStoredNoteDraft(real.page, real.noteId))
-      .toBeNull()
+    expect((await readStoredNote(real.page, real.noteId))?.content).toBe(model.stored)
   }
 
   toString() {
@@ -2181,163 +2177,43 @@ test("연속 삭제 알림이 사라진 뒤 이전 삭제를 다시 알리지 �
 test.describe("320px 메모 화면", () => {
   test.use({ hasTouch: true, viewport: { height: 720, width: 320 } })
 
-  test("목록의 복구 초안을 상세 화면에서 열면 자동 저장한다", async ({
-    page,
-  }) => {
-    const storedContent = `저장 원문 ${crypto.randomUUID()}`
-    const draftContent = `${storedContent} 수정 중`
-    const note = await createMobileNoteThroughUi(page, storedContent)
-    const noteId = noteIdFromHref(
-      await readMobileNoteEditHref(page, note),
-    )
-    const storedBeforeOpen = await readStoredNote(page, noteId)
-    expect(storedBeforeOpen).not.toBeNull()
-    const draft = {
-      content: draftContent,
-      note: {
-        contentRevision: storedBeforeOpen!.contentRevision,
-        id: noteId,
-      },
-      updatedAt: new Date().toISOString(),
-    }
-    await writeStoredNoteDraft(page, draft)
-    await page.clock.install()
-    await page.reload()
-    await openMobileNoteEditor(page, page.getByRole("article"))
-    await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
-      draftContent,
-    )
-    await page.clock.fastForward(800)
-
-    await expect.poll(() => readStoredNote(page, noteId)).toMatchObject({
-      content: draftContent,
-      contentRevision: storedBeforeOpen!.contentRevision + 1,
-    })
-    await expect.poll(() => readStoredNoteDraft(page, noteId)).toBeNull()
-  })
-
-  test("복구한 초안을 저장하고 제거 실패를 다음 저장에서 정리한다", async ({
-    page,
-  }) => {
-    const storedContent = "초안의 기준이 되는 메모"
-    const recoveredContent = "복구해서 저장할 메모 초안"
-    const savedContent = `${recoveredContent} 저장본`
-    const staleContent = "이전 revision에서 남은 초안"
-    const draftUpdatedAt = new Date().toISOString()
-    const note = await createMobileNoteThroughUi(page, storedContent)
-    const noteId = noteIdFromHref(
-      await readMobileNoteEditHref(page, note),
-    )
-    await page.reload()
-    const initialStoredNote = await readStoredNote(page, noteId)
-    expect(initialStoredNote).not.toBeNull()
-
-    const recoverableDraft = {
-      content: recoveredContent,
-      note: {
-        contentRevision: initialStoredNote!.contentRevision,
-        id: noteId,
-      },
-      updatedAt: draftUpdatedAt,
-    }
-    await writeStoredNoteDraft(page, recoverableDraft)
-    expect(await readStoredNoteDraft(page, noteId)).toEqual(recoverableDraft)
-
-    const detailPage = await page.context().newPage()
-    await detailPage.clock.install()
-    await detailPage.clock.pauseAt(Date.now() + 60_000)
-    await detailPage.goto(`/notes/${encodeURIComponent(noteId)}/`)
-    const editor = detailPage.getByRole("textbox", { name: "메모 내용" })
-    await expect(editor).toHaveValue(recoveredContent)
-    await editor.fill(savedContent)
-
-    await detailPage.evaluate(() => {
-      type DraftRemovalFailureWindow = typeof window & {
-        restoreDraftRemoval?: () => void
-      }
-      const originalDelete = IDBObjectStore.prototype.delete
-      const originalTransaction = IDBDatabase.prototype.transaction
-      let noteStored = false
-      const restore = () => {
-        IDBObjectStore.prototype.delete = originalDelete
-        IDBDatabase.prototype.transaction = originalTransaction
-      }
-      const currentWindow = window as DraftRemovalFailureWindow
-      currentWindow.restoreDraftRemoval = restore
-      IDBDatabase.prototype.transaction = function observeNoteSave(
-        storeNames: string | string[],
-        mode?: IDBTransactionMode,
-      ) {
-        const usesNoteStore = Array.isArray(storeNames)
-          ? storeNames.includes("notes")
-          : storeNames === "notes"
-        if (usesNoteStore && mode === "readwrite") {
-          noteStored = true
+  test("구버전 모바일 초안을 이전한 뒤 다시 열면 맞는 초안만 본문에 반영된다", async ({ page }) => {
+    await page.route("**/previous-notes", (route) => route.fulfill({ contentType: "text/html", body: "<title>메모 이전</title>" }))
+    await page.goto("/previous-notes")
+    await page.evaluate(async () => {
+      await new Promise<void>((resolve, reject) => {
+        const deletion = indexedDB.deleteDatabase("personal-notes")
+        deletion.onsuccess = () => resolve()
+        deletion.onerror = () => reject(deletion.error)
+      })
+      await new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open("personal-notes", 2)
+        open.onerror = () => reject(open.error)
+        open.onsuccess = () => { open.result.close(); resolve() }
+        open.onupgradeneeded = () => {
+          const db = open.result
+          const notes = db.createObjectStore("notes", { keyPath: "id" })
+          const drafts = db.createObjectStore("noteDrafts", { keyPath: "note.id" })
+          db.createObjectStore("batchCopyLists", { keyPath: "id" })
+          db.createObjectStore("templates", { keyPath: "id" })
+          db.createObjectStore("preferences")
+          db.createObjectStore("usage", { keyPath: "id" }).createIndex("by-note-content", ["note.id", "note.contentRevision", "textSnapshot"], { unique: true })
+          const updatedAt = new Date().toISOString()
+          for (const [index, id] of ["matched", "stale"].entries()) {
+            notes.add({ id, content: id, createdAt: updatedAt, updatedAt, contentRevision: 1, revision: 1, tabIndex: 1000 + index,
+              geometry: { x: 20, y: 20, width: 320, height: 240, zIndex: index + 1 } })
+            drafts.add({ content: "복구할 본문", updatedAt, note: { id, contentRevision: 1 - index } })
+          }
         }
-
-        return originalTransaction.call(this, storeNames, mode)
-      }
-      IDBObjectStore.prototype.delete = function deleteWithControlledFailure(
-        query: IDBValidKey | IDBKeyRange,
-      ) {
-        if (this.name === "noteDrafts" && noteStored) {
-          throw new Error("Controlled draft removal failure")
-        }
-
-        return originalDelete.call(this, query)
-      }
+      })
     })
-    await detailPage.clock.runFor(800)
-    await expect.poll(
-      () => readStoredNote(detailPage, noteId),
-    ).toMatchObject({
-      content: savedContent,
-      contentRevision: initialStoredNote!.contentRevision + 1,
-    })
-    const savedAfterRemovalFailure = await readStoredNote(detailPage, noteId)
-    expect(savedAfterRemovalFailure).not.toBeNull()
-    const draftAfterRemovalFailure = await readStoredNoteDraft(
-      detailPage,
-      noteId,
-    )
-    expect(draftAfterRemovalFailure).not.toBeNull()
-    expect(draftAfterRemovalFailure).toMatchObject({
-      content: savedContent,
-      note: recoverableDraft.note,
-    })
-
-    await detailPage.evaluate(() => {
-      type DraftRemovalFailureWindow = typeof window & {
-        restoreDraftRemoval?: () => void
-      }
-      const currentWindow = window as DraftRemovalFailureWindow
-      currentWindow.restoreDraftRemoval?.()
-      delete currentWindow.restoreDraftRemoval
-    })
-    await editor.fill(`${savedContent} 수정`)
-    await editor.fill(savedContent)
-    await detailPage.clock.runFor(800)
-    await expect.poll(
-      () => readStoredNoteDraft(detailPage, noteId),
-    ).toBeNull()
-    expect(await readStoredNote(detailPage, noteId)).toMatchObject({
-      content: savedContent,
-      contentRevision: savedAfterRemovalFailure!.contentRevision,
-      revision: savedAfterRemovalFailure!.revision,
-    })
-
-    const staleDraft = {
-      content: staleContent,
-      note: {
-        contentRevision: savedAfterRemovalFailure!.contentRevision - 1,
-        id: noteId,
-      },
-      updatedAt: new Date(Date.parse(draftUpdatedAt) + 1_000).toISOString(),
-    }
-    await writeStoredNoteDraft(detailPage, staleDraft)
-    expect(await readStoredNoteDraft(detailPage, noteId)).toEqual(staleDraft)
-    await detailPage.reload()
-    await expect(editor).toHaveValue(savedContent)
+    await page.goto("/notes/matched/")
+    const editor = page.getByRole("textbox", { name: "메모 내용" })
+    await expect(editor).toHaveValue("복구할 본문")
+    await page.reload()
+    await expect(editor).toHaveValue("복구할 본문")
+    await page.goto("/notes/stale/")
+    await expect(editor).toHaveValue("stale")
   })
 
   test("더보기의 수정으로 상세 화면에서 저장하고 제한된 높이의 목록으로 돌아온다", async ({
@@ -2400,8 +2276,8 @@ test.describe("320px 메모 화면", () => {
     dialog = page.getByRole("dialog", { name: "저장하지 않은 내용이 있어요" })
     await dialog.getByRole("button", { name: "나가기" }).click()
     await expect(page).toHaveURL("/")
-    await expect.poll(() => readStoredNoteDraft(page, noteId)).toBeNull()
 
+    expect((await readStoredNote(page, noteId))?.content).toBe(initialContent)
     const restoredNote = page
       .getByRole("article")
       .filter({ hasText: initialContent })
@@ -2409,31 +2285,6 @@ test.describe("320px 메모 화면", () => {
     await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(
       initialContent,
     )
-  })
-
-  test("미저장 내용의 나가기는 초안 제거 완료를 기다리지 않는다", async ({
-    page,
-  }) => {
-    const initialContent = "버리기 진행을 확인할 메모"
-    const changedContent = "버리기 전에 작성한 변경사항"
-    const note = await createMobileNoteThroughUi(page, initialContent)
-
-    await page.clock.install()
-    await openMobileNoteEditor(page, note)
-    await page.clock.pauseAt(Date.now() + 60_000)
-    const editor = page.getByRole("textbox", { name: "메모 내용" })
-    await editor.fill(changedContent)
-    await page.getByRole("link", { exact: true, name: "메모 목록" }).click()
-
-    const completion = await delayNextWriteCompletion(page, "noteDrafts")
-
-    const dialog = page.getByRole("dialog", { name: "저장하지 않은 내용이 있어요" })
-    await dialog.getByRole("button", { name: "나가기" }).click()
-    await completion.waitUntilCommitted()
-    await expect(page).toHaveURL("/")
-    await expect(dialog).toBeHidden()
-    await completion.release()
-    await expect(page).toHaveURL("/")
   })
 
   test("저장 중 나가면 늦은 저장은 유지하고 이후 입력과 편집 기록은 버린다", async ({ page }) => {
@@ -2458,7 +2309,6 @@ test.describe("320px 메모 화면", () => {
     await expect(page).toHaveURL("/")
     await expect(dialog).toBeHidden()
     await completion.release()
-    await expect.poll(() => readStoredNoteDraft(page, noteId)).toBeNull()
     await page.clock.runFor(800)
     expect((await readStoredNote(page, noteId))?.content).toBe(pendingContent)
     const savedNote = page.getByRole("article").filter({ hasText: pendingContent })

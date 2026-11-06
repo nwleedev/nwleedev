@@ -13,7 +13,6 @@ import { NotesBoard } from "./notes-board"
 
 type NotesCollectionProps = {
   batchCopyShortcutEnabled: boolean
-  draftContentById: Readonly<Record<string, string>>
   notes: readonly Note[]
 }
 
@@ -23,7 +22,6 @@ function byTabIndex(left: Note, right: Note) {
 
 export function NotesCollection({
   batchCopyShortcutEnabled,
-  draftContentById,
   notes,
 }: NotesCollectionProps) {
   const { createNote } = useNotesData()
@@ -76,7 +74,6 @@ export function NotesCollection({
           <NotesBoard
             batchCopyShortcutEnabled={batchCopyShortcutEnabled}
             commandPressed={commandPressed}
-            draftContentById={draftContentById}
             focusedNoteId={linkedNoteId}
             notes={orderedNotes}
             onClearSelection={clearSelection}
