@@ -26,6 +26,23 @@ type UsageInput = {
   textSnapshot: string
 }
 
+export async function countTextCopy(
+  store: IDBObjectStore,
+  kind: "individualCopy" | "batchCopy",
+  input: UsageInput & { id: string; updatedAt: string },
+) {
+  const key = [input.note.id, input.note.contentRevision, input.textSnapshot]
+  const value: unknown = await readRequest(store.index(USAGE_BY_NOTE_CONTENT_INDEX).get(key))
+  const previous = value === undefined ? null : StoredUsageSchema.parse(value)
+  const counts = previous?.counts ?? { batchCopy: 0, individualCopy: 0 }
+  const record = {
+    ...input,
+    id: previous?.id ?? input.id,
+    counts: { ...counts, [kind]: counts[kind] + 1 },
+  }
+  store.put(StoredUsageSchema.encode(record))
+}
+
 export class IndexedDbUsageRepository
   implements TextUsageReader, IndividualCopyUsageWriter
 {
@@ -64,36 +81,7 @@ export class IndexedDbUsageRepository
 
     try {
       const store = transaction.objectStore(USAGE_STORE_NAME)
-      const current: unknown = await readRequest(
-        store
-          .index(USAGE_BY_NOTE_CONTENT_INDEX)
-          .get([
-            input.note.id,
-            input.note.contentRevision,
-            input.textSnapshot,
-          ]),
-      )
-      const currentUsage =
-        current === undefined ? null : StoredUsageSchema.parse(current)
-      const record = TextUsageRecordSchema.parse(
-        currentUsage === null
-          ? {
-              counts: { batchCopy: 0, individualCopy: 1 },
-              id: newIdentifier,
-              note: input.note,
-              textSnapshot: input.textSnapshot,
-              updatedAt,
-            }
-          : {
-              ...currentUsage,
-              counts: {
-                ...currentUsage.counts,
-                individualCopy: currentUsage.counts.individualCopy + 1,
-              },
-              updatedAt,
-            },
-      )
-      store.put(StoredUsageSchema.encode(record))
+      await countTextCopy(store, "individualCopy", { ...input, id: newIdentifier, updatedAt })
       await completion
     } catch (error) {
       await abortTransaction(transaction, completion)

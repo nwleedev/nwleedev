@@ -2,6 +2,7 @@ import "client-only"
 
 export {
   StoredUsageSchema,
+  countTextCopy,
   IndexedDbUsageRepository,
   USAGE_BY_NOTE_CONTENT_INDEX,
   USAGE_STORE_NAME,

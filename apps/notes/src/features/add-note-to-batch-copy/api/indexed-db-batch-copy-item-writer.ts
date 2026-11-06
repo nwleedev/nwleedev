@@ -6,12 +6,8 @@ import {
 } from "@/entities/batch-copy"
 import { BATCH_COPY_LIST_STORE_NAME, readStoredBatch, storeBatch } from "@/entities/batch-copy/index.browser"
 import {
-  TextUsageRecordSchema,
-} from "@/entities/usage"
-import {
-  USAGE_BY_NOTE_CONTENT_INDEX,
+  countTextCopy,
   USAGE_STORE_NAME,
-  StoredUsageSchema,
 } from "@/entities/usage/index.browser"
 import type { EntityIdGenerator } from "@/shared/lib/id-generation"
 import {
@@ -50,24 +46,16 @@ export class IndexedDbBatchCopyItemWriter implements BatchCopyItemWriter {
         BATCH_COPY_LIST_STORE_NAME,
       )
       const usageStore = transaction.objectStore(USAGE_STORE_NAME)
-      const [storedList, storedUsage]: [unknown, unknown] =
-        await Promise.all([
-          readRequest(listStore.get(PRIMARY_BATCH_COPY_LIST_ID)),
-          readRequest(
-            usageStore
-              .index(USAGE_BY_NOTE_CONTENT_INDEX)
-              .get([
-                item.sourceNote.id,
-                item.sourceNote.contentRevision,
-                item.textSnapshot,
-              ]),
-          ),
-        ])
-      const currentList =
-        storedList === undefined ? null : readStoredBatch(storedList)
-      const currentUsage =
-        storedUsage === undefined ? null : StoredUsageSchema.parse(storedUsage)
-
+      const [storedList] = await Promise.all([
+        readRequest(listStore.get(PRIMARY_BATCH_COPY_LIST_ID)),
+        countTextCopy(usageStore, "batchCopy", {
+          id: usageIdentifier,
+          note: item.sourceNote,
+          textSnapshot: item.textSnapshot,
+          updatedAt: item.addedAt,
+        }),
+      ])
+      const currentList = storedList === undefined ? null : readStoredBatch(storedList)
       const list = BatchCopyListSchema.parse(
         currentList === null
           ? {
@@ -86,27 +74,7 @@ export class IndexedDbBatchCopyItemWriter implements BatchCopyItemWriter {
               updatedAt: item.addedAt,
             },
       )
-      const usage = TextUsageRecordSchema.parse(
-        currentUsage === null
-          ? {
-              counts: { batchCopy: 1, individualCopy: 0 },
-              id: usageIdentifier,
-              note: item.sourceNote,
-              textSnapshot: item.textSnapshot,
-              updatedAt: item.addedAt,
-            }
-          : {
-              ...currentUsage,
-              counts: {
-                ...currentUsage.counts,
-                batchCopy: currentUsage.counts.batchCopy + 1,
-              },
-              updatedAt: item.addedAt,
-            },
-      )
-
       listStore.put(storeBatch(list))
-      usageStore.put(StoredUsageSchema.encode(usage))
       await completion
       return list
     } catch (error) {

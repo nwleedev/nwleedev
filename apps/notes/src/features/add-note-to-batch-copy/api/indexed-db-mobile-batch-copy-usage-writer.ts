@@ -1,16 +1,11 @@
 import type { Note } from "@/entities/note"
 import {
-  TextUsageRecordSchema,
-} from "@/entities/usage"
-import {
-  USAGE_BY_NOTE_CONTENT_INDEX,
+  countTextCopy,
   USAGE_STORE_NAME,
-  StoredUsageSchema,
 } from "@/entities/usage/index.browser"
 import type { EntityIdGenerator } from "@/shared/lib/id-generation"
 import {
   abortTransaction,
-  readRequest,
   waitForTransaction,
   type IndexedDbConnection,
 } from "@/shared/lib/indexed-db/index.browser"
@@ -39,33 +34,12 @@ export class IndexedDbMobileBatchCopyUsageWriter
 
     try {
       const store = transaction.objectStore(USAGE_STORE_NAME)
-      const storedUsage: unknown = await readRequest(
-        store
-          .index(USAGE_BY_NOTE_CONTENT_INDEX)
-          .get([note.id, note.contentRevision, note.content]),
-      )
-      const currentUsage =
-        storedUsage === undefined ? null : StoredUsageSchema.parse(storedUsage)
-      const usage = TextUsageRecordSchema.parse(
-        currentUsage === null
-          ? {
-              counts: { batchCopy: 1, individualCopy: 0 },
-              id: usageIdentifier,
-              note: { contentRevision: note.contentRevision, id: note.id },
-              textSnapshot: note.content,
-              updatedAt,
-            }
-          : {
-              ...currentUsage,
-              counts: {
-                ...currentUsage.counts,
-                batchCopy: currentUsage.counts.batchCopy + 1,
-              },
-              updatedAt,
-            },
-      )
-
-      store.put(StoredUsageSchema.encode(usage))
+      await countTextCopy(store, "batchCopy", {
+        id: usageIdentifier,
+        note: { id: note.id, contentRevision: note.contentRevision },
+        textSnapshot: note.content,
+        updatedAt,
+      })
       await completion
     } catch (error) {
       await abortTransaction(transaction, completion)
