@@ -26,7 +26,7 @@ import { runNoteAction } from "./support/run-note-action"
 type StackDefect = "block-stack-move" | "none" | "partial-stack-save"
 
 type StackNote = {
-  contentRevision: number
+  bodyDigest: string
   createdOrder: number
   id: string
   tabIndex: number
@@ -453,7 +453,7 @@ async function executeStackCommands(
         throw new Error("Expected a stored note")
       }
       initialNotes.push({
-        contentRevision: stored.contentRevision,
+        bodyDigest: stored.bodyDigest,
         createdOrder,
         id: noteId,
         tabIndex: stored.tabIndex,
@@ -471,8 +471,8 @@ async function executeStackCommands(
       async inspect(expected) {
         const expectedById = [...expected.notes]
           .sort((left, right) => left.id.localeCompare(right.id))
-          .map(({ contentRevision, id, tabIndex, zIndex }) => ({
-            contentRevision,
+          .map(({ bodyDigest, id, tabIndex, zIndex }) => ({
+            bodyDigest,
             id,
             tabIndex,
             zIndex,
@@ -487,7 +487,7 @@ async function executeStackCommands(
             stored === null
               ? null
               : {
-                  contentRevision: stored.contentRevision,
+                  bodyDigest: stored.bodyDigest,
                   id: noteId,
                   tabIndex: stored.tabIndex,
                   zIndex: stored.geometry.zIndex,
@@ -517,7 +517,7 @@ async function executeStackCommands(
         }
         if (JSON.stringify(observed) !== JSON.stringify(wanted)) {
           throw new ExplorationInvariantError(
-            "stack-move-persists-one-to-n-with-stable-tab-and-content-revision",
+            "stack-move-persists-one-to-n-with-stable-tab-and-body-state",
             wanted,
             observed,
           )
@@ -682,7 +682,7 @@ test("겹침 순서의 실패 행동을 줄이고 저장 및 화면 순서로 �
   })
 
   expect(report.invariant).toBe(
-    "stack-move-persists-one-to-n-with-stable-tab-and-content-revision",
+    "stack-move-persists-one-to-n-with-stable-tab-and-body-state",
   )
   expect(report.originalActions.length).toBeGreaterThan(
     report.minimalActions.length,

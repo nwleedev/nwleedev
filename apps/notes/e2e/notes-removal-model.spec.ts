@@ -139,7 +139,6 @@ function expireRemovalHistory(model: RemovalModel) {
 function comparableStored(note: StoredNoteObservation) {
   return {
     content: note.content,
-    contentRevision: note.contentRevision,
     geometry: note.geometry,
     tabIndex: note.tabIndex,
   }
@@ -154,7 +153,6 @@ function comparableRestoredSnapshot(
 ) {
   return {
     content: note.content,
-    contentRevision: note.contentRevision,
     geometry: {
       height: note.geometry.height,
       width: note.geometry.width,

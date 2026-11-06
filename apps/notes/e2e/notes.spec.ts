@@ -248,14 +248,12 @@ async function contextWithoutSecondCreatedNote(browser: Browser) {
 
     IDBObjectStore.prototype.put = function (value, key) {
       const record = value as {
-        contentRevision: number
         id: string
       }
 
       if (
         this.name === "notes" &&
-        !createdIds.has(record.id) &&
-        record.contentRevision === 0
+        !createdIds.has(record.id)
       ) {
         createdIds.add(record.id)
 
@@ -508,13 +506,13 @@ async function contextWithoutEditedSave(browser: Browser) {
   const context = await browser.newContext()
   await context.addInitScript(() => {
     const originalAdd = IDBObjectStore.prototype.add
+    const initialEdits = new Map<string, string>()
     IDBObjectStore.prototype.add = function (value, key) {
       if (this.name !== "updates") return originalAdd.call(this, value, key)
-      const current = this.transaction.objectStore("notes").get(value.noteId)
-      current.onsuccess = () => {
-        if (current.result?.contentRevision === 0) originalAdd.call(this, value, key)
-      }
-      return current
+      const first = initialEdits.get(value.noteId)
+      if (first === undefined) initialEdits.set(value.noteId, value.id)
+      if (first === undefined || first === value.id) return originalAdd.call(this, value, key)
+      return this.get([value.id, value.noteId])
     }
   })
   return context
@@ -1346,7 +1344,7 @@ test("항상 편집할 수 있는 메모 원문을 저장하고 불필요한 조
   )
 })
 
-test("선택한 본문을 교체하고 위치 변경과 원문 revision을 구분한다", async ({
+test("선택한 본문을 교체하고 이동할 때 저장된 본문 상태를 유지한다", async ({
   page,
 }) => {
   const initialContent = "교체할 원래 메모"
@@ -1383,8 +1381,8 @@ test("선택한 본문을 교체하고 위치 변경과 원문 revision을 구�
   const afterEdit = await readStoredNote(page, noteId)
   expect(afterEdit).toMatchObject({
     content: revisedContent,
-    contentRevision: beforeEdit!.contentRevision + 1,
   })
+  expect(afterEdit!.bodyDigest).not.toBe(beforeEdit!.bodyDigest)
 
   const properties = await openPropertiesWithKeyboard(note)
   const xField = properties.getByRole("spinbutton", { name: "X" })
@@ -1396,7 +1394,7 @@ test("선택한 본문을 교체하고 위치 변경과 원문 revision을 구�
   const afterMove = await readStoredNote(page, noteId)
   expect(afterMove).toMatchObject({
     content: revisedContent,
-    contentRevision: afterEdit!.contentRevision,
+    bodyDigest: afterEdit!.bodyDigest,
   })
 
   const whitespaceOnlyContent = " ".repeat(2)
@@ -1408,8 +1406,8 @@ test("선택한 본문을 교체하고 위치 변경과 원문 revision을 구�
   const afterWhitespaceEdit = await readStoredNote(page, noteId)
   expect(afterWhitespaceEdit).toMatchObject({
     content: whitespaceOnlyContent,
-    contentRevision: afterMove!.contentRevision + 1,
   })
+  expect(afterWhitespaceEdit!.bodyDigest).not.toBe(afterMove!.bodyDigest)
 
   await page.reload()
   await expect(page.getByRole("textbox", { name: "메모 내용" })).toHaveValue(

@@ -1,9 +1,10 @@
-import { applyUpdate, Doc } from "yjs"
+import { createHash } from "node:crypto"
+import { applyUpdate, Doc, encodeStateAsUpdate } from "yjs"
 import type { Page } from "@playwright/test"
 
 export type StoredNoteObservation = {
   content: string
-  contentRevision: number
+  bodyDigest: string
   geometry: {
     height: number
     width: number
@@ -28,7 +29,7 @@ export async function readStoredNote(
   page: Page,
   noteId: string,
 ): Promise<StoredNoteObservation | null> {
-  type StoredFields = Omit<StoredNoteObservation, "content" | "geometryX">
+  type StoredFields = Omit<StoredNoteObservation, "bodyDigest" | "content" | "geometryX">
   type BodyObservation = StoredFields & { body: number[]; updates: number[][] }
   const stored = await page.evaluate((id) => new Promise<BodyObservation | null>((resolve, reject) => {
     const open = indexedDB.open("personal-notes")
@@ -51,7 +52,6 @@ export async function readStoredNote(
         }
         resolve({
           body: Array.from(value.body),
-          contentRevision: value.contentRevision,
           geometry: value.geometry,
           tabIndex: value.tabIndex,
           updates: updates.result.map(({ payload }) => Array.from(payload as Uint8Array)),
@@ -64,5 +64,6 @@ export async function readStoredNote(
   const document = new Doc()
   applyUpdate(document, Uint8Array.from(body))
   for (const update of updates) applyUpdate(document, Uint8Array.from(update))
-  return { ...fields, content: document.getText("body").toString(), geometryX: fields.geometry.x }
+  const bodyDigest = createHash("sha256").update(encodeStateAsUpdate(document)).digest("hex")
+  return { ...fields, bodyDigest, content: document.getText("body").toString(), geometryX: fields.geometry.x }
 }

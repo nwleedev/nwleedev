@@ -107,7 +107,7 @@ function expectedResize(
 }
 
 type GeometryModel = {
-  contentRevision: number
+  bodyDigest: string
   geometry: Geometry
   observationPending: boolean
 }
@@ -532,17 +532,17 @@ async function executeGeometryCommands(
             ? null
             : {
                 content: stored.content,
-                contentRevision: stored.contentRevision,
+                bodyDigest: stored.bodyDigest,
                 geometry: stored.geometry,
               }
         const wanted = {
           content,
-          contentRevision: expected.contentRevision,
+          bodyDigest: expected.bodyDigest,
           geometry: expected.geometry,
         }
         if (JSON.stringify(observed) !== JSON.stringify(wanted)) {
           throw new ExplorationInvariantError(
-            "requested-geometry-is-stored-without-content-revision-change",
+            "requested-geometry-is-stored-without-body-state-change",
             wanted,
             observed,
           )
@@ -595,7 +595,7 @@ async function executeGeometryCommands(
     await fc.asyncModelRun(
       () => ({
         model: {
-          contentRevision: initial.contentRevision,
+          bodyDigest: initial.bodyDigest,
           geometry: initial.geometry,
           observationPending: false,
         },
@@ -742,7 +742,7 @@ test("위치와 크기의 실패 행동을 줄이고 실제 저장값으로 재�
   })
 
   expect(report.invariant).toBe(
-    "requested-geometry-is-stored-without-content-revision-change",
+    "requested-geometry-is-stored-without-body-state-change",
   )
   expect(report.originalActions.length).toBeGreaterThan(
     report.minimalActions.length,

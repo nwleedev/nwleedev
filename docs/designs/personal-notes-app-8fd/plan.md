@@ -97,6 +97,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 - **2.1 구버전 초안 복구.** 초안의 메모 ID와 원문 버전을 비교하는 규칙은 IndexedDB 이전 모듈에 둔다. 이전 DB 형식을 직접 읽으므로 현행 메모 모델을 바꾸더라도 같은 버전의 초안만 복구할 수 있다. 구버전 초안 복구를 포함해 단위 검사 191건, 브라우저 검사 150건, 타입 검사와 lint가 통과했다.
 
+- **4.1 본문 변경과 카드 배치 구분.** 브라우저 검사는 저장한 기준 본문과 변경분을 병합한 바이트를 비교한다. 글자를 바꾸면 본문 상태가 달라지고 카드를 옮기거나 크기와 겹침 순서를 바꾸면 유지된다. 삭제 후에는 저장된 원문, 배치, 탐색 순서를 확인한다. 쓰기 누락 재현에서도 원문 버전 번호에 의존하지 않는다. 세 브라우저의 관련 E2E 18건 중 17건이 첫 실행에서 통과했다. 초안 모듈 이동과 겹친 WebKit 검사 1건은 빌드 후 다시 실행해 통과했다.
+
 ### 모든 절차의 착수 조건
 
 - 각 절차에서 코드를 열기 전에 [저장소 개발 지침](../../dev/README.md), [메모 앱 안티패턴](../../dev/personal-notes-app/anti-patterns.md), [입력 상태](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md) 중 적용할 규칙을 확인한다. 아래 파일은 `apps/notes` 기준이다. 실제 호출자와 재사용 여부를 확인하고 다음 절차에 필요한 코드를 먼저 지우지 않는다.
