@@ -477,7 +477,7 @@ describe("personal notes IndexedDB storage", () => {
       }
       const secondText = input.firstText + input.suffix
 
-      await notes.save({
+      const opened = await notes.save({
         ...note,
         content: input.firstText,
         contentRevision: input.revision,
@@ -495,8 +495,8 @@ describe("personal notes IndexedDB storage", () => {
         sourceNote: firstReference,
         textSnapshot: input.firstText,
       })
-      await notes.save({
-        ...note,
+      await notes.saveEdit(opened, {
+        ...opened,
         content: secondText,
         contentRevision: secondReference.contentRevision,
         id: noteId,

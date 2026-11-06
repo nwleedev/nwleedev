@@ -114,6 +114,16 @@ describe("메모 저장소 모델", () => {
       .toEqual([[note.id, "우유"]])
   })
 
+  it("다른 창이 편집한 메모와 같은 ID로 생성하면 저장된 본문과 배치를 보존한다", async () => {
+    const first = new IndexedDbNoteRepository(createConnection())
+    const second = new IndexedDbNoteRepository(createConnection())
+    const created = await first.save(note)
+    const edited = await first.saveEdit(created, reviseNote(created, { content: "저장한 본문", updatedAt: timestamp }))
+    assert(edited)
+    await expect(second.save({ ...note, geometry: { ...note.geometry, width: 600 } })).rejects.toThrow()
+    expect(await second.get(note.id)).toMatchObject({ content: edited.content, geometry: note.geometry })
+  })
+
   it("열려 있던 마지막 편집 화면을 떠날 때 삭제 본문을 정리한다", async () => {
     const first = new IndexedDbNoteRepository(createConnection())
     const second = new IndexedDbNoteRepository(createConnection())
@@ -317,7 +327,7 @@ describe("메모 저장소 모델", () => {
     expect(await notes.getAll()).toHaveLength(2)
     await notes.remove(note)
     expect((await order.read()).ids).toEqual([companion.id])
-    await notes.save(note, position)
+    await notes.restore(note, position)
     expect((await order.read()).ids).toEqual([note.id, companion.id])
     expect(noteById(await notes.getAll(), note.id)).toEqual(note)
   })
@@ -348,7 +358,7 @@ describe("메모 저장소 모델", () => {
     expect(afterRemoval.some((current) => current.id === secondNote.id)).toBe(false)
 
     await notes.moveInStack(noteById(afterRemoval, note.id), "front", "2026-09-01T00:00:01.000Z")
-    await notes.save(secondNote)
+    await notes.restore(secondNote)
     firstConnection.close()
 
     const restoredConnection = createConnection()

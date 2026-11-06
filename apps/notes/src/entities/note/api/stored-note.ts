@@ -23,17 +23,20 @@ const UpdateSchema = z.object({
   payload: z.instanceof(Uint8Array),
 })
 
-export function storeNote(note: Note, position: number, previous?: z.infer<typeof StoredNoteSchema>, restored = false) {
+export function storeNote(note: Note, position: number, restored = false) {
   const { content, ...fields } = note
-  let body: Uint8Array | undefined = previous?.body
-  if (body === undefined) {
-    body = (restored ? NoteBody.restore(content) : NoteBody.fromText(content)).snapshot()
-  } else if (previous && note.contentRevision > previous.contentRevision) {
-    const edited = new NoteBody(body)
-    edited.updateText(content)
-    body = edited.snapshot()
+  const body = restored ? NoteBody.restore(content) : NoteBody.fromText(content)
+  return {
+    ...fields,
+    body: body.snapshot(),
+    position,
+    createdAt: toTimestamp(note.createdAt),
+    updatedAt: toTimestamp(note.updatedAt),
   }
-  return { ...fields, body, position, createdAt: toTimestamp(note.createdAt), updatedAt: toTimestamp(note.updatedAt) }
+}
+
+export function storeGeometry(record: z.infer<typeof StoredNoteSchema>, note: Note) {
+  return { ...record, geometry: note.geometry, revision: note.revision, updatedAt: toTimestamp(note.updatedAt) }
 }
 
 export async function readStoredBody(record: z.infer<typeof StoredNoteSchema>, updates: IDBObjectStore) {

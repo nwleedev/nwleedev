@@ -19,7 +19,7 @@ import {
 import { sendNoteToFront, sendNoteToBack } from "../model/note-order"
 import { insertMobileNote, type MobileNotePosition } from "../model/mobile-note-order"
 import { allocatePosition, readMobileIds } from "./indexed-db-mobile-note-order-repository"
-import { NOTE_STORE_NAME, NoteFields, readStoredBody, storeNote, StoredNoteSchema } from "./stored-note"
+import { NOTE_STORE_NAME, NoteFields, readStoredBody, storeGeometry, storeNote, StoredNoteSchema } from "./stored-note"
 
 export { NOTE_STORE_NAME } from "./stored-note"
 
@@ -161,8 +161,8 @@ export class IndexedDbNoteRepository implements NoteRepository {
     }
   }
 
-  async save(note: Note, position?: MobileNotePosition) {
-    return this.#save(note, position, false)
+  async save(note: Note) {
+    return this.#save(note, undefined, false)
   }
 
   async restore(note: Note, position?: MobileNotePosition) {
@@ -177,22 +177,16 @@ export class IndexedDbNoteRepository implements NoteRepository {
     try {
       const store = transaction.objectStore(NOTE_STORE_NAME)
       const stored: unknown = await readRequest(store.get(record.id))
-      const previous = stored === undefined || isRemoved(stored) ? undefined : StoredNoteSchema.parse(stored)
-      if (isRemoved(stored) && !restoring) throw new Error("Cannot change a deleted note")
-      if (restoring && previous) {
-        const existing = await this.#readNote(previous, transaction.objectStore("updates"))
+      if (stored !== undefined && !restoring) throw new Error("Note identifier already exists")
+      if (stored !== undefined && !isRemoved(stored)) {
+        const existing = await this.#readNote(stored, transaction.objectStore("updates"))
         await completion
         return existing
       }
-      let rank: number
-      if (previous === undefined) {
-        const ids = await readMobileIds(store)
-        const insertion = position ? insertMobileNote(ids, record.id, position).indexOf(record.id) : 0
-        rank = await allocatePosition(store, ids, insertion)
-      } else {
-        rank = previous.position
-      }
-      const next = storeNote(record, rank, previous, restoring)
+      const ids = await readMobileIds(store)
+      const insertion = position ? insertMobileNote(ids, record.id, position).indexOf(record.id) : 0
+      const rank = await allocatePosition(store, ids, insertion)
+      const next = storeNote(record, rank, restoring)
       store.put(next)
       const saved = await this.#readNote(next, transaction.objectStore("updates"))
       await completion
@@ -229,7 +223,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
         const body = savedNoteBody(previous.note)
         if (body) rememberNoteBody(note, body)
         if (previous.record.geometry.zIndex !== note.geometry.zIndex) {
-          store.put(storeNote(note, previous.record.position, previous.record))
+          store.put(storeGeometry(previous.record, note))
           changedIds.push(note.id)
         }
       }
@@ -266,7 +260,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
       }
       const saved = reviseNote(current, { geometry: merged, updatedAt })
       if (saved !== current) {
-        const next = storeNote(parseNoteRecord(saved), record.position, record)
+        const next = storeGeometry(record, saved)
         notes.put(next)
         rememberNoteBody(saved, body)
       }
