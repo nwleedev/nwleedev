@@ -7,11 +7,11 @@ import {
 import { BATCH_COPY_LIST_STORE_NAME, readStoredBatch, storeBatch } from "@/entities/batch-copy/index.browser"
 import {
   TextUsageRecordSchema,
-  parseTextUsageRecord,
 } from "@/entities/usage"
 import {
   USAGE_BY_NOTE_CONTENT_INDEX,
   USAGE_STORE_NAME,
+  StoredUsageSchema,
 } from "@/entities/usage/index.browser"
 import type { EntityIdGenerator } from "@/shared/lib/id-generation"
 import {
@@ -66,7 +66,7 @@ export class IndexedDbBatchCopyItemWriter implements BatchCopyItemWriter {
       const currentList =
         storedList === undefined ? null : readStoredBatch(storedList)
       const currentUsage =
-        storedUsage === undefined ? null : parseTextUsageRecord(storedUsage)
+        storedUsage === undefined ? null : StoredUsageSchema.parse(storedUsage)
 
       const list = BatchCopyListSchema.parse(
         currentList === null
@@ -106,7 +106,7 @@ export class IndexedDbBatchCopyItemWriter implements BatchCopyItemWriter {
       )
 
       listStore.put(storeBatch(list))
-      usageStore.put(usage)
+      usageStore.put(StoredUsageSchema.encode(usage))
       await completion
       return list
     } catch (error) {

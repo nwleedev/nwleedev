@@ -32,9 +32,9 @@ import {
   TEMPLATE_STORE_NAME,
   IndexedDbTemplateRepository,
 } from "@/entities/template/index.browser"
-import { parseTextUsageRecord } from "@/entities/usage"
 import {
   IndexedDbUsageRepository,
+  StoredUsageSchema,
   USAGE_BY_NOTE_CONTENT_INDEX,
   USAGE_STORE_NAME,
 } from "@/entities/usage/index.browser"
@@ -817,7 +817,19 @@ describe("personal notes IndexedDB storage", () => {
     previousDatabase.close()
 
     const connection = createConnection()
-    const stores = Array.from((await connection.get()).objectStoreNames)
+    const database = await connection.get()
+    const dates = database.transaction([USAGE_STORE_NAME, TEMPLATE_STORE_NAME, PREFERENCE_STORE_NAME])
+    const [used, savedTemplate, settings] = await Promise.all([
+      readRequest(dates.objectStore(USAGE_STORE_NAME).get(usageRecord.id)),
+      readRequest(dates.objectStore(TEMPLATE_STORE_NAME).get(template.id)),
+      readRequest(dates.objectStore(PREFERENCE_STORE_NAME).get("interaction")),
+      waitForTransaction(dates),
+    ])
+    const milliseconds = Date.parse(timestamp)
+    expect(used).toMatchObject({ updatedAt: milliseconds })
+    expect(savedTemplate).toMatchObject({ createdAt: milliseconds, updatedAt: milliseconds })
+    expect(settings).toMatchObject({ updatedAt: milliseconds })
+    const stores = Array.from(database.objectStoreNames)
     expect(stores).toContain("batches")
     expect(stores).not.toContain("batchCopyLists")
     expect(stores).not.toContain("noteDrafts")
@@ -853,7 +865,7 @@ describe("personal notes IndexedDB storage", () => {
     const completion = waitForTransaction(transaction)
     const usageStore = transaction.objectStore(USAGE_STORE_NAME)
     const [storedUsage] = await readRequest<unknown[]>(usageStore.getAll())
-    const validUsage = parseTextUsageRecord(storedUsage)
+    const validUsage = StoredUsageSchema.encode(StoredUsageSchema.parse(storedUsage))
     usageStore.put({
       ...validUsage,
       counts: { batchCopy: -1, individualCopy: 0 },
@@ -912,7 +924,7 @@ describe("personal notes IndexedDB storage", () => {
       "readwrite",
     )
     const seeded = waitForTransaction(seedTransaction)
-    seedTransaction.objectStore(USAGE_STORE_NAME).put(existingUsage)
+    seedTransaction.objectStore(USAGE_STORE_NAME).put(StoredUsageSchema.encode(existingUsage))
     await seeded
     const batchCopyWriter = new IndexedDbBatchCopyItemWriter(
       connection,
@@ -973,7 +985,7 @@ describe("personal notes IndexedDB storage", () => {
       "readwrite",
     )
     const seeded = waitForTransaction(seedTransaction)
-    seedTransaction.objectStore(USAGE_STORE_NAME).put(existingUsage)
+    seedTransaction.objectStore(USAGE_STORE_NAME).put(StoredUsageSchema.encode(existingUsage))
     await seeded
     const writer = new IndexedDbMobileBatchCopyUsageWriter(
       connection,

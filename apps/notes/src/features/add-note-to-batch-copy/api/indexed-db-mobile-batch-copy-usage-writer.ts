@@ -1,11 +1,11 @@
 import type { Note } from "@/entities/note"
 import {
   TextUsageRecordSchema,
-  parseTextUsageRecord,
 } from "@/entities/usage"
 import {
   USAGE_BY_NOTE_CONTENT_INDEX,
   USAGE_STORE_NAME,
+  StoredUsageSchema,
 } from "@/entities/usage/index.browser"
 import type { EntityIdGenerator } from "@/shared/lib/id-generation"
 import {
@@ -45,7 +45,7 @@ export class IndexedDbMobileBatchCopyUsageWriter
           .get([note.id, note.contentRevision, note.content]),
       )
       const currentUsage =
-        storedUsage === undefined ? null : parseTextUsageRecord(storedUsage)
+        storedUsage === undefined ? null : StoredUsageSchema.parse(storedUsage)
       const usage = TextUsageRecordSchema.parse(
         currentUsage === null
           ? {
@@ -65,7 +65,7 @@ export class IndexedDbMobileBatchCopyUsageWriter
             },
       )
 
-      store.put(usage)
+      store.put(StoredUsageSchema.encode(usage))
       await completion
     } catch (error) {
       await abortTransaction(transaction, completion)

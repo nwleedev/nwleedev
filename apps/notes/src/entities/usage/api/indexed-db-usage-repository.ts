@@ -1,3 +1,4 @@
+import { StoredTimestampSchema } from "@/shared/lib/entity-metadata"
 import type { NoteContentReference } from "@/entities/note/@x/usage"
 import type { EntityIdGenerator } from "@/shared/lib/id-generation"
 import {
@@ -9,10 +10,13 @@ import {
 
 import {
   TextUsageRecordSchema,
-  parseTextUsageRecord,
   type IndividualCopyUsageWriter,
   type TextUsageReader,
 } from "../model/text-usage-record"
+
+export const StoredUsageSchema = TextUsageRecordSchema.extend({
+  updatedAt: StoredTimestampSchema,
+})
 
 export const USAGE_STORE_NAME = "usage"
 export const USAGE_BY_NOTE_CONTENT_INDEX = "by-note-content"
@@ -48,7 +52,7 @@ export class IndexedDbUsageRepository
     )
     await completion
 
-    return records.map(parseTextUsageRecord)
+    return records.map((value) => StoredUsageSchema.parse(value))
   }
 
   async recordIndividualCopy(input: UsageInput) {
@@ -70,7 +74,7 @@ export class IndexedDbUsageRepository
           ]),
       )
       const currentUsage =
-        current === undefined ? null : parseTextUsageRecord(current)
+        current === undefined ? null : StoredUsageSchema.parse(current)
       const record = TextUsageRecordSchema.parse(
         currentUsage === null
           ? {
@@ -89,7 +93,7 @@ export class IndexedDbUsageRepository
               updatedAt,
             },
       )
-      store.put(record)
+      store.put(StoredUsageSchema.encode(record))
       await completion
     } catch (error) {
       await abortTransaction(transaction, completion)

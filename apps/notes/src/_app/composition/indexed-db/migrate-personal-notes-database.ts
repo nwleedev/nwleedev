@@ -18,10 +18,12 @@ import {
   NOTE_STORE_NAME,
   storeNote,
 } from "@/entities/note/index.browser"
+import { TemplateRecordSchema } from "@/entities/template"
+import { StoredTemplateSchema, TEMPLATE_STORE_NAME } from "@/entities/template/index.browser"
 import { InteractionPreferencesRecordSchema } from "@/entities/preference"
-import { PREFERENCE_STORE_NAME } from "@/entities/preference/index.browser"
+import { PREFERENCE_STORE_NAME, StoredPreferencesSchema } from "@/entities/preference/index.browser"
 import { TextUsageRecordSchema } from "@/entities/usage"
-import { USAGE_STORE_NAME } from "@/entities/usage/index.browser"
+import { USAGE_STORE_NAME, StoredUsageSchema } from "@/entities/usage/index.browser"
 import {
   EntityIdSchema,
   IsoDateTimeSchema,
@@ -255,6 +257,7 @@ function migrateUsage(transaction: IDBTransaction) {
         const current = TextUsageRecordSchema.safeParse(stored)
 
         if (current.success) {
+          store.put(StoredUsageSchema.encode(current.data))
           continue
         }
 
@@ -266,7 +269,7 @@ function migrateUsage(transaction: IDBTransaction) {
             individualCopy: previous.counts.ordinaryCopy,
           },
         })
-        store.put(migrated)
+        store.put(StoredUsageSchema.encode(migrated))
       }
     } catch {
       transaction.abort()
@@ -289,6 +292,7 @@ function migratePreferences(transaction: IDBTransaction) {
       )
 
       if (current.success) {
+        store.put(StoredPreferencesSchema.encode(current.data), INTERACTION_PREFERENCE_KEY)
         return
       }
 
@@ -296,10 +300,11 @@ function migratePreferences(transaction: IDBTransaction) {
         request.result,
       )
       store.put(
-        {
+        StoredPreferencesSchema.encode({
+          batchCopyReorderButtonsEnabled: false,
           batchCopyShortcutEnabled: previous.metaClickEnabled,
           updatedAt: previous.updatedAt,
-        },
+        }),
         INTERACTION_PREFERENCE_KEY,
       )
     } catch {
@@ -308,19 +313,35 @@ function migratePreferences(transaction: IDBTransaction) {
   }
 }
 
-export function migrateBatchTimestamps(transaction: IDBTransaction) {
-  if (!transaction.objectStoreNames.contains(BATCH_COPY_LIST_STORE_NAME)) return
-  const cursor = transaction.objectStore(BATCH_COPY_LIST_STORE_NAME).openCursor()
+function convertStoredRecords(
+  transaction: IDBTransaction,
+  storeName: string,
+  convert: (value: unknown) => unknown,
+  key?: IDBValidKey,
+) {
+  if (!transaction.objectStoreNames.contains(storeName)) return
+  const cursor = transaction.objectStore(storeName).openCursor(key)
   cursor.onsuccess = () => {
     const row = cursor.result
     if (!row) return
     try {
-      row.update(storeBatch(parseBatchCopyList(row.value)))
+      row.update(convert(row.value))
       row.continue()
     } catch {
       transaction.abort()
     }
   }
+}
+
+export function migrateTimestamps(transaction: IDBTransaction, oldVersion: number) {
+  if (oldVersion < 11) {
+    convertStoredRecords(transaction, BATCH_COPY_LIST_STORE_NAME, (value) => storeBatch(parseBatchCopyList(value)))
+  }
+  convertStoredRecords(transaction, TEMPLATE_STORE_NAME, (value) => StoredTemplateSchema.encode(TemplateRecordSchema.parse(value)))
+  if (oldVersion === 1) return
+  convertStoredRecords(transaction, USAGE_STORE_NAME, (value) => StoredUsageSchema.encode(TextUsageRecordSchema.parse(value)))
+  convertStoredRecords(transaction, PREFERENCE_STORE_NAME, (value) =>
+    StoredPreferencesSchema.encode(InteractionPreferencesRecordSchema.parse(value)), INTERACTION_PREFERENCE_KEY)
 }
 
 export function ensureBatchCopyListStore(

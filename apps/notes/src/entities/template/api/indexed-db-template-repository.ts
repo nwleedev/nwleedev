@@ -1,3 +1,6 @@
+import { z } from "zod"
+
+import { StoredTimestampSchema } from "@/shared/lib/entity-metadata"
 import {
   readRequest,
   waitForTransaction,
@@ -5,10 +8,17 @@ import {
 } from "@/shared/lib/indexed-db/index.browser"
 
 import {
+  TemplateRecordSchema,
   parseTemplateRecord,
   type TemplateRepository,
   type TextTemplate,
 } from "../model/template-record"
+
+export const StoredTemplateSchema = z.strictObject({
+  ...TemplateRecordSchema.shape,
+  createdAt: StoredTimestampSchema,
+  updatedAt: StoredTimestampSchema,
+})
 
 export const TEMPLATE_STORE_NAME = "templates"
 
@@ -28,7 +38,7 @@ export class IndexedDbTemplateRepository implements TemplateRepository {
     )
     await completion
 
-    return records.map(parseTemplateRecord)
+    return records.map((value) => parseTemplateRecord(StoredTemplateSchema.parse(value)))
   }
 
   async save(template: TextTemplate) {
@@ -36,7 +46,7 @@ export class IndexedDbTemplateRepository implements TemplateRepository {
     const database = await this.#connection.get()
     const transaction = database.transaction(TEMPLATE_STORE_NAME, "readwrite")
     const completion = waitForTransaction(transaction)
-    transaction.objectStore(TEMPLATE_STORE_NAME).put(record)
+    transaction.objectStore(TEMPLATE_STORE_NAME).put(StoredTemplateSchema.encode(record))
     await completion
 
     return record

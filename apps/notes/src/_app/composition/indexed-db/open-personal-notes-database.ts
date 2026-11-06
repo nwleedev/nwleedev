@@ -13,7 +13,7 @@ import { openIndexedDatabase } from "@/shared/lib/indexed-db/index.browser"
 
 import {
   ensureBatchCopyListStore,
-  migrateBatchTimestamps,
+  migrateTimestamps,
   migrateMobileBatchCopyDraftStore,
   migratePersonalNotesDatabase,
   migrateNotePositions,
@@ -22,7 +22,7 @@ import {
 } from "./migrate-personal-notes-database"
 
 export const PERSONAL_NOTES_DATABASE_NAME = "personal-notes"
-export const PERSONAL_NOTES_DATABASE_VERSION = 11
+export const PERSONAL_NOTES_DATABASE_VERSION = 12
 
 type PersonalNotesDatabaseCallbacks = {
   onBlocked?(): void
@@ -62,7 +62,7 @@ export function openPersonalNotesDatabase(
       }
 
       if (oldVersion < 6) ensureBatchCopyListStore(database, transaction)
-      migrateBatchTimestamps(transaction)
+      migrateTimestamps(transaction, oldVersion)
       if (oldVersion >= 10) return
 
       if (oldVersion >= 9) {
