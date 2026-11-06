@@ -16,7 +16,6 @@ export {
 export {
   IndexedDbNoteRepository,
   NOTE_STORE_NAME,
-  StaleNoteRevisionError,
 } from "./api/indexed-db-note-repository"
 export {
   IndexedDbNoteDraftRepository,

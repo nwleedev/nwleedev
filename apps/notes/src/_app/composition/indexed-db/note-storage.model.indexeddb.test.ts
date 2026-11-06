@@ -114,6 +114,24 @@ describe("메모 저장소 모델", () => {
       .toEqual([[note.id, "우유"]])
   })
 
+  it("열려 있던 마지막 편집 화면을 떠날 때 삭제 본문을 정리한다", async () => {
+    const first = new IndexedDbNoteRepository(createConnection())
+    const second = new IndexedDbNoteRepository(createConnection())
+    const deletion = new IndexedDbNoteRepository(createConnection())
+    await first.save(note)
+    const leaveFirst = await first.openEditor(note.id)
+    const leaveSecond = await second.openEditor(note.id)
+    assert(leaveFirst && leaveSecond)
+    await deletion.remove(note)
+    expect(await first.get(note.id)).toBeNull()
+    expect(await second.getAll()).toEqual([])
+    expect(await deletion.openEditor(note.id)).toBeNull()
+    await leaveFirst()
+    expect((await second.deletedNote(note.id))?.content).toBe(note.content)
+    await leaveSecond()
+    expect(await deletion.deletedNote(note.id)).toBeNull()
+  })
+
   it("두 창이 같은 본문에서 편집하고 정리 도중 들어온 변경도 새 연결에서 읽는다", async () => {
     const first = new IndexedDbNoteRepository(createConnection())
     const second = new IndexedDbNoteRepository(createConnection())

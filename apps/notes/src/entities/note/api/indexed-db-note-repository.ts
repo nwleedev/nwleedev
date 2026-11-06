@@ -20,11 +20,12 @@ import { NOTE_STORE_NAME, NoteFields, readStoredBody, storeNote, StoredNoteSchem
 
 export { NOTE_STORE_NAME } from "./stored-note"
 
-export class StaleNoteRevisionError extends Error {
-  constructor() {
-    super("The note has changed since it was read")
-    this.name = "StaleNoteRevisionError"
-  }
+function editorLock(id: string) {
+  return "personal-notes/editor/" + id
+}
+
+function isRemoved(value: unknown): value is { id: string; removed: unknown } {
+  return typeof value === "object" && value !== null && "removed" in value
 }
 
 type TextUpdate = { id: string; noteId: string; payload: Uint8Array }
@@ -44,8 +45,9 @@ export class IndexedDbNoteRepository implements NoteRepository {
     try {
       const records: unknown[] = await readRequest(transaction.objectStore(NOTE_STORE_NAME).getAll())
       const updates = transaction.objectStore("updates")
-      const notes = await Promise.all(records.map((value) => this.#readNote(value, updates)))
+      const notes = await Promise.all(records.filter((value) => !isRemoved(value)).map((value) => this.#readNote(value, updates)))
       await completion
+      await Promise.all(records.filter(isRemoved).map(({ id }) => this.#discardRemoved(id)))
       return notes
     } catch (error) {
       await abortTransaction(transaction, completion)
@@ -72,13 +74,56 @@ export class IndexedDbNoteRepository implements NoteRepository {
     const completion = waitForTransaction(transaction)
     try {
       const value: unknown = await readRequest(transaction.objectStore(NOTE_STORE_NAME).get(noteId))
-      const note = value === undefined ? null : await this.#readNote(value, transaction.objectStore("updates"))
+      const note = value === undefined || isRemoved(value) ? null : await this.#readNote(value, transaction.objectStore("updates"))
       await completion
       return note
     } catch (error) {
       await abortTransaction(transaction, completion)
       throw error
     }
+  }
+
+  async openEditor(id: string): Promise<(() => Promise<void>) | null> {
+    let release!: () => void
+    const left = new Promise<void>((resolve) => { release = resolve })
+    return new Promise((resolve, reject) => {
+      const held = navigator.locks.request(editorLock(id), { mode: "shared" }, async () => {
+        if (!await this.get(id)) {
+          resolve(null)
+          return
+        }
+        resolve(async () => {
+          release()
+          await held
+          await this.#discardRemoved(id)
+        })
+        await left
+      })
+      held.catch(reject)
+    })
+  }
+
+  async deletedNote(id: string) {
+    const database = await this.#connection.get()
+    const transaction = database.transaction([NOTE_STORE_NAME, "updates"])
+    const completion = waitForTransaction(transaction)
+    const value: unknown = await readRequest(transaction.objectStore(NOTE_STORE_NAME).get(id))
+    const note = isRemoved(value) ? await this.#readNote(value.removed, transaction.objectStore("updates")) : null
+    await completion
+    return note
+  }
+
+  async #discardRemoved(id: string) {
+    await navigator.locks.request(editorLock(id), { ifAvailable: true }, async (lock) => {
+      if (!lock) return
+      const database = await this.#connection.get()
+      const transaction = database.transaction(NOTE_STORE_NAME, "readwrite")
+      const completion = waitForTransaction(transaction)
+      const notes = transaction.objectStore(NOTE_STORE_NAME)
+      const value: unknown = await readRequest(notes.get(id))
+      if (isRemoved(value)) notes.delete(id)
+      await completion
+    })
   }
 
   async readBody(noteId: string) {
@@ -127,7 +172,8 @@ export class IndexedDbNoteRepository implements NoteRepository {
     try {
       const store = transaction.objectStore(NOTE_STORE_NAME)
       const stored: unknown = await readRequest(store.get(record.id))
-      const previous = stored === undefined ? undefined : StoredNoteSchema.parse(stored)
+      const previous = stored === undefined || isRemoved(stored) ? undefined : StoredNoteSchema.parse(stored)
+      if (isRemoved(stored) && !restoring) throw new Error("Cannot change a deleted note")
       if (restoring && previous) {
         const existing = await this.#readNote(previous, transaction.objectStore("updates"))
         await completion
@@ -164,6 +210,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
       const savedNotes: Note[] = []
       for (const record of records) {
         const stored: unknown = await readRequest(store.get(record.id))
+        if (isRemoved(stored)) continue
         const previous = stored === undefined ? undefined : StoredNoteSchema.parse(stored)
         const position = previous === undefined
           ? await allocatePosition(store, ids, ids.length)
@@ -214,7 +261,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
     try {
       const notes = transaction.objectStore(NOTE_STORE_NAME)
       const value: unknown = await readRequest(notes.get(update.noteId))
-      if (value === undefined) {
+      if (value === undefined || isRemoved(value)) {
         await completion
         return null
       }
@@ -252,6 +299,11 @@ export class IndexedDbNoteRepository implements NoteRepository {
   }
 
   async remove(reference: NoteReference) {
+    return navigator.locks.request(editorLock(reference.id), { ifAvailable: true }, (lock) =>
+      this.#remove(reference, lock === null))
+  }
+
+  async #remove(reference: NoteReference, keepBody: boolean) {
     const database = await this.#connection.get()
     const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
     const completion = waitForTransaction(transaction)
@@ -260,7 +312,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
       const store = transaction.objectStore(NOTE_STORE_NAME)
       const stored: unknown = await readRequest(store.get(reference.id))
 
-      if (stored === undefined) {
+      if (stored === undefined || isRemoved(stored)) {
         await completion
         return null
       }
@@ -269,7 +321,13 @@ export class IndexedDbNoteRepository implements NoteRepository {
       const note = await this.#readNote(stored, updates)
       const keys = await readRequest(updates.index("noteId").getAllKeys(reference.id))
       for (const key of keys) updates.delete(key)
-      store.delete(reference.id)
+      if (keepBody) {
+        const body = openNoteBody(note)
+        if (!body) throw new Error("Missing saved note body")
+        store.put({ id: reference.id, removed: { ...StoredNoteSchema.parse(stored), body: body.snapshot() } })
+      } else {
+        store.delete(reference.id)
+      }
       await completion
       return note
     } catch (error) {
