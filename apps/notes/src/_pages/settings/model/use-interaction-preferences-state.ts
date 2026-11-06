@@ -28,7 +28,7 @@ export const InteractionPreferencesContext =
 const initialPreferences: InteractionPreferences = {
   batchCopyReorderButtonsEnabled: false,
   batchCopyShortcutEnabled: true,
-  updatedAt: "1970-01-01T00:00:00.000Z",
+  updatedAt: 0,
 }
 
 async function readPreferences(
@@ -45,7 +45,7 @@ async function readPreferences(
 }
 
 export type InteractionPreferencesDependencies = {
-  now(): string
+  now(): number
   repository: InteractionPreferencesRepository
 }
 

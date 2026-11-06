@@ -71,12 +71,12 @@ const note: Note = {
 }
 
 const template: TextTemplate = {
-  createdAt: timestamp,
+  createdAt: Date.parse(timestamp),
   id: "template-1",
   revision: 0,
   segments: [{ kind: "literal", value: "저장한 문장" }],
   title: "저장한 템플릿",
-  updatedAt: timestamp,
+  updatedAt: Date.parse(timestamp),
 }
 
 const batchCopyItem: BatchCopyItem = {
@@ -419,7 +419,7 @@ describe("personal notes IndexedDB storage", () => {
     await preferences.save({
       batchCopyReorderButtonsEnabled: false,
       batchCopyShortcutEnabled: true,
-      updatedAt: timestamp,
+      updatedAt: Date.parse(timestamp),
     })
     await usage.recordIndividualCopy({
       note: batchCopyItem.sourceNote,
@@ -832,7 +832,7 @@ describe("personal notes IndexedDB storage", () => {
       "active",
     )
     transaction.objectStore(USAGE_STORE_NAME).put(usageRecord)
-    transaction.objectStore(TEMPLATE_STORE_NAME).put(template)
+    transaction.objectStore(TEMPLATE_STORE_NAME).put({ ...template, createdAt: timestamp, updatedAt: timestamp })
     transaction.objectStore(PREFERENCE_STORE_NAME).put(
       preferences,
       "interaction",
@@ -871,7 +871,7 @@ describe("personal notes IndexedDB storage", () => {
       .toEqual([template])
     await expect(
       new IndexedDbInteractionPreferencesRepository(connection).get(),
-    ).resolves.toEqual(preferences)
+    ).resolves.toEqual({ ...preferences, updatedAt: milliseconds })
   })
 
   it("does not append an item when its usage record cannot be read", async () => {

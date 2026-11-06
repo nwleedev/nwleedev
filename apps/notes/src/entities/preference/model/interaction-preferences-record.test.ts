@@ -6,7 +6,7 @@ describe("InteractionPreferencesRecordSchema", () => {
   it("reads a preference saved before direct move controls as disabled", () => {
     const savedPreference = {
       batchCopyShortcutEnabled: true,
-      updatedAt: new Date().toISOString(),
+      updatedAt: Date.now(),
     }
 
     expect(InteractionPreferencesRecordSchema.parse(savedPreference)).toEqual({

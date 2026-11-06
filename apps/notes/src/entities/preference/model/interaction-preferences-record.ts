@@ -1,12 +1,12 @@
 import { z } from "zod"
 
-import { IsoDateTimeSchema } from "@/shared/lib/entity-metadata"
+import { TimestampSchema } from "@/shared/lib/entity-metadata"
 
 export const InteractionPreferencesRecordSchema = z
   .object({
     batchCopyReorderButtonsEnabled: z.boolean().default(false),
     batchCopyShortcutEnabled: z.boolean(),
-    updatedAt: IsoDateTimeSchema,
+    updatedAt: TimestampSchema,
   })
   .strict()
 

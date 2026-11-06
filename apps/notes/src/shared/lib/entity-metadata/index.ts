@@ -18,7 +18,9 @@ export function toTimestamp(value: string) {
   return timestamp
 }
 
-export const StoredTimestampSchema = z.codec(z.int(), IsoDateTimeSchema, {
+export const TimestampSchema = z.int().refine((value) => Number.isFinite(new Date(value).getTime()))
+
+export const StoredTimestampSchema = z.codec(TimestampSchema, IsoDateTimeSchema, {
   decode: (timestamp) => new Date(timestamp).toISOString(),
   encode: toTimestamp,
 })

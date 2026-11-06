@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import {
   EntityIdSchema,
-  IsoDateTimeSchema,
+  TimestampSchema,
   RevisionSchema,
 } from "@/shared/lib/entity-metadata"
 
@@ -69,12 +69,12 @@ export function findPlaceholderLabelIssues(
 
 export const TemplateRecordSchema = z
   .object({
-    createdAt: IsoDateTimeSchema,
+    createdAt: TimestampSchema,
     id: EntityIdSchema,
     revision: RevisionSchema,
     segments: z.array(TemplateSegmentSchema),
     title: TemplateTitleSchema,
-    updatedAt: IsoDateTimeSchema,
+    updatedAt: TimestampSchema,
   })
   .strict()
   .superRefine(({ segments }, context) => {

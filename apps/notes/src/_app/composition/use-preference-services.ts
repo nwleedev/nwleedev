@@ -6,7 +6,7 @@ import type { PersonalNotesDatabase } from "./indexed-db/personal-notes-database
 
 export function usePreferenceServices(database: PersonalNotesDatabase) {
   const [services] = useState(() => ({
-    now: () => new Date().toISOString(),
+    now: Date.now,
     repository: new IndexedDbInteractionPreferencesRepository(database),
   }))
 

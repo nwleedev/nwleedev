@@ -1,4 +1,3 @@
-import { StoredTimestampSchema } from "@/shared/lib/entity-metadata"
 import {
   readRequest,
   waitForTransaction,
@@ -6,15 +5,10 @@ import {
 } from "@/shared/lib/indexed-db/index.browser"
 
 import {
-  InteractionPreferencesRecordSchema,
   parseInteractionPreferencesRecord,
   type InteractionPreferences,
   type InteractionPreferencesRepository,
 } from "../model/interaction-preferences-record"
-
-export const StoredPreferencesSchema = InteractionPreferencesRecordSchema.extend({
-  updatedAt: StoredTimestampSchema,
-})
 
 export const PREFERENCE_STORE_NAME = "preferences"
 const INTERACTION_PREFERENCE_KEY = "interaction"
@@ -41,7 +35,7 @@ export class IndexedDbInteractionPreferencesRepository
 
     return record === undefined
       ? null
-      : StoredPreferencesSchema.parse(record)
+      : parseInteractionPreferencesRecord(record)
   }
 
   async save(preferences: InteractionPreferences) {
@@ -54,7 +48,7 @@ export class IndexedDbInteractionPreferencesRepository
     const completion = waitForTransaction(transaction)
     transaction
       .objectStore(PREFERENCE_STORE_NAME)
-      .put(StoredPreferencesSchema.encode(record), INTERACTION_PREFERENCE_KEY)
+      .put(record, INTERACTION_PREFERENCE_KEY)
     await completion
 
     return record

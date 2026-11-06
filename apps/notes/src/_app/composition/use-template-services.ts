@@ -13,7 +13,7 @@ export function useTemplateServices(database: PersonalNotesDatabase) {
     return {
       clipboard: new BrowserClipboardWriter(),
       createId: () => identifiers.create(),
-      now: () => new Date().toISOString(),
+      now: Date.now,
       repository: new IndexedDbTemplateRepository(database),
     }
   })

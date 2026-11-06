@@ -19,9 +19,9 @@ import {
   storeNote,
 } from "@/entities/note/index.browser"
 import { TemplateRecordSchema } from "@/entities/template"
-import { StoredTemplateSchema, TEMPLATE_STORE_NAME } from "@/entities/template/index.browser"
+import { TEMPLATE_STORE_NAME } from "@/entities/template/index.browser"
 import { InteractionPreferencesRecordSchema } from "@/entities/preference"
-import { PREFERENCE_STORE_NAME, StoredPreferencesSchema } from "@/entities/preference/index.browser"
+import { PREFERENCE_STORE_NAME } from "@/entities/preference/index.browser"
 import { TextUsageRecordSchema } from "@/entities/usage"
 import { USAGE_STORE_NAME, StoredUsageSchema } from "@/entities/usage/index.browser"
 import {
@@ -34,6 +34,14 @@ import {
 const PREVIOUS_BATCH_COPY_LIST_STORE_NAME = "accumulators"
 const PREVIOUS_MOBILE_BATCH_COPY_DRAFT_STORE_NAME = "mobileBatchCopyDrafts"
 const INTERACTION_PREFERENCE_KEY = "interaction"
+
+const previousTimestamp = IsoDateTimeSchema.transform(toTimestamp)
+const PreviousTemplateSchema = z.strictObject({
+  ...TemplateRecordSchema.shape,
+  createdAt: previousTimestamp,
+  updatedAt: previousTimestamp,
+}).pipe(TemplateRecordSchema)
+const PreviousPreferencesSchema = InteractionPreferencesRecordSchema.extend({ updatedAt: previousTimestamp })
 
 const PreviousNoteRecordSchema = z
   .object({
@@ -296,12 +304,12 @@ function migratePreferences(transaction: IDBTransaction) {
     }
 
     try {
-      const current = InteractionPreferencesRecordSchema.safeParse(
+      const current = PreviousPreferencesSchema.safeParse(
         request.result,
       )
 
       if (current.success) {
-        store.put(StoredPreferencesSchema.encode(current.data), INTERACTION_PREFERENCE_KEY)
+        store.put(current.data, INTERACTION_PREFERENCE_KEY)
         return
       }
 
@@ -309,11 +317,11 @@ function migratePreferences(transaction: IDBTransaction) {
         request.result,
       )
       store.put(
-        StoredPreferencesSchema.encode({
+        {
           batchCopyReorderButtonsEnabled: false,
           batchCopyShortcutEnabled: previous.metaClickEnabled,
-          updatedAt: previous.updatedAt,
-        }),
+          updatedAt: toTimestamp(previous.updatedAt),
+        },
         INTERACTION_PREFERENCE_KEY,
       )
     } catch {
@@ -346,11 +354,11 @@ export function migrateTimestamps(transaction: IDBTransaction, oldVersion: numbe
   if (oldVersion < 11) {
     convertStoredRecords(transaction, BATCH_COPY_LIST_STORE_NAME, (value) => storeBatch(parseBatchCopyList(value)))
   }
-  convertStoredRecords(transaction, TEMPLATE_STORE_NAME, (value) => StoredTemplateSchema.encode(TemplateRecordSchema.parse(value)))
+  convertStoredRecords(transaction, TEMPLATE_STORE_NAME, (value) => PreviousTemplateSchema.parse(value))
   if (oldVersion === 1) return
   convertStoredRecords(transaction, USAGE_STORE_NAME, (value) => StoredUsageSchema.encode(TextUsageRecordSchema.parse(value)))
   convertStoredRecords(transaction, PREFERENCE_STORE_NAME, (value) =>
-    StoredPreferencesSchema.encode(InteractionPreferencesRecordSchema.parse(value)), INTERACTION_PREFERENCE_KEY)
+    PreviousPreferencesSchema.parse(value), INTERACTION_PREFERENCE_KEY)
 }
 
 export function ensureBatchCopyListStore(

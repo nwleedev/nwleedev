@@ -6,7 +6,7 @@ import {
 } from "./template-record"
 
 const templateRecord = {
-  createdAt: "2026-08-31T01:00:00.000Z",
+  createdAt: Date.parse("2026-08-31T01:00:00.000Z"),
   id: "template-1",
   revision: 0,
   segments: [
@@ -14,7 +14,7 @@ const templateRecord = {
     { key: "name", kind: "placeholder", label: "이름" },
   ],
   title: "인사",
-  updatedAt: "2026-08-31T01:00:00.000Z",
+  updatedAt: Date.parse("2026-08-31T01:00:00.000Z"),
 }
 
 describe("TemplateRecordSchema", () => {

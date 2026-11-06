@@ -44,7 +44,7 @@ export const TemplateDataContext = createContext<TemplateDataContextValue | null
 
 function sortTemplates(templates: readonly TextTemplate[]) {
   return [...templates].sort((left, right) =>
-    right.updatedAt.localeCompare(left.updatedAt),
+    right.updatedAt - left.updatedAt,
   )
 }
 
@@ -62,7 +62,7 @@ async function readTemplates(
 export type TemplateDataDependencies = {
   clipboard: ClipboardWriter
   createId(): string
-  now(): string
+  now(): number
   repository: TemplateRepository
 }
 
