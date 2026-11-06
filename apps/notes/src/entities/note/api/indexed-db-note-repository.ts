@@ -28,6 +28,8 @@ function isRemoved(value: unknown): value is { id: string; removed: unknown } {
   return typeof value === "object" && value !== null && "removed" in value
 }
 
+const updatesPerCompaction = 64
+
 type TextUpdate = { id: string; noteId: string; payload: Uint8Array }
 
 export class IndexedDbNoteRepository implements NoteRepository {
@@ -290,7 +292,11 @@ export class IndexedDbNoteRepository implements NoteRepository {
           throw new Error("Note update identifier already used for different content")
         }
       }
+      const pending = await readRequest(updates.index("noteId").count(update.noteId))
       await completion
+      if (pending >= updatesPerCompaction) {
+        void this.compactBody(update.noteId).catch(() => undefined)
+      }
       return record
     } catch (error) {
       await abortTransaction(transaction, completion)

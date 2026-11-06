@@ -134,6 +134,22 @@ describe("메모 저장소 모델", () => {
     expect(await deletion.deletedNote(note.id)).toBeNull()
   })
 
+  it("반복해서 저장한 메모를 다시 열면 본문을 유지하면서 누적 변경분이 줄어든다", async () => {
+    const connection = createConnection()
+    const writer = new IndexedDbNoteRepository(connection)
+    let saved = await writer.save(note)
+    const edits = 100
+    for (let index = 0; index < edits; index += 1) {
+      const next = await writer.saveEdit(saved, reviseNote(saved, { content: saved.content + "가", updatedAt: timestamp }))
+      assert(next)
+      saved = next
+    }
+    const db = await connection.get()
+    const count = () => readRequest(db.transaction("updates").objectStore("updates").index("noteId").count(note.id))
+    await expect.poll(count).toBeLessThan(edits)
+    expect((await new IndexedDbNoteRepository(createConnection()).get(note.id))?.content).toBe(note.content + "가".repeat(edits))
+  })
+
   it("두 창이 같은 본문에서 편집하고 정리 도중 들어온 변경도 새 연결에서 읽는다", async () => {
     const first = new IndexedDbNoteRepository(createConnection())
     const second = new IndexedDbNoteRepository(createConnection())
