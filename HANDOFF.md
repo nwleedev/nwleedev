@@ -1,6 +1,6 @@
 # 메모 사용 경험과 서버 저장 설계
 
-[여러 창 편집과 모바일 순서 구현 계획](docs/designs/personal-notes-app-8fd/plan.md#여러-창-편집과-모바일-목록-순서-구현-계획)은 CRDT 가능성 확인, 저장 자료 이전, 편집 및 복원 연결, 실제 브라우저 인수 순서로 진행한다. 의존성은 각 기능에서 호출하는 동작과 공유 수명을 기준으로 연결한다.
+[여러 창 편집과 모바일 순서 구현 계획](docs/designs/personal-notes-app-8fd/plan.md#여러-창-편집과-모바일-목록-순서-구현-계획)은 CRDT 가능성 확인, 저장 자료 이전, 편집 및 복원 연결, 실제 브라우저 인수 순서로 진행한다. 저장과 구독은 기능 훅에 연결하고 표시 컴포넌트에는 값과 UI 이벤트만 전달한다.
 
 [IndexedDB 스키마 개선](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)은 메모별 기준 레코드를 `notes`에 저장하고 본문 변경분은 `updates`에서 복합 키 `[id, noteId]`로 식별한다. 기존 일괄 복사 목록은 `batches`로 옮긴다.
 
