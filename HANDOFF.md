@@ -1,5 +1,9 @@
 # 메모 사용 경험과 서버 저장 설계
 
+[여러 탭과 창에서 메모 사용](docs/designs/personal-notes-app-8fd/requirements.md#여러-탭과-창에서-메모-사용)과 모바일 정렬은 새 요구사항이다. 기존 계획의 단일 탭 전제와 서버 전환 순서는 이전 기준이다. 같은 본문의 편집 충돌 처리 방식, 수동 정렬 후 본문 수정 시 위치와 최종 저장 방식은 미정이다.
+
+[IndexedDB 스키마 개선](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)의 출발점은 버전 4다. `indexed-db-note-draft-repository.ts`는 메모 ID로 초안을 저장하고 삭제한다. 같은 메모를 두 창에서 편집하면 한 창이 다른 창의 초안을 덮어쓰거나 지울 수 있다. `indexed-db-mobile-note-order-repository.ts`는 순서를 읽을 때 본문을 포함한 모든 메모를 읽는다. 두 항목 모두 코드에서 확인했으며 동시 편집 재현과 조회 비용 측정은 남아 있다.
+
 [모바일 페이지 헤더 높이](docs/designs/personal-notes-app-8fd/plan.md#모바일-페이지-헤더-높이)는 기본 배율에서 60px다. 편집 화면의 200% 글자 확대 검사는 세 브라우저에서 통과했다.
 
 모바일 메모 목록과 일괄 복사 확인 목록의 카드 헤더는 기본 44px다. [카드 헤더 적용 결과](docs/designs/personal-notes-app-8fd/plan.md#세-화면의-카드-헤더와-드래그-표시)에 너비별 터치 검사 결과를 기록했다.
