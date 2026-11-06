@@ -51,11 +51,13 @@ const PreviousTemplateSchema = z.strictObject({
 }).pipe(TemplateRecordSchema)
 const PreviousPreferencesSchema = InteractionPreferencesRecordSchema.extend({ updatedAt: previousTimestamp })
 
+const PreviousTextNoteSchema = NoteRecordSchema.strip().extend({ createdAt: previousTimestamp, updatedAt: previousTimestamp })
+
 const PreviousNoteRecordSchema = z
   .object({
     content: z.string(),
     contentRevision: RevisionSchema,
-    createdAt: IsoDateTimeSchema,
+    createdAt: previousTimestamp,
     geometry: z
       .object({
         height: z.number().finite().positive(),
@@ -68,7 +70,7 @@ const PreviousNoteRecordSchema = z
     id: EntityIdSchema,
     revision: RevisionSchema,
     tabIndex: z.unknown().optional(),
-    updatedAt: IsoDateTimeSchema,
+    updatedAt: previousTimestamp,
   })
   .strict()
 
@@ -100,10 +102,10 @@ const PreviousInteractionPreferencesSchema = z
   .strict()
 
 function compareIdentity(
-  left: { createdAt: string; id: string },
-  right: { createdAt: string; id: string },
+  left: { createdAt: number; id: string },
+  right: { createdAt: number; id: string },
 ) {
-  const creationOrder = left.createdAt.localeCompare(right.createdAt)
+  const creationOrder = left.createdAt - right.createdAt
   return creationOrder === 0 ? left.id.localeCompare(right.id) : creationOrder
 }
 
@@ -232,7 +234,7 @@ export function migrateNotePositions(database: IDBDatabase, transaction: IDBTran
   const records = store.getAll()
   records.onsuccess = () => {
     try {
-      const notes = records.result.map((value: unknown) => NoteRecordSchema.strip().parse(value))
+      const notes = records.result.map((value: unknown) => PreviousTextNoteSchema.parse(value))
       notes.sort((left, right) => left.tabIndex - right.tabIndex)
       const stored: unknown = order?.result
       const ids = reconcileMobileNoteIds(stored === undefined ? [] : PreviousOrderSchema.parse(stored).ids, notes.map(({ id }) => id))
@@ -249,7 +251,7 @@ export function migrateNotePositions(database: IDBDatabase, transaction: IDBTran
 export function migrateNoteBodies(transaction: IDBTransaction, oldVersion: number) {
   const notes = transaction.objectStore(NOTE_STORE_NAME)
   const cursor = notes.openCursor()
-  const previous = NoteRecordSchema.strip().extend({ position: z.number().finite() })
+  const previous = PreviousTextNoteSchema.extend({ position: z.number().finite() })
   const withBody = previous.omit({ content: true }).extend({ body: z.instanceof(Uint8Array) })
   cursor.onsuccess = () => {
     const entry = cursor.result
@@ -260,7 +262,7 @@ export function migrateNoteBodies(transaction: IDBTransaction, oldVersion: numbe
     try {
       if (oldVersion === 8) {
         const record = withBody.parse(entry.value)
-        entry.update({ ...record, createdAt: toTimestamp(record.createdAt), updatedAt: toTimestamp(record.updatedAt) })
+        entry.update(record)
       } else {
         const { position, ...note } = previous.parse(entry.value)
         entry.update(storeNote(note, position))

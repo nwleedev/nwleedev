@@ -21,7 +21,7 @@ const copyableNote = fc.record({
   contentRevision: fc.nat({ max: 1000 }),
   id: fc.uuid(),
 }).map(({ content, contentRevision, id }): Note => {
-  const timestamp = new Date().toISOString()
+  const timestamp = Date.now()
   return {
     content,
     contentRevision,
@@ -137,7 +137,7 @@ describe("메모 개별 복사", () => {
         const usage = new RecordingUsageWriter()
         const revised = reviseNote(note, {
           content: nextContent,
-          updatedAt: new Date().toISOString(),
+          updatedAt: Date.now(),
         })
 
         await copyNote({ clipboard, usage }, note)

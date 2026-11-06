@@ -9,11 +9,11 @@ import type { BatchCopyItemWriter } from "./batch-copy-item-writer"
 const note: Note = {
   content: "일괄 복사할 메모 원문",
   contentRevision: 2,
-  createdAt: "2026-09-01T01:00:00.000Z",
+  createdAt: Date.parse("2026-09-01T01:00:00.000Z"),
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: "note-batch-copy",
   tabIndex: 1000,
-  updatedAt: "2026-09-01T02:00:00.000Z",
+  updatedAt: Date.parse("2026-09-01T02:00:00.000Z"),
 }
 
 class InMemoryBatchCopyItemWriter implements BatchCopyItemWriter {

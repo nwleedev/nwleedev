@@ -1,4 +1,4 @@
-import { toTimestamp, RevisionSchema } from "@/shared/lib/entity-metadata"
+import { RevisionSchema } from "@/shared/lib/entity-metadata"
 
 import { NoteBody, openNoteBody, rememberNoteBody, savedNoteBody } from "../model/note-body"
 import {
@@ -65,8 +65,6 @@ export class IndexedDbNoteRepository implements NoteRepository {
     const note = NoteFields.parse({
       ...record,
       content: body.text,
-      createdAt: new Date(record.createdAt).toISOString(),
-      updatedAt: new Date(record.updatedAt).toISOString(),
     })
     rememberNoteBody(note, { bytes: body.snapshot(), restoration: body.restoration })
     return note
@@ -196,7 +194,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
     }
   }
 
-  async moveInStack(target: Note, edge: "front" | "back", updatedAt: string) {
+  async moveInStack(target: Note, edge: "front" | "back", updatedAt: number) {
     const database = await this.#connection.get()
     const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
     const completion = waitForTransaction(transaction)
@@ -234,7 +232,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
     }
   }
 
-  async saveGeometry(original: Note, geometry: NoteGeometry, updatedAt: string) {
+  async saveGeometry(original: Note, geometry: NoteGeometry, updatedAt: number) {
     const database = await this.#connection.get()
     const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
     const completion = waitForTransaction(transaction)
@@ -297,7 +295,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
     return (await this.#writeUpdate(update)) !== null
   }
 
-  async #writeUpdate(update: TextUpdate, updatedAt?: string, restoration?: string) {
+  async #writeUpdate(update: TextUpdate, updatedAt?: number, restoration?: string) {
     const database = await this.#connection.get()
     const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
     const completion = waitForTransaction(transaction)
@@ -321,7 +319,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
           record = {
             ...record,
             contentRevision: RevisionSchema.parse(record.contentRevision + 1),
-            updatedAt: toTimestamp(updatedAt),
+            updatedAt,
           }
           notes.put(record)
         }

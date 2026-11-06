@@ -11,7 +11,7 @@ import { MobileNoteActionSheet } from "./mobile-note-action-sheet"
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
 it("삭제와 복원 결과가 도착할 때까지 시트를 닫지 않고 완료 후 조작을 이어간다", async () => {
-  const timestamp = new Date().toISOString()
+  const timestamp = Date.now()
   const note: Note = {
     content: "처리 중에도 보존할 메모",
     contentRevision: 0,

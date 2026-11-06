@@ -20,11 +20,11 @@ import { NoteDraftSchema, isRecoverableNoteDraft } from "./note-draft"
 const note: Note = {
   content: "저장한 원문",
   contentRevision: 2,
-  createdAt: "2026-09-01T01:00:00.000Z",
+  createdAt: Date.parse("2026-09-01T01:00:00.000Z"),
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: "note-1",
   tabIndex: 1000,
-  updatedAt: "2026-09-01T02:00:00.000Z",
+  updatedAt: Date.parse("2026-09-01T02:00:00.000Z"),
 }
 
 const draft = {

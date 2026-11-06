@@ -4,7 +4,7 @@ import type { Note } from "@/entities/note"
 import { addNoteToMobileBatchCopy, duplicateMobileBatchCopySessionEntry, moveMobileBatchCopySessionEntry, removeMobileBatchCopySessionEntry, resetMobileBatchCopySession } from "./mobile-batch-copy-session"
 
 function createNote(content: string): Note {
-  const timestamp = new Date().toISOString()
+  const timestamp = Date.now()
   return { content, contentRevision: 1, createdAt: timestamp, geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 }, id: crypto.randomUUID(), tabIndex: 1000, updatedAt: timestamp }
 }
 

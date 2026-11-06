@@ -29,29 +29,29 @@ const initialNotes: readonly Note[] = [
   {
     content: "첫 번째",
     contentRevision: 0,
-    createdAt: "2026-09-01T00:00:00.000Z",
+    createdAt: Date.parse("2026-09-01T00:00:00.000Z"),
     geometry: { height: 240, width: 320, x: 32, y: 32, zIndex: 1 },
     id: "note-1",
     tabIndex: 1000,
-    updatedAt: "2026-09-01T00:00:00.000Z",
+    updatedAt: Date.parse("2026-09-01T00:00:00.000Z"),
   },
   {
     content: "두 번째",
     contentRevision: 0,
-    createdAt: "2026-09-01T00:00:01.000Z",
+    createdAt: Date.parse("2026-09-01T00:00:01.000Z"),
     geometry: { height: 240, width: 320, x: 384, y: 32, zIndex: 2 },
     id: "note-2",
     tabIndex: 1001,
-    updatedAt: "2026-09-01T00:00:01.000Z",
+    updatedAt: Date.parse("2026-09-01T00:00:01.000Z"),
   },
   {
     content: "세 번째",
     contentRevision: 0,
-    createdAt: "2026-09-01T00:00:02.000Z",
+    createdAt: Date.parse("2026-09-01T00:00:02.000Z"),
     geometry: { height: 240, width: 320, x: 736, y: 32, zIndex: 3 },
     id: "note-3",
     tabIndex: 1002,
-    updatedAt: "2026-09-01T00:00:02.000Z",
+    updatedAt: Date.parse("2026-09-01T00:00:02.000Z"),
   },
 ]
 
@@ -69,7 +69,7 @@ type Real = {
   recordCommand: () => void
 }
 
-const operationTimestamp = "2026-09-01T00:00:10.000Z"
+const operationTimestamp = Date.parse("2026-09-01T00:00:10.000Z")
 
 function cloneNotes(notes: readonly Note[]) {
   return notes.map((note) => ({ ...note, geometry: { ...note.geometry } }))
@@ -144,7 +144,7 @@ function orderForStack(notes: readonly Note[]) {
       return zIndexOrder
     }
 
-    const createdAtOrder = left.createdAt.localeCompare(right.createdAt)
+    const createdAtOrder = left.createdAt - right.createdAt
     return createdAtOrder === 0 ? left.id.localeCompare(right.id) : createdAtOrder
   })
 }
@@ -310,9 +310,9 @@ class RemoveCommand implements fc.Command<Model, Real> {
     }
 
     model.notes.splice(index, 1)
-    model.removed.push({ note, removedAt: Date.parse(operationTimestamp) })
+    model.removed.push({ note, removedAt: operationTimestamp })
     real.notes = real.notes.filter((current) => current.id !== note.id)
-    real.history = rememberRemovedNote(real.history, note, Date.parse(operationTimestamp))
+    real.history = rememberRemovedNote(real.history, note, operationTimestamp)
     assertState(model, real)
   }
 
@@ -471,7 +471,7 @@ describe("메모 생명 주기 모델", () => {
     const history = rememberRemovedNote(
       createNoteRemovalHistory(),
       removed,
-      Date.parse(operationTimestamp),
+      operationTimestamp,
     )
     const afterMove = sendNoteToFront(
       [first, third],

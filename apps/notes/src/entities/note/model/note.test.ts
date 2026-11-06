@@ -6,7 +6,7 @@ import { NoteRecordSchema, reviseNote, type Note, type NoteRevision } from "./no
 const originalNote = {
   content: "첫 메모",
   contentRevision: 2,
-  createdAt: "2026-08-31T01:00:00.000Z",
+  createdAt: Date.parse("2026-08-31T01:00:00.000Z"),
   geometry: {
     height: 240,
     width: 320,
@@ -16,14 +16,14 @@ const originalNote = {
   },
   id: "note-1",
   tabIndex: 1000,
-  updatedAt: "2026-08-31T01:00:00.000Z",
+  updatedAt: Date.parse("2026-08-31T01:00:00.000Z"),
 }
 
 describe("reviseNote", () => {
   it("records the changed text", () => {
     const revised = reviseNote(originalNote, {
       content: "수정한 메모",
-      updatedAt: "2026-08-31T02:00:00.000Z",
+      updatedAt: Date.parse("2026-08-31T02:00:00.000Z"),
     })
 
     expect(revised).toMatchObject({
@@ -35,7 +35,7 @@ describe("reviseNote", () => {
   it("keeps the content revision when only geometry changes", () => {
     const revised = reviseNote(originalNote, {
       geometry: { ...originalNote.geometry, x: 80 },
-      updatedAt: "2026-08-31T02:00:00.000Z",
+      updatedAt: Date.parse("2026-08-31T02:00:00.000Z"),
     })
 
     expect(revised).toMatchObject({
@@ -48,7 +48,7 @@ describe("reviseNote", () => {
     const revised = reviseNote(originalNote, {
       content: "수정한 메모",
       geometry: { ...originalNote.geometry, width: 400 },
-      updatedAt: "2026-08-31T02:00:00.000Z",
+      updatedAt: Date.parse("2026-08-31T02:00:00.000Z"),
     })
 
     expect(revised).toMatchObject({
@@ -61,7 +61,7 @@ describe("reviseNote", () => {
     const revised = reviseNote(originalNote, {
       content: originalNote.content,
       geometry: originalNote.geometry,
-      updatedAt: "2026-08-31T02:00:00.000Z",
+      updatedAt: Date.parse("2026-08-31T02:00:00.000Z"),
     })
 
     expect(revised).toEqual(originalNote)

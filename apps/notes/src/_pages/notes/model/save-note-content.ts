@@ -6,7 +6,7 @@ import {
 
 type SaveNoteContentDependencies = {
   notes: Pick<NoteRepository, "saveEdit">
-  now(): string
+  now(): number
 }
 
 export type SaveNoteContentFailureReason =

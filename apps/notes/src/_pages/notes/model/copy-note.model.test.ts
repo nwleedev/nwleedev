@@ -13,11 +13,11 @@ import { copyNote } from "./copy-note"
 const initialNote: Note = {
   content: "복사할 원문",
   contentRevision: 0,
-  createdAt: "2026-09-01T00:00:00.000Z",
+  createdAt: Date.parse("2026-09-01T00:00:00.000Z"),
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: "note-copy-model",
   tabIndex: 1000,
-  updatedAt: "2026-09-01T00:00:00.000Z",
+  updatedAt: Date.parse("2026-09-01T00:00:00.000Z"),
 }
 
 type Defect = "record-next-revision" | "write-empty-content" | null
@@ -143,7 +143,7 @@ class EditCommand implements fc.AsyncCommand<Model, Real> {
     }
     real.note = reviseNote(real.note, {
       content: this.content,
-      updatedAt: "2026-09-01T00:00:01.000Z",
+      updatedAt: Date.parse("2026-09-01T00:00:01.000Z"),
     })
     assertState(model, real)
   }
@@ -160,7 +160,7 @@ class MoveNoteCommand implements fc.AsyncCommand<Model, Real> {
     real.recordCommand()
     real.note = reviseNote(real.note, {
       geometry: { ...real.note.geometry, x: this.x, y: this.y },
-      updatedAt: "2026-09-01T00:00:02.000Z",
+      updatedAt: Date.parse("2026-09-01T00:00:02.000Z"),
     })
     assertState(model, real)
   }

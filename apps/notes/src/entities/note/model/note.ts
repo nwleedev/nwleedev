@@ -4,7 +4,7 @@ import type { MobileNotePosition } from "./mobile-note-order"
 
 import {
   EntityIdSchema,
-  IsoDateTimeSchema,
+  TimestampSchema,
   RevisionSchema,
   type Revision,
 } from "@/shared/lib/entity-metadata"
@@ -46,11 +46,11 @@ export const NoteRecordSchema = z
   .object({
     content: z.string(),
     contentRevision: RevisionSchema,
-    createdAt: IsoDateTimeSchema,
+    createdAt: TimestampSchema,
     geometry: NoteGeometrySchema,
     id: EntityIdSchema,
     tabIndex: NoteTabIndexSchema,
-    updatedAt: IsoDateTimeSchema,
+    updatedAt: TimestampSchema,
   })
   .strict()
 
@@ -73,9 +73,9 @@ export interface NoteReader {
 export interface NoteRepository extends NoteReader {
   get(noteId: string): Promise<Note | null>
   save(note: Note): Promise<Note>
-  saveGeometry(original: Note, geometry: NoteGeometry, updatedAt: string): Promise<Note | null>
+  saveGeometry(original: Note, geometry: NoteGeometry, updatedAt: number): Promise<Note | null>
   saveEdit(original: Note, edited: Note): Promise<Note | null>
-  moveInStack(target: Note, edge: "front" | "back", updatedAt: string): Promise<{ notes: readonly Note[]; changedIds: readonly string[] }>
+  moveInStack(target: Note, edge: "front" | "back", updatedAt: number): Promise<{ notes: readonly Note[]; changedIds: readonly string[] }>
   remove(note: Pick<Note, "id">): Promise<Note | null>
   openEditor(id: string): Promise<(() => Promise<void>) | null>
   deletedNote(id: string): Promise<Note | null>
@@ -85,7 +85,7 @@ export interface NoteRepository extends NoteReader {
 export type NoteRevision = {
   content?: string
   geometry?: NoteGeometry
-  updatedAt: string
+  updatedAt: number
 }
 
 export function geometriesAreEqual(left: NoteGeometry, right: NoteGeometry) {

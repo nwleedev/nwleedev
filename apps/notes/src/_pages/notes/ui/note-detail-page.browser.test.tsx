@@ -20,7 +20,7 @@ vi.mock("next/navigation", () => ({
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
 function createStoredNote(): Note {
-  const timestamp = new Date().toISOString()
+  const timestamp = Date.now()
 
   return {
     content: "저장된 원문",
@@ -98,7 +98,7 @@ async function renderDetail(noteId: string, storage: ReturnType<typeof createSto
           batchCopyShortcutEnabled={false}
           clipboard={{ writeText: async () => ({ status: "written" }) }}
           createId={crypto.randomUUID}
-          now={() => new Date().toISOString()}
+          now={() => Date.now()}
           readMobileOrder={unexpectedMobileOrderAccess}
           moveMobileNote={unexpectedMobileOrderAccess}
           repository={storage.notes}

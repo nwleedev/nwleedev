@@ -84,7 +84,7 @@ export type NotesDataDependencies = {
   clipboard: ClipboardWriter
   createId(): string
   batchCopyShortcutEnabled: boolean
-  now(): string
+  now(): number
   repository: NoteRepository
   readMobileOrder(): Promise<MobileNoteOrder>
   moveMobileNote(input: MoveMobileNoteInput): Promise<MoveMobileNoteResult>

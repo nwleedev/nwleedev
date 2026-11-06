@@ -18,7 +18,7 @@ import { NoteCard } from "../ui/note-card"
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
-const timestamp = "2026-08-31T01:00:00.000Z"
+const timestamp = Date.parse("2026-08-31T01:00:00.000Z")
 const clipboard = {
   writeText: async () => ({ status: "written" }) as const,
 }

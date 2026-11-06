@@ -3,15 +3,15 @@ import { describe, expect, it } from "vitest"
 import type { Note } from "@/entities/note"
 import { saveNoteContent } from "./save-note-content"
 
-const timestamp = "2026-09-01T03:00:00.000Z"
+const timestamp = Date.parse("2026-09-01T03:00:00.000Z")
 const note: Note = {
   content: "저장된 원문",
   contentRevision: 0,
-  createdAt: "2026-09-01T00:00:00.000Z",
+  createdAt: Date.parse("2026-09-01T00:00:00.000Z"),
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: "note-save-command",
   tabIndex: 1000,
-  updatedAt: "2026-09-01T01:00:00.000Z",
+  updatedAt: Date.parse("2026-09-01T01:00:00.000Z"),
 }
 
 describe("본문 저장", () => {

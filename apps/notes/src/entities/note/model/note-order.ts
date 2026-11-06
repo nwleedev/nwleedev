@@ -6,7 +6,7 @@ import {
 } from "./note"
 
 type NoteTabIndexCandidate = {
-  createdAt: string
+  createdAt: number
   id: string
   tabIndex?: unknown
 }
@@ -24,7 +24,7 @@ function compareIdentity(
   left: Pick<NoteTabIndexCandidate, "createdAt" | "id">,
   right: Pick<NoteTabIndexCandidate, "createdAt" | "id">,
 ) {
-  const createdAtOrder = left.createdAt.localeCompare(right.createdAt)
+  const createdAtOrder = left.createdAt - right.createdAt
   return createdAtOrder === 0 ? left.id.localeCompare(right.id) : createdAtOrder
 }
 
@@ -97,7 +97,7 @@ function moveNoteToStackEdge(
   notes: readonly Note[],
   noteId: string,
   edge: "back" | "front",
-  updatedAt: string,
+  updatedAt: number,
 ) {
   const normalized = normalizeNoteZIndexes(notes)
   const targetIndex = normalized.findIndex(({ id }) => id === noteId)
@@ -130,7 +130,7 @@ function moveNoteToStackEdge(
 export function sendNoteToFront(
   notes: readonly Note[],
   noteId: string,
-  updatedAt: string,
+  updatedAt: number,
 ) {
   return moveNoteToStackEdge(notes, noteId, "front", updatedAt)
 }
@@ -138,7 +138,7 @@ export function sendNoteToFront(
 export function sendNoteToBack(
   notes: readonly Note[],
   noteId: string,
-  updatedAt: string,
+  updatedAt: number,
 ) {
   return moveNoteToStackEdge(notes, noteId, "back", updatedAt)
 }

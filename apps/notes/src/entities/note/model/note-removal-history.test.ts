@@ -16,11 +16,11 @@ import {
 const firstNote: Note = {
   content: "첫 번째",
   contentRevision: 2,
-  createdAt: "2026-09-01T01:00:00.000Z",
+  createdAt: Date.parse("2026-09-01T01:00:00.000Z"),
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: "note-1",
   tabIndex: 1000,
-  updatedAt: "2026-09-01T02:00:00.000Z",
+  updatedAt: Date.parse("2026-09-01T02:00:00.000Z"),
 }
 
 const secondNote: Note = {
@@ -52,7 +52,7 @@ describe("메모 삭제 복구 이력", () => {
             (current, note, index) => rememberRemovedNote(
               current,
               note,
-              Date.parse(firstNote.updatedAt) + index,
+              firstNote.updatedAt + index,
             ),
             createNoteRemovalHistory(),
           )

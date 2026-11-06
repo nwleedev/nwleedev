@@ -19,7 +19,7 @@ import {
 } from "./personal-notes-database"
 import { PERSONAL_NOTES_DATABASE_NAME } from "./open-personal-notes-database"
 
-const timestamp = "2026-09-01T00:00:00.000Z"
+const timestamp = Date.parse("2026-09-01T00:00:00.000Z")
 
 const note: Note = {
   content: "저장된 원문",
@@ -356,7 +356,7 @@ describe("메모 저장소 모델", () => {
     expect(noteById(afterRemoval, thirdNote.id)).toEqual(thirdNote)
     expect(afterRemoval.some((current) => current.id === secondNote.id)).toBe(false)
 
-    await notes.moveInStack(noteById(afterRemoval, note.id), "front", "2026-09-01T00:00:01.000Z")
+    await notes.moveInStack(noteById(afterRemoval, note.id), "front", Date.parse("2026-09-01T00:00:01.000Z"))
     await notes.restore(secondNote)
     firstConnection.close()
 
@@ -374,7 +374,7 @@ describe("메모 저장소 모델", () => {
       geometry: { ...thirdNote.geometry, zIndex: 1 },
     })
 
-    await restoredNotes.moveInStack(noteById(restored, secondNote.id), "front", "2026-09-01T00:00:02.000Z")
+    await restoredNotes.moveInStack(noteById(restored, secondNote.id), "front", Date.parse("2026-09-01T00:00:02.000Z"))
     restoredConnection.close()
 
     const finalConnection = createConnection()

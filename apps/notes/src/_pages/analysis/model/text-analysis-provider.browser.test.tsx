@@ -17,7 +17,7 @@ import {
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
-const timestamp = "2026-09-01T10:00:00.000Z"
+const timestamp = Date.parse("2026-09-01T10:00:00.000Z")
 
 function createDeferred<T>() {
   let reject: (reason: Error) => void = () => undefined
@@ -101,7 +101,7 @@ describe("TextAnalysisProvider", () => {
       root.render(
         <TextAnalysisProvider
           analyzer={analyzer}
-          now={() => Date.parse(timestamp)}
+          now={() => timestamp}
           reader={reader}
         >
           <AnalysisStateView />

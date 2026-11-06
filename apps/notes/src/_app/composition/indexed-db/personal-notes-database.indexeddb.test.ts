@@ -63,11 +63,11 @@ const timestamp = "2026-08-31T01:00:00.000Z"
 const note: Note = {
   content: "저장한 메모",
   contentRevision: 0,
-  createdAt: timestamp,
+  createdAt: Date.parse(timestamp),
   geometry: { height: 240, width: 320, x: 40, y: 60, zIndex: 1 },
   id: "note-1",
   tabIndex: 1000,
-  updatedAt: timestamp,
+  updatedAt: Date.parse(timestamp),
 }
 
 const template: TextTemplate = {
@@ -198,7 +198,7 @@ describe("personal notes IndexedDB storage", () => {
     })
     const write = previous.transaction("notes", "readwrite")
     const saved = waitForTransaction(write)
-    write.objectStore("notes").put({ ...note, position: -1.5 })
+    write.objectStore("notes").put({ ...note, createdAt: timestamp, updatedAt: timestamp, position: -1.5 })
     await saved
     previous.close()
 
@@ -206,7 +206,7 @@ describe("personal notes IndexedDB storage", () => {
     const read = database.transaction("notes")
     const [record] = await Promise.all([readRequest(read.objectStore("notes").get(note.id)), waitForTransaction(read)])
     expect(record).not.toHaveProperty("content")
-    expect(record).toMatchObject({ position: -1.5, updatedAt: Date.parse(note.updatedAt) })
+    expect(record).toMatchObject({ position: -1.5, updatedAt: note.updatedAt })
     expect(new NoteBody(record.body).text).toBe(note.content)
   })
 
@@ -226,7 +226,7 @@ describe("personal notes IndexedDB storage", () => {
     const committed = waitForTransaction(write)
     write.objectStore("notes").put({
       ...fields, position: 0, body: baseline.snapshot(),
-      createdAt: Date.parse(note.createdAt), updatedAt: Date.parse(note.updatedAt),
+      createdAt: note.createdAt, updatedAt: note.updatedAt,
     })
     write.objectStore("updates").put({ id: "saved", noteId: note.id, payload: baseline.updateText("편집 중 원문") })
     write.objectStore("noteDrafts").put({ ...noteDraft, content: "" })
@@ -291,8 +291,8 @@ describe("personal notes IndexedDB storage", () => {
     const companion = { ...note, id: crypto.randomUUID(), tabIndex: note.tabIndex + 1 }
     const transaction = previous.transaction(NOTE_STORE_NAME, "readwrite")
     const completed = waitForTransaction(transaction)
-    transaction.objectStore(NOTE_STORE_NAME).put(companion)
-    transaction.objectStore(NOTE_STORE_NAME).put(note)
+    transaction.objectStore(NOTE_STORE_NAME).put({ ...companion, createdAt: timestamp, updatedAt: timestamp })
+    transaction.objectStore(NOTE_STORE_NAME).put({ ...note, createdAt: timestamp, updatedAt: timestamp })
     await completed
     previous.close()
     const connection = createConnection()
@@ -313,8 +313,8 @@ describe("personal notes IndexedDB storage", () => {
     const companion = { ...note, id: crypto.randomUUID(), tabIndex: note.tabIndex + 1 }
     const write = previous.transaction(["notes", "mobileNoteOrder"], "readwrite")
     const saved = waitForTransaction(write)
-    write.objectStore("notes").put(note)
-    write.objectStore("notes").put(companion)
+    write.objectStore("notes").put({ ...note, createdAt: timestamp, updatedAt: timestamp })
+    write.objectStore("notes").put({ ...companion, createdAt: timestamp, updatedAt: timestamp })
     write.objectStore("mobileNoteOrder").put({ ids: [companion.id, note.id], revision: 4 }, "current")
     await saved
     previous.close()
@@ -645,11 +645,11 @@ describe("personal notes IndexedDB storage", () => {
     const previousNoteFields = {
       content: note.content,
       contentRevision: note.contentRevision,
-      createdAt: note.createdAt,
+      createdAt: timestamp,
       geometry: note.geometry,
       id: note.id,
       revision: 0,
-      updatedAt: note.updatedAt,
+      updatedAt: timestamp,
     }
     const previousNotes = [
       {
@@ -824,7 +824,7 @@ describe("personal notes IndexedDB storage", () => {
     )
     const completed = waitForTransaction(transaction)
 
-    transaction.objectStore(NOTE_STORE_NAME).put(note)
+    transaction.objectStore(NOTE_STORE_NAME).put({ ...note, createdAt: timestamp, updatedAt: timestamp })
     transaction.objectStore("noteDrafts").put(noteDraft)
     transaction.objectStore("batchCopyLists").put(batchCopyList)
     transaction.objectStore("mobileBatchCopyDrafts").put(

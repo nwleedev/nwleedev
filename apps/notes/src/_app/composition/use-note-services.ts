@@ -17,7 +17,7 @@ export function useNoteServices(database: PersonalNotesDatabase) {
     return {
       clipboard: new BrowserClipboardWriter(),
       createId: () => identifiers.create(),
-      now: () => new Date().toISOString(),
+      now: Date.now,
       repository: new IndexedDbNoteRepository(database),
       readMobileOrder: () => order.read(),
       moveMobileNote: (input: Parameters<typeof order.move>[0]) => order.move(input),

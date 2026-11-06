@@ -12,7 +12,7 @@ import {
 } from "./note-content-save-state"
 import { saveNoteContent } from "./save-note-content"
 
-const initialTimestamp = new Date().toISOString()
+const initialTimestamp = Date.now()
 const initialNote: Note = {
   content: "저장된 원문",
   contentRevision: 0,

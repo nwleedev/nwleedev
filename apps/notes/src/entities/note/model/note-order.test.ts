@@ -13,17 +13,17 @@ import { NOTE_TAB_INDEX_MIN, type Note } from "./note"
 const firstNote: Note = {
   content: "첫 번째",
   contentRevision: 1,
-  createdAt: "2026-09-01T01:00:00.000Z",
+  createdAt: Date.parse("2026-09-01T01:00:00.000Z"),
   geometry: { height: 240, width: 320, x: 20, y: 20, zIndex: 1 },
   id: "note-1",
   tabIndex: 1002,
-  updatedAt: "2026-09-01T01:00:00.000Z",
+  updatedAt: Date.parse("2026-09-01T01:00:00.000Z"),
 }
 
 const secondNote: Note = {
   ...firstNote,
   content: "두 번째",
-  createdAt: "2026-09-01T02:00:00.000Z",
+  createdAt: Date.parse("2026-09-01T02:00:00.000Z"),
   geometry: { ...firstNote.geometry, x: 360, zIndex: 2 },
   id: "note-2",
   tabIndex: 1000,
@@ -32,7 +32,7 @@ const secondNote: Note = {
 const thirdNote: Note = {
   ...firstNote,
   content: "세 번째",
-  createdAt: "2026-09-01T03:00:00.000Z",
+  createdAt: Date.parse("2026-09-01T03:00:00.000Z"),
   geometry: { ...firstNote.geometry, x: 700, zIndex: 3 },
   id: "note-3",
   tabIndex: 1001,
@@ -41,10 +41,10 @@ const thirdNote: Note = {
 describe("메모 키보드 탐색 순서", () => {
   it("유효한 기존 값과 생성 순서를 이용해 빠짐없는 양의 순서를 만든다", () => {
     const normalized = normalizeNoteTabIndexes([
-      { createdAt: "2026-09-01T03:00:00.000Z", id: "missing" },
-      { createdAt: "2026-09-01T02:00:00.000Z", id: "duplicate-b", tabIndex: 1005 },
-      { createdAt: "2026-09-01T01:00:00.000Z", id: "duplicate-a", tabIndex: 1005 },
-      { createdAt: "2026-09-01T00:00:00.000Z", id: "invalid", tabIndex: 0 },
+      { createdAt: Date.parse("2026-09-01T03:00:00.000Z"), id: "missing" },
+      { createdAt: Date.parse("2026-09-01T02:00:00.000Z"), id: "duplicate-b", tabIndex: 1005 },
+      { createdAt: Date.parse("2026-09-01T01:00:00.000Z"), id: "duplicate-a", tabIndex: 1005 },
+      { createdAt: Date.parse("2026-09-01T00:00:00.000Z"), id: "invalid", tabIndex: 0 },
     ])
 
     expect(normalized.map(({ id, tabIndex }) => ({ id, tabIndex }))).toEqual([
@@ -90,7 +90,7 @@ describe("메모 겹침 순서", () => {
             ...firstNote,
             content: id,
             contentRevision: index,
-            createdAt: new Date(index * 1000).toISOString(),
+            createdAt: index * 1000,
             geometry: { ...firstNote.geometry, zIndex: index + 1 },
             id,
             tabIndex: NOTE_TAB_INDEX_MIN + index,
