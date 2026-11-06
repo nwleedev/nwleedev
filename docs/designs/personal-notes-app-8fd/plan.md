@@ -8,6 +8,11 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 이번 작업은 [여러 창 편집, 자동 저장, 삭제 복원과 모바일 순서](requirements.md#모바일-메모-목록의-순서) 및 [IndexedDB 스키마 개선](requirements.md#indexeddb-스키마-개선)을 따른다. 아래 순서로 진행한다. 뒤의 U 번호는 이전 구현 기록이다. 서버 저장 전환, 기기 간 동기화, 미저장 입력까지 복원하는 기능은 이번 배포에서 제외한다.
 
+### 구현 진행 기록
+
+- **1.1 완료.** Node 24.19.0과 pnpm 11.25.0에서 운영 빌드, 타입 검사, lint, 단위 검사 195건, 세 브라우저 검사 87건이 통과했다. Chromium 운영 화면에서 모바일 복사와 상세 이동, 캔버스 이동, 삭제 취소 및 모바일 자동 저장 등 5건을 확인했다. 같은 프로필의 두 탭에서 메모를 만들면 다른 탭에는 즉시 보이지 않고 새로고침 후 나타났다. 기존 브라우저 검사에는 NoteCard의 React act 경고가 있다.
+- 다음 절차는 1.2 본문 변경분의 왕복과 편집 구간 확인이다. 현재 편집기는 변경 뒤의 문자열만 저장 명령에 전달한다.
+
 ### 모든 절차의 착수 조건
 
 - 각 절차에서 코드를 열기 전에 [저장소 개발 지침](../../dev/README.md), [메모 앱 안티패턴](../../dev/personal-notes-app/anti-patterns.md), [입력 상태](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md) 중 적용할 규칙을 확인한다. 아래 파일은 `apps/notes` 기준이다. 실제 호출자와 재사용 여부를 확인하고 다음 절차에 필요한 코드를 먼저 지우지 않는다.
