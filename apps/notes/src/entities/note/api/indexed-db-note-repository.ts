@@ -1,3 +1,6 @@
+import { toTimestamp, RevisionSchema } from "@/shared/lib/entity-metadata"
+
+import { NoteBody } from "../model/note-body"
 import {
   abortTransaction,
   readRequest,
@@ -24,8 +27,12 @@ export class StaleNoteRevisionError extends Error {
   }
 }
 
+type TextUpdate = { id: string; noteId: string; payload: Uint8Array }
+
 export class IndexedDbNoteRepository implements NoteRepository {
   readonly #connection: IndexedDbConnection
+  readonly #snapshots = new WeakMap<Note, Uint8Array>()
+  readonly #pendingEdits = new WeakMap<Note, { text: string; snapshot: Uint8Array; update: TextUpdate }>()
 
   constructor(connection: IndexedDbConnection) {
     this.#connection = connection
@@ -38,22 +45,26 @@ export class IndexedDbNoteRepository implements NoteRepository {
     try {
       const records: unknown[] = await readRequest(transaction.objectStore(NOTE_STORE_NAME).getAll())
       const updates = transaction.objectStore("updates")
-      const notes = await Promise.all(records.map(async (value) => {
-        const record = StoredNoteSchema.parse(value)
-        const { body } = await readStoredBody(record, updates)
-        return NoteFields.parse({
-          ...record,
-          content: body.text,
-          createdAt: new Date(record.createdAt).toISOString(),
-          updatedAt: new Date(record.updatedAt).toISOString(),
-        })
-      }))
+      const notes = await Promise.all(records.map((value) => this.#readNote(value, updates)))
       await completion
       return notes
     } catch (error) {
       await abortTransaction(transaction, completion)
       throw error
     }
+  }
+
+  async #readNote(value: unknown, updates: IDBObjectStore) {
+    const record = StoredNoteSchema.parse(value)
+    const { body } = await readStoredBody(record, updates)
+    const note = NoteFields.parse({
+      ...record,
+      content: body.text,
+      createdAt: new Date(record.createdAt).toISOString(),
+      updatedAt: new Date(record.updatedAt).toISOString(),
+    })
+    this.#snapshots.set(note, body.snapshot())
+    return note
   }
 
   async readBody(noteId: string) {
@@ -89,7 +100,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
   async save(note: Note, position?: MobileNotePosition) {
     const record = parseNoteRecord(note)
     const database = await this.#connection.get()
-    const transaction = database.transaction(NOTE_STORE_NAME, "readwrite")
+    const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
     const completion = waitForTransaction(transaction)
     try {
       const store = transaction.objectStore(NOTE_STORE_NAME)
@@ -103,9 +114,11 @@ export class IndexedDbNoteRepository implements NoteRepository {
       } else {
         rank = previous.position
       }
-      store.put(storeNote(record, rank, previous))
+      const next = storeNote(record, rank, previous)
+      store.put(next)
+      const saved = await this.#readNote(next, transaction.objectStore("updates"))
       await completion
-      return record
+      return saved
     } catch (error) {
       await abortTransaction(transaction, completion)
       throw error
@@ -115,44 +128,83 @@ export class IndexedDbNoteRepository implements NoteRepository {
   async saveAll(notes: readonly Note[]) {
     const records = notes.map(parseNoteRecord)
     const database = await this.#connection.get()
-    const transaction = database.transaction(NOTE_STORE_NAME, "readwrite")
+    const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
     const completion = waitForTransaction(transaction)
     const store = transaction.objectStore(NOTE_STORE_NAME)
 
     try {
       const ids = await readMobileIds(store)
+      const savedNotes: Note[] = []
       for (const record of records) {
         const stored: unknown = await readRequest(store.get(record.id))
         const previous = stored === undefined ? undefined : StoredNoteSchema.parse(stored)
         const position = previous === undefined
           ? await allocatePosition(store, ids, ids.length)
           : previous.position
-        store.put(storeNote(record, position, previous))
+        const next = storeNote(record, position, previous)
+        store.put(next)
+        savedNotes.push(await this.#readNote(next, transaction.objectStore("updates")))
         if (stored === undefined) ids.push(record.id)
       }
       await completion
-      return records
+      return savedNotes
     } catch (error) {
       await abortTransaction(transaction, completion)
       throw error
     }
   }
 
-  async appendUpdate(update: { id: string; noteId: string; payload: Uint8Array }) {
+  async saveEdit(original: Note, edited: Note) {
+    const baseline = this.#snapshots.get(original)
+    if (!baseline || original.id !== edited.id) throw new Error("Expected the note opened for editing")
+    let change = this.#pendingEdits.get(original)
+    if (!change || change.text !== edited.content) {
+      const body = new NoteBody(baseline)
+      const payload = body.updateText(edited.content)
+      change = {
+        update: { id: crypto.randomUUID(), noteId: original.id, payload },
+        text: edited.content,
+        snapshot: body.snapshot(),
+      }
+      this.#pendingEdits.set(original, change)
+    }
+    const stored = await this.#writeUpdate(change.update, edited.updatedAt)
+    if (!stored) return null
+    const saved = { ...edited, revision: stored.revision, contentRevision: stored.contentRevision }
+    this.#snapshots.set(saved, change.snapshot)
+    this.#pendingEdits.delete(original)
+    return saved
+  }
+
+  async appendUpdate(update: TextUpdate) {
+    return (await this.#writeUpdate(update)) !== null
+  }
+
+  async #writeUpdate(update: TextUpdate, updatedAt?: string) {
     const database = await this.#connection.get()
     const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
     const completion = waitForTransaction(transaction)
     try {
       const notes = transaction.objectStore(NOTE_STORE_NAME)
-      const exists = await readRequest(notes.getKey(update.noteId))
-      if (exists === undefined) {
+      const value: unknown = await readRequest(notes.get(update.noteId))
+      if (value === undefined) {
         await completion
-        return false
+        return null
       }
       const updates = transaction.objectStore("updates")
+      let record = StoredNoteSchema.parse(value)
       const previous = await readRequest(updates.get([update.id, update.noteId]))
       if (previous === undefined) {
         updates.add(update)
+        if (updatedAt !== undefined) {
+          record = {
+            ...record,
+            contentRevision: RevisionSchema.parse(record.contentRevision + 1),
+            revision: RevisionSchema.parse(record.revision + 1),
+            updatedAt: toTimestamp(updatedAt),
+          }
+          notes.put(record)
+        }
       } else {
         const payload: unknown = previous.payload
         if (!(payload instanceof Uint8Array) || payload.length !== update.payload.length
@@ -161,7 +213,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
         }
       }
       await completion
-      return true
+      return record
     } catch (error) {
       await abortTransaction(transaction, completion)
       throw error

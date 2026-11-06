@@ -92,8 +92,8 @@ function createReal(defect: Defect = null) {
       return nextDraft
     },
   }
-  const notes: Pick<NoteRepository, "save"> = {
-    save: async (nextNote) => {
+  const notes: Pick<NoteRepository, "saveEdit"> = {
+    saveEdit: async (_original, nextNote) => {
       if (nextFailure === "note-save") {
         nextFailure = null
         if (defect === "discard-draft-after-note-failure") {

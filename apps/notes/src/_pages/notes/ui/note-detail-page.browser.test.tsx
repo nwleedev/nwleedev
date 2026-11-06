@@ -53,6 +53,7 @@ function createStorage(initialNote: Note, rejectFirstSave = true) {
       storedNote = note
       return note
     },
+    saveEdit(_original, edited) { return this.save(edited) },
     saveAll: async (records) => records,
   }
   const drafts: NoteDraftRepository = {

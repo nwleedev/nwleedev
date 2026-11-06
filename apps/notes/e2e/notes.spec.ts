@@ -515,18 +515,14 @@ async function runAutosaveCommands(
 async function contextWithoutEditedSave(browser: Browser) {
   const context = await browser.newContext()
   await context.addInitScript(() => {
-    const originalPut = IDBObjectStore.prototype.put
-
-    IDBObjectStore.prototype.put = function (value, key) {
-      const record = value as { contentRevision: number; id: string }
-
-      if (this.name === "notes" && record.contentRevision >= 2) {
-        return this.get(record.id)
+    const originalAdd = IDBObjectStore.prototype.add
+    IDBObjectStore.prototype.add = function (value, key) {
+      if (this.name !== "updates") return originalAdd.call(this, value, key)
+      const current = this.transaction.objectStore("notes").get(value.noteId)
+      current.onsuccess = () => {
+        if (current.result?.contentRevision === 0) originalAdd.call(this, value, key)
       }
-
-      return key === undefined
-        ? originalPut.call(this, value)
-        : originalPut.call(this, value, key)
+      return current
     }
   })
   return context
@@ -729,12 +725,10 @@ async function runMobileSaveCommands(
 
     if (blockSave) {
       await page.evaluate(() => {
-        const originalPut = IDBObjectStore.prototype.put
-        IDBObjectStore.prototype.put = function (value, key) {
-          if (this.name === "notes") return this.get(value.id)
-          return key === undefined
-            ? originalPut.call(this, value)
-            : originalPut.call(this, value, key)
+        const originalAdd = IDBObjectStore.prototype.add
+        IDBObjectStore.prototype.add = function (value, key) {
+          if (this.name === "updates") return this.get([value.id, value.noteId])
+          return originalAdd.call(this, value, key)
         }
       })
     }

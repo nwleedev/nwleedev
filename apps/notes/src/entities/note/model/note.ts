@@ -82,6 +82,7 @@ export interface NoteReader {
 
 export interface NoteRepository extends NoteReader {
   save(note: Note, position?: MobileNotePosition): Promise<Note>
+  saveEdit(original: Note, edited: Note): Promise<Note | null>
   saveAll(notes: readonly Note[]): Promise<readonly Note[]>
   remove(note: NoteReference): Promise<void>
 }

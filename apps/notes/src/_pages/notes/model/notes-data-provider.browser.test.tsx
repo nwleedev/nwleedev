@@ -153,6 +153,7 @@ function createRepository(
     },
     remove: async () => undefined,
     save: async (note) => note,
+    saveEdit(_original, edited) { return this.save(edited) },
     saveAll: async (notes) => notes,
   }
 }
@@ -190,6 +191,7 @@ function createDelayedSaveRepository(note: Note) {
 
       return nextNote
     },
+    saveEdit(_original, edited) { return this.save(edited) },
     saveAll: async (notes) => notes,
   }
 

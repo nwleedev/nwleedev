@@ -65,6 +65,7 @@ function createStorage(options: {
       storedNote = nextNote
       return nextNote
     },
+    saveEdit(_original, edited) { return this.save(edited) },
     saveAll: async (nextNotes) => nextNotes,
   }
 

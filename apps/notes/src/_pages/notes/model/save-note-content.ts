@@ -7,7 +7,7 @@ import {
 
 type SaveNoteContentDependencies = {
   drafts: NoteDraftRepository
-  notes: Pick<NoteRepository, "save">
+  notes: Pick<NoteRepository, "saveEdit">
   now(): string
 }
 
@@ -58,15 +58,18 @@ export async function saveNoteContent(
     return { reason: "draft-storage", status: "failure" }
   }
 
-  let savedNote: Note
+  let savedNote: Note | null
 
   try {
-    savedNote = await dependencies.notes.save(
+    savedNote = await dependencies.notes.saveEdit(
+      note,
       reviseNote(note, { content, updatedAt }),
     )
   } catch {
     return { reason: "note-storage", status: "failure" }
   }
+
+  if (savedNote === null) return { status: "failure", reason: "note-missing" }
 
   try {
     await dependencies.drafts.remove(draftReference)

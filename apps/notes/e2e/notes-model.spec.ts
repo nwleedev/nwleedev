@@ -41,6 +41,21 @@ test("메모 작성, 자동 저장, 새로고침과 삭제 복원을 같은 순�
   ).toHaveValue(revisedContent)
 })
 
+test("두 편집기에서 앞과 뒤를 수정한 뒤 새로 연 메모에는 두 입력이 모두 남는다", async ({ page, context }) => {
+  await createNoteThroughUi(page, "가나다")
+  const second = await context.newPage()
+  await second.goto("/")
+  const firstEditor = page.getByRole("textbox", { name: "메모 내용" })
+  const secondEditor = second.getByRole("textbox", { name: "메모 내용" })
+  await expect(secondEditor).toHaveValue("가나다")
+  await firstEditor.fill("앞 가나다")
+  await secondEditor.fill("가나다 뒤")
+  await Promise.all([firstEditor.press("Tab"), secondEditor.press("Tab")])
+  const third = await context.newPage()
+  await third.goto("/")
+  await expect(third.getByRole("textbox", { name: "메모 내용" })).toHaveValue("앞 가나다 뒤")
+})
+
 test("800ms 타이머와 blur 및 내부 이동이 최신 원문을 저장한다", async ({
   browser,
 }) => {
