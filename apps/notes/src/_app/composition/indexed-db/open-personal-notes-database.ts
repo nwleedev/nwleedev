@@ -18,7 +18,7 @@ import {
 } from "./migrate-personal-notes-database"
 
 export const PERSONAL_NOTES_DATABASE_NAME = "personal-notes"
-export const PERSONAL_NOTES_DATABASE_VERSION = 6
+export const PERSONAL_NOTES_DATABASE_VERSION = 7
 
 type PersonalNotesDatabaseCallbacks = {
   onBlocked?(): void
@@ -33,6 +33,9 @@ export function openPersonalNotesDatabase(
     onBlocked: callbacks.onBlocked,
     onVersionChange: callbacks.onVersionChange,
     upgrade: (database, transaction, oldVersion) => {
+      const updates = database.createObjectStore("updates", { keyPath: ["id", "noteId"] })
+      updates.createIndex("noteId", "noteId")
+
       if (oldVersion === 0) {
         const notes = database.createObjectStore(NOTE_STORE_NAME, { keyPath: "id" })
         notes.createIndex(NOTE_POSITION_INDEX, "position")
@@ -55,6 +58,7 @@ export function openPersonalNotesDatabase(
         return
       }
 
+      if (oldVersion >= 6) return
       ensureBatchCopyListStore(database, transaction)
 
       transaction.objectStore(NOTE_STORE_NAME).createIndex(NOTE_POSITION_INDEX, "position")

@@ -148,6 +148,40 @@ describe("personal notes IndexedDB storage", () => {
     return connection
   }
 
+  it.each([0, 6])("v%i에서 같은 변경 ID를 메모별로 독립 저장하고 조회한다", async (version) => {
+    if (version === 6) {
+      const previous = await openIndexedDatabase({
+        name: PERSONAL_NOTES_DATABASE_NAME,
+        version,
+        upgrade(database) {
+          const notes = database.createObjectStore("notes", { keyPath: "id" })
+          notes.createIndex("position", "position")
+        },
+      })
+      previous.close()
+    }
+    const database = await createConnection().get()
+    const write = database.transaction("updates", "readwrite")
+    const saved = waitForTransaction(write)
+    const updates = write.objectStore("updates")
+    const id = crypto.randomUUID()
+    const noteId = crypto.randomUUID()
+    const otherId = crypto.randomUUID()
+    updates.add({ id, noteId, payload: Uint8Array.of(1) })
+    updates.add({ id, noteId: otherId, payload: Uint8Array.of(2) })
+    await saved
+
+    const transaction = database.transaction("updates")
+    const read = transaction.objectStore("updates")
+    const [keys, other] = await Promise.all([
+      readRequest(read.index("noteId").getAllKeys(noteId)),
+      readRequest(read.get([id, otherId])),
+      waitForTransaction(transaction),
+    ])
+    expect(keys).toEqual([[id, noteId]])
+    expect(other).toEqual({ id, noteId: otherId, payload: Uint8Array.of(2) })
+  })
+
   it("v3의 메모를 바꾸지 않고 기존 탐색 순서로 모바일 순서를 읽는다", async () => {
     const previous = await openIndexedDatabase({
       name: PERSONAL_NOTES_DATABASE_NAME,
