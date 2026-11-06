@@ -168,7 +168,7 @@ describe("TextAnalysisProvider", () => {
     await act(async () =>
       userEvent.click(page.getByRole("button", { name: "분석 실행" })),
     )
-    notes = [createNote(2)]
+    notes = [{ ...createNote(1), content: "분석 도중 변경된 원문" }]
 
     const input = requireValue(
       requestInput.current,

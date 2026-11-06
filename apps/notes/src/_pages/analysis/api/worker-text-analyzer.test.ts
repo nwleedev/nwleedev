@@ -59,7 +59,7 @@ const input: AnalysisInput = {
   notes: [
     {
       content: "첫 줄\n둘째 줄",
-      note: { contentRevision: 2, id: "note-one" },
+      note: { contentKey: "source-2", id: "note-one" },
     },
   ],
 }
@@ -114,7 +114,7 @@ describe("WorkerTextAnalyzer", () => {
 
     worker.emitMessage({
       ...responseFor(request),
-      inputNotes: [{ contentRevision: 1, id: "note-other" }],
+      inputNotes: [{ contentKey: "source-1", id: "note-other" }],
     })
 
     await expect(pending).rejects.toThrow("another request")

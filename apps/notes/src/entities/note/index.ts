@@ -1,4 +1,4 @@
-export { NoteBody, changedNoteText, openNoteBody, savedNoteBody } from "./model/note-body"
+export { NoteBody, changedNoteText, identifyNoteContent, openNoteBody, savedNoteBody } from "./model/note-body"
 export {
   insertMobileNote,
   mobileNotePosition,

@@ -1,16 +1,16 @@
-import type { NoteContentReference } from "@/entities/note"
+import type { AnalysisNote } from "./analysis-message"
 
 import { compareCodePointStrings } from "./analysis-order"
 
 export type AnalysisSourceNote = {
   content: string
-  note: NoteContentReference
+  note: AnalysisNote
 }
 
 export type PreparedAnalysisLine = {
   lineIndex: number
   normalizedText: string
-  note: NoteContentReference
+  note: AnalysisNote
   rawText: string
 }
 

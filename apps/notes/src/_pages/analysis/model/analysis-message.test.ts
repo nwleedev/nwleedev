@@ -10,7 +10,7 @@ const request = {
   notes: [
     {
       content: "첫 줄\n둘째 줄",
-      note: { contentRevision: 2, id: "note-1" },
+      note: { contentKey: "source-2", id: "note-1" },
     },
   ],
   requestId: "request-1",
@@ -18,7 +18,7 @@ const request = {
 }
 
 const firstNote = request.notes[0].note
-const secondNote = { contentRevision: 1, id: "note-2" }
+const secondNote = { contentKey: "source-1", id: "note-2" }
 
 function sourceLine(
   note: typeof firstNote,

@@ -7,7 +7,7 @@ describe("prepareAnalysisLines", () => {
     const lines = prepareAnalysisLines([
       {
         content: "  A   B\r\n\rCafe\u0301!\n  \r끝",
-        note: { contentRevision: 4, id: "note-z" },
+        note: { contentKey: "source-4", id: "note-z" },
       },
     ])
 
@@ -15,19 +15,19 @@ describe("prepareAnalysisLines", () => {
       {
         lineIndex: 0,
         normalizedText: "a b",
-        note: { contentRevision: 4, id: "note-z" },
+        note: { contentKey: "source-4", id: "note-z" },
         rawText: "  A   B",
       },
       {
         lineIndex: 2,
         normalizedText: "café!",
-        note: { contentRevision: 4, id: "note-z" },
+        note: { contentKey: "source-4", id: "note-z" },
         rawText: "Cafe\u0301!",
       },
       {
         lineIndex: 4,
         normalizedText: "끝",
-        note: { contentRevision: 4, id: "note-z" },
+        note: { contentKey: "source-4", id: "note-z" },
         rawText: "끝",
       },
     ])
@@ -37,11 +37,11 @@ describe("prepareAnalysisLines", () => {
     const lines = prepareAnalysisLines([
       {
         content: "둘째\n셋째",
-        note: { contentRevision: 1, id: "note-b" },
+        note: { contentKey: "source-1", id: "note-b" },
       },
       {
         content: "첫째",
-        note: { contentRevision: 2, id: "note-a" },
+        note: { contentKey: "source-2", id: "note-a" },
       },
     ])
 

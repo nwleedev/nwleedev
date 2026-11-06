@@ -90,12 +90,12 @@ function selectedSourceLines(row: AnalysisResultRow): SelectedSourceLines {
     algorithm: row.algorithm,
     left: {
       lineIndex: row.left.lineIndex,
-      note: row.left.note,
+      note: { id: row.left.note.id },
       textSnapshot: row.left.rawText,
     },
     right: {
       lineIndex: row.right.lineIndex,
-      note: row.right.note,
+      note: { id: row.right.note.id },
       textSnapshot: row.right.rawText,
     },
   }

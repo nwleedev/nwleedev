@@ -1,4 +1,4 @@
-import type { NoteContentReference } from "@/entities/note"
+import type { AnalysisNote } from "./analysis-message"
 import type { AlgorithmReference } from "@/shared/lib/algorithm-reference"
 
 import type {
@@ -29,29 +29,29 @@ export function analysisResponseUsesAlgorithm(
 }
 
 function contentReferencesAreEqual(
-  left: readonly NoteContentReference[],
-  right: readonly NoteContentReference[],
+  left: readonly AnalysisNote[],
+  right: readonly AnalysisNote[],
 ) {
   if (left.length !== right.length) {
     return false
   }
 
-  const leftRevisionByNote = new Map(
-    left.map(({ contentRevision, id }) => [id, contentRevision]),
+  const leftKeyByNote = new Map(
+    left.map(({ contentKey, id }) => [id, contentKey]),
   )
-  const rightRevisionByNote = new Map(
-    right.map(({ contentRevision, id }) => [id, contentRevision]),
+  const rightKeyByNote = new Map(
+    right.map(({ contentKey, id }) => [id, contentKey]),
   )
 
   if (
-    leftRevisionByNote.size !== left.length ||
-    rightRevisionByNote.size !== right.length
+    leftKeyByNote.size !== left.length ||
+    rightKeyByNote.size !== right.length
   ) {
     return false
   }
 
-  return left.every(({ contentRevision, id }) =>
-    rightRevisionByNote.get(id) === contentRevision,
+  return left.every(({ contentKey, id }) =>
+    rightKeyByNote.get(id) === contentKey,
   )
 }
 
@@ -69,7 +69,7 @@ function resultLinesMatchInput(
 
     if (
       source === undefined ||
-      source.note.contentRevision !== line.note.contentRevision
+      source.note.contentKey !== line.note.contentKey
     ) {
       return false
     }
@@ -109,7 +109,7 @@ export function analysisResponseMatchesInput(
 
 export function analysisResponseIsCurrent(
   response: AnalysisResponseMessage,
-  currentNotes: readonly NoteContentReference[],
+  currentNotes: readonly AnalysisNote[],
   algorithm: AlgorithmReference,
 ) {
   if (!analysisResponseUsesAlgorithm(response, algorithm)) {

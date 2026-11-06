@@ -1,3 +1,5 @@
+import { toHexString } from "lib0/buffer"
+import { digest } from "lib0/hash/sha256"
 import { applyUpdate, createAbsolutePositionFromRelativePosition, createRelativePositionFromTypeIndex, Doc, encodeStateAsUpdate, encodeStateVector, snapshot, snapshotContainsUpdate } from "yjs"
 
 import type { Note } from "./note"
@@ -16,6 +18,11 @@ export function savedNoteBody(note: Note) {
 export function openNoteBody(note: Note) {
   const snapshot = snapshots.get(note)
   return snapshot ? new NoteBody(snapshot.bytes) : null
+}
+
+export function identifyNoteContent(note: Note) {
+  const input = savedNoteBody(note)?.bytes ?? new TextEncoder().encode(JSON.stringify(note.content))
+  return { id: note.id, contentKey: toHexString(digest(input)) }
 }
 
 export function changedNoteText(original: string, value: string) {

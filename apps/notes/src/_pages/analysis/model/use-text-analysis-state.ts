@@ -7,7 +7,7 @@ import {
   useState,
 } from "react"
 
-import type { Note, NoteReader } from "@/entities/note"
+import { identifyNoteContent, type Note, type NoteReader } from "@/entities/note"
 
 import {
   TEXT_ANALYSIS_ALGORITHM,
@@ -57,13 +57,9 @@ function createAnalysisInput(notes: readonly Note[]): AnalysisInput {
     algorithm: TEXT_ANALYSIS_ALGORITHM,
     notes: notes.map((note) => ({
       content: note.content,
-      note: { contentRevision: note.contentRevision, id: note.id },
+      note: identifyNoteContent(note),
     })),
   }
-}
-
-function contentReferences(notes: readonly Note[]) {
-  return notes.map(({ contentRevision, id }) => ({ contentRevision, id }))
 }
 
 export function useTextAnalysisState({
@@ -84,7 +80,7 @@ export function useTextAnalysisState({
     try {
       const input = createAnalysisInput(await reader.getAll())
       const response = await analyzer.analyze(input)
-      const currentNotes = await reader.getAll()
+      const currentNotes = (await reader.getAll()).map(identifyNoteContent)
 
       if (sequence.current !== runSequence) {
         return
@@ -93,7 +89,7 @@ export function useTextAnalysisState({
       if (
         !analysisResponseIsCurrent(
           response,
-          contentReferences(currentNotes),
+          currentNotes,
           TEXT_ANALYSIS_ALGORITHM,
         )
       ) {
@@ -136,7 +132,7 @@ export function useTextAnalysisState({
       const notes = await reader.getAll()
       const current = analysisResponseIsCurrent(
         currentCompleted.response,
-        contentReferences(notes),
+        notes.map(identifyNoteContent),
         TEXT_ANALYSIS_ALGORITHM,
       )
 

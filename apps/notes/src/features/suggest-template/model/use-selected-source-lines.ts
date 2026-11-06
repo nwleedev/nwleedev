@@ -1,11 +1,10 @@
 import { createContext, useContext, useState } from "react"
 
-import type { NoteContentReference } from "@/entities/note"
 import type { AlgorithmReference } from "@/shared/lib/algorithm-reference"
 
 export type SelectedSourceLine = {
   lineIndex: number
-  note: NoteContentReference
+  note: { id: string }
   textSnapshot: string
 }
 

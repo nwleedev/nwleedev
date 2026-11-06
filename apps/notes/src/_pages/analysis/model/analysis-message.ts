@@ -1,6 +1,5 @@
 import { z } from "zod"
 
-import { NoteContentReferenceSchema } from "@/entities/note"
 import { AlgorithmReferenceSchema } from "@/shared/lib/algorithm-reference"
 import { EntityIdSchema } from "@/shared/lib/entity-metadata"
 
@@ -14,17 +13,20 @@ export const TEXT_ANALYSIS_ALGORITHM = {
   version: "1",
 } as const
 
+const AnalysisNoteSchema = z.strictObject({ id: EntityIdSchema, contentKey: EntityIdSchema })
+export type AnalysisNote = z.infer<typeof AnalysisNoteSchema>
+
 export const AnalysisLineReferenceSchema = z
   .object({
     lineIndex: z.number().int().nonnegative().safe(),
-    note: NoteContentReferenceSchema,
+    note: AnalysisNoteSchema,
   })
   .strict()
 
 export const AnalysisSourceLineSchema = z
   .object({
     lineIndex: z.number().int().nonnegative().safe(),
-    note: NoteContentReferenceSchema,
+    note: AnalysisNoteSchema,
     rawText: z.string(),
   })
   .strict()
@@ -63,12 +65,12 @@ export const AnalysisPairSchema = z
 const AnalysisInputNoteSchema = z
   .object({
     content: z.string(),
-    note: NoteContentReferenceSchema,
+    note: AnalysisNoteSchema,
   })
   .strict()
 
-function noteReferenceKey(note: z.infer<typeof NoteContentReferenceSchema>) {
-  return JSON.stringify([note.id, note.contentRevision])
+function noteReferenceKey(note: z.infer<typeof AnalysisNoteSchema>) {
+  return JSON.stringify([note.id, note.contentKey])
 }
 
 export function analysisLineReferenceKey(
@@ -76,7 +78,7 @@ export function analysisLineReferenceKey(
 ) {
   return JSON.stringify([
     line.note.id,
-    line.note.contentRevision,
+    line.note.contentKey,
     line.lineIndex,
   ])
 }
@@ -104,7 +106,7 @@ export const AnalysisRequestMessageSchema = z
 export const AnalysisResponseMessageSchema = z
   .object({
     algorithm: AlgorithmReferenceSchema,
-    inputNotes: z.array(NoteContentReferenceSchema),
+    inputNotes: z.array(AnalysisNoteSchema),
     requestId: EntityIdSchema,
     results: z.array(AnalysisPairSchema),
     sourceLines: z.array(AnalysisSourceLineSchema),

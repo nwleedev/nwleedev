@@ -10,8 +10,8 @@ const algorithm = { type: "surface-v1", version: "1" } as const
 const response: AnalysisResponseMessage = {
   algorithm,
   inputNotes: [
-    { contentRevision: 2, id: "note-one" },
-    { contentRevision: 4, id: "note-two" },
+    { contentKey: "source-2", id: "note-one" },
+    { contentKey: "source-4", id: "note-two" },
   ],
   requestId: "request-one",
   results: [],
@@ -20,25 +20,25 @@ const response: AnalysisResponseMessage = {
 }
 
 describe("analysisResponseIsCurrent", () => {
-  it("accepts matching content revisions regardless of input order", () => {
+  it("accepts matching source keys regardless of input order", () => {
     expect(
       analysisResponseIsCurrent(response, [
-        { contentRevision: 4, id: "note-two" },
-        { contentRevision: 2, id: "note-one" },
+        { contentKey: "source-4", id: "note-two" },
+        { contentKey: "source-2", id: "note-one" },
       ], algorithm),
     ).toBe(true)
   })
 
-  it("rejects changed content revisions and note sets", () => {
+  it("rejects changed source keys and note sets", () => {
     expect(
       analysisResponseIsCurrent(response, [
-        { contentRevision: 3, id: "note-one" },
-        { contentRevision: 4, id: "note-two" },
+        { contentKey: "source-3", id: "note-one" },
+        { contentKey: "source-4", id: "note-two" },
       ], algorithm),
     ).toBe(false)
     expect(
       analysisResponseIsCurrent(response, [
-        { contentRevision: 2, id: "note-one" },
+        { contentKey: "source-2", id: "note-one" },
       ], algorithm),
     ).toBe(false)
   })
@@ -87,7 +87,7 @@ describe("analysisResponseIsCurrent", () => {
           ...response,
           inputNotes: [
             response.inputNotes[0],
-            { contentRevision: 1, id: "note-three" },
+            { contentKey: "source-1", id: "note-three" },
           ],
         },
         input,

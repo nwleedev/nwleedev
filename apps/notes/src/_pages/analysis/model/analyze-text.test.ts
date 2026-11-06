@@ -25,7 +25,7 @@ describe("analyzeText", () => {
       notes: [
         {
           content,
-          note: { contentRevision: 1, id: "note-one" },
+          note: { contentKey: "source-1", id: "note-one" },
         },
       ],
     })
@@ -39,7 +39,7 @@ describe("analyzeText", () => {
       notes: [
         {
           content: "Same\nsame\nSame extra",
-          note: { contentRevision: 2, id: "note-one" },
+          note: { contentKey: "source-2", id: "note-one" },
         },
       ],
     })
@@ -64,7 +64,7 @@ describe("analyzeText", () => {
       notes: [
         {
           content: "abcdef\nabcxyz\nxyz\nab\nac",
-          note: { contentRevision: 1, id: "note-one" },
+          note: { contentKey: "source-1", id: "note-one" },
         },
       ],
     })
@@ -92,7 +92,7 @@ describe("analyzeText", () => {
       notes: [
         {
           content: "abcdef\nabcxyz\nabcuvw",
-          note: { contentRevision: 1, id: "note-one" },
+          note: { contentKey: "source-1", id: "note-one" },
         },
       ],
     })
@@ -113,11 +113,11 @@ describe("analyzeText", () => {
       notes: [
         {
           content: "abcdef",
-          note: { contentRevision: 1, id: "note-b" },
+          note: { contentKey: "source-1", id: "note-b" },
         },
         {
           content: "abcxyz\nabcuvw",
-          note: { contentRevision: 1, id: "note-a" },
+          note: { contentKey: "source-1", id: "note-a" },
         },
       ],
     })
