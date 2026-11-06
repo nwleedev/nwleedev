@@ -213,11 +213,16 @@ function migratePreferences(transaction: IDBTransaction) {
   }
 }
 
-function ensureBatchCopyListStore(
+export function ensureBatchCopyListStore(
   database: IDBDatabase,
   transaction: IDBTransaction,
 ) {
   if (database.objectStoreNames.contains(BATCH_COPY_LIST_STORE_NAME)) {
+    return
+  }
+
+  if (database.objectStoreNames.contains("batchCopyLists")) {
+    transaction.objectStore("batchCopyLists").name = BATCH_COPY_LIST_STORE_NAME
     return
   }
 
@@ -234,7 +239,6 @@ export function migratePersonalNotesDatabase(
   database: IDBDatabase,
   transaction: IDBTransaction,
 ) {
-  ensureBatchCopyListStore(database, transaction)
 
   if (!database.objectStoreNames.contains(NOTE_DRAFT_STORE_NAME)) {
     database.createObjectStore(NOTE_DRAFT_STORE_NAME, {

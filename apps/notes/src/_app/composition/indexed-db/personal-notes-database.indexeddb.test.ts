@@ -562,7 +562,7 @@ describe("personal notes IndexedDB storage", () => {
         database.createObjectStore(NOTE_DRAFT_STORE_NAME, {
           keyPath: "note.id",
         })
-        database.createObjectStore(BATCH_COPY_LIST_STORE_NAME, {
+        database.createObjectStore("batchCopyLists", {
           keyPath: "id",
         })
         database.createObjectStore("mobileBatchCopyDrafts")
@@ -601,7 +601,7 @@ describe("personal notes IndexedDB storage", () => {
       [
         NOTE_STORE_NAME,
         NOTE_DRAFT_STORE_NAME,
-        BATCH_COPY_LIST_STORE_NAME,
+        "batchCopyLists",
         "mobileBatchCopyDrafts",
         USAGE_STORE_NAME,
         TEMPLATE_STORE_NAME,
@@ -613,7 +613,7 @@ describe("personal notes IndexedDB storage", () => {
 
     transaction.objectStore(NOTE_STORE_NAME).put(note)
     transaction.objectStore(NOTE_DRAFT_STORE_NAME).put(noteDraft)
-    transaction.objectStore(BATCH_COPY_LIST_STORE_NAME).put(batchCopyList)
+    transaction.objectStore("batchCopyLists").put(batchCopyList)
     transaction.objectStore("mobileBatchCopyDrafts").put(
       { id: "active" },
       "active",
@@ -628,6 +628,9 @@ describe("personal notes IndexedDB storage", () => {
     previousDatabase.close()
 
     const connection = createConnection()
+    const stores = Array.from((await connection.get()).objectStoreNames)
+    expect(stores).toContain("batches")
+    expect(stores).not.toContain("batchCopyLists")
     await expect(new IndexedDbNoteRepository(connection).getAll()).resolves
       .toEqual([note])
     await expect(

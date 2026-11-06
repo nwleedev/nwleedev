@@ -15,6 +15,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 - **1.3 리뷰 완료.** 두 탭이 서로 다른 CRDT 문서를 처음부터 만들면 같은 초기 문자열도 서로 다른 문자로 취급한다. 두 문서는 저장된 같은 기준 상태에서 시작해야 한다. 선택 범위는 현재 textarea에서 얻을 수 있고, 부분 삭제가 들어 있는 상태도 재개할 수 있어 2.1 자료 이전에 착수한다. 사용 기록의 이전 본문 구분과 저장 시각 호환은 별도로 확인한다.
 
+- **2.1 진행 중.** 일괄 복사 목록은 독립적으로 이전할 수 있어 DB v5에서 먼저 이름을 바꿨다. 이전 스키마를 여는 검사에서 세 브라우저 모두 기존 이름만 남아 실패한 뒤, 이전 및 새 연결로 목록을 읽는 저장 검사 33건이 통과했다. 다음 작업은 기준 본문과 구버전 초안, 순서, 사용 기록 및 시각 값 이전이다.
+
 ### 모든 절차의 착수 조건
 
 - 각 절차에서 코드를 열기 전에 [저장소 개발 지침](../../dev/README.md), [메모 앱 안티패턴](../../dev/personal-notes-app/anti-patterns.md), [입력 상태](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md) 중 적용할 규칙을 확인한다. 아래 파일은 `apps/notes` 기준이다. 실제 호출자와 재사용 여부를 확인하고 다음 절차에 필요한 코드를 먼저 지우지 않는다.

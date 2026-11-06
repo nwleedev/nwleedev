@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test"
 
-export async function delayNextWriteCompletion(page: Page, storeName: "notes" | "noteDrafts" | "batchCopyLists") {
+export async function delayNextWriteCompletion(page: Page, storeName: "notes" | "noteDrafts" | "batches") {
   await page.evaluate((targetStore) => {
     type DelayedWriteWindow = typeof window & { delayedWriteCommitted?: Promise<void> }
     const currentWindow = window as DelayedWriteWindow

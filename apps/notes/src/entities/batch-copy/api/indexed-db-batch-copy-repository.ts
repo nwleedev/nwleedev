@@ -10,7 +10,7 @@ import {
   type BatchCopyRepository,
 } from "../model/batch-copy-list"
 
-export const BATCH_COPY_LIST_STORE_NAME = "batchCopyLists"
+export const BATCH_COPY_LIST_STORE_NAME = "batches"
 export const PRIMARY_BATCH_COPY_LIST_ID = "primary"
 
 export class IndexedDbBatchCopyRepository

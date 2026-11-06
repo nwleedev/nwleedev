@@ -296,7 +296,7 @@ test("패널 초기화 실패 시 항목을 보존하고 재시도하면 빈 목
   await page.evaluate(() => {
     const transaction = IDBDatabase.prototype.transaction
     IDBDatabase.prototype.transaction = function (...args: Parameters<IDBDatabase["transaction"]>) {
-      if (args[0] === "batchCopyLists" && args[1] === "readwrite") {
+      if (args[0] === "batches" && args[1] === "readwrite") {
         IDBDatabase.prototype.transaction = transaction
         throw new DOMException("Controlled reset failure", "AbortError")
       }
@@ -1153,7 +1153,7 @@ test("이동 저장 중 시작한 메모 입력은 저장 완료 후에도 포�
   const { firstContent, panel, secondContent } = await createDesktopBatchCopy(page)
   const note = await createNoteThroughUi(page, "이동 저장 중 편집할 메모")
   const editor = note.getByRole("textbox", { name: "메모 내용" })
-  const write = await delayNextWriteCompletion(page, "batchCopyLists")
+  const write = await delayNextWriteCompletion(page, "batches")
   await panel.getByRole("button", { name: "1번째 일괄 복사 항목 동작" }).click()
   await page.getByRole("menu").getByRole("menuitem", { name: "아래로 이동", exact: true }).click()
   await write.waitUntilCommitted()
