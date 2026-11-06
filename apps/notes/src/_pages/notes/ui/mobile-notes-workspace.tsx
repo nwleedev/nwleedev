@@ -39,7 +39,7 @@ export function MobileNotesWorkspace({ creationPending, notes, onCreate }: Mobil
   const { forgetNote } = useNoteSession()
   const createButton = useRef<HTMLButtonElement>(null)
   const order = useMobileNoteOrder(notes)
-  const reorder = usePointerReorder({ disabled: order.pending || !order.ready, items: order.notes, onMove: order.move })
+  const reorder = usePointerReorder({ allowAddedItems: true, disabled: order.pending || !order.ready, items: order.notes, onMove: order.move })
   const actions = useMobileNoteActionSheet({ createButton, noteIds: order.noteIds, notes, onForget: forgetNote, onRemove: removeNote, onRestore: restoreNote })
   const count = batchCopy.draft?.entries.length ?? 0
   const countText = count.toLocaleString("ko-KR")

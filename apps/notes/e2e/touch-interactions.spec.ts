@@ -521,6 +521,34 @@ test("짧은 화면과 큰 글자에서도 메모 시트의 닫기와 삭제 및
 })
 
 
+test("드래그 도중 다른 창에서 만든 메모 아래에 이동한 메모가 남는다", async ({ context, page }) => {
+  await page.goto("/")
+  for (const content of ["다", "나", "가"]) await createMobileNoteThroughUi(page, content)
+  const other = await context.newPage()
+  await other.setViewportSize({ width: 1280, height: 900 })
+  await other.goto("/")
+  await expect(other.getByRole("button", { name: "새 메모" })).toBeEnabled()
+  await page.bringToFront()
+  const handle = page.getByRole("button", { name: "다 이동", exact: true })
+  const session = await context.newCDPSession(page)
+  const start = await center(handle)
+  await startTouch(session, start)
+  await moveTouch(session, { x: start.x, y: start.y - 25 })
+  await other.getByRole("button", { name: "새 메모" }).evaluate((button: HTMLButtonElement) => button.click())
+  const list = page.getByRole("list").filter({ has: handle })
+  const cards = list.getByRole("article")
+  const order = () => list.getByRole("button", { name: / 이동$/u }).evaluateAll((buttons) =>
+    buttons.map((button) => button.getAttribute("aria-label")),
+  )
+  await expect.poll(order).toEqual(["빈 메모 이동", "가 이동", "나 이동", "다 이동"])
+  await moveTouch(session, await center(cards.filter({ has: page.getByRole("button", { name: "가 이동", exact: true }) }), 0.2))
+  await endTouch(session)
+  const expected = ["빈 메모 이동", "다 이동", "가 이동", "나 이동"]
+  await expect.poll(order).toEqual(expected)
+  await page.reload()
+  await expect.poll(order).toEqual(expected)
+})
+
 test("다른 탭의 순서 저장과 충돌하면 최신 순서를 보여주고 다시 이동한다", async ({ context, page }) => {
   await page.goto("/")
   const contents = Array.from({ length: 4 }, (_, index) => `탭 정렬 ${index + 1} ${crypto.randomUUID()}`)

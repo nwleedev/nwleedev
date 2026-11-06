@@ -53,6 +53,7 @@ function createStorage(initialNote: Note, rejectFirstSave = true) {
       storedNote = note
       return note
     },
+    async get(id) { return (await this.getAll()).find((record) => record.id === id) ?? null },
     saveEdit(_original, edited) { return this.save(edited) },
     saveAll: async (records) => records,
   }

@@ -41,6 +41,17 @@ test("메모 작성, 자동 저장, 새로고침과 삭제 복원을 같은 순�
   ).toHaveValue(revisedContent)
 })
 
+test("서로 다른 창에서 만든 메모가 양쪽 목록에 새로고침 없이 나타난다", async ({ page, context }) => {
+  const other = await context.newPage()
+  await other.goto("/")
+  const create = { name: "새 메모" }
+  await expect(other.getByRole("button", create)).toBeVisible()
+  await Promise.all([page.getByRole("button", create).click(), other.getByRole("button", create).click()])
+  const cards = { name: "메모", exact: true }
+  await expect(page.getByRole("article", cards)).toHaveCount(2)
+  await expect(other.getByRole("article", cards)).toHaveCount(2)
+})
+
 test("두 편집기에서 앞과 뒤를 수정한 뒤 새로 연 메모에는 두 입력이 모두 남는다", async ({ page, context }) => {
   await createNoteThroughUi(page, "가나다")
   const second = await context.newPage()

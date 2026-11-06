@@ -153,6 +153,7 @@ function createRepository(
     },
     remove: async () => undefined,
     save: async (note) => note,
+    async get(id) { return (await this.getAll()).find((record) => record.id === id) ?? null },
     saveEdit(_original, edited) { return this.save(edited) },
     saveAll: async (notes) => notes,
   }
@@ -191,6 +192,7 @@ function createDelayedSaveRepository(note: Note) {
 
       return nextNote
     },
+    async get(id) { return (await this.getAll()).find((record) => record.id === id) ?? null },
     saveEdit(_original, edited) { return this.save(edited) },
     saveAll: async (notes) => notes,
   }

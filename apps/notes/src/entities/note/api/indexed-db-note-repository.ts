@@ -67,6 +67,21 @@ export class IndexedDbNoteRepository implements NoteRepository {
     return note
   }
 
+  async get(noteId: string) {
+    const database = await this.#connection.get()
+    const transaction = database.transaction([NOTE_STORE_NAME, "updates"])
+    const completion = waitForTransaction(transaction)
+    try {
+      const value: unknown = await readRequest(transaction.objectStore(NOTE_STORE_NAME).get(noteId))
+      const note = value === undefined ? null : await this.#readNote(value, transaction.objectStore("updates"))
+      await completion
+      return note
+    } catch (error) {
+      await abortTransaction(transaction, completion)
+      throw error
+    }
+  }
+
   async readBody(noteId: string) {
     return this.#loadBody(noteId, false)
   }

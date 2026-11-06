@@ -16,9 +16,11 @@ type Session = {
   target: HTMLButtonElement
   x: number
   y: number
+  originalIds: ReadonlySet<string>
   state: ReturnType<typeof createReorderPointerSession>
 }
 type PointerReorderOptions = {
+  allowAddedItems?: boolean
   disabled: boolean
   items: readonly { id: string }[]
   onMove(itemId: string, index: number, visibleIds: readonly string[]): Promise<boolean>
@@ -33,10 +35,10 @@ function scrollContainer(element: HTMLElement) {
   return element
 }
 
-function indexAtPoint(list: HTMLOListElement, x: number, y: number, sourceIndex: number) {
+function indexAtPoint(list: HTMLOListElement, x: number, y: number, sourceIndex: number, originalIds: ReadonlySet<string>) {
   const hit = document.elementFromPoint(x, y)
   if (hit === null || !list.contains(hit)) return null
-  const rows = Array.from(list.querySelectorAll<HTMLElement>("[data-reorder-id]"))
+  const rows = Array.from(list.querySelectorAll<HTMLElement>("[data-reorder-id]")).filter((row) => originalIds.has(row.dataset.reorderId ?? ""))
   let slot = rows.length
   for (const [index, row] of rows.entries()) {
     const bounds = row.getBoundingClientRect()
@@ -48,7 +50,7 @@ function indexAtPoint(list: HTMLOListElement, x: number, y: number, sourceIndex:
   return slot > sourceIndex ? slot - 1 : slot
 }
 
-export function usePointerReorder({ disabled, items, onMove }: PointerReorderOptions) {
+export function usePointerReorder({ disabled, items, onMove, allowAddedItems = false }: PointerReorderOptions) {
   const list = useRef<HTMLOListElement>(null)
   const session = useRef<Session | null>(null)
   const handles = useRef(new Map<string, HTMLButtonElement>())
@@ -72,7 +74,7 @@ export function usePointerReorder({ disabled, items, onMove }: PointerReorderOpt
     current.state = advanceReorderPointerSession(current.state, {
       clientX: current.x,
       clientY: current.y,
-      targetIndex: indexAtPoint(element, current.x, current.y, current.state.originalIndex),
+      targetIndex: indexAtPoint(element, current.x, current.y, current.state.originalIndex, current.originalIds),
     })
     if (!current.state.active) return
     if (current.preview === null) {
@@ -95,9 +97,14 @@ export function usePointerReorder({ disabled, items, onMove }: PointerReorderOpt
     if (current.preview !== null) {
       current.preview.style.transform = `translate(${current.x - current.offsetX}px, ${current.y - current.offsetY}px)`
     }
-    const next = { entryId: current.state.itemId, sourceIndex: current.state.originalIndex, targetIndex: current.state.targetIndex }
+    const targetId = current.state.targetIndex === null ? null : current.state.snapshot.itemIds[current.state.targetIndex]
+    const next = {
+      entryId: current.state.itemId,
+      sourceIndex: items.findIndex(({ id }) => id === current.state.itemId),
+      targetIndex: targetId === null ? null : items.findIndex(({ id }) => id === targetId),
+    }
     setDrag((previous) => {
-      if (previous?.entryId === next.entryId && previous.targetIndex === next.targetIndex) return previous
+      if (previous?.entryId === next.entryId && previous.targetIndex === next.targetIndex && previous.sourceIndex === next.sourceIndex) return previous
       return next
     })
   }
@@ -143,7 +150,8 @@ export function usePointerReorder({ disabled, items, onMove }: PointerReorderOpt
     if (current === null) return
     const ids = items.map(({ id }) => id)
     const original = current.state.snapshot.itemIds
-    const changed = ids.length !== original.length || ids.some((id, index) => id !== original[index])
+    const retained = allowAddedItems ? ids.filter((id) => current.originalIds.has(id)) : ids
+    const changed = retained.length !== original.length || retained.some((id, index) => id !== original[index])
     if (disabled || changed) clearSession(true)
   })
   useEffect(() => { cancelChangedItems() }, [disabled, items])
@@ -161,7 +169,9 @@ export function usePointerReorder({ disabled, items, onMove }: PointerReorderOpt
     clearSession(true)
     const bounds = card.getBoundingClientRect()
     const threshold = event.pointerType === "touch" ? 10 : 5
+    const itemIds = items.map(({ id }) => id)
     session.current = {
+      originalIds: new Set(itemIds),
       card,
       preview: null,
       offsetX: event.clientX - bounds.left,
@@ -172,7 +182,7 @@ export function usePointerReorder({ disabled, items, onMove }: PointerReorderOpt
       target: event.currentTarget,
       x: event.clientX,
       y: event.clientY,
-      state: createReorderPointerSession({ focusItemId: id, itemId: id, itemIds: items.map(({ id }) => id), pointerId: event.pointerId, selectedItemId: null, startX: event.clientX, startY: event.clientY, threshold }),
+      state: createReorderPointerSession({ focusItemId: id, itemId: id, itemIds, pointerId: event.pointerId, selectedItemId: null, startX: event.clientX, startY: event.clientY, threshold }),
     }
     event.currentTarget.setPointerCapture(event.pointerId)
   }

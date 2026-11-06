@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 
-import { reconcileMobileNoteIds, type Note, type MobileNoteOrder } from "@/entities/note"
+import { type Note, type MobileNoteOrder } from "@/entities/note"
 
 import { useNotesData } from "./notes-data-provider"
 
@@ -29,8 +29,10 @@ export function useMobileNoteOrder(notes: readonly Note[]) {
     return () => { active = false }
   }, [notes, readAttempt, readMobileOrder])
 
-  const noteIds = reconcileMobileNoteIds(order?.ids ?? [], notes.map(({ id }) => id))
   const notesById = new Map(notes.map((note) => [note.id, note]))
+  const known = new Set(order?.ids)
+  const added = notes.filter(({ id }) => !known.has(id)).map(({ id }) => id).reverse()
+  const noteIds = [...added, ...[...known].filter((id) => notesById.has(id))]
   const orderedNotes = noteIds.flatMap((id) => {
     const note = notesById.get(id)
     return note === undefined ? [] : [note]

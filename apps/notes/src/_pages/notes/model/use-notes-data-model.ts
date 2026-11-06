@@ -25,6 +25,8 @@ import {
   type MoveMobileNoteResult,
 } from "@/entities/note"
 import type { IndividualCopyUsageWriter } from "@/entities/usage"
+import { z } from "zod"
+import { EntityIdSchema } from "@/shared/lib/entity-metadata"
 import type { ClipboardWriter } from "@/shared/lib/clipboard"
 
 import type { NoteStorageMonitor } from "./note-storage-monitor"
@@ -36,6 +38,9 @@ import {
   saveNoteContent as executeSaveNoteContent,
   type SaveNoteContentResult,
 } from "./save-note-content"
+
+const NOTE_CHANNEL_NAME = "personal-notes-changes"
+const NoteChangeSchema = z.object({ type: z.literal("created"), noteId: EntityIdSchema })
 
 type NoteDraftContent = Readonly<Record<string, string>>
 
@@ -130,6 +135,7 @@ export function useNotesDataModel({
 }: NotesDataDependencies) {
   const [state, setState] = useState<NotesDataState>({ status: "loading" })
   const readSequence = useRef(0)
+  const changes = useRef<BroadcastChannel | null>(null)
   const availableNotesReference = useRef<readonly Note[]>([])
   const draftContentReference = useRef<NoteDraftContent>({})
   const mutationQueue = useRef<Promise<void>>(Promise.resolve())
@@ -168,7 +174,8 @@ export function useNotesDataModel({
       readSequence.current += 1
       setState({ status: event })
     })
-    void readNotes(repository, drafts).then((nextState) => {
+    void enqueue(async () => {
+      const nextState = await readNotes(repository, drafts)
       if (active && readSequence.current === sequence) {
         if (nextState.status === "empty" || nextState.status === "ready") {
           availableNotesReference.current = nextState.notes
@@ -179,11 +186,26 @@ export function useNotesDataModel({
       }
     })
 
+    const channel = new BroadcastChannel(NOTE_CHANNEL_NAME)
+    changes.current = channel
+    channel.onmessage = ({ data }: MessageEvent<unknown>) => {
+      const message = NoteChangeSchema.safeParse(data)
+      if (!message.success) return
+      const { noteId } = message.data
+      void enqueue(async () => {
+        if (!active || availableNotesReference.current.some((note) => note.id === noteId)) return
+        const note = await repository.get(noteId)
+        if (active && note) publishAvailable([...availableNotesReference.current, note], draftContentReference.current)
+      }).catch(() => undefined)
+    }
+
     return () => {
       active = false
+      changes.current = null
+      channel.close()
       unsubscribe()
     }
-  }, [drafts, repository, storageMonitor])
+  }, [drafts, publishAvailable, repository, storageMonitor])
 
   function retry() {
     const sequence = ++readSequence.current
@@ -220,6 +242,7 @@ export function useNotesDataModel({
         [...availableNotesReference.current, savedNote],
         draftContentReference.current,
       )
+      changes.current?.postMessage({ type: "created", noteId: savedNote.id })
       return savedNote
     })
   }
