@@ -150,6 +150,23 @@ describe("메모 저장소 모델", () => {
     expect((await new IndexedDbNoteRepository(createConnection()).get(note.id))?.content).toBe(note.content + "가".repeat(edits))
   })
 
+  it("오래 열린 카드의 위치를 옮겨도 다른 창의 크기와 본문이 남고 삭제된 카드는 되살리지 않는다", async () => {
+    const first = new IndexedDbNoteRepository(createConnection())
+    const second = new IndexedDbNoteRepository(createConnection())
+    const opened = await first.save(note)
+    const resized = await second.saveGeometry(opened, { ...opened.geometry, width: 540 }, timestamp)
+    assert(resized)
+    await second.saveEdit(resized, reviseNote(resized, { content: "저장된 변경", updatedAt: timestamp }))
+    const moved = await first.saveGeometry(opened, { ...opened.geometry, x: 140 }, timestamp)
+    expect(moved).toMatchObject({ content: "저장된 변경", geometry: { x: 140, width: 540 } })
+    const deleted = await second.remove(opened)
+    assert(deleted)
+    await expect(first.saveGeometry(opened, opened.geometry, timestamp)).resolves.toBeNull()
+    await second.restore(deleted)
+    await expect(first.saveGeometry(opened, opened.geometry, timestamp)).resolves.toBeNull()
+    expect((await second.get(note.id))?.geometry).toMatchObject({ x: 140, width: 540 })
+  })
+
   it("두 창이 같은 본문에서 편집하고 정리 도중 들어온 변경도 새 연결에서 읽는다", async () => {
     const first = new IndexedDbNoteRepository(createConnection())
     const second = new IndexedDbNoteRepository(createConnection())

@@ -36,7 +36,7 @@ export function useNoteCardActions(
     restoreNote,
     readMobileOrder,
     saveContent,
-    updateNote,
+    saveGeometry: storeGeometry,
   } = useNotesData()
   const session = useNoteSession()
   const {
@@ -102,7 +102,7 @@ export function useNoteCardActions(
   }
 
   async function saveGeometry(note: Note, geometry: NoteGeometry) {
-    const savedNote = await updateNote(note, { geometry })
+    const savedNote = await storeGeometry(note, geometry)
 
     session.confirmPropertiesTarget(
       createNoteReference(note),

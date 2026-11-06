@@ -29,6 +29,7 @@ export type NoteResizeDirection =
   | "west"
 
 type GeometryGesture = {
+  original: Note
   action: "move" | NoteResizeDirection
   geometry: NoteGeometry
   moved: boolean
@@ -200,6 +201,7 @@ export function useNoteGeometryGesture({
 
     event.preventDefault()
     gesture.current = {
+      original: note,
       action,
       geometry,
       moved: false,
@@ -259,11 +261,11 @@ export function useNoteGeometryGesture({
     }
   }
 
-  async function persist(nextGeometry: NoteGeometry) {
+  async function persist(original: Note, nextGeometry: NoteGeometry) {
     setSaving(true)
 
     try {
-      await onSave(note, nextGeometry)
+      await onSave(original, nextGeometry)
     } catch {
       onFailure("메모 위치와 크기를 저장하지 못했습니다. 다시 시도하세요.")
     } finally {
@@ -295,7 +297,7 @@ export function useNoteGeometryGesture({
     releasePointer(event)
     suppressClickSequence()
     setPreview(nextGeometry)
-    void persist(nextGeometry)
+    void persist(current.original, nextGeometry)
   }
 
   function cancel(event: ReactPointerEvent<HTMLElement>) {

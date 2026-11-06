@@ -2,15 +2,20 @@ import { applyUpdate, createAbsolutePositionFromRelativePosition, createRelative
 
 import type { Note } from "./note"
 
-const snapshots = new WeakMap<Note, Uint8Array>()
+type StoredBody = { bytes: Uint8Array; restoration?: string }
+const snapshots = new WeakMap<Note, StoredBody>()
 
-export function rememberNoteBody(note: Note, snapshot: Uint8Array) {
+export function rememberNoteBody(note: Note, snapshot: StoredBody) {
   snapshots.set(note, snapshot)
+}
+
+export function savedNoteBody(note: Note) {
+  return snapshots.get(note)
 }
 
 export function openNoteBody(note: Note) {
   const snapshot = snapshots.get(note)
-  return snapshot ? new NoteBody(snapshot) : null
+  return snapshot ? new NoteBody(snapshot.bytes) : null
 }
 
 export function changedNoteText(original: string, value: string) {

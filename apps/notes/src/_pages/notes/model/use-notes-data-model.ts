@@ -12,7 +12,6 @@ import {
   findNewNoteGeometry,
   isRecoverableNoteDraft,
   nextNoteTabIndex,
-  reviseNote,
   sendNoteToBack,
   sendNoteToFront,
   type Note,
@@ -72,9 +71,9 @@ type NotesDataContextValue = NotesDataState & {
   saveContent(note: Note, content: string): Promise<SaveNoteContentResult>
   saveDraft(noteId: string, content: string): Promise<void>
   discardDraft(noteId: string): Promise<void>
-  updateNote(
+  saveGeometry(
     note: Note,
-    change: { content?: string; geometry?: NoteGeometry },
+    geometry: NoteGeometry,
   ): Promise<Note>
 }
 
@@ -374,21 +373,11 @@ export function useNotesDataModel({
     })
   }
 
-  async function updateNote(
-    note: Note,
-    change: { content?: string; geometry?: NoteGeometry },
-  ) {
+  async function saveGeometry(note: Note, geometry: NoteGeometry) {
     return enqueue(async () => {
-      const currentNote = availableNotesReference.current.find(
-        ({ id }) => id === note.id,
-      )
-
-      if (currentNote === undefined) {
-        throw new Error("Cannot update a missing note")
-      }
-
-      const nextNote = reviseNote(currentNote, { ...change, updatedAt: now() })
-      const savedNote = await repository.save(nextNote)
+      const savedNote = await repository.saveGeometry(note, geometry, now())
+      if (!savedNote) throw new Error("Cannot move a deleted note")
+      changes.current?.postMessage({ type: "edited", noteId: note.id })
       const nextNotes = availableNotesReference.current.map((current) =>
         current.id === savedNote.id ? savedNote : current,
       )
@@ -469,7 +458,7 @@ export function useNotesDataModel({
     saveContent,
     saveDraft,
     discardDraft,
-    updateNote,
+    saveGeometry,
   }
 }
 

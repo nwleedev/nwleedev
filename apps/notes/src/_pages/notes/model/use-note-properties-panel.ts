@@ -172,7 +172,7 @@ export function useNotePropertiesPanel() {
     const expectedReference = session.workspace.propertiesTarget
     setPending(true)
     const operation = notesData
-      .updateNote(note, { geometry: result.geometry })
+      .saveGeometry(note, result.geometry)
       .then((savedNote) => {
         if (expectedReference !== null) {
           session.confirmPropertiesTarget(

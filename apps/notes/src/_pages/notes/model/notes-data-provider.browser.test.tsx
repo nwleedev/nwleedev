@@ -157,6 +157,7 @@ function createRepository(
     restore(note) { return this.save(note) },
     save: async (note) => note,
     async get(id) { return (await this.getAll()).find((record) => record.id === id) ?? null },
+    saveGeometry(note, geometry, updatedAt) { return this.save({ ...note, geometry, updatedAt }) },
     saveEdit(_original, edited) { return this.save(edited) },
     saveAll: async (notes) => notes,
   }
@@ -199,6 +200,7 @@ function createDelayedSaveRepository(note: Note) {
       return nextNote
     },
     async get(id) { return (await this.getAll()).find((record) => record.id === id) ?? null },
+    saveGeometry(note, geometry, updatedAt) { return this.save({ ...note, geometry, updatedAt }) },
     saveEdit(_original, edited) { return this.save(edited) },
     saveAll: async (notes) => notes,
   }

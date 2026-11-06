@@ -1,6 +1,6 @@
 import { toTimestamp, RevisionSchema } from "@/shared/lib/entity-metadata"
 
-import { NoteBody, openNoteBody, rememberNoteBody } from "../model/note-body"
+import { NoteBody, openNoteBody, rememberNoteBody, savedNoteBody } from "../model/note-body"
 import {
   abortTransaction,
   readRequest,
@@ -10,6 +10,8 @@ import {
 
 import {
   parseNoteRecord,
+  reviseNote,
+  type NoteGeometry,
   type Note,
   type NoteReference,
   type NoteRepository,
@@ -66,7 +68,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
       createdAt: new Date(record.createdAt).toISOString(),
       updatedAt: new Date(record.updatedAt).toISOString(),
     })
-    rememberNoteBody(note, body.snapshot())
+    rememberNoteBody(note, { bytes: body.snapshot(), restoration: body.restoration })
     return note
   }
 
@@ -230,6 +232,43 @@ export class IndexedDbNoteRepository implements NoteRepository {
     }
   }
 
+  async saveGeometry(original: Note, geometry: NoteGeometry, updatedAt: string) {
+    const database = await this.#connection.get()
+    const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
+    const completion = waitForTransaction(transaction)
+    try {
+      const notes = transaction.objectStore(NOTE_STORE_NAME)
+      const value: unknown = await readRequest(notes.get(original.id))
+      if (value === undefined || isRemoved(value)) {
+        await completion
+        return null
+      }
+      const record = StoredNoteSchema.parse(value)
+      const current = await this.#readNote(record, transaction.objectStore("updates"))
+      const opened = savedNoteBody(original)
+      const body = savedNoteBody(current)
+      if (!opened || !body || opened.restoration !== body.restoration) {
+        await completion
+        return null
+      }
+      const merged = { ...current.geometry }
+      for (const field of ["x", "y", "width", "height", "zIndex"] as const) {
+        if (geometry[field] !== original.geometry[field]) merged[field] = geometry[field]
+      }
+      const saved = reviseNote(current, { geometry: merged, updatedAt })
+      if (saved !== current) {
+        const next = storeNote(parseNoteRecord(saved), record.position, record)
+        notes.put(next)
+        rememberNoteBody(saved, body)
+      }
+      await completion
+      return saved
+    } catch (error) {
+      await abortTransaction(transaction, completion)
+      throw error
+    }
+  }
+
   async saveEdit(original: Note, edited: Note) {
     let change = this.#pendingEdits.get(original)
     if (!change || change.text !== edited.content) {
@@ -247,7 +286,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
     const stored = await this.#writeUpdate(change.update, edited.updatedAt, change.restoration)
     if (!stored) return null
     const saved = { ...edited, revision: stored.revision, contentRevision: stored.contentRevision }
-    rememberNoteBody(saved, change.snapshot)
+    rememberNoteBody(saved, { bytes: change.snapshot, restoration: change.restoration })
     this.#pendingEdits.delete(original)
     return saved
   }

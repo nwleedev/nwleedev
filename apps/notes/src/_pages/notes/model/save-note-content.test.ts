@@ -69,6 +69,7 @@ function createStorage(options: {
       return nextNote
     },
     async get(id) { return (await this.getAll()).find((record) => record.id === id) ?? null },
+    saveGeometry(note, geometry, updatedAt) { return this.save({ ...note, geometry, updatedAt }) },
     saveEdit(_original, edited) { return this.save(edited) },
     saveAll: async (nextNotes) => nextNotes,
   }
