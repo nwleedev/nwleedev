@@ -4,7 +4,7 @@ import {
   PRIMARY_BATCH_COPY_LIST_ID,
   type BatchCopyItem,
 } from "@/entities/batch-copy"
-import { BATCH_COPY_LIST_STORE_NAME, readStoredBatch, storeBatch } from "@/entities/batch-copy/index.browser"
+import { BATCH_COPY_LIST_STORE_NAME } from "@/entities/batch-copy/index.browser"
 import {
   countTextCopy,
   USAGE_STORE_NAME,
@@ -55,7 +55,7 @@ export class IndexedDbBatchCopyItemWriter implements BatchCopyItemWriter {
           updatedAt: item.addedAt,
         }),
       ])
-      const currentList = storedList === undefined ? null : readStoredBatch(storedList)
+      const currentList = storedList === undefined ? null : BatchCopyListSchema.parse(storedList)
       const list = BatchCopyListSchema.parse(
         currentList === null
           ? {
@@ -74,7 +74,7 @@ export class IndexedDbBatchCopyItemWriter implements BatchCopyItemWriter {
               updatedAt: item.addedAt,
             },
       )
-      listStore.put(storeBatch(list))
+      listStore.put(list)
       await completion
       return list
     } catch (error) {

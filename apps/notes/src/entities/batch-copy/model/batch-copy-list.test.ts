@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import { BatchCopyListSchema } from "./batch-copy-list"
 
 const firstItem = {
-  addedAt: "2026-09-02T03:00:00.000Z",
+  addedAt: Date.parse("2026-09-02T03:00:00.000Z"),
   id: "batch-item-1",
   sourceNote: { contentRevision: 2, id: "note-1" },
   textSnapshot: "첫 번째 문장",
@@ -13,7 +13,7 @@ const list = {
   content: { items: [firstItem], separator: "\n" },
   id: "primary",
   revision: 1,
-  updatedAt: "2026-09-02T03:00:00.000Z",
+  updatedAt: Date.parse("2026-09-02T03:00:00.000Z"),
 }
 
 describe("일괄 복사 목록 record", () => {

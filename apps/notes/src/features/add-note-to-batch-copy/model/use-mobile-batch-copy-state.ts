@@ -31,7 +31,7 @@ type MobileBatchCopyContextValue = {
 export type MobileBatchCopyDependencies = {
   clipboard: ClipboardWriter
   createId(): string
-  now(): string
+  now(): number
   reorderButtonsEnabled: boolean
   writer: MobileBatchCopyUsageWriter
 }

@@ -14,7 +14,7 @@ export function useBatchCopyServices(database: PersonalNotesDatabase) {
     return {
       clipboard: new BrowserClipboardWriter(),
       createId: () => identifiers.create(),
-      now: () => new Date().toISOString(),
+      now: Date.now,
       repository: new IndexedDbBatchCopyRepository(database),
       writer: new IndexedDbBatchCopyItemWriter(database, identifiers),
     }

@@ -10,7 +10,7 @@ export function useUsageRepository(database: PersonalNotesDatabase) {
     () => new IndexedDbUsageRepository(
       database,
       new CryptoEntityIdGenerator(),
-      () => new Date().toISOString(),
+      Date.now,
     ),
   )
 

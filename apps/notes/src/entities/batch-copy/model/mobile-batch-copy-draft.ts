@@ -10,13 +10,13 @@ export type MobileBatchCopyEntry = {
 export type MobileBatchCopyDraft = {
   entries: MobileBatchCopyEntry[]
   id: string
-  startedAt: string
-  updatedAt: string
+  startedAt: number
+  updatedAt: number
 }
 
 export function beginMobileBatchCopy(input: {
   id: string
-  startedAt: string
+  startedAt: number
 }): MobileBatchCopyDraft {
   return {
     entries: [],
@@ -29,7 +29,7 @@ export function beginMobileBatchCopy(input: {
 export function addMobileBatchCopyEntry(
   draft: MobileBatchCopyDraft,
   entry: MobileBatchCopyEntry,
-  updatedAt: string,
+  updatedAt: number,
 ): MobileBatchCopyDraft {
   return {
     ...draft,
@@ -40,7 +40,7 @@ export function addMobileBatchCopyEntry(
 
 export function resetMobileBatchCopy(
   draft: MobileBatchCopyDraft,
-  updatedAt: string,
+  updatedAt: number,
 ): MobileBatchCopyDraft {
   if (draft.entries.length === 0) {
     return draft
@@ -53,7 +53,7 @@ export function moveMobileBatchCopyEntry(
   draft: MobileBatchCopyDraft,
   entryId: string,
   requestedIndex: number,
-  updatedAt: string,
+  updatedAt: number,
 ): MobileBatchCopyDraft {
   const currentIndex = draft.entries.findIndex(({ id }) => id === entryId)
 
@@ -83,7 +83,7 @@ export function duplicateMobileBatchCopyEntry(
   draft: MobileBatchCopyDraft,
   entryId: string,
   duplicateId: string,
-  updatedAt: string,
+  updatedAt: number,
 ): MobileBatchCopyDraft {
   const entryIndex = draft.entries.findIndex(({ id }) => id === entryId)
   const duplicateIdIsValid = EntityIdSchema.safeParse(duplicateId).success
@@ -107,7 +107,7 @@ export function duplicateMobileBatchCopyEntry(
 export function removeMobileBatchCopyEntry(
   draft: MobileBatchCopyDraft,
   entryId: string,
-  updatedAt: string,
+  updatedAt: number,
 ): MobileBatchCopyDraft {
   const entries = draft.entries.filter(({ id }) => id !== entryId)
 

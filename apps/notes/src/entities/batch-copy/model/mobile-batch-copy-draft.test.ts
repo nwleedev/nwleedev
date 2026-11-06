@@ -7,8 +7,8 @@ function entry(textSnapshot: string): MobileBatchCopyEntry {
 }
 
 function draftWith(entries: readonly MobileBatchCopyEntry[]) {
-  let draft = beginMobileBatchCopy({ id: crypto.randomUUID(), startedAt: new Date().toISOString() })
-  for (const value of entries) draft = addMobileBatchCopyEntry(draft, value, new Date().toISOString())
+  let draft = beginMobileBatchCopy({ id: crypto.randomUUID(), startedAt: Date.now() })
+  for (const value of entries) draft = addMobileBatchCopyEntry(draft, value, Date.now())
   return draft
 }
 
@@ -17,7 +17,7 @@ describe("모바일 일괄 복사 작업 사본", () => {
     const first = entry("  같은 원문\n다음 줄  ")
     const second = { ...first, id: crypto.randomUUID() }
     const draft = draftWith([first])
-    const added = addMobileBatchCopyEntry(draft, second, new Date().toISOString())
+    const added = addMobileBatchCopyEntry(draft, second, Date.now())
     expect(added.entries).toEqual([first, second])
     expect(draft.entries).toEqual([first])
   })
@@ -26,7 +26,7 @@ describe("모바일 일괄 복사 작업 사본", () => {
     const first = entry("첫 원문")
     const second = entry("다른 원문")
     const copyId = crypto.randomUUID()
-    const now = new Date().toISOString()
+    const now = Date.now()
     const duplicated = duplicateMobileBatchCopyEntry(draftWith([first]), first.id, copyId, now)
     expect(duplicated.entries).toEqual([first, { ...first, id: copyId }])
     const removed = removeMobileBatchCopyEntry(duplicated, first.id, now)
@@ -38,10 +38,10 @@ describe("모바일 일괄 복사 작업 사본", () => {
     const original = entry("초기화할 원문")
     const next = entry("다시 추가할 원문")
     const draft = draftWith([original])
-    const reset = resetMobileBatchCopy(draft, new Date().toISOString())
+    const reset = resetMobileBatchCopy(draft, Date.now())
     expect(reset.entries).toEqual([])
     expect(reset.id).toBe(draft.id)
-    expect(addMobileBatchCopyEntry(reset, next, new Date().toISOString()).entries).toEqual([next])
+    expect(addMobileBatchCopyEntry(reset, next, Date.now()).entries).toEqual([next])
   })
 
   it("네 항목의 비인접 앞뒤 삽입은 중간 항목의 상대 순서를 유지한다", () => {
@@ -50,7 +50,7 @@ describe("모바일 일괄 복사 작업 사본", () => {
     const c = entry("C")
     const d = entry("D")
     const draft = draftWith([a, b, c, d])
-    const now = new Date().toISOString()
+    const now = Date.now()
     expect(moveMobileBatchCopyEntry(draft, a.id, 3, now).entries).toEqual([b, c, d, a])
     expect(moveMobileBatchCopyEntry(draft, a.id, 2, now).entries).toEqual([b, c, a, d])
     expect(draft.entries).toEqual([a, b, c, d])
@@ -60,7 +60,7 @@ describe("모바일 일괄 복사 작업 사본", () => {
     const first = entry("반복할 원문")
     const second = { ...first, id: crypto.randomUUID() }
     const draft = draftWith([first, second])
-    expect(removeMobileBatchCopyEntry(draft, first.id, new Date().toISOString()).entries).toEqual([second])
+    expect(removeMobileBatchCopyEntry(draft, first.id, Date.now()).entries).toEqual([second])
     expect(draft.entries).toEqual([first, second])
   })
 })

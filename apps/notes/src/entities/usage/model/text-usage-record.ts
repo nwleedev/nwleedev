@@ -3,7 +3,7 @@ import { z } from "zod"
 import type { NoteContentReference } from "@/entities/note/@x/usage"
 import {
   EntityIdSchema,
-  IsoDateTimeSchema,
+  TimestampSchema,
   RevisionSchema,
 } from "@/shared/lib/entity-metadata"
 
@@ -27,7 +27,7 @@ export const TextUsageRecordSchema = z
     id: EntityIdSchema,
     note: UsedNoteSchema,
     textSnapshot: z.string(),
-    updatedAt: IsoDateTimeSchema,
+    updatedAt: TimestampSchema,
   })
   .strict()
 

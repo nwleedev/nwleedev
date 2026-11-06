@@ -3,22 +3,22 @@ import { z } from "zod"
 import type { NoteContentReference } from "@/entities/note/@x/batch-copy"
 import {
   EntityIdSchema,
-  IsoDateTimeSchema,
+  TimestampSchema,
   RevisionSchema,
 } from "@/shared/lib/entity-metadata"
 
-const SourceNoteSchema: z.ZodType<NoteContentReference> = z
+const SourceNoteSchema = z
   .object({
     contentRevision: RevisionSchema,
     id: EntityIdSchema,
   })
-  .strict()
+  .strict() satisfies z.ZodType<NoteContentReference>
 
 export const PRIMARY_BATCH_COPY_LIST_ID = "primary"
 
 export const BatchCopyItemSchema = z
   .object({
-    addedAt: IsoDateTimeSchema,
+    addedAt: TimestampSchema,
     id: EntityIdSchema,
     sourceNote: SourceNoteSchema,
     textSnapshot: z.string(),
@@ -48,7 +48,7 @@ export const BatchCopyListSchema = z
     content: BatchCopyContentSchema,
     id: EntityIdSchema,
     revision: RevisionSchema,
-    updatedAt: IsoDateTimeSchema,
+    updatedAt: TimestampSchema,
   })
   .strict()
 

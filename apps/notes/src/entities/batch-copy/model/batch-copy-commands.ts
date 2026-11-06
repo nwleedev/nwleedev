@@ -46,7 +46,7 @@ function nextRevision(revision: Revision) {
 function reviseBatchCopyList(
   list: BatchCopyList,
   items: readonly BatchCopyItem[],
-  updatedAt: string,
+  updatedAt: number,
 ): BatchCopyList {
   return {
     ...list,
@@ -56,7 +56,7 @@ function reviseBatchCopyList(
   }
 }
 
-export function clearBatchCopyList(list: BatchCopyList, updatedAt: string) {
+export function clearBatchCopyList(list: BatchCopyList, updatedAt: number) {
   if (list.content.items.length === 0) return null
   return reviseBatchCopyList(list, [], updatedAt)
 }
@@ -71,7 +71,7 @@ export function moveBatchCopyItem(
   list: BatchCopyList,
   itemId: string,
   requestedIndex: number,
-  updatedAt: string,
+  updatedAt: number,
 ) {
   const currentIndex = list.content.items.findIndex(({ id }) => id === itemId)
 
@@ -101,7 +101,7 @@ export function duplicateBatchCopyItem(
   list: BatchCopyList,
   itemId: string,
   duplicateId: string,
-  updatedAt: string,
+  updatedAt: number,
 ) {
   const itemIndex = list.content.items.findIndex(({ id }) => id === itemId)
   const duplicateExists = list.content.items.some(({ id }) => id === duplicateId)
@@ -120,7 +120,7 @@ export function duplicateBatchCopyItem(
 export function removeBatchCopyItem(
   list: BatchCopyList,
   itemId: string,
-  updatedAt: string,
+  updatedAt: number,
 ): RemovedBatchCopyItem | null {
   const index = list.content.items.findIndex(({ id }) => id === itemId)
 
@@ -146,7 +146,7 @@ export function restoreBatchCopyItem(
   list: BatchCopyList,
   item: BatchCopyItem,
   requestedIndex: number,
-  updatedAt: string,
+  updatedAt: number,
 ) {
   const duplicate = list.content.items.some(({ id }) => id === item.id)
 

@@ -38,7 +38,7 @@ class InMemoryBatchCopyItemWriter implements BatchCopyItemWriter {
 
 const commandDependencies = {
   createId: () => "batch-copy-item",
-  now: () => "2026-09-01T03:00:00.000Z",
+  now: () => Date.parse("2026-09-01T03:00:00.000Z"),
 }
 
 describe("일괄 복사 항목 추가", () => {

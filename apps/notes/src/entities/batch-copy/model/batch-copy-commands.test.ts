@@ -11,14 +11,14 @@ import {
 } from "./batch-copy-commands"
 
 const firstItem = {
-  addedAt: "2026-09-02T03:00:00.000Z",
+  addedAt: Date.parse("2026-09-02T03:00:00.000Z"),
   id: "batch-item-1",
   sourceNote: { contentRevision: 2, id: "note-1" },
   textSnapshot: "첫 번째 문장",
 }
 
 const secondItem = {
-  addedAt: "2026-09-02T03:01:00.000Z",
+  addedAt: Date.parse("2026-09-02T03:01:00.000Z"),
   id: "batch-item-2",
   sourceNote: { contentRevision: 4, id: "note-1" },
   textSnapshot: "두 번째 문장",
@@ -41,7 +41,7 @@ describe("일괄 복사 목록 편집", () => {
       list,
       secondItem.id,
       0,
-      "2026-09-02T04:00:00.000Z",
+      Date.parse("2026-09-02T04:00:00.000Z"),
     )
 
     expect(moved?.content.items).toEqual([secondItem, firstItem])
@@ -54,7 +54,7 @@ describe("일괄 복사 목록 편집", () => {
       list,
       firstItem.id,
       duplicateId,
-      "2026-09-02T04:00:00.000Z",
+      Date.parse("2026-09-02T04:00:00.000Z"),
     )
 
     expect(duplicated?.content.items).toEqual([
@@ -69,14 +69,14 @@ describe("일괄 복사 목록 편집", () => {
     const removal = removeBatchCopyItem(
       list,
       firstItem.id,
-      "2026-09-02T04:00:00.000Z",
+      Date.parse("2026-09-02T04:00:00.000Z"),
     )
     const restored = removal
       ? restoreBatchCopyItem(
           removal.list,
           removal.item,
           removal.index,
-          "2026-09-02T05:00:00.000Z",
+          Date.parse("2026-09-02T05:00:00.000Z"),
         )
       : null
 

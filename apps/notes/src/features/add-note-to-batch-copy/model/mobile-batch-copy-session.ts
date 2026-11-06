@@ -14,7 +14,7 @@ import type { MobileBatchCopyUsageWriter } from "./mobile-batch-copy-usage-write
 
 type MobileBatchCopyDependencies = {
   createId(): string
-  now(): string
+  now(): number
 }
 
 export type AddMobileBatchCopyResult =
@@ -54,7 +54,7 @@ export async function addNoteToMobileBatchCopy(
 
 export function resetMobileBatchCopySession(
   draft: MobileBatchCopyDraft,
-  now: () => string,
+  now: () => number,
 ) {
   return resetMobileBatchCopy(draft, now())
 }
@@ -63,7 +63,7 @@ export function moveMobileBatchCopySessionEntry(
   draft: MobileBatchCopyDraft,
   entryId: string,
   index: number,
-  now: () => string,
+  now: () => number,
 ) {
   return moveMobileBatchCopyEntry(draft, entryId, index, now())
 }
@@ -84,7 +84,7 @@ export function duplicateMobileBatchCopySessionEntry(
 export function removeMobileBatchCopySessionEntry(
   draft: MobileBatchCopyDraft,
   entryId: string,
-  now: () => string,
+  now: () => number,
 ) {
   return removeMobileBatchCopyEntry(draft, entryId, now())
 }

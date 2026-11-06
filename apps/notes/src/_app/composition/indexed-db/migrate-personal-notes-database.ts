@@ -2,8 +2,8 @@ import { z } from "zod"
 
 import { readRequest } from "@/shared/lib/indexed-db/index.browser"
 
-import { parseBatchCopyList } from "@/entities/batch-copy"
-import { BATCH_COPY_LIST_STORE_NAME, storeBatch } from "@/entities/batch-copy/index.browser"
+import { BatchCopyListSchema, BatchCopyItemSchema } from "@/entities/batch-copy"
+import { BATCH_COPY_LIST_STORE_NAME } from "@/entities/batch-copy/index.browser"
 import {
   NoteRecordSchema,
   NoteDraftSchema,
@@ -23,7 +23,7 @@ import { TEMPLATE_STORE_NAME } from "@/entities/template/index.browser"
 import { InteractionPreferencesRecordSchema } from "@/entities/preference"
 import { PREFERENCE_STORE_NAME } from "@/entities/preference/index.browser"
 import { TextUsageRecordSchema } from "@/entities/usage"
-import { USAGE_STORE_NAME, StoredUsageSchema } from "@/entities/usage/index.browser"
+import { USAGE_STORE_NAME } from "@/entities/usage/index.browser"
 import {
   EntityIdSchema,
   IsoDateTimeSchema,
@@ -36,6 +36,14 @@ const PREVIOUS_MOBILE_BATCH_COPY_DRAFT_STORE_NAME = "mobileBatchCopyDrafts"
 const INTERACTION_PREFERENCE_KEY = "interaction"
 
 const previousTimestamp = IsoDateTimeSchema.transform(toTimestamp)
+const PreviousBatchSchema = BatchCopyListSchema.extend({
+  content: z.strictObject({
+    ...BatchCopyListSchema.shape.content.shape,
+    items: z.array(BatchCopyItemSchema.extend({ addedAt: previousTimestamp })),
+  }),
+  updatedAt: previousTimestamp,
+}).pipe(BatchCopyListSchema)
+const PreviousCopyCountsSchema = TextUsageRecordSchema.extend({ updatedAt: previousTimestamp })
 const PreviousTemplateSchema = z.strictObject({
   ...TemplateRecordSchema.shape,
   createdAt: previousTimestamp,
@@ -271,22 +279,23 @@ function migrateUsage(transaction: IDBTransaction) {
   request.onsuccess = () => {
     try {
       for (const stored of request.result) {
-        const current = TextUsageRecordSchema.safeParse(stored)
+        const current = PreviousCopyCountsSchema.safeParse(stored)
 
         if (current.success) {
-          store.put(StoredUsageSchema.encode(current.data))
+          store.put(current.data)
           continue
         }
 
         const previous = PreviousUsageRecordSchema.parse(stored)
         const migrated = TextUsageRecordSchema.parse({
           ...previous,
+          updatedAt: toTimestamp(previous.updatedAt),
           counts: {
             batchCopy: previous.counts.accumulation,
             individualCopy: previous.counts.ordinaryCopy,
           },
         })
-        store.put(StoredUsageSchema.encode(migrated))
+        store.put(migrated)
       }
     } catch {
       transaction.abort()
@@ -352,11 +361,11 @@ function convertStoredRecords(
 
 export function migrateTimestamps(transaction: IDBTransaction, oldVersion: number) {
   if (oldVersion < 11) {
-    convertStoredRecords(transaction, BATCH_COPY_LIST_STORE_NAME, (value) => storeBatch(parseBatchCopyList(value)))
+    convertStoredRecords(transaction, BATCH_COPY_LIST_STORE_NAME, (value) => PreviousBatchSchema.parse(value))
   }
   convertStoredRecords(transaction, TEMPLATE_STORE_NAME, (value) => PreviousTemplateSchema.parse(value))
   if (oldVersion === 1) return
-  convertStoredRecords(transaction, USAGE_STORE_NAME, (value) => StoredUsageSchema.encode(TextUsageRecordSchema.parse(value)))
+  convertStoredRecords(transaction, USAGE_STORE_NAME, (value) => PreviousCopyCountsSchema.parse(value))
   convertStoredRecords(transaction, PREFERENCE_STORE_NAME, (value) =>
     PreviousPreferencesSchema.parse(value), INTERACTION_PREFERENCE_KEY)
 }

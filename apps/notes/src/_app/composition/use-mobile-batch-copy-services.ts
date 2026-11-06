@@ -13,7 +13,7 @@ export function useMobileBatchCopyServices(database: PersonalNotesDatabase) {
     return {
       clipboard: new BrowserClipboardWriter(),
       createId: () => identifiers.create(),
-      now: () => new Date().toISOString(),
+      now: Date.now,
       writer: new IndexedDbMobileBatchCopyUsageWriter(
         database,
         identifiers,

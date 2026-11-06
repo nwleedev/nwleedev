@@ -12,13 +12,13 @@ const list: BatchCopyList = {
   content: {
     items: [
       {
-        addedAt: "2026-09-01T01:00:00.000Z",
+        addedAt: Date.parse("2026-09-01T01:00:00.000Z"),
         id: "item-1",
         sourceNote: { contentRevision: 0, id: "note-1" },
         textSnapshot: "첫 문장",
       },
       {
-        addedAt: "2026-09-01T02:00:00.000Z",
+        addedAt: Date.parse("2026-09-01T02:00:00.000Z"),
         id: "item-2",
         sourceNote: { contentRevision: 1, id: "note-2" },
         textSnapshot: "둘째 문장",
@@ -28,7 +28,7 @@ const list: BatchCopyList = {
   },
   id: "primary",
   revision: 2,
-  updatedAt: "2026-09-01T02:00:00.000Z",
+  updatedAt: Date.parse("2026-09-01T02:00:00.000Z"),
 }
 
 class RecordingClipboard implements ClipboardWriter {

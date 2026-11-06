@@ -8,7 +8,7 @@ import type { BatchCopyItemWriter } from "./batch-copy-item-writer"
 
 type AddNoteToBatchCopyDependencies = {
   createId(): string
-  now(): string
+  now(): number
   writer: BatchCopyItemWriter
 }
 

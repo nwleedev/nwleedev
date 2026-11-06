@@ -31,7 +31,7 @@ describe("사용 빈도 표시", () => {
               id: input.noteId,
             },
             textSnapshot: input.snapshot,
-            updatedAt: new Date().toISOString(),
+            updatedAt: Date.now(),
           }))
           const rows = projectUsageRows(records)
 
@@ -74,7 +74,7 @@ describe("사용 빈도 표시", () => {
               id: crypto.randomUUID(),
               note: { contentRevision, id: noteId },
               textSnapshot: snapshot,
-              updatedAt: new Date().toISOString(),
+              updatedAt: Date.now(),
             }),
           )
           const rows = projectUsageRows(records)

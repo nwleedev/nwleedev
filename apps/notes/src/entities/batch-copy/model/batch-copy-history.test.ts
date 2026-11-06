@@ -11,14 +11,14 @@ import {
 } from "./batch-copy-history"
 
 const firstItem = {
-  addedAt: "2026-09-02T03:00:00.000Z",
+  addedAt: Date.parse("2026-09-02T03:00:00.000Z"),
   id: "batch-item-1",
   sourceNote: { contentRevision: 2, id: "note-1" },
   textSnapshot: "첫 번째 문장",
 }
 
 const secondItem = {
-  addedAt: "2026-09-02T03:01:00.000Z",
+  addedAt: Date.parse("2026-09-02T03:01:00.000Z"),
   id: "batch-item-2",
   sourceNote: { contentRevision: 1, id: "note-2" },
   textSnapshot: "두 번째 문장",
@@ -37,13 +37,13 @@ describe("일괄 복사 항목 제거 이력", () => {
     const removed = removeFromBatchCopySession(
       session,
       firstItem.id,
-      "2026-09-02T04:00:00.000Z",
+      Date.parse("2026-09-02T04:00:00.000Z"),
     )
     const undone = removed
-      ? undoBatchCopyItemRemoval(removed, "2026-09-02T05:00:00.000Z")
+      ? undoBatchCopyItemRemoval(removed, Date.parse("2026-09-02T05:00:00.000Z"))
       : null
     const redone = undone
-      ? redoBatchCopyItemRemoval(undone, "2026-09-02T06:00:00.000Z")
+      ? redoBatchCopyItemRemoval(undone, Date.parse("2026-09-02T06:00:00.000Z"))
       : null
 
     expect(removed?.list.content.items).toEqual([secondItem])
@@ -55,17 +55,17 @@ describe("일괄 복사 항목 제거 이력", () => {
     const removed = removeFromBatchCopySession(
       createBatchCopySession(list),
       firstItem.id,
-      "2026-09-02T04:00:00.000Z",
+      Date.parse("2026-09-02T04:00:00.000Z"),
     )
     const undone = removed
-      ? undoBatchCopyItemRemoval(removed, "2026-09-02T05:00:00.000Z")
+      ? undoBatchCopyItemRemoval(removed, Date.parse("2026-09-02T05:00:00.000Z"))
       : null
     const reordered = undone
       ? reorderBatchCopySession(
           undone,
           secondItem.id,
           0,
-          "2026-09-02T06:00:00.000Z",
+          Date.parse("2026-09-02T06:00:00.000Z"),
         )
       : null
 
@@ -76,7 +76,7 @@ describe("일괄 복사 항목 제거 이력", () => {
     const removed = removeFromBatchCopySession(
       createBatchCopySession(list),
       firstItem.id,
-      "2026-09-02T04:00:00.000Z",
+      Date.parse("2026-09-02T04:00:00.000Z"),
     )
     const added = removed
       ? applyBatchCopyItem(removed, {

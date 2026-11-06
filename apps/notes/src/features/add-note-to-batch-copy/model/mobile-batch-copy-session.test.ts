@@ -13,7 +13,7 @@ function createDependencies(failFirstUsage = false) {
   let failurePending = failFirstUsage
   return {
     createId: () => crypto.randomUUID(),
-    now: () => new Date().toISOString(),
+    now: () => Date.now(),
     records,
     writer: { async record(note: Note) {
       if (failurePending) {

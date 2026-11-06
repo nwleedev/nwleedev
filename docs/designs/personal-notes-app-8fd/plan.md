@@ -87,6 +87,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 - **2.1 템플릿과 설정의 시계.** 템플릿 생성과 정렬, 상호작용 설정을 저장할 때 밀리초를 그대로 사용한다. DB를 읽고 쓸 때마다 문자열로 변환하던 스키마를 제거하고 ISO 문자열은 구버전 DB를 이전할 때만 해석한다. 이전 설정의 기본값, 템플릿 원문 및 시각 이전을 포함한 브라우저 검사 150건, 단위 검사 191건과 타입 검사가 통과했다.
 
+- **2.1 일괄 복사와 사용 기록의 시각.** 복사 목록의 수정 시각, 항목을 담은 시각과 원문을 복사한 시각을 정수 밀리초로 처리한다. 이전 DB의 문자열은 이전 시점에 한 번 변환한다. 복사 횟수와 일괄 복사 항목 보존을 포함해 브라우저 검사 150건, 단위 검사 191건과 타입 검사가 통과했다.
+
 ### 모든 절차의 착수 조건
 
 - 각 절차에서 코드를 열기 전에 [저장소 개발 지침](../../dev/README.md), [메모 앱 안티패턴](../../dev/personal-notes-app/anti-patterns.md), [입력 상태](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md) 중 적용할 규칙을 확인한다. 아래 파일은 `apps/notes` 기준이다. 실제 호출자와 재사용 여부를 확인하고 다음 절차에 필요한 코드를 먼저 지우지 않는다.

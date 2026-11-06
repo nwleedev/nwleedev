@@ -39,7 +39,7 @@ export function reorderBatchCopySession(
   session: BatchCopySession,
   itemId: string,
   requestedIndex: number,
-  updatedAt: string,
+  updatedAt: number,
 ) {
   const list = moveBatchCopyItem(
     session.list,
@@ -58,7 +58,7 @@ export function reorderBatchCopySession(
 export function removeFromBatchCopySession(
   session: BatchCopySession,
   itemId: string,
-  updatedAt: string,
+  updatedAt: number,
 ) {
   const removal = removeBatchCopyItem(session.list, itemId, updatedAt)
 
@@ -80,7 +80,7 @@ export function removeFromBatchCopySession(
 
 export function undoBatchCopyItemRemoval(
   session: BatchCopySession,
-  updatedAt: string,
+  updatedAt: number,
 ) {
   const entry = session.history.undo.at(-1)
 
@@ -110,7 +110,7 @@ export function undoBatchCopyItemRemoval(
 
 export function redoBatchCopyItemRemoval(
   session: BatchCopySession,
-  updatedAt: string,
+  updatedAt: number,
 ) {
   const entry = session.history.redo.at(-1)
 

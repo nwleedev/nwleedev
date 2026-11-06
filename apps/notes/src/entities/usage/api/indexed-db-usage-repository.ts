@@ -1,4 +1,3 @@
-import { StoredTimestampSchema } from "@/shared/lib/entity-metadata"
 import type { NoteContentReference } from "@/entities/note/@x/usage"
 import type { EntityIdGenerator } from "@/shared/lib/id-generation"
 import {
@@ -14,10 +13,6 @@ import {
   type TextUsageReader,
 } from "../model/text-usage-record"
 
-export const StoredUsageSchema = TextUsageRecordSchema.extend({
-  updatedAt: StoredTimestampSchema,
-})
-
 export const USAGE_STORE_NAME = "usage"
 export const USAGE_BY_NOTE_CONTENT_INDEX = "by-note-content"
 
@@ -29,18 +24,18 @@ type UsageInput = {
 export async function countTextCopy(
   store: IDBObjectStore,
   kind: "individualCopy" | "batchCopy",
-  input: UsageInput & { id: string; updatedAt: string },
+  input: UsageInput & { id: string; updatedAt: number },
 ) {
   const key = [input.note.id, input.note.contentRevision, input.textSnapshot]
   const value: unknown = await readRequest(store.index(USAGE_BY_NOTE_CONTENT_INDEX).get(key))
-  const previous = value === undefined ? null : StoredUsageSchema.parse(value)
+  const previous = value === undefined ? null : TextUsageRecordSchema.parse(value)
   const counts = previous?.counts ?? { batchCopy: 0, individualCopy: 0 }
   const record = {
     ...input,
     id: previous?.id ?? input.id,
     counts: { ...counts, [kind]: counts[kind] + 1 },
   }
-  store.put(StoredUsageSchema.encode(record))
+  store.put(TextUsageRecordSchema.parse(record))
 }
 
 export class IndexedDbUsageRepository
@@ -48,12 +43,12 @@ export class IndexedDbUsageRepository
 {
   readonly #connection: IndexedDbConnection
   readonly #identifiers: EntityIdGenerator
-  readonly #now: () => string
+  readonly #now: () => number
 
   constructor(
     connection: IndexedDbConnection,
     identifiers: EntityIdGenerator,
-    now: () => string,
+    now: () => number,
   ) {
     this.#connection = connection
     this.#identifiers = identifiers
@@ -69,7 +64,7 @@ export class IndexedDbUsageRepository
     )
     await completion
 
-    return records.map((value) => StoredUsageSchema.parse(value))
+    return records.map((value) => TextUsageRecordSchema.parse(value))
   }
 
   async recordIndividualCopy(input: UsageInput) {

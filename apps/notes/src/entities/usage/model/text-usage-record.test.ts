@@ -19,7 +19,7 @@ describe("TextUsageRecordSchema", () => {
             id,
             note: { contentRevision: revision, id: noteId },
             textSnapshot: snapshot,
-            updatedAt: new Date().toISOString(),
+            updatedAt: Date.now(),
           }
 
           expect(TextUsageRecordSchema.parse(record)).toEqual(record)
@@ -41,7 +41,7 @@ describe("TextUsageRecordSchema", () => {
             id,
             note: { contentRevision: 0, id: noteId },
             textSnapshot: snapshot,
-            updatedAt: new Date().toISOString(),
+            updatedAt: Date.now(),
           }
 
           expect(TextUsageRecordSchema.safeParse(record).success).toBe(false)

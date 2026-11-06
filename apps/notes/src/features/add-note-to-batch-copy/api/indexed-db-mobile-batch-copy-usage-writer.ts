@@ -26,7 +26,7 @@ export class IndexedDbMobileBatchCopyUsageWriter
     this.#identifiers = identifiers
   }
 
-  async record(note: Note, updatedAt: string) {
+  async record(note: Note, updatedAt: number) {
     const usageIdentifier = this.#identifiers.create()
     const database = await this.#connection.get()
     const transaction = database.transaction(USAGE_STORE_NAME, "readwrite")

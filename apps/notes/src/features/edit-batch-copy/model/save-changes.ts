@@ -25,13 +25,13 @@ type DuplicateBatchCopyDependencies = EditBatchCopyDependencies & {
 }
 
 type EditBatchCopyDependencies = {
-  now(): string
+  now(): number
   repository: BatchCopyRepository
 }
 
 type BatchCopyTransition = (
   session: BatchCopySession,
-  updatedAt: string,
+  updatedAt: number,
 ) => BatchCopySession | null
 
 async function saveTransition(

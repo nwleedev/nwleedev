@@ -41,14 +41,14 @@ type BatchCopyState =
 export type BatchCopyDependencies = {
   clipboard: ClipboardWriter
   createId(): string
-  now(): string
+  now(): number
   onItemRemoved(itemId: string): void
   reorderButtonsEnabled: boolean
   repository: BatchCopyRepository
   writer: BatchCopyItemWriter
 }
 
-function emptyBatchCopyList(updatedAt: string): BatchCopyList {
+function emptyBatchCopyList(updatedAt: number): BatchCopyList {
   return {
     content: { items: [], separator: "\n" },
     id: PRIMARY_BATCH_COPY_LIST_ID,
@@ -59,7 +59,7 @@ function emptyBatchCopyList(updatedAt: string): BatchCopyList {
 
 async function readBatchCopy(
   repository: BatchCopyRepository,
-  now: () => string,
+  now: () => number,
 ): Promise<BatchCopyState> {
   try {
     const list = (await repository.get()) ?? emptyBatchCopyList(now())

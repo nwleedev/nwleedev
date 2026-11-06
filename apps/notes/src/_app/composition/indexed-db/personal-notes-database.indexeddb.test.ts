@@ -32,9 +32,9 @@ import {
   TEMPLATE_STORE_NAME,
   IndexedDbTemplateRepository,
 } from "@/entities/template/index.browser"
+import { TextUsageRecordSchema } from "@/entities/usage"
 import {
   IndexedDbUsageRepository,
-  StoredUsageSchema,
   USAGE_BY_NOTE_CONTENT_INDEX,
   USAGE_STORE_NAME,
 } from "@/entities/usage/index.browser"
@@ -80,7 +80,7 @@ const template: TextTemplate = {
 }
 
 const batchCopyItem: BatchCopyItem = {
-  addedAt: timestamp,
+  addedAt: Date.parse(timestamp),
   id: "item-1",
   sourceNote: { contentRevision: 0, id: "note-1" },
   textSnapshot: "저장한 메모",
@@ -398,7 +398,7 @@ describe("personal notes IndexedDB storage", () => {
     const usage = new IndexedDbUsageRepository(
       firstConnection,
       identifiers,
-      () => timestamp,
+      () => Date.parse(timestamp),
     )
     const templates = new IndexedDbTemplateRepository(firstConnection)
     const mobileBatchCopyWriter = new IndexedDbMobileBatchCopyUsageWriter(
@@ -414,7 +414,7 @@ describe("personal notes IndexedDB storage", () => {
     )
 
     await notes.save(note)
-    await mobileBatchCopyWriter.record(note, timestamp)
+    await mobileBatchCopyWriter.record(note, Date.parse(timestamp))
     await templates.save(template)
     await preferences.save({
       batchCopyReorderButtonsEnabled: false,
@@ -436,7 +436,7 @@ describe("personal notes IndexedDB storage", () => {
     const restoredUsage = new IndexedDbUsageRepository(
       restoredConnection,
       identifiers,
-      () => timestamp,
+      () => Date.parse(timestamp),
     )
     const restoredTemplates = new IndexedDbTemplateRepository(
       restoredConnection,
@@ -488,7 +488,7 @@ describe("personal notes IndexedDB storage", () => {
       const usage = new IndexedDbUsageRepository(
         firstConnection,
         identifiers,
-        () => timestamp,
+        () => Date.parse(timestamp),
       )
       const batch = new IndexedDbBatchCopyItemWriter(
         firstConnection,
@@ -541,7 +541,7 @@ describe("personal notes IndexedDB storage", () => {
       const restoredUsage = new IndexedDbUsageRepository(
         restoredConnection,
         identifiers,
-        () => timestamp,
+        () => Date.parse(timestamp),
       )
       const observed = (await restoredUsage.getAll())
         .filter((record) => record.note.id === noteId)
@@ -680,8 +680,8 @@ describe("personal notes IndexedDB storage", () => {
     const previousBatchCopyList = {
       content: {
         items: [
-          batchCopyItem,
-          { ...batchCopyItem, id: "item-2", textSnapshot: "두 번째" },
+          { ...batchCopyItem, addedAt: timestamp },
+          { ...batchCopyItem, addedAt: timestamp, id: "item-2", textSnapshot: "두 번째" },
         ],
         separator: "\n",
       },
@@ -735,7 +735,7 @@ describe("personal notes IndexedDB storage", () => {
     const migratedUsage = await new IndexedDbUsageRepository(
       connection,
       new CryptoEntityIdGenerator(),
-      () => timestamp,
+      () => Date.parse(timestamp),
     ).getAll()
     const migratedPreferences =
       await new IndexedDbInteractionPreferencesRepository(connection).get()
@@ -793,7 +793,7 @@ describe("personal notes IndexedDB storage", () => {
       version: 2,
     })
     const batchCopyList = {
-      content: { items: [batchCopyItem], separator: "\n" },
+      content: { items: [{ ...batchCopyItem, addedAt: timestamp }], separator: "\n" },
       id: PRIMARY_BATCH_COPY_LIST_ID,
       revision: 2,
       updatedAt: timestamp,
@@ -861,12 +861,12 @@ describe("personal notes IndexedDB storage", () => {
       { id: note.id, content: noteDraft.content },
     ])
     await expect(new IndexedDbBatchCopyRepository(connection).get()).resolves
-      .toEqual(batchCopyList)
+      .toEqual({ ...batchCopyList, updatedAt: milliseconds, content: { ...batchCopyList.content, items: [batchCopyItem] } })
     await expect(new IndexedDbUsageRepository(
       connection,
       new CryptoEntityIdGenerator(),
-      () => timestamp,
-    ).getAll()).resolves.toEqual([usageRecord])
+      () => Date.parse(timestamp),
+    ).getAll()).resolves.toEqual([{ ...usageRecord, updatedAt: milliseconds }])
     await expect(new IndexedDbTemplateRepository(connection).getAll()).resolves
       .toEqual([template])
     await expect(
@@ -889,7 +889,7 @@ describe("personal notes IndexedDB storage", () => {
     const completion = waitForTransaction(transaction)
     const usageStore = transaction.objectStore(USAGE_STORE_NAME)
     const [storedUsage] = await readRequest<unknown[]>(usageStore.getAll())
-    const validUsage = StoredUsageSchema.encode(StoredUsageSchema.parse(storedUsage))
+    const validUsage = TextUsageRecordSchema.parse(storedUsage)
     usageStore.put({
       ...validUsage,
       counts: { batchCopy: -1, individualCopy: 0 },
@@ -941,14 +941,14 @@ describe("personal notes IndexedDB storage", () => {
       id: "usage-existing",
       note: { contentRevision: 0, id: "note-existing" },
       textSnapshot: "기존 사용 기록",
-      updatedAt: timestamp,
+      updatedAt: Date.parse(timestamp),
     }
     const seedTransaction = database.transaction(
       USAGE_STORE_NAME,
       "readwrite",
     )
     const seeded = waitForTransaction(seedTransaction)
-    seedTransaction.objectStore(USAGE_STORE_NAME).put(StoredUsageSchema.encode(existingUsage))
+    seedTransaction.objectStore(USAGE_STORE_NAME).put(existingUsage)
     await seeded
     const batchCopyWriter = new IndexedDbBatchCopyItemWriter(
       connection,
@@ -958,7 +958,7 @@ describe("personal notes IndexedDB storage", () => {
     const usage = new IndexedDbUsageRepository(
       connection,
       identifiers,
-      () => timestamp,
+      () => Date.parse(timestamp),
     )
 
     await expect(
@@ -1002,14 +1002,14 @@ describe("personal notes IndexedDB storage", () => {
       id: "usage-existing",
       note: { contentRevision: 0, id: "note-existing" },
       textSnapshot: "기존 사용 기록",
-      updatedAt: timestamp,
+      updatedAt: Date.parse(timestamp),
     }
     const seedTransaction = database.transaction(
       USAGE_STORE_NAME,
       "readwrite",
     )
     const seeded = waitForTransaction(seedTransaction)
-    seedTransaction.objectStore(USAGE_STORE_NAME).put(StoredUsageSchema.encode(existingUsage))
+    seedTransaction.objectStore(USAGE_STORE_NAME).put(existingUsage)
     await seeded
     const writer = new IndexedDbMobileBatchCopyUsageWriter(
       connection,
@@ -1018,11 +1018,11 @@ describe("personal notes IndexedDB storage", () => {
     const usage = new IndexedDbUsageRepository(
       connection,
       identifiers,
-      () => timestamp,
+      () => Date.parse(timestamp),
     )
 
     await expect(
-      writer.record(note, timestamp),
+      writer.record(note, Date.parse(timestamp)),
     ).rejects.toThrow()
     expect(await usage.getAll()).toEqual([existingUsage])
 

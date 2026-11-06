@@ -22,8 +22,8 @@ const draft: MobileBatchCopyDraft = {
     },
   ],
   id: "mobile-batch-copy",
-  startedAt: "2026-09-02T03:00:00.000Z",
-  updatedAt: "2026-09-02T03:01:00.000Z",
+  startedAt: Date.parse("2026-09-02T03:00:00.000Z"),
+  updatedAt: Date.parse("2026-09-02T03:01:00.000Z"),
 }
 
 class RecordingClipboardWriter implements ClipboardWriter {
