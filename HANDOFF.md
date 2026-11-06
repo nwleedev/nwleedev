@@ -2,6 +2,8 @@
 
 [여러 탭과 창에서 메모 사용](docs/designs/personal-notes-app-8fd/requirements.md#여러-탭과-창에서-메모-사용)과 모바일 정렬은 새 요구사항이다. 기존 계획의 단일 탭 전제와 서버 전환 순서는 이전 기준이다. 같은 본문의 편집 충돌 처리 방식, 수동 정렬 후 본문 수정 시 위치와 최종 저장 방식은 미정이다.
 
+[본문 자동 저장 실패](docs/designs/personal-notes-app-8fd/requirements.md#본문-자동-저장-실패)는 데스크탑과 모바일 모두 내부 재시도로 처리한다. 현재 편집기에는 수동 재시도 버튼이 있어 구현과 동작 확인이 남아 있다.
+
 [화면별 권장안](docs/designs/personal-notes-app-8fd/references/multi-window-note-editing.md#화면별-권장안)은 데스크탑 카드와 모바일 메모 수정 화면에서 두 본문을 비교하는 제안이다. 실제 사용자가 비교를 보류한 뒤 편집과 복사를 이어가는지, 한글 조합 중에도 커서가 유지되는지는 [사용성 확인 과업](docs/designs/personal-notes-app-8fd/references/multi-window-note-editing.md#사용성-확인-과업)으로 남아 있다.
 
 [IndexedDB 스키마 개선](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)의 출발점은 버전 4다. `indexed-db-note-draft-repository.ts`는 메모 ID로 초안을 저장하고 삭제한다. 두 창의 쓰기 순서와 미결 사항은 [여러 창에서 같은 메모를 편집할 때의 저장과 복구](docs/designs/personal-notes-app-8fd/references/multi-window-note-editing.md)에 있다. `indexed-db-mobile-note-order-repository.ts`는 순서를 읽을 때 본문을 포함한 모든 메모를 읽는다. 두 항목 모두 코드에서 확인했으며 동시 편집 재현과 조회 비용 측정은 남아 있다.
