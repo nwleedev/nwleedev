@@ -228,7 +228,16 @@ function DeletedNoteDetail({ content, restore }: { content: string; restore(): P
         </EditorActions>
         <EditorStatus>
           <NoteStatusLight status="삭제됨" />
-          <button className="underline decoration-dotted underline-offset-4" onClick={() => dialog.current?.showModal()} type="button">삭제됨</button>
+          <button
+            className="underline decoration-dotted underline-offset-4"
+            onClick={(event) => {
+              event.currentTarget.focus({ preventScroll: true })
+              dialog.current?.showModal()
+            }}
+            type="button"
+          >
+            삭제됨
+          </button>
         </EditorStatus>
       </EditorHeader>
       <textarea aria-label="메모 내용" className={editorClassName} disabled value={content} />
