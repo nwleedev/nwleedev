@@ -95,6 +95,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 - **4.1 삭제 취소와 자동 저장 실패 재현.** 전체 E2E 295건 중 291건이 통과했다. 삭제 취소 검사에서는 앱을 연 뒤 시계를 교체해 메모 삭제와 알림 만료가 서로 다른 시각을 사용했다. 검사 시계를 설정한 뒤 앱을 다시 열도록 수정했다. 자동 저장 쓰기 누락 검사는 기존에 결함을 찾아낸 시드로 입력과 시간 진행 순서를 재현한다. 두 시나리오를 세 브라우저에서 다시 실행해 6건 모두 통과했다.
 
+- **2.1 구버전 초안 복구.** 초안의 메모 ID와 원문 버전을 비교하는 규칙은 IndexedDB 이전 모듈에 둔다. 이전 DB 형식을 직접 읽으므로 현행 메모 모델을 바꾸더라도 같은 버전의 초안만 복구할 수 있다. 구버전 초안 복구를 포함해 단위 검사 191건, 브라우저 검사 150건, 타입 검사와 lint가 통과했다.
+
 ### 모든 절차의 착수 조건
 
 - 각 절차에서 코드를 열기 전에 [저장소 개발 지침](../../dev/README.md), [메모 앱 안티패턴](../../dev/personal-notes-app/anti-patterns.md), [입력 상태](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md) 중 적용할 규칙을 확인한다. 아래 파일은 `apps/notes` 기준이다. 실제 호출자와 재사용 여부를 확인하고 다음 절차에 필요한 코드를 먼저 지우지 않는다.

@@ -16,7 +16,6 @@ import {
 import {
   NoteBody,
   type Note,
-  type NoteDraft,
 } from "@/entities/note"
 import {
   NOTE_STORE_NAME,
@@ -57,6 +56,8 @@ import {
   PERSONAL_NOTES_DATABASE_NAME,
   PERSONAL_NOTES_DATABASE_VERSION,
 } from "./open-personal-notes-database"
+
+import type { NoteDraft } from "./previous-note-draft"
 
 const timestamp = "2026-08-31T01:00:00.000Z"
 

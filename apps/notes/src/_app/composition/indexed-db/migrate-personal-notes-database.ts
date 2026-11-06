@@ -6,8 +6,6 @@ import { BatchCopyListSchema, BatchCopyItemSchema } from "@/entities/batch-copy"
 import { BATCH_COPY_LIST_STORE_NAME } from "@/entities/batch-copy/index.browser"
 import {
   NoteRecordSchema,
-  NoteDraftSchema,
-  isRecoverableNoteDraft,
   validateAndClampNoteGeometry,
   normalizeNoteTabIndexes,
   reconcileMobileNoteIds,
@@ -30,6 +28,8 @@ import {
   toTimestamp,
   RevisionSchema,
 } from "@/shared/lib/entity-metadata"
+
+import { NoteDraftSchema, isRecoverableNoteDraft } from "./previous-note-draft"
 
 const PREVIOUS_BATCH_COPY_LIST_STORE_NAME = "accumulators"
 const PREVIOUS_MOBILE_BATCH_COPY_DRAFT_STORE_NAME = "mobileBatchCopyDrafts"

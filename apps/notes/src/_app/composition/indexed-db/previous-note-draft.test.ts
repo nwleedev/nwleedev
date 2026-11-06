@@ -14,17 +14,12 @@ import {
   noteModelSettings,
 } from "@/shared/lib/note-model-settings"
 
-import type { Note } from "./note"
-import { NoteDraftSchema, isRecoverableNoteDraft } from "./note-draft"
+import { NoteDraftSchema, isRecoverableNoteDraft } from "./previous-note-draft"
 
-const note: Note = {
+const note = {
   content: "저장한 원문",
   contentRevision: 2,
-  createdAt: Date.parse("2026-09-01T01:00:00.000Z"),
-  geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: "note-1",
-  tabIndex: 1000,
-  updatedAt: Date.parse("2026-09-01T02:00:00.000Z"),
 }
 
 const draft = {

@@ -51,11 +51,6 @@ export {
   sendNoteToFront,
 } from "./model/note-order"
 export {
-  NoteDraftSchema,
-  isRecoverableNoteDraft,
-  type NoteDraft,
-} from "./model/note-draft"
-export {
   NOTE_REMOVAL_UNDO_DURATION_MS,
   createNoteRemovalHistory,
   dismissNoteRemovalHistory,

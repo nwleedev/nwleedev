@@ -1,23 +1,23 @@
 import { z } from "zod"
 
-import { IsoDateTimeSchema } from "@/shared/lib/entity-metadata"
+import { EntityIdSchema, IsoDateTimeSchema, RevisionSchema } from "@/shared/lib/entity-metadata"
 
-import {
-  NoteContentReferenceSchema,
-  type Note,
-} from "./note"
+const PreviousSourceSchema = z.object({
+  id: EntityIdSchema,
+  contentRevision: RevisionSchema,
+}).strict()
 
 export const NoteDraftSchema = z
   .object({
     content: z.string(),
-    note: NoteContentReferenceSchema,
+    note: PreviousSourceSchema,
     updatedAt: IsoDateTimeSchema,
   })
   .strict()
 
 export type NoteDraft = z.infer<typeof NoteDraftSchema>
 
-export function isRecoverableNoteDraft(draft: NoteDraft, note: Pick<Note, "id" | "content" | "contentRevision">) {
+export function isRecoverableNoteDraft(draft: NoteDraft, note: NoteDraft["note"] & { content: string }) {
   return (
     draft.note.id === note.id &&
     draft.note.contentRevision === note.contentRevision &&
