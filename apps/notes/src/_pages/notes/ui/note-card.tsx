@@ -40,7 +40,7 @@ type NoteCardProps = {
   onMoveToFront(noteId: string): Promise<readonly Note[]>
   onRemove(note: Note): Promise<void>
   onSaveContent(
-    noteId: string,
+    note: Note,
     content: string,
   ): Promise<SaveNoteContentResult>
   onSaveFailure(message: string): void
@@ -405,6 +405,8 @@ export function NoteCard({
         onClick={runContentShortcut}
         onMouseDown={prepareContentShortcut}
         placeholder="메모를 입력하세요"
+        onCompositionStart={editor.autosave.pause}
+        onCompositionEnd={editor.autosave.resume}
         {...editor.registration}
       />
       {resizeHandles.map(([direction, positionClassName]) => (

@@ -22,7 +22,7 @@ type ReadyNoteDetailProps = {
   initialContent: string
   note: Note
   saveContent(
-    noteId: string,
+    note: Note,
     content: string,
   ): Promise<SaveNoteContentResult>
   saveDraft(noteId: string, content: string): Promise<void>

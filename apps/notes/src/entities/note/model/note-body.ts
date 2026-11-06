@@ -1,4 +1,17 @@
-import { applyUpdate, Doc, encodeStateAsUpdate, encodeStateVector } from "yjs"
+import { applyUpdate, createAbsolutePositionFromRelativePosition, createRelativePositionFromTypeIndex, Doc, encodeStateAsUpdate, encodeStateVector } from "yjs"
+
+import type { Note } from "./note"
+
+const snapshots = new WeakMap<Note, Uint8Array>()
+
+export function rememberNoteBody(note: Note, snapshot: Uint8Array) {
+  snapshots.set(note, snapshot)
+}
+
+export function openNoteBody(note: Note) {
+  const snapshot = snapshots.get(note)
+  return snapshot ? new NoteBody(snapshot) : null
+}
 
 export class NoteBody {
   readonly #document = new Doc()
@@ -50,6 +63,15 @@ export class NoteBody {
       suffix += 1
     }
     return this.replace(start, original.length - trailingLength, value.slice(start, value.length - trailingLength))
+  }
+
+  selectionIn(next: NoteBody, start: number, end: number) {
+    const translate = (index: number) => {
+      const relative = createRelativePositionFromTypeIndex(this.#text, index)
+      return createAbsolutePositionFromRelativePosition(relative, next.#document)?.index ?? index
+    }
+    const first = translate(start)
+    return { start: first, end: end === start ? first : translate(end) }
   }
 
   receive(update: Uint8Array) {

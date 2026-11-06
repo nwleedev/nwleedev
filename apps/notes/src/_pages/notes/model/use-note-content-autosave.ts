@@ -1,8 +1,8 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useEffectEvent, useRef, useState, type RefObject } from "react"
 
-import type { Note } from "@/entities/note"
+import { openNoteBody, type Note } from "@/entities/note"
 
 import {
   beginNoteContentSave,
@@ -23,7 +23,9 @@ type UseNoteContentAutosaveOptions = {
   initialContent: string
   note: Note
   onContentSaved(content: string): void
-  onSave(noteId: string, content: string): Promise<SaveNoteContentResult>
+  editor: RefObject<HTMLTextAreaElement | null>
+  receiveContent(content: string): void
+  onSave(note: Note, content: string): Promise<SaveNoteContentResult>
   readContent(): string
   saveOnExit?: boolean
 }
@@ -32,6 +34,8 @@ export function useNoteContentAutosave({
   initialContent,
   note,
   onContentSaved,
+  editor,
+  receiveContent,
   onSave,
   readContent,
   saveOnExit = true,
@@ -116,7 +120,7 @@ export function useNoteContentAutosave({
     const operation = (async () => {
       try {
         const result = await saveReference.current(
-          request.note.id,
+          request.note,
           request.content,
         )
 
@@ -185,9 +189,23 @@ export function useNoteContentAutosave({
     scheduleSave()
   }, [scheduleSave])
 
+  const receiveSavedNote = useEffectEvent((saved: Note) => {
+    if (paused.current || stopped.current || stateReference.current.pendingContent !== null) return
+    const previous = noteReference.current
+    if (readContent() !== previous.content || saved.revision < previous.revision) return
+    if (saved.content !== previous.content) {
+      const field = editor.current
+      const next = field ? openNoteBody(saved) : null
+      const range = field && next ? openNoteBody(previous)?.selectionIn(next, field.selectionStart, field.selectionEnd) : null
+      const direction = field?.selectionDirection
+      receiveContent(saved.content)
+      if (field && range) field.setSelectionRange(range.start, range.end, direction)
+    }
+    noteReference.current = saved
+  })
   useEffect(() => {
-    noteReference.current = note
-  }, [note])
+    receiveSavedNote(note)
+  }, [note, state, scheduled])
 
   useEffect(() => {
     saveReference.current = onSave

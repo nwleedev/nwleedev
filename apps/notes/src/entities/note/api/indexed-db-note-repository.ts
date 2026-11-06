@@ -1,6 +1,6 @@
 import { toTimestamp, RevisionSchema } from "@/shared/lib/entity-metadata"
 
-import { NoteBody } from "../model/note-body"
+import { openNoteBody, rememberNoteBody } from "../model/note-body"
 import {
   abortTransaction,
   readRequest,
@@ -31,7 +31,6 @@ type TextUpdate = { id: string; noteId: string; payload: Uint8Array }
 
 export class IndexedDbNoteRepository implements NoteRepository {
   readonly #connection: IndexedDbConnection
-  readonly #snapshots = new WeakMap<Note, Uint8Array>()
   readonly #pendingEdits = new WeakMap<Note, { text: string; snapshot: Uint8Array; update: TextUpdate }>()
 
   constructor(connection: IndexedDbConnection) {
@@ -63,7 +62,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
       createdAt: new Date(record.createdAt).toISOString(),
       updatedAt: new Date(record.updatedAt).toISOString(),
     })
-    this.#snapshots.set(note, body.snapshot())
+    rememberNoteBody(note, body.snapshot())
     return note
   }
 
@@ -170,11 +169,10 @@ export class IndexedDbNoteRepository implements NoteRepository {
   }
 
   async saveEdit(original: Note, edited: Note) {
-    const baseline = this.#snapshots.get(original)
-    if (!baseline || original.id !== edited.id) throw new Error("Expected the note opened for editing")
     let change = this.#pendingEdits.get(original)
     if (!change || change.text !== edited.content) {
-      const body = new NoteBody(baseline)
+      const body = openNoteBody(original)
+      if (!body || original.id !== edited.id) throw new Error("Expected the note opened for editing")
       const payload = body.updateText(edited.content)
       change = {
         update: { id: crypto.randomUUID(), noteId: original.id, payload },
@@ -186,7 +184,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
     const stored = await this.#writeUpdate(change.update, edited.updatedAt)
     if (!stored) return null
     const saved = { ...edited, revision: stored.revision, contentRevision: stored.contentRevision }
-    this.#snapshots.set(saved, change.snapshot)
+    rememberNoteBody(saved, change.snapshot)
     this.#pendingEdits.delete(original)
     return saved
   }

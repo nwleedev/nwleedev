@@ -62,9 +62,34 @@ test("두 편집기에서 앞과 뒤를 수정한 뒤 새로 연 메모에는 �
   await firstEditor.fill("앞 가나다")
   await secondEditor.fill("가나다 뒤")
   await Promise.all([firstEditor.press("Tab"), secondEditor.press("Tab")])
+  await expect(firstEditor).toHaveValue("앞 가나다 뒤")
+  await expect(secondEditor).toHaveValue("앞 가나다 뒤")
   const third = await context.newPage()
   await third.goto("/")
   await expect(third.getByRole("textbox", { name: "메모 내용" })).toHaveValue("앞 가나다 뒤")
+})
+
+test("다른 창에서 앞에 글자를 넣어도 모바일 편집기의 선택은 같은 글자에 남는다", async ({ page, context }) => {
+  const card = await createNoteThroughUi(page, "가나다")
+  const id = await card.getAttribute("id")
+  if (!id) throw new Error("Expected an open note")
+  const mobile = await context.newPage()
+  await mobile.setViewportSize({ width: 320, height: 720 })
+  await mobile.goto("/notes/" + id.slice("note-".length, -"-board".length) + "/")
+  const editor = mobile.getByRole("textbox", { name: "메모 내용" })
+  await expect(editor).toHaveValue("가나다")
+  await editor.evaluate((input: HTMLTextAreaElement) => {
+    input.focus()
+    input.setSelectionRange(1, 2, "backward")
+  })
+  const other = card.getByRole("textbox", { name: "메모 내용" })
+  await other.fill("별 가나다")
+  await other.press("Tab")
+  await expect(editor).toHaveValue("별 가나다")
+  await expect.poll(() => editor.evaluate((input: HTMLTextAreaElement) => ({
+    selected: input.value.slice(input.selectionStart, input.selectionEnd),
+    direction: input.selectionDirection,
+  }))).toEqual({ selected: "나", direction: "backward" })
 })
 
 test("800ms 타이머와 blur 및 내부 이동이 최신 원문을 저장한다", async ({

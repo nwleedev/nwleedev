@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef } from "react"
 import { useForm } from "react-hook-form"
 
 import type { Note } from "@/entities/note"
@@ -14,7 +15,7 @@ type NoteContentFields = {
 type UseNoteCardEditorOptions = {
   initialContent: string
   note: Note
-  onSave(noteId: string, content: string): Promise<SaveNoteContentResult>
+  onSave(note: Note, content: string): Promise<SaveNoteContentResult>
 }
 
 export function useNoteCardEditor({
@@ -22,7 +23,8 @@ export function useNoteCardEditor({
   note,
   onSave,
 }: UseNoteCardEditorOptions) {
-  const { getValues, register, reset } = useForm<NoteContentFields>({
+  const editor = useRef<HTMLTextAreaElement>(null)
+  const { getValues, register, reset, setValue } = useForm<NoteContentFields>({
     defaultValues: { content: initialContent },
   })
 
@@ -40,6 +42,8 @@ export function useNoteCardEditor({
     initialContent,
     note,
     onContentSaved: acceptSavedContent,
+    editor,
+    receiveContent: (value) => setValue("content", value),
     onSave,
     readContent,
   })
@@ -55,6 +59,12 @@ export function useNoteCardEditor({
   return {
     autosave,
     readContent,
-    registration,
+    registration: {
+      ...registration,
+      ref(field: HTMLTextAreaElement | null) {
+        registration.ref(field)
+        editor.current = field
+      },
+    },
   }
 }

@@ -40,7 +40,7 @@ import {
 } from "./save-note-content"
 
 const NOTE_CHANNEL_NAME = "personal-notes-changes"
-const NoteChangeSchema = z.object({ type: z.literal("created"), noteId: EntityIdSchema })
+const NoteChangeSchema = z.object({ type: z.enum(["created", "edited"]), noteId: EntityIdSchema })
 
 type NoteDraftContent = Readonly<Record<string, string>>
 
@@ -67,7 +67,7 @@ type NotesDataContextValue = NotesDataState & {
   readMobileOrder(): Promise<MobileNoteOrder>
   moveMobileNote(input: MoveMobileNoteInput): Promise<MoveMobileNoteResult>
   retry(): void
-  saveContent(noteId: string, content: string): Promise<SaveNoteContentResult>
+  saveContent(note: Note, content: string): Promise<SaveNoteContentResult>
   saveDraft(noteId: string, content: string): Promise<void>
   discardDraft(noteId: string): Promise<void>
   updateNote(
@@ -191,11 +191,18 @@ export function useNotesDataModel({
     channel.onmessage = ({ data }: MessageEvent<unknown>) => {
       const message = NoteChangeSchema.safeParse(data)
       if (!message.success) return
-      const { noteId } = message.data
+      const { noteId, type } = message.data
       void enqueue(async () => {
-        if (!active || availableNotesReference.current.some((note) => note.id === noteId)) return
+        if (!active) return
+        const current = availableNotesReference.current
+        const index = current.findIndex(({ id }) => id === noteId)
+        if (index >= 0 && type === "created") return
         const note = await repository.get(noteId)
-        if (active && note) publishAvailable([...availableNotesReference.current, note], draftContentReference.current)
+        if (!active || !note) return
+        const next = [...current]
+        if (index < 0) next.push(note)
+        else next[index] = note
+        publishAvailable(next, draftContentReference.current)
       }).catch(() => undefined)
     }
 
@@ -251,7 +258,8 @@ export function useNotesDataModel({
     return executeCopyNote({ clipboard, usage }, note)
   }
 
-  async function saveContent(noteId: string, content: string) {
+  async function saveContent(original: Note, content: string) {
+    const noteId = original.id
     return enqueue(async () => {
       const note = availableNotesReference.current.find(
         ({ id }) => id === noteId,
@@ -263,7 +271,7 @@ export function useNotesDataModel({
 
       const result = await executeSaveNoteContent(
         { drafts, notes: repository, now },
-        note,
+        original,
         content,
       )
 
@@ -271,8 +279,10 @@ export function useNotesDataModel({
         return result
       }
 
+      if (result.status === "saved") changes.current?.postMessage({ type: "edited", noteId })
+      const displayed = note === original ? result.note : await repository.get(noteId) ?? result.note
       const nextNotes = availableNotesReference.current.map((currentNote) =>
-        currentNote.id === result.note.id ? result.note : currentNote,
+        currentNote.id === result.note.id ? displayed : currentNote,
       )
       const nextDraftContent = { ...draftContentReference.current }
       delete nextDraftContent[result.note.id]

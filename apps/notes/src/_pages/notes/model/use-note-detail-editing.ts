@@ -24,7 +24,7 @@ type UseNoteDetailEditingOptions = {
   initialContent: string
   note: Note
   saveContent(
-    noteId: string,
+    note: Note,
     content: string,
   ): Promise<SaveNoteContentResult>
   saveDraft(noteId: string, content: string): Promise<void>
@@ -61,6 +61,8 @@ export function useNoteDetailEditing({
     onContentSaved(content) {
       reset({ content }, { keepFieldsRef: true })
     },
+    editor,
+    receiveContent: (value) => setValue("content", value),
     onSave: saveContent,
     readContent,
     saveOnExit: false,
