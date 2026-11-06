@@ -1,25 +1,21 @@
 import { z } from "zod"
 
+import { BATCH_COPY_LIST_STORE_NAME } from "@/entities/batch-copy/index.browser"
 import {
-  BATCH_COPY_LIST_STORE_NAME,
-} from "@/entities/batch-copy"
-import {
-  NOTE_DRAFT_STORE_NAME,
-  NOTE_STORE_NAME,
   NoteRecordSchema,
-  storeNote,
   validateAndClampNoteGeometry,
   normalizeNoteTabIndexes,
   reconcileMobileNoteIds,
 } from "@/entities/note"
 import {
-  InteractionPreferencesRecordSchema,
-  PREFERENCE_STORE_NAME,
-} from "@/entities/preference"
-import {
-  USAGE_STORE_NAME,
-  TextUsageRecordSchema,
-} from "@/entities/usage"
+  NOTE_DRAFT_STORE_NAME,
+  NOTE_STORE_NAME,
+  storeNote,
+} from "@/entities/note/index.browser"
+import { InteractionPreferencesRecordSchema } from "@/entities/preference"
+import { PREFERENCE_STORE_NAME } from "@/entities/preference/index.browser"
+import { TextUsageRecordSchema } from "@/entities/usage"
+import { USAGE_STORE_NAME } from "@/entities/usage/index.browser"
 import {
   EntityIdSchema,
   IsoDateTimeSchema,

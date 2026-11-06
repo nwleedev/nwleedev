@@ -1,4 +1,4 @@
-import { abortTransaction, readRequest, waitForTransaction, type IndexedDbConnection } from "@/shared/lib/indexed-db"
+import { abortTransaction, readRequest, waitForTransaction, type IndexedDbConnection } from "@/shared/lib/indexed-db/index.browser"
 
 import { insertMobileNote, mobileNotePosition, moveMobileNoteId, type MoveMobileNoteInput, type MoveMobileNoteResult } from "../model/mobile-note-order"
 import { NOTE_POSITION_INDEX, NOTE_STORE_NAME, StoredNoteSchema } from "./stored-note"

@@ -1,8 +1,4 @@
 export { NoteBody, changedNoteText, openNoteBody } from "./model/note-body"
-export { NOTE_POSITION_INDEX, storeNote } from "./api/stored-note"
-export {
-  IndexedDbMobileNoteOrderRepository,
-} from "./api/indexed-db-mobile-note-order-repository"
 export {
   insertMobileNote,
   mobileNotePosition,
@@ -13,14 +9,6 @@ export {
   type MoveMobileNoteInput,
   type MoveMobileNoteResult,
 } from "./model/mobile-note-order"
-export {
-  IndexedDbNoteRepository,
-  NOTE_STORE_NAME,
-} from "./api/indexed-db-note-repository"
-export {
-  IndexedDbNoteDraftRepository,
-  NOTE_DRAFT_STORE_NAME,
-} from "./api/indexed-db-note-draft-repository"
 export {
   NOTE_CANVAS_SIZE,
   NOTE_HEIGHT_MAX,

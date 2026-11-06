@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-import { IndexedDbInteractionPreferencesRepository } from "@/entities/preference"
+import { IndexedDbInteractionPreferencesRepository } from "@/entities/preference/index.browser"
 
 import type { PersonalNotesDatabase } from "./indexed-db/personal-notes-database"
 

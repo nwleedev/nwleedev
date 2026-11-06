@@ -2,16 +2,16 @@ import {
   readRequest,
   waitForTransaction,
   type IndexedDbConnection,
-} from "@/shared/lib/indexed-db"
+} from "@/shared/lib/indexed-db/index.browser"
 
 import {
+  PRIMARY_BATCH_COPY_LIST_ID,
   parseBatchCopyList,
   type BatchCopyList,
   type BatchCopyRepository,
 } from "../model/batch-copy-list"
 
 export const BATCH_COPY_LIST_STORE_NAME = "batches"
-export const PRIMARY_BATCH_COPY_LIST_ID = "primary"
 
 export class IndexedDbBatchCopyRepository
   implements BatchCopyRepository

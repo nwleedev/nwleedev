@@ -1,14 +1,16 @@
+import { BATCH_COPY_LIST_STORE_NAME } from "@/entities/batch-copy/index.browser"
 import {
-  BATCH_COPY_LIST_STORE_NAME,
-} from "@/entities/batch-copy"
-import { NOTE_POSITION_INDEX, NOTE_DRAFT_STORE_NAME, NOTE_STORE_NAME } from "@/entities/note"
-import { PREFERENCE_STORE_NAME } from "@/entities/preference"
-import { TEMPLATE_STORE_NAME } from "@/entities/template"
+  NOTE_POSITION_INDEX,
+  NOTE_DRAFT_STORE_NAME,
+  NOTE_STORE_NAME,
+} from "@/entities/note/index.browser"
+import { PREFERENCE_STORE_NAME } from "@/entities/preference/index.browser"
+import { TEMPLATE_STORE_NAME } from "@/entities/template/index.browser"
 import {
   USAGE_BY_NOTE_CONTENT_INDEX,
   USAGE_STORE_NAME,
-} from "@/entities/usage"
-import { openIndexedDatabase } from "@/shared/lib/indexed-db"
+} from "@/entities/usage/index.browser"
+import { openIndexedDatabase } from "@/shared/lib/indexed-db/index.browser"
 
 import {
   ensureBatchCopyListStore,

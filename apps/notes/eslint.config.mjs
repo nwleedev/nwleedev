@@ -6,7 +6,7 @@ import nextTypeScript from "eslint-config-next/typescript"
 import playwright from "eslint-plugin-playwright"
 
 const sourceFiles = ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"]
-const publicEntryPoint = "index.{ts,tsx}"
+const publicEntryPoint = "{index,index.browser}.{ts,tsx}"
 const pagePublicEntryPoint = "{composition,index}.{ts,tsx}"
 
 const element = (type, fileInternalPath) => ({
@@ -39,8 +39,8 @@ const dependencyPolicies = [
     from: element("route"),
     allow: {
       to: [
-        element("page", publicEntryPoint),
-        element("app", publicEntryPoint),
+        element("page", "index.{ts,tsx}"),
+        element("app", "index.{ts,tsx}"),
         element("app", "styles/globals.css"),
       ],
     },

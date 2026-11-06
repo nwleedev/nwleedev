@@ -1,24 +1,26 @@
 import {
-  BATCH_COPY_LIST_STORE_NAME,
   BatchCopyItemSchema,
   BatchCopyListSchema,
   PRIMARY_BATCH_COPY_LIST_ID,
   parseBatchCopyList,
   type BatchCopyItem,
 } from "@/entities/batch-copy"
+import { BATCH_COPY_LIST_STORE_NAME } from "@/entities/batch-copy/index.browser"
 import {
   TextUsageRecordSchema,
-  USAGE_BY_NOTE_CONTENT_INDEX,
-  USAGE_STORE_NAME,
   parseTextUsageRecord,
 } from "@/entities/usage"
+import {
+  USAGE_BY_NOTE_CONTENT_INDEX,
+  USAGE_STORE_NAME,
+} from "@/entities/usage/index.browser"
 import type { EntityIdGenerator } from "@/shared/lib/id-generation"
 import {
   abortTransaction,
   readRequest,
   waitForTransaction,
   type IndexedDbConnection,
-} from "@/shared/lib/indexed-db"
+} from "@/shared/lib/indexed-db/index.browser"
 
 import type { BatchCopyItemWriter } from "../model/batch-copy-item-writer"
 

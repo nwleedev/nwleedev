@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-import { IndexedDbUsageRepository } from "@/entities/usage"
+import { IndexedDbUsageRepository } from "@/entities/usage/index.browser"
 import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
 
 import type { PersonalNotesDatabase } from "./indexed-db/personal-notes-database"

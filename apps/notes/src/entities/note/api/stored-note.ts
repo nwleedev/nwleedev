@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 import { EntityIdSchema, toTimestamp } from "@/shared/lib/entity-metadata"
-import { readRequest } from "@/shared/lib/indexed-db"
+import { readRequest } from "@/shared/lib/indexed-db/index.browser"
 
 import { NoteRecordSchema, type Note } from "../model/note"
 import { NoteBody } from "../model/note-body"

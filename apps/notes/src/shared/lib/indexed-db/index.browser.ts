@@ -1,3 +1,5 @@
+import "client-only"
+
 export interface IndexedDbConnection {
   get(): Promise<IDBDatabase>
 }

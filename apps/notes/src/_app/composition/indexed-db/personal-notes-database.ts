@@ -1,5 +1,5 @@
 import type { NoteStorageMonitor } from "@/_pages/notes/composition"
-import type { IndexedDbConnection } from "@/shared/lib/indexed-db"
+import type { IndexedDbConnection } from "@/shared/lib/indexed-db/index.browser"
 
 import { openPersonalNotesDatabase } from "./open-personal-notes-database"
 

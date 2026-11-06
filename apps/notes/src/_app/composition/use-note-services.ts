@@ -4,7 +4,7 @@ import {
   IndexedDbNoteDraftRepository,
   IndexedDbMobileNoteOrderRepository,
   IndexedDbNoteRepository,
-} from "@/entities/note"
+} from "@/entities/note/index.browser"
 import { BrowserClipboardWriter } from "@/shared/lib/clipboard"
 import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
 

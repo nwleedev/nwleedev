@@ -4,38 +4,42 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import {
   IndexedDbBatchCopyItemWriter,
   IndexedDbMobileBatchCopyUsageWriter,
-} from "@/features/add-note-to-batch-copy"
+} from "@/features/add-note-to-batch-copy/index.browser"
 import {
-  BATCH_COPY_LIST_STORE_NAME,
-  IndexedDbBatchCopyRepository,
   PRIMARY_BATCH_COPY_LIST_ID,
   type BatchCopyItem,
 } from "@/entities/batch-copy"
 import {
+  BATCH_COPY_LIST_STORE_NAME,
+  IndexedDbBatchCopyRepository,
+} from "@/entities/batch-copy/index.browser"
+import {
   NoteBody,
+  type Note,
+  type NoteDraft,
+} from "@/entities/note"
+import {
   NOTE_DRAFT_STORE_NAME,
   NOTE_STORE_NAME,
   IndexedDbNoteDraftRepository,
   IndexedDbNoteRepository,
   IndexedDbMobileNoteOrderRepository,
-  type Note,
-  type NoteDraft,
-} from "@/entities/note"
+} from "@/entities/note/index.browser"
 import {
   PREFERENCE_STORE_NAME,
   IndexedDbInteractionPreferencesRepository,
-} from "@/entities/preference"
+} from "@/entities/preference/index.browser"
+import { type TextTemplate } from "@/entities/template"
 import {
   TEMPLATE_STORE_NAME,
   IndexedDbTemplateRepository,
-  type TextTemplate,
-} from "@/entities/template"
+} from "@/entities/template/index.browser"
+import { parseTextUsageRecord } from "@/entities/usage"
 import {
   IndexedDbUsageRepository,
   USAGE_BY_NOTE_CONTENT_INDEX,
   USAGE_STORE_NAME,
-  parseTextUsageRecord,
-} from "@/entities/usage"
+} from "@/entities/usage/index.browser"
 import {
   CryptoEntityIdGenerator,
   type EntityIdGenerator,
@@ -44,7 +48,7 @@ import {
   openIndexedDatabase,
   readRequest,
   waitForTransaction,
-} from "@/shared/lib/indexed-db"
+} from "@/shared/lib/indexed-db/index.browser"
 import { ExplorationInvariantError } from "@/shared/lib/note-model-exploration"
 
 import {

@@ -14,6 +14,8 @@ const SourceNoteSchema: z.ZodType<NoteContentReference> = z
   })
   .strict()
 
+export const PRIMARY_BATCH_COPY_LIST_ID = "primary"
+
 export const BatchCopyItemSchema = z
   .object({
     addedAt: IsoDateTimeSchema,

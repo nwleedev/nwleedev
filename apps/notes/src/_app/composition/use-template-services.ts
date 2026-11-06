@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-import { IndexedDbTemplateRepository } from "@/entities/template"
+import { IndexedDbTemplateRepository } from "@/entities/template/index.browser"
 import { BrowserClipboardWriter } from "@/shared/lib/clipboard"
 import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
 

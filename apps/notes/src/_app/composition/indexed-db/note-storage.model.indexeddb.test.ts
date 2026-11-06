@@ -1,18 +1,20 @@
 import { afterEach, assert, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
-  IndexedDbNoteDraftRepository,
-  IndexedDbNoteRepository,
-  IndexedDbMobileNoteOrderRepository,
-  NOTE_STORE_NAME,
   NoteBody,
   mobileNotePosition,
   reviseNote,
   sendNoteToFront,
   type Note,
 } from "@/entities/note"
+import {
+  IndexedDbNoteDraftRepository,
+  IndexedDbNoteRepository,
+  IndexedDbMobileNoteOrderRepository,
+  NOTE_STORE_NAME,
+} from "@/entities/note/index.browser"
 
-import { readRequest, waitForTransaction } from "@/shared/lib/indexed-db"
+import { readRequest, waitForTransaction } from "@/shared/lib/indexed-db/index.browser"
 
 import {
   PersonalNotesDatabase,

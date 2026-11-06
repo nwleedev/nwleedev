@@ -5,7 +5,7 @@ import {
   readRequest,
   waitForTransaction,
   type IndexedDbConnection,
-} from "@/shared/lib/indexed-db"
+} from "@/shared/lib/indexed-db/index.browser"
 
 import {
   TextUsageRecordSchema,

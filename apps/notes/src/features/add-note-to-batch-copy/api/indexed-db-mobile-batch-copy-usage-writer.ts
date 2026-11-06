@@ -1,17 +1,19 @@
 import type { Note } from "@/entities/note"
 import {
   TextUsageRecordSchema,
-  USAGE_BY_NOTE_CONTENT_INDEX,
-  USAGE_STORE_NAME,
   parseTextUsageRecord,
 } from "@/entities/usage"
+import {
+  USAGE_BY_NOTE_CONTENT_INDEX,
+  USAGE_STORE_NAME,
+} from "@/entities/usage/index.browser"
 import type { EntityIdGenerator } from "@/shared/lib/id-generation"
 import {
   abortTransaction,
   readRequest,
   waitForTransaction,
   type IndexedDbConnection,
-} from "@/shared/lib/indexed-db"
+} from "@/shared/lib/indexed-db/index.browser"
 
 import type { MobileBatchCopyUsageWriter } from "../model/mobile-batch-copy-usage-writer"
 

@@ -1,6 +1,6 @@
 import { useState } from "react"
 
-import { IndexedDbMobileBatchCopyUsageWriter } from "@/features/add-note-to-batch-copy"
+import { IndexedDbMobileBatchCopyUsageWriter } from "@/features/add-note-to-batch-copy/index.browser"
 import { BrowserClipboardWriter } from "@/shared/lib/clipboard"
 import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
 

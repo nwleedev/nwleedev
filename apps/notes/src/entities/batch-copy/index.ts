@@ -1,4 +1,5 @@
 export {
+  PRIMARY_BATCH_COPY_LIST_ID,
   BatchCopyContentSchema,
   BatchCopyItemSchema,
   BatchCopyListSchema,
@@ -39,8 +40,3 @@ export {
   type MobileBatchCopyDraft,
   type MobileBatchCopyEntry,
 } from "./model/mobile-batch-copy-draft"
-export {
-  BATCH_COPY_LIST_STORE_NAME,
-  IndexedDbBatchCopyRepository,
-  PRIMARY_BATCH_COPY_LIST_ID,
-} from "./api/indexed-db-batch-copy-repository"

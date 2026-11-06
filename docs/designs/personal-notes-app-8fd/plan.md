@@ -51,6 +51,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 - **2.3 열린 모바일 목록의 순서 반영.** 이동이 저장된 뒤 다른 창의 목록에서 IndexedDB 순서를 다시 읽는다. 다른 창이 이미 드래그 중이면 손을 놓을 때까지 순서 반영을 미뤄 이동 대상을 유지한다. 두 창의 재정렬이 겹친 경우에는 최신 순서에서 다시 옮길 수 있다. 변경 전에는 다른 창에서 재시도에 성공해도 처음 창의 목록에 이전 순서가 남았다. 두 탭의 터치 드래그와 드래그 도중 새 메모 추가를 포함한 Chromium 터치 E2E 12건, lint와 타입 검사 및 운영 빌드가 통과했다.
 
+- **4.1 IndexedDB의 브라우저 모듈 분리.** 메모, 일괄 복사, 사용 기록, 템플릿, 설정의 저장 구현과 공용 IndexedDB 함수를 각각 `index.browser.ts`에서 제공한다. 일반 모델을 읽는 코드가 저장 구현까지 가져오지 않도록 실제 호출자와 FSD import 검사를 함께 전환했다. 서버 컴포넌트 조건에서 `client-only`가 import를 거부하는 것을 확인했다. 단위 검사 198건, 브라우저 검사 132건, lint, 타입 검사와 Next.js 운영 빌드가 통과했다.
+
 ### 모든 절차의 착수 조건
 
 - 각 절차에서 코드를 열기 전에 [저장소 개발 지침](../../dev/README.md), [메모 앱 안티패턴](../../dev/personal-notes-app/anti-patterns.md), [입력 상태](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md) 중 적용할 규칙을 확인한다. 아래 파일은 `apps/notes` 기준이다. 실제 호출자와 재사용 여부를 확인하고 다음 절차에 필요한 코드를 먼저 지우지 않는다.
