@@ -1,6 +1,6 @@
 # 메모 사용 경험과 서버 저장 설계
 
-[IndexedDB 스키마 개선](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)은 메모별 기준 레코드는 `notes`에, 본문 변경분은 `updates`에 저장하도록 정했다. 모바일에서는 새 메모만 맨 앞에 넣는다. [편집 중 다른 창에서 메모를 삭제한 경우](docs/designs/personal-notes-app-8fd/requirements.md#편집-중-다른-창에서-메모를-삭제한-경우)에 모바일 편집 잠금과 명시적 복원, 데스크탑 토스트의 동작을 정했다. [미저장 입력을 포함할 때와 제외할 때](docs/designs/personal-notes-app-8fd/references/multi-window-note-editing.md#모바일-복원에-미저장-입력을-포함할지)를 비교했으며 복원할 본문은 미정이다. 최종 서버 저장 방식은 미정이다.
+[IndexedDB 스키마 개선](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)은 메모별 기준 레코드는 `notes`에, 본문 변경분은 `updates`에 저장하도록 정했다. 모바일에서는 새 메모만 맨 앞에 넣는다. [편집 중 다른 창에서 메모를 삭제한 경우](docs/designs/personal-notes-app-8fd/requirements.md#편집-중-다른-창에서-메모를-삭제한-경우)에 모바일 편집 잠금과 명시적 복원, 데스크탑 토스트의 동작을 정했다. 최종 서버 저장 방식은 미정이다.
 
 [본문 자동 저장 실패](docs/designs/personal-notes-app-8fd/requirements.md#본문-자동-저장-실패)는 데스크탑과 모바일 모두 내부 재시도로 처리한다. 현재 편집기에는 수동 재시도 버튼이 있어 구현과 동작 확인이 남아 있다.
 
