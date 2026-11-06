@@ -1,5 +1,5 @@
 export { NoteBody } from "./model/note-body"
-export { NOTE_POSITION_INDEX } from "./api/stored-note"
+export { NOTE_POSITION_INDEX, storeNote } from "./api/stored-note"
 export {
   IndexedDbMobileNoteOrderRepository,
 } from "./api/indexed-db-mobile-note-order-repository"

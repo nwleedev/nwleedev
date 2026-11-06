@@ -32,6 +32,26 @@ export class NoteBody {
     return encodeStateAsUpdate(this.#document, before)
   }
 
+  updateText(value: string) {
+    const original = this.text
+    const before = Array.from(original)
+    const after = Array.from(value)
+    const limit = Math.min(before.length, after.length)
+    let prefix = 0
+    let start = 0
+    while (prefix < limit && before[prefix] === after[prefix]) {
+      start += before[prefix].length
+      prefix += 1
+    }
+    let suffix = 0
+    let trailingLength = 0
+    while (suffix < limit - prefix && before.at(-1 - suffix) === after.at(-1 - suffix)) {
+      trailingLength += before[before.length - suffix - 1].length
+      suffix += 1
+    }
+    return this.replace(start, original.length - trailingLength, value.slice(start, value.length - trailingLength))
+  }
+
   receive(update: Uint8Array) {
     applyUpdate(this.#document, update)
   }

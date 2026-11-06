@@ -251,24 +251,23 @@ async function contextWithoutSecondCreatedNote(browser: Browser) {
   const context = await browser.newContext()
   await context.addInitScript(() => {
     const originalPut = IDBObjectStore.prototype.put
-    let createdCount = 0
+    const createdIds = new Set<string>()
     let omittedNoteId: string | null = null
 
     IDBObjectStore.prototype.put = function (value, key) {
       const record = value as {
-        content: string
         contentRevision: number
         id: string
       }
 
       if (
         this.name === "notes" &&
-        record.content === "" &&
+        !createdIds.has(record.id) &&
         record.contentRevision === 0
       ) {
-        createdCount += 1
+        createdIds.add(record.id)
 
-        if (createdCount === 2) {
+        if (createdIds.size === 2) {
           omittedNoteId = record.id
         }
       }

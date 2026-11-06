@@ -95,6 +95,57 @@ describe("메모 저장소 모델", () => {
     expect(await readUpdates()).toEqual([])
   })
 
+  it("두 창이 같은 본문에서 편집하고 정리 도중 들어온 변경도 새 연결에서 읽는다", async () => {
+    const first = new IndexedDbNoteRepository(createConnection())
+    const second = new IndexedDbNoteRepository(createConnection())
+    await first.save(note)
+    const left = new NoteBody(await first.readBody(note.id))
+    const right = new NoteBody(await second.readBody(note.id))
+    const prefix = left.replace(0, 0, "앞 ")
+    const suffix = right.replace(right.text.length, right.text.length, " 뒤")
+    await first.appendUpdate({ id: crypto.randomUUID(), noteId: note.id, payload: prefix })
+    await Promise.all([
+      first.compactBody(note.id),
+      second.appendUpdate({ id: crypto.randomUUID(), noteId: note.id, payload: suffix }),
+    ])
+    const reopened = new IndexedDbNoteRepository(createConnection())
+    const expected = "앞 " + note.content + " 뒤"
+    expect(new NoteBody(await reopened.readBody(note.id)).text).toBe(expected)
+    expect(noteById(await reopened.getAll(), note.id).content).toBe(expected)
+  })
+
+  it("정리 트랜잭션이 중단되면 변경분과 기준 본문을 함께 되돌린다", async () => {
+    const repository = new IndexedDbNoteRepository(createConnection())
+    await repository.save(note)
+    const baseline = await repository.readBody(note.id)
+    const edit = new NoteBody(baseline)
+    const change = { noteId: note.id, id: crypto.randomUUID(), payload: edit.replace(0, 1, "쓴") }
+    await repository.appendUpdate(change)
+    const originalDelete = IDBObjectStore.prototype.delete
+    const deletion = vi.spyOn(IDBObjectStore.prototype, "delete")
+    deletion.mockImplementation(function (this: IDBObjectStore, key: IDBValidKey | IDBKeyRange) {
+      const request = originalDelete.call(this, key)
+      if (this.name === "updates") this.transaction.abort()
+      return request
+    })
+    try {
+      await expect(repository.compactBody(note.id)).rejects.toThrow()
+    } finally {
+      deletion.mockRestore()
+    }
+    const database = await createConnection().get()
+    const read = database.transaction(["notes", "updates"])
+    const [stored, changes] = await Promise.all([
+      readRequest(read.objectStore("notes").get(note.id)),
+      readRequest(read.objectStore("updates").index("noteId").getAll(note.id)),
+      waitForTransaction(read),
+    ])
+    expect(stored.body).toEqual(baseline)
+    expect(changes).toEqual([change])
+    await repository.compactBody(note.id)
+    expect(new NoteBody(await repository.readBody(note.id)).text).toBe(edit.text)
+  })
+
   it("모바일 순서를 새 연결에서 복원하고 원문 및 데스크톱 자료를 보존한다", async () => {
     const connection = createConnection()
     const notes = new IndexedDbNoteRepository(connection)

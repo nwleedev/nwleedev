@@ -12,6 +12,7 @@ import {
   type BatchCopyItem,
 } from "@/entities/batch-copy"
 import {
+  NoteBody,
   NOTE_DRAFT_STORE_NAME,
   NOTE_STORE_NAME,
   IndexedDbNoteDraftRepository,
@@ -183,6 +184,29 @@ describe("personal notes IndexedDB storage", () => {
     ])
     expect(keys).toEqual([[id, noteId]])
     expect(other).toEqual({ id, noteId: otherId, payload: Uint8Array.of(2) })
+  })
+
+  it("v7의 문자열을 기준 본문으로 이전하면서 모바일 위치와 기존 시각을 보존한다", async () => {
+    const previous = await openIndexedDatabase({
+      name: PERSONAL_NOTES_DATABASE_NAME,
+      version: 7,
+      upgrade(database) {
+        database.createObjectStore("notes", { keyPath: "id" }).createIndex("position", "position")
+        database.createObjectStore("updates", { keyPath: ["id", "noteId"] }).createIndex("noteId", "noteId")
+      },
+    })
+    const write = previous.transaction("notes", "readwrite")
+    const saved = waitForTransaction(write)
+    write.objectStore("notes").put({ ...note, position: -1.5 })
+    await saved
+    previous.close()
+
+    const database = await createConnection().get()
+    const read = database.transaction("notes")
+    const [record] = await Promise.all([readRequest(read.objectStore("notes").get(note.id)), waitForTransaction(read)])
+    expect(record).not.toHaveProperty("content")
+    expect(record).toMatchObject({ position: -1.5, updatedAt: note.updatedAt })
+    expect(new NoteBody(record.body).text).toBe(note.content)
   })
 
   it("v3의 메모를 바꾸지 않고 기존 탐색 순서로 모바일 순서를 읽는다", async () => {

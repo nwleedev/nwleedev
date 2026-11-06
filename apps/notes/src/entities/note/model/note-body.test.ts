@@ -19,6 +19,17 @@ describe("같은 메모를 여러 창에서 편집", () => {
     expect([first.text, second.text, reopened.text]).toEqual(["가별라", "가별라", "가별라"])
   })
 
+  it("폼에서 바뀐 글자만 반영해 다른 창의 입력과 이모지를 보존한다", () => {
+    const base = NoteBody.fromText("앞😀뒤").snapshot()
+    const editor = new NoteBody(base)
+    const peer = new NoteBody(base)
+    const edit = editor.updateText("앞😃뒤")
+    const added = peer.replace(0, 0, "새 ")
+    editor.receive(added)
+    peer.receive(edit)
+    expect([editor.text, peer.text]).toEqual(["새 앞😃뒤", "새 앞😃뒤"])
+  })
+
   it("먼저 도착한 후속 편집도 누락 없이 복구하고 전체 삭제 후 빈 메모를 유지한다", () => {
     const base = NoteBody.fromText("회의").snapshot()
     const editor = new NoteBody(base)

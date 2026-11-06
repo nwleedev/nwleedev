@@ -15,10 +15,11 @@ import {
   migrateMobileBatchCopyDraftStore,
   migratePersonalNotesDatabase,
   migrateNotePositions,
+  migrateNoteBodies,
 } from "./migrate-personal-notes-database"
 
 export const PERSONAL_NOTES_DATABASE_NAME = "personal-notes"
-export const PERSONAL_NOTES_DATABASE_VERSION = 7
+export const PERSONAL_NOTES_DATABASE_VERSION = 8
 
 type PersonalNotesDatabaseCallbacks = {
   onBlocked?(): void
@@ -33,8 +34,10 @@ export function openPersonalNotesDatabase(
     onBlocked: callbacks.onBlocked,
     onVersionChange: callbacks.onVersionChange,
     upgrade: (database, transaction, oldVersion) => {
-      const updates = database.createObjectStore("updates", { keyPath: ["id", "noteId"] })
-      updates.createIndex("noteId", "noteId")
+      if (oldVersion < 7) {
+        const updates = database.createObjectStore("updates", { keyPath: ["id", "noteId"] })
+        updates.createIndex("noteId", "noteId")
+      }
 
       if (oldVersion === 0) {
         const notes = database.createObjectStore(NOTE_STORE_NAME, { keyPath: "id" })
@@ -58,7 +61,10 @@ export function openPersonalNotesDatabase(
         return
       }
 
-      if (oldVersion >= 6) return
+      if (oldVersion >= 6) {
+        migrateNoteBodies(transaction)
+        return
+      }
       ensureBatchCopyListStore(database, transaction)
 
       transaction.objectStore(NOTE_STORE_NAME).createIndex(NOTE_POSITION_INDEX, "position")

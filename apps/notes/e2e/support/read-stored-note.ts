@@ -1,3 +1,4 @@
+import { applyUpdate, Doc } from "yjs"
 import type { Page } from "@playwright/test"
 
 export type StoredNoteObservation = {
@@ -37,55 +38,44 @@ export async function readStoredNote(
   page: Page,
   noteId: string,
 ): Promise<StoredNoteObservation | null> {
-  return page.evaluate(
-    ({ databaseName, id, storeName }) =>
-      new Promise<StoredNoteObservation | null>((resolve, reject) => {
-        const openRequest = indexedDB.open(databaseName)
-        openRequest.onerror = () => reject(openRequest.error)
-        openRequest.onsuccess = () => {
-          const database = openRequest.result
-          const request = database
-            .transaction(storeName, "readonly")
-            .objectStore(storeName)
-            .get(id)
-          request.onerror = () => {
-            database.close()
-            reject(request.error)
-          }
-          request.onsuccess = () => {
-            const note = request.result as
-              | {
-                  content: string
-                  contentRevision: number
-                  geometry: {
-                    height: number
-                    width: number
-                    x: number
-                    y: number
-                    zIndex: number
-                  }
-                  revision: number
-                  tabIndex: number
-                }
-              | undefined
-            database.close()
-            resolve(
-              note === undefined
-                ? null
-                : {
-                    content: note.content,
-                    contentRevision: note.contentRevision,
-                    geometry: note.geometry,
-                    geometryX: note.geometry.x,
-                    revision: note.revision,
-                    tabIndex: note.tabIndex,
-                  },
-            )
-          }
+  type StoredFields = Omit<StoredNoteObservation, "content" | "geometryX">
+  type BodyObservation = StoredFields & { body: number[]; updates: number[][] }
+  const stored = await page.evaluate((id) => new Promise<BodyObservation | null>((resolve, reject) => {
+    const open = indexedDB.open("personal-notes")
+    open.onerror = () => reject(open.error)
+    open.onsuccess = () => {
+      const database = open.result
+      const transaction = database.transaction(["notes", "updates"])
+      const note = transaction.objectStore("notes").get(id)
+      const updates = transaction.objectStore("updates").index("noteId").getAll(id)
+      transaction.onabort = () => {
+        database.close()
+        reject(transaction.error)
+      }
+      transaction.oncomplete = () => {
+        database.close()
+        const value = note.result as (StoredFields & { body: Uint8Array }) | undefined
+        if (!value) {
+          resolve(null)
+          return
         }
-      }),
-    { databaseName: "personal-notes", id: noteId, storeName: "notes" },
-  )
+        resolve({
+          body: Array.from(value.body),
+          contentRevision: value.contentRevision,
+          geometry: value.geometry,
+          revision: value.revision,
+          tabIndex: value.tabIndex,
+          updates: updates.result.map(({ payload }) => Array.from(payload as Uint8Array)),
+        })
+      }
+    }
+  }), noteId)
+  if (!stored) return null
+  const { body, updates, ...fields } = stored
+  const document = new Doc()
+  applyUpdate(document, Uint8Array.from(body))
+  for (const update of updates) applyUpdate(document, Uint8Array.from(update))
+  return { ...fields, content: document.getText("body").toString(), geometryX: fields.geometry.x }
 }
 
 export async function readStoredNoteDraft(

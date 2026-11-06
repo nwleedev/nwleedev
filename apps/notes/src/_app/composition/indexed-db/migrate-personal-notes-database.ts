@@ -7,6 +7,7 @@ import {
   NOTE_DRAFT_STORE_NAME,
   NOTE_STORE_NAME,
   NoteRecordSchema,
+  storeNote,
   validateAndClampNoteGeometry,
   normalizeNoteTabIndexes,
   reconcileMobileNoteIds,
@@ -143,7 +144,7 @@ function migrateNotes(transaction: IDBTransaction) {
   request.onsuccess = () => {
     try {
       for (const note of migrateNoteRecords(request.result)) {
-        store.put({ ...note, position: note.tabIndex })
+        store.put(storeNote(note, note.tabIndex))
       }
     } catch {
       transaction.abort()
@@ -166,8 +167,25 @@ export function migrateNotePositions(database: IDBDatabase, transaction: IDBTran
       const stored: unknown = order?.result
       const ids = reconcileMobileNoteIds(stored === undefined ? [] : PreviousOrderSchema.parse(stored).ids, notes.map(({ id }) => id))
       const ranks = new Map(ids.map((id, index) => [id, index]))
-      for (const note of notes) store.put({ ...note, position: ranks.get(note.id) })
+      for (const note of notes) store.put(storeNote(note, ranks.get(note.id) ?? note.tabIndex))
       if (hasOrder) database.deleteObjectStore(PREVIOUS_ORDER_STORE)
+    } catch {
+      transaction.abort()
+    }
+  }
+}
+
+export function migrateNoteBodies(transaction: IDBTransaction) {
+  const notes = transaction.objectStore(NOTE_STORE_NAME)
+  const cursor = notes.openCursor()
+  const previous = NoteRecordSchema.extend({ position: z.number().finite() })
+  cursor.onsuccess = () => {
+    const entry = cursor.result
+    if (!entry) return
+    try {
+      const { position, ...note } = previous.parse(entry.value)
+      entry.update(storeNote(note, position))
+      entry.continue()
     } catch {
       transaction.abort()
     }
