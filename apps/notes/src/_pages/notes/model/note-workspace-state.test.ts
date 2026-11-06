@@ -17,10 +17,14 @@ import {
   toggleBatchCopyItemSelection,
 } from "./note-workspace-state"
 
+function geometryAt(x: number) {
+  return { height: 240, width: 320, x, y: 0, zIndex: 1 }
+}
+
 function activateFirstNote() {
   return activateNoteProperties(
     createNoteWorkspaceState(),
-    { id: "note-1", revision: 3 },
+    { id: "note-1", geometry: geometryAt(3) },
   )
 }
 
@@ -30,18 +34,18 @@ describe("메모 작업 상태", () => {
       fc.property(
         fc.uniqueArray(fc.uuid(), { minLength: 2, maxLength: 2 }),
         fc.nat(),
-        ([propertiesId, selectedId], revision) => {
+        ([propertiesId, selectedId], x) => {
           const properties = activateNoteProperties(
             createNoteWorkspaceState(),
-            { id: propertiesId, revision },
+            { id: propertiesId, geometry: geometryAt(x) },
           )
           const selected = selectNote(properties, selectedId)
           const cleared = clearWorkspaceSelections(selected)
 
           expect(selected.selectedNoteId).toBe(selectedId)
-          expect(selected.propertiesTarget).toEqual({ id: propertiesId, revision })
+          expect(selected.propertiesTarget).toEqual({ id: propertiesId, geometry: geometryAt(x) })
           expect(cleared.selectedNoteId).toBeNull()
-          expect(cleared.propertiesTarget).toEqual({ id: propertiesId, revision })
+          expect(cleared.propertiesTarget).toEqual({ id: propertiesId, geometry: geometryAt(x) })
           expect(cleared.activePanel).toBe("note-properties")
         },
       ),
@@ -67,14 +71,14 @@ describe("메모 작업 상태", () => {
     const selected = selectNote(createNoteWorkspaceState(), "note-2")
     const activated = activateNoteProperties(
       selected,
-      { id: "note-2", revision: 4 },
+      { id: "note-2", geometry: geometryAt(4) },
     )
 
     expect(activated.selectedNoteId).toBe("note-2")
     expect(activated.activePanel).toBe("note-properties")
     expect(activated.propertiesTarget).toEqual({
       id: "note-2",
-      revision: 4,
+      geometry: geometryAt(4),
     })
   })
 
@@ -82,12 +86,12 @@ describe("메모 작업 상태", () => {
     const initial = activateFirstNote()
     const keyboard = activateNoteProperties(
       initial,
-      { id: "note-1", revision: 3 },
+      { id: "note-1", geometry: geometryAt(3) },
       "first-field",
     )
     const pointer = activateNoteProperties(
       keyboard,
-      { id: "note-1", revision: 3 },
+      { id: "note-1", geometry: geometryAt(3) },
       "preserve",
     )
 
@@ -175,28 +179,35 @@ describe("메모 작업 상태", () => {
     const first = activateFirstNote()
     const second = activateNoteProperties(
       first,
-      { id: "note-2", revision: 5 },
+      { id: "note-2", geometry: geometryAt(5) },
     )
     const completed = confirmNotePropertiesTarget(
       second,
-      { id: "note-1", revision: 3 },
-      { id: "note-1", revision: 4 },
+      { id: "note-1", geometry: geometryAt(3) },
+      { id: "note-1", geometry: geometryAt(4) },
     )
 
     expect(completed).toBe(second)
     expect(completed.propertiesTarget?.id).toBe("note-2")
   })
 
-  it("속성 저장이 끝나면 대상 메모의 최신 판을 반영한다", () => {
+  it("같은 메모의 배치가 다시 바뀐 뒤에는 앞선 저장 완료를 무시한다", () => {
+    const before = { id: "note-1", geometry: geometryAt(10) }
+    const latest = { ...before, geometry: geometryAt(50) }
+    const opened = activateNoteProperties(createNoteWorkspaceState(), latest)
+    expect(confirmNotePropertiesTarget(opened, before, { ...before, geometry: geometryAt(30) })).toBe(opened)
+  })
+
+  it("속성 저장이 끝나면 대상 메모에 저장된 배치를 반영한다", () => {
     const completed = confirmNotePropertiesTarget(
       activateFirstNote(),
-      { id: "note-1", revision: 3 },
-      { id: "note-1", revision: 4 },
+      { id: "note-1", geometry: geometryAt(3) },
+      { id: "note-1", geometry: geometryAt(4) },
     )
 
     expect(completed.propertiesTarget).toEqual({
       id: "note-1",
-      revision: 4,
+      geometry: geometryAt(4),
     })
   })
 
@@ -211,13 +222,13 @@ describe("메모 작업 상태", () => {
   it("저장값으로 되돌리면 속성 대상을 갱신하고 패널을 닫는다", () => {
     const restored = restoreNotePropertiesTarget(
       activateFirstNote(),
-      { id: "note-1", revision: 4 },
+      { id: "note-1", geometry: geometryAt(4) },
     )
 
     expect(restored.activePanel).toBeNull()
     expect(restored.propertiesTarget).toEqual({
       id: "note-1",
-      revision: 4,
+      geometry: geometryAt(4),
     })
   })
 })

@@ -73,6 +73,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 - **3.1 편집기에 도착한 본문 판정.** 이미 저장한 입력이 새로 읽은 CRDT 상태에 들어 있을 때 편집기에 반영한다. 본문 수정 횟수로 선후를 비교하지 않는다. 다른 창이 아직 받지 못한 삭제와 이미 병합한 삭제를 구별하는 Yjs 검사, 전체 단위 검사 190건과 브라우저 검사 147건을 확인했다.
 
+- **2.3 속성 패널의 저장 대상.** 속성 패널은 메모 ID와 배치를 기억한다. 같은 메모를 다시 옮긴 뒤 먼저 시작한 저장이 끝나더라도 최신 배치를 교체하지 않는다. 속성 폼과 캔버스가 같은 좌표 및 크기 비교 함수를 사용한다. 이전 방식에서 실패하던 동일 ID 사례를 포함한 단위 검사 191건, 타입 검사와 lint가 통과했다.
+
 ### 모든 절차의 착수 조건
 
 - 각 절차에서 코드를 열기 전에 [저장소 개발 지침](../../dev/README.md), [메모 앱 안티패턴](../../dev/personal-notes-app/anti-patterns.md), [입력 상태](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md) 중 적용할 규칙을 확인한다. 아래 파일은 `apps/notes` 기준이다. 실제 호출자와 재사용 여부를 확인하고 다음 절차에 필요한 코드를 먼저 지우지 않는다.

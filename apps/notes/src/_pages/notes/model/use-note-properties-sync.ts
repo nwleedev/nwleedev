@@ -6,14 +6,14 @@ import {
   createNoteGeometryDraft,
   noteGeometryDraftFields,
   type Note,
-  type NoteReference,
 } from "@/entities/note"
 
+import type { NotePropertiesTarget } from "./note-workspace-state"
 import { useNotePropertiesForm } from "./use-note-properties-form"
 
 type NotePropertiesSyncOptions = {
   notes: readonly Note[]
-  target: NoteReference | null
+  target: NotePropertiesTarget | null
 }
 
 export function useNotePropertiesSync({

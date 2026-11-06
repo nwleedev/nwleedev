@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent, useRef, type RefObject } from "react"
 
 import {
   createNoteGeometryDraft,
-  createNoteReference,
+  geometriesAreEqual,
   mobileNotePosition,
   noteGeometryDraftFields,
   NOTE_REMOVAL_UNDO_DURATION_MS,
@@ -10,6 +10,7 @@ import {
   type NoteGeometry,
   type RemovedNoteSnapshot,
 } from "@/entities/note"
+import { propertiesTargetOf } from "./note-workspace-state"
 import { useAddNoteToBatchCopy } from "@/features/add-note-to-batch-copy"
 import { useActionToast } from "@/shared/ui/action-toast"
 
@@ -64,14 +65,14 @@ export function useNoteCardActions(
     const draftChanged = noteGeometryDraftFields.some(
       (field) => getNotePropertyFieldState(field).isDirty,
     )
-    const targetRevisionChanged = sameTarget && target.revision !== note.revision
-    const replaceCurrentDraft = targetRevisionChanged && !draftChanged
+    const geometryChanged = sameTarget && !geometriesAreEqual(target.geometry, note.geometry)
+    const replaceCurrentDraft = geometryChanged && !draftChanged
 
     if (!sameTarget || replaceCurrentDraft) {
       resetNoteProperties(createNoteGeometryDraft(note.geometry))
     }
 
-    session.activateProperties(createNoteReference(note), focus)
+    session.activateProperties(propertiesTargetOf(note), focus)
   }
 
   function showSaveFailure(message: string) {
@@ -105,8 +106,8 @@ export function useNoteCardActions(
     const savedNote = await storeGeometry(note, geometry)
 
     session.confirmPropertiesTarget(
-      createNoteReference(note),
-      createNoteReference(savedNote),
+      propertiesTargetOf(note),
+      propertiesTargetOf(savedNote),
     )
     return savedNote
   }

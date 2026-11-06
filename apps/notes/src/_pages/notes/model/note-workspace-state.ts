@@ -1,4 +1,10 @@
-import type { NoteReference } from "@/entities/note"
+import { geometriesAreEqual, type Note } from "@/entities/note"
+
+export type NotePropertiesTarget = Pick<Note, "id" | "geometry">
+
+export function propertiesTargetOf({ id, geometry }: Note): NotePropertiesTarget {
+  return { id, geometry }
+}
 
 export type NoteWorkspacePanel = "batch-copy" | "note-properties"
 export type NotePropertiesFocus = "first-field" | "preserve"
@@ -6,7 +12,7 @@ export type NotePropertiesFocus = "first-field" | "preserve"
 export type NoteWorkspaceState = {
   activePanel: NoteWorkspacePanel | null
   propertiesFocus: NotePropertiesFocus
-  propertiesTarget: NoteReference | null
+  propertiesTarget: NotePropertiesTarget | null
   selectedBatchCopyItemId: string | null
   selectedNoteId: string | null
 }
@@ -102,7 +108,7 @@ export function forgetNote(
 
 export function activateNoteProperties(
   state: NoteWorkspaceState,
-  note: NoteReference,
+  note: NotePropertiesTarget,
   focus: NotePropertiesFocus = "preserve",
 ): NoteWorkspaceState {
   return {
@@ -136,13 +142,13 @@ export function closeActivePanel(
 
 export function confirmNotePropertiesTarget(
   state: NoteWorkspaceState,
-  expected: NoteReference,
-  saved: NoteReference,
+  expected: NotePropertiesTarget,
+  saved: NotePropertiesTarget,
 ): NoteWorkspaceState {
   const current = state.propertiesTarget
   const expectedTarget =
     current?.id === expected.id &&
-    current.revision === expected.revision
+    geometriesAreEqual(current.geometry, expected.geometry)
 
   if (!expectedTarget) {
     return state
@@ -169,7 +175,7 @@ export function closeNoteProperties(
 
 export function restoreNotePropertiesTarget(
   state: NoteWorkspaceState,
-  note: NoteReference,
+  note: NotePropertiesTarget,
 ): NoteWorkspaceState {
   if (state.propertiesTarget?.id !== note.id) {
     return state

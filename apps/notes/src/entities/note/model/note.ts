@@ -98,7 +98,7 @@ export type NoteRevision = {
   updatedAt: string
 }
 
-function geometriesAreEqual(left: NoteGeometry, right: NoteGeometry) {
+export function geometriesAreEqual(left: NoteGeometry, right: NoteGeometry) {
   return (
     left.height === right.height &&
     left.width === right.width &&

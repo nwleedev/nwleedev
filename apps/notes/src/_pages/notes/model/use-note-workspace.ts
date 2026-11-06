@@ -1,7 +1,5 @@
 import { useCallback, useState } from "react"
 
-import type { NoteReference } from "@/entities/note"
-
 import {
   activateBatchCopyPanel,
   activateNoteProperties,
@@ -17,6 +15,7 @@ import {
   selectNote,
   toggleBatchCopyItemSelection,
   type NotePropertiesFocus,
+  type NotePropertiesTarget,
 } from "./note-workspace-state"
 
 export function useNoteWorkspace() {
@@ -39,7 +38,7 @@ export function useNoteWorkspace() {
   }, [])
 
   const activateProperties = useCallback((
-    note: NoteReference,
+    note: NotePropertiesTarget,
     focus?: NotePropertiesFocus,
   ) => {
     setWorkspace((current) => activateNoteProperties(current, note, focus))
@@ -58,15 +57,15 @@ export function useNoteWorkspace() {
   }, [])
 
   const confirmPropertiesTarget = useCallback((
-    expected: NoteReference,
-    saved: NoteReference,
+    expected: NotePropertiesTarget,
+    saved: NotePropertiesTarget,
   ) => {
     setWorkspace((current) =>
       confirmNotePropertiesTarget(current, expected, saved),
     )
   }, [])
 
-  const restorePropertiesTarget = useCallback((note: NoteReference) => {
+  const restorePropertiesTarget = useCallback((note: NotePropertiesTarget) => {
     setWorkspace((current) => restoreNotePropertiesTarget(current, note))
   }, [])
 

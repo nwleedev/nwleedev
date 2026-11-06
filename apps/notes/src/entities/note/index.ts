@@ -23,6 +23,7 @@ export {
   NoteReferenceSchema,
   NoteTabIndexSchema,
   createNoteReference,
+  geometriesAreEqual,
   parseNoteRecord,
   reviseNote,
   type Note,

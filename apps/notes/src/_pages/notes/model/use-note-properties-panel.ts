@@ -13,13 +13,13 @@ import {
   NOTE_WIDTH_MAX,
   NOTE_WIDTH_MIN,
   createNoteGeometryDraft,
-  createNoteReference,
+  geometriesAreEqual,
   readNoteGeometryDraft,
   type Note,
-  type NoteGeometry,
   type NoteGeometryDraftField,
 } from "@/entities/note"
 
+import { propertiesTargetOf } from "./note-workspace-state"
 import { useNotePropertiesForm } from "./use-note-properties-form"
 import { useNoteSession } from "./use-note-session-state"
 import { useNotesData } from "./use-notes-data-model"
@@ -61,15 +61,6 @@ function noteTitle(note: Note) {
   }
 
   return firstLine.length > 28 ? `${firstLine.slice(0, 28)}…` : firstLine
-}
-
-function sameGeometry(note: Note, geometry: NoteGeometry) {
-  return (
-    note.geometry.height === geometry.height &&
-    note.geometry.width === geometry.width &&
-    note.geometry.x === geometry.x &&
-    note.geometry.y === geometry.y
-  )
 }
 
 export function useNotePropertiesPanel() {
@@ -161,7 +152,7 @@ export function useNotePropertiesPanel() {
     clearErrors()
     setMessage("")
 
-    if (sameGeometry(note, result.geometry)) {
+    if (geometriesAreEqual(note.geometry, result.geometry)) {
       return { completion: Promise.resolve(true), valid: true }
     }
 
@@ -177,7 +168,7 @@ export function useNotePropertiesPanel() {
         if (expectedReference !== null) {
           session.confirmPropertiesTarget(
             expectedReference,
-            createNoteReference(savedNote),
+            propertiesTargetOf(savedNote),
           )
         }
 
@@ -270,7 +261,7 @@ export function useNotePropertiesPanel() {
 
     reset(createNoteGeometryDraft(note.geometry))
     setMessage("")
-    session.restorePropertiesTarget(createNoteReference(note))
+    session.restorePropertiesTarget(propertiesTargetOf(note))
   }
 
   return {
