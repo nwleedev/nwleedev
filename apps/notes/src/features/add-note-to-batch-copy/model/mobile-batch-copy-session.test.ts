@@ -5,7 +5,7 @@ import { addNoteToMobileBatchCopy, duplicateMobileBatchCopySessionEntry, moveMob
 
 function createNote(content: string): Note {
   const timestamp = new Date().toISOString()
-  return { content, contentRevision: 1, createdAt: timestamp, geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 }, id: crypto.randomUUID(), revision: 1, tabIndex: 1000, updatedAt: timestamp }
+  return { content, contentRevision: 1, createdAt: timestamp, geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 }, id: crypto.randomUUID(), tabIndex: 1000, updatedAt: timestamp }
 }
 
 function createDependencies(failFirstUsage = false) {

@@ -19,7 +19,6 @@ const initialNote: Note = {
   createdAt: initialTimestamp,
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: crypto.randomUUID(),
-  revision: 0,
   tabIndex: 1000,
   updatedAt: initialTimestamp,
 }

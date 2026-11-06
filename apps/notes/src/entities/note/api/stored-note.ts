@@ -36,7 +36,7 @@ export function storeNote(note: Note, position: number, restored = false) {
 }
 
 export function storeGeometry(record: z.infer<typeof StoredNoteSchema>, note: Note) {
-  return { ...record, geometry: note.geometry, revision: note.revision, updatedAt: toTimestamp(note.updatedAt) }
+  return { ...record, geometry: note.geometry, updatedAt: toTimestamp(note.updatedAt) }
 }
 
 export async function readStoredBody(record: z.infer<typeof StoredNoteSchema>, updates: IDBObjectStore) {

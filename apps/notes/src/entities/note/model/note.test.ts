@@ -15,13 +15,12 @@ const originalNote = {
     zIndex: 1,
   },
   id: "note-1",
-  revision: 4,
   tabIndex: 1000,
   updatedAt: "2026-08-31T01:00:00.000Z",
 }
 
 describe("reviseNote", () => {
-  it("increments both revisions when content changes", () => {
+  it("records the changed text", () => {
     const revised = reviseNote(originalNote, {
       content: "수정한 메모",
       updatedAt: "2026-08-31T02:00:00.000Z",
@@ -29,7 +28,7 @@ describe("reviseNote", () => {
 
     expect(revised).toMatchObject({
       contentRevision: 3,
-      revision: 5,
+      content: "수정한 메모",
     })
   })
 
@@ -41,11 +40,11 @@ describe("reviseNote", () => {
 
     expect(revised).toMatchObject({
       contentRevision: 2,
-      revision: 5,
+      geometry: { x: 80 },
     })
   })
 
-  it("increments each revision once when content and geometry change together", () => {
+  it("records a text edit together with its new geometry", () => {
     const revised = reviseNote(originalNote, {
       content: "수정한 메모",
       geometry: { ...originalNote.geometry, width: 400 },
@@ -54,7 +53,7 @@ describe("reviseNote", () => {
 
     expect(revised).toMatchObject({
       contentRevision: 3,
-      revision: 5,
+      content: "수정한 메모",
     })
   })
 
@@ -80,7 +79,6 @@ describe("NoteRecordSchema", () => {
       contentRevision: originalNote.contentRevision,
       createdAt: originalNote.createdAt,
       id: originalNote.id,
-      revision: originalNote.revision,
       updatedAt: originalNote.updatedAt,
     }
 
@@ -91,7 +89,7 @@ describe("NoteRecordSchema", () => {
     "rejects an invalid revision",
     (revision) => {
       expect(
-        NoteRecordSchema.safeParse({ ...originalNote, revision }).success,
+        NoteRecordSchema.safeParse({ ...originalNote, contentRevision: revision }).success,
       ).toBe(false)
     },
   )
@@ -133,7 +131,6 @@ describe("NoteRecordSchema", () => {
 type RevisionExpectation = {
   content: string
   contentRevision: number
-  revision: number
   x: number
 }
 
@@ -156,14 +153,12 @@ function expectRevision(model: RevisionExpectation, real: RevisionExecution) {
   const observed = {
     content: real.note.content,
     contentRevision: real.note.contentRevision,
-    revision: real.note.revision,
     x: real.note.geometry.x,
   }
 
   if (
     observed.content !== model.content ||
     observed.contentRevision !== model.contentRevision ||
-    observed.revision !== model.revision ||
     observed.x !== model.x
   ) {
     throw new RevisionMismatch({ ...model }, observed)
@@ -187,7 +182,6 @@ class ReplaceContent implements fc.Command<RevisionExpectation, RevisionExecutio
     model.content = this.content
     if (changed) {
       model.contentRevision += 1
-      model.revision += 1
     }
     expectRevision(model, real)
   }
@@ -206,15 +200,11 @@ class MoveX implements fc.Command<RevisionExpectation, RevisionExecution> {
 
   run(model: RevisionExpectation, real: RevisionExecution) {
     real.actions.push(this.toString())
-    const changed = this.x !== model.x
     real.note = real.revise(real.note, {
       geometry: { ...real.note.geometry, x: this.x },
       updatedAt: originalNote.updatedAt,
     })
     model.x = this.x
-    if (changed) {
-      model.revision += 1
-    }
     expectRevision(model, real)
   }
 
@@ -275,7 +265,6 @@ function runRevisionCommands(
   const model: RevisionExpectation = {
     content: note.content,
     contentRevision: note.contentRevision,
-    revision: note.revision,
     x: note.geometry.x,
   }
   const real: RevisionExecution = { actions: [], note, revise }
@@ -321,7 +310,7 @@ const trimRevision: typeof reviseNote = (note, change: NoteRevision) =>
 
 const geometryRevision: typeof reviseNote = (note, change: NoteRevision) => {
   const revised = reviseNote(note, change)
-  if (change.geometry === undefined || revised.revision === note.revision) {
+  if (change.geometry === undefined || revised === note) {
     return revised
   }
   return { ...revised, contentRevision: revised.contentRevision + 1 }

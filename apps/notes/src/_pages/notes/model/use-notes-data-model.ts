@@ -8,7 +8,6 @@ import {
 } from "react"
 
 import {
-  createNoteReference,
   findNewNoteGeometry,
   nextNoteTabIndex,
   type Note,
@@ -244,7 +243,6 @@ export function useNotesDataModel({
         createdAt: timestamp,
         geometry: findNewNoteGeometry(notes.map(({ geometry }) => geometry)),
         id: createId(),
-        revision: 0,
         tabIndex: nextNoteTabIndex(notes),
         updatedAt: timestamp,
       }
@@ -338,7 +336,7 @@ export function useNotesDataModel({
         throw new Error("Cannot remove a missing note")
       }
 
-      const deleted = await repository.remove(createNoteReference(currentNote))
+      const deleted = await repository.remove(currentNote)
       if (!deleted) throw new Error("Cannot remove a missing note")
       const notes = availableNotesReference.current.filter(
         ({ id }) => id !== currentNote.id,

@@ -66,7 +66,6 @@ const note: Note = {
   createdAt: timestamp,
   geometry: { height: 240, width: 320, x: 40, y: 60, zIndex: 1 },
   id: "note-1",
-  revision: 0,
   tabIndex: 1000,
   updatedAt: timestamp,
 }
@@ -325,6 +324,35 @@ describe("personal notes IndexedDB storage", () => {
     expect((await current.get()).objectStoreNames.contains("mobileNoteOrder")).toBe(false)
   })
 
+  it("v12의 활성 메모와 복원용 본문에서 전체 수정 횟수를 제거한다", async () => {
+    const record = {
+      id: note.id, body: NoteBody.fromText(note.content).snapshot(), geometry: note.geometry,
+      tabIndex: note.tabIndex, position: 0, contentRevision: 1, revision: 4,
+      createdAt: Date.parse(timestamp), updatedAt: Date.parse(timestamp),
+    }
+    const otherId = crypto.randomUUID()
+    const previous = await openIndexedDatabase({
+      name: PERSONAL_NOTES_DATABASE_NAME,
+      version: 12,
+      upgrade(database) {
+        const notes = database.createObjectStore("notes", { keyPath: "id" })
+        notes.add(record)
+        notes.add({ id: otherId, removed: { ...record, id: otherId } })
+      },
+    })
+    previous.close()
+    const database = await createConnection().get()
+    const tx = database.transaction("notes")
+    const store = tx.objectStore("notes")
+    const [active, deleted] = await Promise.all([
+      readRequest(store.get(record.id)), readRequest(store.get(otherId)), waitForTransaction(tx),
+    ])
+    expect(active).not.toHaveProperty("revision")
+    expect(deleted.removed).not.toHaveProperty("revision")
+    expect(new NoteBody(deleted.removed.body).text).toBe(note.content)
+    expect(active.geometry).toEqual(record.geometry)
+  })
+
   it("v10 일괄 복사 항목과 목록의 시각을 밀리초로 이전하고 다음 쓰기에도 유지한다", async () => {
     const legacy = {
       id: PRIMARY_BATCH_COPY_LIST_ID,
@@ -500,7 +528,6 @@ describe("personal notes IndexedDB storage", () => {
         content: secondText,
         contentRevision: secondReference.contentRevision,
         id: noteId,
-        revision: note.revision + 1,
       })
       for (let copy = 0; copy < input.secondCopies; copy += 1) {
         await usage.recordIndividualCopy({
@@ -621,7 +648,7 @@ describe("personal notes IndexedDB storage", () => {
       createdAt: note.createdAt,
       geometry: note.geometry,
       id: note.id,
-      revision: note.revision,
+      revision: 0,
       updatedAt: note.updatedAt,
     }
     const previousNotes = [
@@ -728,17 +755,14 @@ describe("personal notes IndexedDB storage", () => {
     })
     expect(notesById.get("note-b")).toMatchObject({
       geometry: { zIndex: 1 },
-      revision: 1,
       tabIndex: 1000,
     })
     expect(notesById.get("note-a")).toMatchObject({
       geometry: { height: 180, width: 1600, x: 0, y: 5000, zIndex: 2 },
-      revision: 1,
       tabIndex: 1001,
     })
     expect(notesById.get("note-c")).toMatchObject({
       geometry: { width: 4095, zIndex: 3 },
-      revision: 1,
       tabIndex: 1002,
     })
   })

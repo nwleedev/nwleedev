@@ -45,7 +45,6 @@ function createNote(contentRevision: number): Note {
     createdAt: timestamp,
     geometry: { height: 240, width: 320, x: 20, y: 20, zIndex: 1 },
     id: "note-one",
-    revision: contentRevision,
     tabIndex: 1000,
     updatedAt: timestamp,
   }

@@ -1383,7 +1383,6 @@ test("선택한 본문을 교체하고 위치 변경과 원문 revision을 구�
   expect(afterEdit).toMatchObject({
     content: revisedContent,
     contentRevision: beforeEdit!.contentRevision + 1,
-    revision: beforeEdit!.revision + 1,
   })
 
   const properties = await openPropertiesWithKeyboard(note)
@@ -1397,7 +1396,6 @@ test("선택한 본문을 교체하고 위치 변경과 원문 revision을 구�
   expect(afterMove).toMatchObject({
     content: revisedContent,
     contentRevision: afterEdit!.contentRevision,
-    revision: afterEdit!.revision + 1,
   })
 
   const whitespaceOnlyContent = " ".repeat(2)
@@ -1410,7 +1408,6 @@ test("선택한 본문을 교체하고 위치 변경과 원문 revision을 구�
   expect(afterWhitespaceEdit).toMatchObject({
     content: whitespaceOnlyContent,
     contentRevision: afterMove!.contentRevision + 1,
-    revision: afterMove!.revision + 1,
   })
 
   await page.reload()
@@ -1630,6 +1627,7 @@ test("이동 핸들, 가장자리 크기 조절과 빈 캔버스 시점 이동�
     .toBeGreaterThan(original.x + 50)
   await expect(page.getByRole("complementary", { name: "메모 속성" })).toHaveCount(0)
 
+  await expect(note.getByRole("button", { name: "메모 이동" })).toBeEnabled()
   const moved = await visibleBox(note)
   await preparePointerCaptureRelease(page)
   await page.mouse.move(moved.x + moved.width - 1, moved.y + moved.height - 1)

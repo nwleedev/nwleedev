@@ -6,7 +6,6 @@ import {
   EntityIdSchema,
   IsoDateTimeSchema,
   RevisionSchema,
-  type EntityId,
   type Revision,
 } from "@/shared/lib/entity-metadata"
 
@@ -50,16 +49,8 @@ export const NoteRecordSchema = z
     createdAt: IsoDateTimeSchema,
     geometry: NoteGeometrySchema,
     id: EntityIdSchema,
-    revision: RevisionSchema,
     tabIndex: NoteTabIndexSchema,
     updatedAt: IsoDateTimeSchema,
-  })
-  .strict()
-
-export const NoteReferenceSchema = z
-  .object({
-    id: EntityIdSchema,
-    revision: RevisionSchema,
   })
   .strict()
 
@@ -73,7 +64,6 @@ export const NoteContentReferenceSchema = z
 export type NoteGeometry = z.infer<typeof NoteGeometrySchema>
 export type NoteTabIndex = z.infer<typeof NoteTabIndexSchema>
 export type Note = z.infer<typeof NoteRecordSchema>
-export type NoteReference = z.infer<typeof NoteReferenceSchema>
 export type NoteContentReference = z.infer<typeof NoteContentReferenceSchema>
 
 export interface NoteReader {
@@ -86,7 +76,7 @@ export interface NoteRepository extends NoteReader {
   saveGeometry(original: Note, geometry: NoteGeometry, updatedAt: string): Promise<Note | null>
   saveEdit(original: Note, edited: Note): Promise<Note | null>
   moveInStack(target: Note, edge: "front" | "back", updatedAt: string): Promise<{ notes: readonly Note[]; changedIds: readonly string[] }>
-  remove(note: NoteReference): Promise<Note | null>
+  remove(note: Pick<Note, "id">): Promise<Note | null>
   openEditor(id: string): Promise<(() => Promise<void>) | null>
   deletedNote(id: string): Promise<Note | null>
   restore(note: Note, position?: MobileNotePosition): Promise<Note>
@@ -134,18 +124,10 @@ export function reviseNote(note: Note, change: NoteRevision): Note {
     contentRevision: contentChanged
       ? incrementRevision(note.contentRevision)
       : note.contentRevision,
-    revision: incrementRevision(note.revision),
     updatedAt: change.updatedAt,
   }
 }
 
 export function parseNoteRecord(value: unknown): Note {
   return NoteRecordSchema.parse(value)
-}
-
-export function createNoteReference(note: Note): {
-  id: EntityId
-  revision: Revision
-} {
-  return { id: note.id, revision: note.revision }
 }

@@ -40,7 +40,6 @@ type RemovalDefect = "change-restored-z-index" | "none"
 type RemovalNote = {
   createdOrder: number
   id: string
-  revisionComparable: boolean
   stored: StoredNoteObservation
 }
 
@@ -97,9 +96,6 @@ function moveModelNoteToFront(
   noteId: string,
 ) {
   const ordered = stackingOrder(notes)
-  const hasDuplicate = new Set(
-    ordered.map((note) => note.stored.geometry.zIndex),
-  ).size !== ordered.length
   const targetIndex = ordered.findIndex((note) => note.id === noteId)
   if (targetIndex < 0) {
     throw new Error("Expected a note to move")
@@ -113,13 +109,9 @@ function moveModelNoteToFront(
     const zIndex = index + 1
     return {
       ...cloneNote(note),
-      revisionComparable: note.revisionComparable && !hasDuplicate,
       stored: {
         ...note.stored,
         geometry: { ...note.stored.geometry, zIndex },
-        revision: hasDuplicate || note.stored.geometry.zIndex === zIndex
-          ? note.stored.revision
-          : note.stored.revision + 1,
       },
     }
   })
@@ -159,7 +151,6 @@ function comparableExpected(note: RemovalNote) {
 
 function comparableRestoredSnapshot(
   note: StoredNoteObservation,
-  includeRevision: boolean,
 ) {
   return {
     content: note.content,
@@ -170,7 +161,6 @@ function comparableRestoredSnapshot(
       x: note.geometry.x,
       y: note.geometry.y,
     },
-    ...(includeRevision ? { revision: note.revision } : {}),
     tabIndex: note.tabIndex,
   }
 }
@@ -520,7 +510,6 @@ async function executeRemovalCommands(
       initialNotes.push({
         createdOrder,
         id: noteId,
-        revisionComparable: true,
         stored,
       })
     }
@@ -651,15 +640,13 @@ async function executeRemovalCommands(
         }
         const wanted = comparableRestoredSnapshot(
           expected.stored,
-          expected.revisionComparable,
         )
         const observed = comparableRestoredSnapshot(
           stored,
-          expected.revisionComparable,
         )
         if (JSON.stringify(observed) !== JSON.stringify(wanted)) {
           throw new ExplorationInvariantError(
-            "removal-restores-original-revision-and-geometry",
+            "removal-restores-original-text-and-geometry",
             wanted,
             observed,
           )

@@ -10,7 +10,6 @@ const note: Note = {
   createdAt: "2026-09-01T00:00:00.000Z",
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: "note-save-command",
-  revision: 0,
   tabIndex: 1000,
   updatedAt: "2026-09-01T01:00:00.000Z",
 }

@@ -34,7 +34,6 @@ const copyableNote = fc.record({
       zIndex: 1,
     },
     id,
-    revision: contentRevision,
     tabIndex: NOTE_TAB_INDEX_MIN,
     updatedAt: timestamp,
   }

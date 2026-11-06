@@ -18,7 +18,6 @@ it("삭제와 복원 결과가 도착할 때까지 시트를 닫지 않고 완�
     createdAt: timestamp,
     geometry: { height: 240, width: 320, x: 20, y: 20, zIndex: 1 },
     id: crypto.randomUUID(),
-    revision: 0,
     tabIndex: 1000,
     updatedAt: timestamp,
   }

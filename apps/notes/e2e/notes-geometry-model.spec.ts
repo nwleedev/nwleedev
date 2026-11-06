@@ -110,7 +110,6 @@ type GeometryModel = {
   contentRevision: number
   geometry: Geometry
   observationPending: boolean
-  revision: number
 }
 
 type GeometryReal = {
@@ -175,7 +174,6 @@ class ApplyGeometryXCommand extends GeometryCommand {
     await real.applyX(this.x)
     if (model.geometry.x !== this.x) {
       model.geometry = { ...model.geometry, x: this.x }
-      model.revision += 1
     }
     model.observationPending = true
   }
@@ -207,7 +205,6 @@ class MoveGeometryCommand extends GeometryCommand {
       x: model.geometry.x + delivered.x,
       y: model.geometry.y + delivered.y,
     }
-    model.revision += 1
     model.observationPending = true
   }
 
@@ -240,14 +237,6 @@ class ResizeGeometryCommand extends GeometryCommand {
       delivered.x,
       delivered.y,
     )
-    const changed =
-      nextGeometry.x !== model.geometry.x ||
-      nextGeometry.y !== model.geometry.y ||
-      nextGeometry.width !== model.geometry.width ||
-      nextGeometry.height !== model.geometry.height
-    if (changed) {
-      model.revision += 1
-    }
     model.geometry = nextGeometry
     model.observationPending = true
   }
@@ -533,8 +522,8 @@ async function executeGeometryCommands(
       async inspect(expected) {
         if (defect === "none") {
           await expect
-            .poll(async () => (await readStoredNote(page, noteId))?.revision)
-            .toBe(expected.revision)
+            .poll(async () => (await readStoredNote(page, noteId))?.geometry)
+            .toEqual(expected.geometry)
         }
 
         const stored = await readStoredNote(page, noteId)
@@ -545,13 +534,11 @@ async function executeGeometryCommands(
                 content: stored.content,
                 contentRevision: stored.contentRevision,
                 geometry: stored.geometry,
-                revision: stored.revision,
               }
         const wanted = {
           content,
           contentRevision: expected.contentRevision,
           geometry: expected.geometry,
-          revision: expected.revision,
         }
         if (JSON.stringify(observed) !== JSON.stringify(wanted)) {
           throw new ExplorationInvariantError(
@@ -611,7 +598,6 @@ async function executeGeometryCommands(
           contentRevision: initial.contentRevision,
           geometry: initial.geometry,
           observationPending: false,
-          revision: initial.revision,
         },
         real,
       }),

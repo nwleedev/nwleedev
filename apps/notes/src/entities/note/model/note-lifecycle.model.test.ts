@@ -32,7 +32,6 @@ const initialNotes: readonly Note[] = [
     createdAt: "2026-09-01T00:00:00.000Z",
     geometry: { height: 240, width: 320, x: 32, y: 32, zIndex: 1 },
     id: "note-1",
-    revision: 0,
     tabIndex: 1000,
     updatedAt: "2026-09-01T00:00:00.000Z",
   },
@@ -42,7 +41,6 @@ const initialNotes: readonly Note[] = [
     createdAt: "2026-09-01T00:00:01.000Z",
     geometry: { height: 240, width: 320, x: 384, y: 32, zIndex: 2 },
     id: "note-2",
-    revision: 0,
     tabIndex: 1001,
     updatedAt: "2026-09-01T00:00:01.000Z",
   },
@@ -52,7 +50,6 @@ const initialNotes: readonly Note[] = [
     createdAt: "2026-09-01T00:00:02.000Z",
     geometry: { height: 240, width: 320, x: 736, y: 32, zIndex: 3 },
     id: "note-3",
-    revision: 0,
     tabIndex: 1002,
     updatedAt: "2026-09-01T00:00:02.000Z",
   },
@@ -170,7 +167,6 @@ function reviseModelGeometry(note: Note, geometry: NoteGeometry) {
   return {
     ...note,
     geometry,
-    revision: note.revision + 1,
     updatedAt: operationTimestamp,
   }
 }

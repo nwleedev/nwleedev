@@ -125,20 +125,7 @@ function migrateNoteRecords(records: unknown[]) {
       ...note.geometry,
       zIndex,
     })
-    const geometryChanged =
-      geometry.height !== note.geometry.height ||
-      geometry.width !== note.geometry.width ||
-      geometry.x !== note.geometry.x ||
-      geometry.y !== note.geometry.y ||
-      geometry.zIndex !== note.geometry.zIndex
-
-    return NoteRecordSchema.parse({
-      ...note,
-      geometry,
-      revision: geometryChanged
-        ? incrementRevision(note.revision)
-        : note.revision,
-    })
+    return NoteRecordSchema.strip().parse({ ...note, geometry })
   })
 }
 
@@ -168,13 +155,35 @@ export function recoverNoteDrafts(transaction: IDBTransaction) {
             notes.put({
               ...record,
               updatedAt: Math.max(record.updatedAt, toTimestamp(draft.updatedAt)),
-              revision: incrementRevision(record.revision),
               contentRevision: incrementRevision(record.contentRevision),
             })
           }
         }
       }
       entry.continue()
+    } catch {
+      transaction.abort()
+    }
+  }
+}
+
+export function removeNoteRevision(transaction: IDBTransaction, recoverDrafts: boolean) {
+  if (!transaction.objectStoreNames.contains(NOTE_STORE_NAME)) return
+  const cursor = transaction.objectStore(NOTE_STORE_NAME).openCursor()
+  cursor.onsuccess = () => {
+    const row = cursor.result
+    if (!row) {
+      if (recoverDrafts) recoverNoteDrafts(transaction)
+      return
+    }
+    try {
+      const value = row.value
+      if ("removed" in value) {
+        row.update({ id: value.id, removed: StoredNoteSchema.strip().parse(value.removed) })
+      } else {
+        row.update(StoredNoteSchema.strip().parse(value))
+      }
+      row.continue()
     } catch {
       transaction.abort()
     }
@@ -207,7 +216,7 @@ export function migrateNotePositions(database: IDBDatabase, transaction: IDBTran
   const records = store.getAll()
   records.onsuccess = () => {
     try {
-      const notes = records.result.map((value: unknown) => NoteRecordSchema.parse(value))
+      const notes = records.result.map((value: unknown) => NoteRecordSchema.strip().parse(value))
       notes.sort((left, right) => left.tabIndex - right.tabIndex)
       const stored: unknown = order?.result
       const ids = reconcileMobileNoteIds(stored === undefined ? [] : PreviousOrderSchema.parse(stored).ids, notes.map(({ id }) => id))
@@ -224,7 +233,7 @@ export function migrateNotePositions(database: IDBDatabase, transaction: IDBTran
 export function migrateNoteBodies(transaction: IDBTransaction, oldVersion: number) {
   const notes = transaction.objectStore(NOTE_STORE_NAME)
   const cursor = notes.openCursor()
-  const previous = NoteRecordSchema.extend({ position: z.number().finite() })
+  const previous = NoteRecordSchema.strip().extend({ position: z.number().finite() })
   const withBody = previous.omit({ content: true }).extend({ body: z.instanceof(Uint8Array) })
   cursor.onsuccess = () => {
     const entry = cursor.result

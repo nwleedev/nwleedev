@@ -18,11 +18,11 @@ import {
   migratePersonalNotesDatabase,
   migrateNotePositions,
   migrateNoteBodies,
-  recoverNoteDrafts,
+  removeNoteRevision,
 } from "./migrate-personal-notes-database"
 
 export const PERSONAL_NOTES_DATABASE_NAME = "personal-notes"
-export const PERSONAL_NOTES_DATABASE_VERSION = 12
+export const PERSONAL_NOTES_DATABASE_VERSION = 13
 
 type PersonalNotesDatabaseCallbacks = {
   onBlocked?(): void
@@ -62,11 +62,10 @@ export function openPersonalNotesDatabase(
       }
 
       if (oldVersion < 6) ensureBatchCopyListStore(database, transaction)
-      migrateTimestamps(transaction, oldVersion)
-      if (oldVersion >= 10) return
+      if (oldVersion < 12) migrateTimestamps(transaction, oldVersion)
 
       if (oldVersion >= 9) {
-        recoverNoteDrafts(transaction)
+        removeNoteRevision(transaction, oldVersion === 9)
         return
       }
 

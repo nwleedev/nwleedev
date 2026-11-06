@@ -13,7 +13,6 @@ import {
   reviseNote,
   type NoteGeometry,
   type Note,
-  type NoteReference,
   type NoteRepository,
 } from "../model/note"
 import { sendNoteToFront, sendNoteToBack } from "../model/note-order"
@@ -288,7 +287,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
     }
     const stored = await this.#writeUpdate(change.update, edited.updatedAt, change.restoration)
     if (!stored) return null
-    const saved = { ...edited, revision: stored.revision, contentRevision: stored.contentRevision }
+    const saved = { ...edited, contentRevision: stored.contentRevision }
     rememberNoteBody(saved, { bytes: change.snapshot, restoration: change.restoration })
     this.#pendingEdits.delete(original)
     return saved
@@ -322,7 +321,6 @@ export class IndexedDbNoteRepository implements NoteRepository {
           record = {
             ...record,
             contentRevision: RevisionSchema.parse(record.contentRevision + 1),
-            revision: RevisionSchema.parse(record.revision + 1),
             updatedAt: toTimestamp(updatedAt),
           }
           notes.put(record)
@@ -346,12 +344,12 @@ export class IndexedDbNoteRepository implements NoteRepository {
     }
   }
 
-  async remove(reference: NoteReference) {
+  async remove(reference: Pick<Note, "id">) {
     return navigator.locks.request(editorLock(reference.id), { ifAvailable: true }, (lock) =>
       this.#remove(reference, lock === null))
   }
 
-  async #remove(reference: NoteReference, keepBody: boolean) {
+  async #remove(reference: Pick<Note, "id">, keepBody: boolean) {
     const database = await this.#connection.get()
     const transaction = database.transaction([NOTE_STORE_NAME, "updates"], "readwrite")
     const completion = waitForTransaction(transaction)

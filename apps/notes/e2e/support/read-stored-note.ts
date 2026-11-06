@@ -12,7 +12,6 @@ export type StoredNoteObservation = {
     zIndex: number
   }
   geometryX: number
-  revision: number
   tabIndex: number
 }
 
@@ -46,7 +45,7 @@ export async function readStoredNote(
       transaction.oncomplete = () => {
         database.close()
         const value = note.result as (StoredFields & { body: Uint8Array }) | undefined
-        if (!value) {
+        if (!value || "removed" in value) {
           resolve(null)
           return
         }
@@ -54,7 +53,6 @@ export async function readStoredNote(
           body: Array.from(value.body),
           contentRevision: value.contentRevision,
           geometry: value.geometry,
-          revision: value.revision,
           tabIndex: value.tabIndex,
           updates: updates.result.map(({ payload }) => Array.from(payload as Uint8Array)),
         })

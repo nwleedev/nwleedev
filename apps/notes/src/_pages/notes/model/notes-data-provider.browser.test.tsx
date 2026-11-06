@@ -125,7 +125,6 @@ function createNote(id: string, content: string): Note {
     createdAt: timestamp,
     geometry: { height: 240, width: 320, x: 20, y: 20, zIndex: 1 },
     id,
-    revision: 0,
     tabIndex: 1000,
     updatedAt: timestamp,
   }

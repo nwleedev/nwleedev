@@ -19,7 +19,6 @@ const firstNote: Note = {
   createdAt: "2026-09-01T01:00:00.000Z",
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: "note-1",
-  revision: 4,
   tabIndex: 1000,
   updatedAt: "2026-09-01T02:00:00.000Z",
 }

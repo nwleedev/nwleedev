@@ -16,7 +16,6 @@ const note: Note = {
   createdAt: "2026-09-01T00:00:00.000Z",
   geometry: { height: 240, width: 320, x: 20, y: 30, zIndex: 1 },
   id: "note-save-state",
-  revision: 4,
   tabIndex: 1000,
   updatedAt: "2026-09-01T01:00:00.000Z",
 }
@@ -42,7 +41,6 @@ describe("note content save state", () => {
       ...note,
       content: request.content,
       contentRevision: 3,
-      revision: 5,
     }
     const completed = completeNoteContentSave(saving.state, savedNote)
     const nextSave = beginNoteContentSave(

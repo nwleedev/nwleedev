@@ -27,7 +27,6 @@ const note: Note = {
   createdAt: timestamp,
   geometry: { height: 240, width: 320, x: 32, y: 32, zIndex: 1 },
   id: "note-storage-model",
-  revision: 0,
   tabIndex: 1000,
   updatedAt: timestamp,
 }
@@ -350,7 +349,7 @@ describe("메모 저장소 모델", () => {
       tabIndex: 1002,
     }
     for (const entry of [thirdNote, secondNote, note]) await notes.save(entry)
-    await notes.remove({ id: secondNote.id, revision: secondNote.revision })
+    await notes.remove(secondNote)
     const afterRemoval = await notes.getAll()
     expect(afterRemoval).toHaveLength(2)
     expect(noteById(afterRemoval, note.id)).toEqual(note)
