@@ -57,6 +57,8 @@ function createStorage(options: {
   const notes: NoteRepository = {
     getAll: async () => [storedNote],
     remove(note) { return this.get(note.id) },
+    openEditor: async () => async () => {},
+    deletedNote: async () => null,
     restore(note) { return this.save(note) },
     save: async (nextNote) => {
       if (options.noteFailure) {

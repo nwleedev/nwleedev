@@ -200,3 +200,15 @@
   --shadow-floating: var(--notes-shadow-floating);
   --shadow-action: var(--notes-shadow-action);
 }
+
+.note-light {
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  margin-inline-end: 0.4rem;
+  border-radius: 50%;
+}
+
+.note-light.is-saved { background-color: var(--notes-color-success); }
+.note-light.is-saving { border: 2px solid currentColor; border-inline-end-color: transparent; }
+.note-light.is-deleted { background-color: var(--notes-color-danger); }

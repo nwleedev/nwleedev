@@ -40,7 +40,7 @@ import {
 } from "./save-note-content"
 
 const NOTE_CHANNEL_NAME = "personal-notes-changes"
-const NoteChangeSchema = z.object({ type: z.enum(["created", "edited"]), noteId: EntityIdSchema })
+const NoteChangeSchema = z.object({ type: z.enum(["created", "edited", "removed"]), noteId: EntityIdSchema })
 
 type NoteDraftContent = Readonly<Record<string, string>>
 
@@ -62,6 +62,7 @@ type NotesDataContextValue = NotesDataState & {
   batchCopyShortcutEnabled: boolean
   moveNoteToBack(noteId: string): Promise<readonly Note[]>
   moveNoteToFront(noteId: string): Promise<readonly Note[]>
+  watchEditor(id: string, onDeleted: (note: Note) => void): () => void
   removeNote(note: Note): Promise<Note>
   restoreNote(note: Note, position?: MobileNotePosition): Promise<Note>
   readMobileOrder(): Promise<MobileNoteOrder>
@@ -140,6 +141,28 @@ export function useNotesDataModel({
   const draftContentReference = useRef<NoteDraftContent>({})
   const mutationQueue = useRef<Promise<void>>(Promise.resolve())
 
+  const editors = useRef(new Map<string, (note: Note) => void>())
+  const watchEditor = useCallback((id: string, onDeleted: (note: Note) => void) => {
+    let active = true
+    let leave: (() => Promise<void>) | null = null
+    const opened = repository.openEditor(id).catch(() => null)
+    const notify = (note: Note) => {
+      void opened.then((release) => {
+        if (active && release) onDeleted(note)
+      })
+    }
+    editors.current.set(id, notify)
+    void opened.then((release) => {
+      if (active) leave = release
+      else void release?.().catch(() => undefined)
+    })
+    return () => {
+      active = false
+      editors.current.delete(id)
+      void leave?.().catch(() => undefined)
+    }
+  }, [repository])
+
   const publishAvailable = useCallback((
     notes: readonly Note[],
     draftContentById: NoteDraftContent,
@@ -198,7 +221,20 @@ export function useNotesDataModel({
         const index = current.findIndex(({ id }) => id === noteId)
         if (index >= 0 && type === "created") return
         const note = await repository.get(noteId)
-        if (!active || !note) return
+        if (!active) return
+        if (!note) {
+          if (index < 0 || type !== "removed") return
+          const listener = editors.current.get(noteId)
+          if (listener) {
+            const removed = await repository.deletedNote(noteId)
+            if (active && removed) listener(removed)
+          }
+          if (!active) return
+          const nextDrafts = { ...draftContentReference.current }
+          delete nextDrafts[noteId]
+          publishAvailable(current.filter(({ id }) => id !== noteId), nextDrafts)
+          return
+        }
         const next = [...current]
         if (index < 0) next.push(note)
         else next[index] = note
@@ -393,6 +429,7 @@ export function useNotesDataModel({
       const draftContentById = { ...draftContentReference.current }
       delete draftContentById[currentNote.id]
       publishAvailable(notes, draftContentById)
+      changes.current?.postMessage({ type: "removed", noteId: note.id })
       return deleted
     })
   }
@@ -400,6 +437,7 @@ export function useNotesDataModel({
   async function restoreNote(note: Note, position?: MobileNotePosition) {
     return enqueue(async () => {
       const savedNote = await repository.restore(note, position)
+      changes.current?.postMessage({ type: "edited", noteId: note.id })
       const notes = [...availableNotesReference.current.filter(({ id }) => id !== note.id), savedNote]
       publishAvailable(notes, draftContentReference.current)
       return savedNote
@@ -408,6 +446,7 @@ export function useNotesDataModel({
 
   return {
     ...state,
+    watchEditor,
     copyNote,
     createNote,
     moveNoteToBack,

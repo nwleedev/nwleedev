@@ -351,3 +351,11 @@ export function RedoIcon(props: IconProps) {
 </svg>
   )
 }
+
+export function RestoreIcon(props: IconProps) {
+  return (
+    <svg {...props} aria-hidden="true" fill="none" height="16" viewBox="0 0 16 16" width="16">
+      <path d="M13.5 7a5.5 5.5 0 1 0-.7 3.9M13.5 2.5V7H9" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  )
+}

@@ -152,6 +152,8 @@ function createRepository(
       return read ?? Promise.reject(new Error("Unexpected note read"))
     },
     remove(note) { return this.get(note.id) },
+    openEditor: async () => async () => {},
+    deletedNote: async () => null,
     restore(note) { return this.save(note) },
     save: async (note) => note,
     async get(id) { return (await this.getAll()).find((record) => record.id === id) ?? null },
@@ -172,6 +174,8 @@ function createDelayedSaveRepository(note: Note) {
   const repository: NoteRepository = {
     getAll: async () => [currentNote],
     remove(note) { return this.get(note.id) },
+    openEditor: async () => async () => {},
+    deletedNote: async () => null,
     restore(note) { return this.save(note) },
     async save(nextNote) {
       saveCount += 1

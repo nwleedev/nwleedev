@@ -1,12 +1,12 @@
 "use client"
 
 import Link from "next/link"
-import type { RefObject, SyntheticEvent } from "react"
+import { useEffect, useRef, useState, type ComponentProps, type PropsWithChildren, type RefObject, type SyntheticEvent } from "react"
 
 import type { Note } from "@/entities/note"
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
-import { ChevronLeftIcon, UndoIcon, RedoIcon } from "@/shared/ui/icons"
+import { ChevronLeftIcon, UndoIcon, RedoIcon, RestoreIcon } from "@/shared/ui/icons"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
 import type { SaveNoteContentResult } from "../model/save-note-content"
@@ -19,6 +19,7 @@ const backLinkClassName =
   "inline-flex h-[var(--notes-touch-target)] w-[var(--notes-touch-target)] items-center justify-center rounded-control text-icon hover:bg-canvas hover:text-text active:translate-y-px"
 
 type ReadyNoteDetailProps = {
+  editorRef: RefObject<HTMLTextAreaElement | null>
   initialContent: string
   note: Note
   saveContent(
@@ -79,7 +80,62 @@ function UnsavedChangesDialog({
   )
 }
 
+const statusLight = { "저장됨": "note-light is-saved", "저장 중": "note-light is-saving" }
+
+const editorClassName = "h-full min-h-0 w-full resize-none border-0 bg-surface-raised px-4 py-5 text-base leading-7 outline-none"
+
+function EditorPage({ children }: PropsWithChildren) {
+  return (
+    <main
+      className="max-md:@container/editor relative grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-surface-raised"
+      id="main-content"
+    >
+      {children}
+    </main>
+  )
+}
+
+function EditorHeader({ children }: PropsWithChildren) {
+  return (
+    <header className="grid min-w-0 gap-2 border-b border-line bg-surface-raised px-3 py-2 max-md:min-h-[var(--notes-mobile-page-header-height)] max-md:@min-[18rem]/editor:grid-cols-[auto_minmax(0,1fr)_auto] max-md:@min-[18rem]/editor:items-center max-md:@min-[18rem]/editor:gap-x-3 max-md:@min-[18rem]/editor:gap-y-0 max-md:@min-[18rem]/editor:py-1">
+      {children}
+    </header>
+  )
+}
+
+function EditorActions({ children, onBack }: PropsWithChildren<{ onBack?: ComponentProps<typeof Link>["onClick"] }>) {
+  return (
+    <div className="flex min-w-0 items-center gap-3 max-md:@min-[18rem]/editor:contents max-md:@min-[18rem]/editor:[&>a]:row-span-2">
+      <Link
+        aria-label="메모 목록"
+        className={backLinkClassName}
+        href="/"
+        onClick={onBack}
+      >
+        <ChevronLeftIcon />
+      </Link>
+      <h1 className="min-w-0 flex-1 truncate text-lg font-semibold max-md:@min-[18rem]/editor:self-end">메모 수정</h1>
+      <div className="flex shrink-0 gap-1 max-md:@min-[18rem]/editor:col-start-3 max-md:@min-[18rem]/editor:row-span-2 max-md:@min-[18rem]/editor:row-start-1">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function EditorStatus({ children }: PropsWithChildren) {
+  return (
+    <p
+      aria-live="polite"
+      className="px-1 pb-1 text-sm text-soft-ink max-md:@min-[18rem]/editor:col-start-2 max-md:@min-[18rem]/editor:row-start-2 max-md:@min-[18rem]/editor:self-start max-md:@min-[18rem]/editor:p-0"
+      role="status"
+    >
+      {children}
+    </p>
+  )
+}
+
 function ReadyNoteDetail({
+  editorRef,
   initialContent,
   note,
   saveContent,
@@ -104,6 +160,7 @@ function ReadyNoteDetail({
     endComposition,
     history,
   } = useNoteDetailEditing({
+    editorRef,
     initialContent,
     note,
     saveContent,
@@ -112,22 +169,9 @@ function ReadyNoteDetail({
   })
 
   return (
-    <main
-      className="max-md:@container/editor relative grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)] bg-surface-raised"
-      id="main-content"
-    >
-      <header className="grid min-w-0 gap-2 border-b border-line bg-surface-raised px-3 py-2 max-md:min-h-[var(--notes-mobile-page-header-height)] max-md:@min-[18rem]/editor:grid-cols-[auto_minmax(0,1fr)_auto] max-md:@min-[18rem]/editor:items-center max-md:@min-[18rem]/editor:gap-x-3 max-md:@min-[18rem]/editor:gap-y-0 max-md:@min-[18rem]/editor:py-1">
-        <div className="flex min-w-0 items-center gap-3 max-md:@min-[18rem]/editor:contents max-md:@min-[18rem]/editor:[&>a]:row-span-2">
-          <Link
-            aria-label="메모 목록"
-            className={backLinkClassName}
-            href="/"
-            onClick={requestBackNavigation}
-          >
-            <ChevronLeftIcon />
-          </Link>
-          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold max-md:@min-[18rem]/editor:self-end">메모 수정</h1>
-          <div className="flex shrink-0 gap-1 max-md:@min-[18rem]/editor:col-start-3 max-md:@min-[18rem]/editor:row-span-2 max-md:@min-[18rem]/editor:row-start-1">
+    <EditorPage>
+      <EditorHeader>
+        <EditorActions onBack={requestBackNavigation}>
             <IconButton
               aria-label="실행 취소"
               className="h-[var(--notes-touch-target)] w-[var(--notes-touch-target)]"
@@ -146,20 +190,16 @@ function ReadyNoteDetail({
             >
               <RedoIcon />
             </IconButton>
-          </div>
-        </div>
-        <p
-          aria-live="polite"
-          className="px-1 pb-1 text-sm text-soft-ink max-md:@min-[18rem]/editor:col-start-2 max-md:@min-[18rem]/editor:row-start-2 max-md:@min-[18rem]/editor:self-start max-md:@min-[18rem]/editor:p-0"
-          role="status"
-        >
+        </EditorActions>
+        <EditorStatus>
+          <span aria-hidden="true" className={statusLight[saveLabel]} />
           {saveLabel}
-        </p>
-      </header>
+        </EditorStatus>
+      </EditorHeader>
       <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto]">
         <textarea
           aria-label="메모 내용"
-          className="h-full min-h-0 w-full resize-none border-0 bg-surface-raised px-4 py-5 text-base leading-7 outline-none"
+          className={editorClassName}
           defaultValue={initialContent}
           name={contentName}
           onBlur={onBlur}
@@ -181,7 +221,32 @@ function ReadyNoteDetail({
           titleId={dialogTitleId}
         />
       ) : null}
-    </main>
+    </EditorPage>
+  )
+}
+
+function DeletedNoteDetail({ content, restore }: { content: string; restore(): Promise<Note> }) {
+  const dialog = useRef<HTMLDialogElement>(null)
+  return (
+    <EditorPage>
+      <EditorHeader>
+        <EditorActions>
+          <IconButton aria-label="메모 복원" onClick={() => { void restore().catch(() => undefined) }}>
+            <RestoreIcon />
+          </IconButton>
+        </EditorActions>
+        <EditorStatus>
+          <span className="note-light is-deleted" aria-hidden="true" />
+          <button className="underline decoration-dotted underline-offset-4" onClick={() => dialog.current?.showModal()} type="button">삭제됨</button>
+        </EditorStatus>
+      </EditorHeader>
+      <textarea aria-label="메모 내용" className={editorClassName} disabled value={content} />
+      <dialog aria-label="삭제된 메모 안내" className="m-auto max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100vw-2rem))] overflow-y-auto rounded-panel border border-line bg-surface-raised p-5 text-ink shadow-floating backdrop:bg-ink/25" ref={dialog}>
+        <p>메모가 삭제됐습니다.<br />오른쪽 위의 복원 버튼을 누르면 다시 편집할 수 있습니다.</p>
+        <p className="my-4 text-danger">복원하지 않고 나가면 이 메모를 편집할 수 없습니다.</p>
+        <Button onClick={() => dialog.current?.close()}>닫기</Button>
+      </dialog>
+    </EditorPage>
   )
 }
 
@@ -191,6 +256,12 @@ type NoteDetailPageProps = {
 
 export function NoteDetailPage({ noteId }: NoteDetailPageProps) {
   const notesData = useNotesData()
+  const editor = useRef<HTMLTextAreaElement>(null)
+  const [removed, setRemoved] = useState<{ note: Note; visible: string } | null>(null)
+  const { watchEditor } = notesData
+  useEffect(() => watchEditor(noteId, (note) => {
+    setRemoved({ note, visible: editor.current?.value ?? note.content })
+  }), [noteId, watchEditor])
 
   if (notesData.status === "loading") {
     return (
@@ -214,6 +285,9 @@ export function NoteDetailPage({ noteId }: NoteDetailPageProps) {
 
   const note = notesData.notes.find(({ id }) => id === noteId)
 
+  if (!note && removed?.note.id === noteId) {
+    return <DeletedNoteDetail content={removed.visible} restore={() => notesData.restoreNote(removed.note)} />
+  }
   if (note === undefined) {
     return (
       <main className="grid h-full place-items-center bg-canvas p-6" id="main-content">
@@ -231,6 +305,7 @@ export function NoteDetailPage({ noteId }: NoteDetailPageProps) {
 
   return (
     <ReadyNoteDetail
+      editorRef={editor}
       initialContent={initialContent}
       key={note.id}
       note={note}

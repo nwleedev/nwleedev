@@ -44,6 +44,8 @@ function createStorage(initialNote: Note, rejectFirstSave = true) {
   const notes: NoteRepository = {
     getAll: async () => [storedNote],
     remove(note) { return this.get(note.id) },
+    openEditor: async () => async () => {},
+    deletedNote: async () => null,
     restore(note) { return this.save(note) },
     async save(note) {
       if (rejectNextNoteSave) {

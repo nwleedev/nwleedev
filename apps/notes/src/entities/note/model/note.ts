@@ -86,6 +86,8 @@ export interface NoteRepository extends NoteReader {
   saveEdit(original: Note, edited: Note): Promise<Note | null>
   saveAll(notes: readonly Note[]): Promise<readonly Note[]>
   remove(note: NoteReference): Promise<Note | null>
+  openEditor(id: string): Promise<(() => Promise<void>) | null>
+  deletedNote(id: string): Promise<Note | null>
   restore(note: Note, position?: MobileNotePosition): Promise<Note>
 }
 

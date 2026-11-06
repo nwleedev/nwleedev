@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  type RefObject,
   type ChangeEvent as ReactChangeEvent,
 } from "react"
 import { useForm } from "react-hook-form"
@@ -21,6 +22,7 @@ type NoteContentFields = {
 
 
 type UseNoteDetailEditingOptions = {
+  editorRef: RefObject<HTMLTextAreaElement | null>
   initialContent: string
   note: Note
   saveContent(
@@ -32,6 +34,7 @@ type UseNoteDetailEditingOptions = {
 }
 
 export function useNoteDetailEditing({
+  editorRef,
   initialContent,
   note,
   saveContent,
@@ -46,7 +49,6 @@ export function useNoteDetailEditing({
   } = useForm<NoteContentFields>({
     defaultValues: { content: initialContent },
   })
-  const editor = useRef<HTMLTextAreaElement>(null)
   const noteReference = useRef(note)
   const readContent = useCallback(() => getValues("content"), [getValues])
   const draft = useNoteDetailDraft({
@@ -61,7 +63,7 @@ export function useNoteDetailEditing({
     onContentSaved(content) {
       reset({ content }, { keepFieldsRef: true })
     },
-    editor,
+    editor: editorRef,
     receiveNote(previous, saved) {
       history.receiveNote(previous, saved)
       setValue("content", saved.content)
@@ -72,14 +74,14 @@ export function useNoteDetailEditing({
   })
   const navigation = useNoteDetailNavigation({
     discardDraft: draft.discardDraft,
-    editor,
+    editor: editorRef,
     noteId: note.id,
     noteReference,
     readContent,
     stopSaving: autosave.stop,
   })
   const history = useNoteEditHistory({
-    editor,
+    editor: editorRef,
     readContent,
     replaceContent(content) {
       setValue("content", content, { shouldDirty: true })
@@ -109,14 +111,14 @@ export function useNoteDetailEditing({
 
   function endComposition() {
     history.endComposition()
-    if (editor.current) setValue("content", editor.current.value, { shouldDirty: true })
+    if (editorRef.current) setValue("content", editorRef.current.value, { shouldDirty: true })
     autosave.resume()
   }
 
   const connectEditor = useCallback((element: HTMLTextAreaElement | null) => {
     register("content").ref(element)
-    editor.current = element
-  }, [register])
+    editorRef.current = element
+  }, [editorRef, register])
 
   return {
     cancelDialog: navigation.cancelDialog,
@@ -133,7 +135,7 @@ export function useNoteDetailEditing({
     requestBackNavigation: navigation.requestBackNavigation,
     startComposition,
     endComposition,
-    saveLabel: autosave.pending ? "저장 중" : "저장됨",
+    saveLabel: autosave.pending ? "저장 중" as const : "저장됨" as const,
     history,
   }
 }
