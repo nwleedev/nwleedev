@@ -4,7 +4,7 @@ import {
   IndexedDbNoteDraftRepository,
   IndexedDbNoteRepository,
   IndexedDbMobileNoteOrderRepository,
-  MOBILE_NOTE_ORDER_STORE_NAME,
+  NOTE_STORE_NAME,
   mobileNotePosition,
   reviseNote,
   sendNoteToFront,
@@ -83,7 +83,7 @@ describe("메모 저장소 모델", () => {
     await notes.saveAll(originals)
     const before = await order.read()
     const [first, second, third, fourth] = originals as [Note, Note, Note, Note]
-    await order.move({ expectedRevision: before.revision, noteId: first.id, targetIndex: 3 })
+    await order.move({ visibleIds: before.ids, noteId: first.id, targetIndex: 3 })
     connection.close()
     const next = createConnection()
     expect((await new IndexedDbMobileNoteOrderRepository(next).read()).ids).toEqual([
@@ -103,11 +103,33 @@ describe("메모 저장소 모델", () => {
     const first = new IndexedDbMobileNoteOrderRepository(connection)
     const second = new IndexedDbMobileNoteOrderRepository(createConnection())
     const old = await second.read()
-    await first.move({ expectedRevision: old.revision, noteId: note.id, targetIndex: 1 })
-    const result = await second.move({ expectedRevision: old.revision, noteId: companion.id, targetIndex: 1 })
+    await first.move({ visibleIds: old.ids, noteId: note.id, targetIndex: 1 })
+    const result = await second.move({ visibleIds: old.ids, noteId: companion.id, targetIndex: 1 })
     expect(result.status).toBe("conflict")
     expect(result.order.ids).toEqual([companion.id, note.id])
     expect((await second.read()).ids).toEqual([companion.id, note.id])
+  })
+
+  it.each([
+    { sequence: "addThenMove" as const, targetIndex: 0, expected: ["라", "다", "가", "나"] },
+    { sequence: "moveThenAdd" as const, targetIndex: 0, expected: ["라", "다", "가", "나"] },
+    { sequence: "addThenMove" as const, targetIndex: 1, expected: ["라", "가", "다", "나"] },
+    { sequence: "moveThenAdd" as const, targetIndex: 1, expected: ["라", "가", "다", "나"] },
+  ])("새 메모의 생성 순서와 관계없이 드래그를 보존한다: $sequence, $targetIndex", async ({ sequence, targetIndex, expected }) => {
+    const first = createConnection()
+    const second = createConnection()
+    const originals = ["가", "나", "다"].map((id, index) => ({
+      ...note, id, tabIndex: note.tabIndex + index,
+    }))
+    const notes = new IndexedDbNoteRepository(first)
+    await notes.saveAll(originals)
+    const order = new IndexedDbMobileNoteOrderRepository(second)
+    const before = await order.read()
+    const add = () => notes.save({ ...note, id: "라", tabIndex: note.tabIndex + originals.length })
+    const move = () => order.move({ visibleIds: before.ids, noteId: "다", targetIndex })
+    const operations = { addThenMove: [add, move], moveThenAdd: [move, add] }
+    for (const operation of operations[sequence]) await operation()
+    expect((await new IndexedDbMobileNoteOrderRepository(first).read()).ids).toEqual(expected)
   })
 
   it("삭제 및 복원은 모바일 순서를 함께 저장하고 기록 중단은 두 자료를 보존한다", async () => {
@@ -118,17 +140,17 @@ describe("메모 저장소 모델", () => {
     await notes.saveAll([note, companion])
     const before = await order.read()
     const position = mobileNotePosition(before.ids, note.id)
-    const originalPut = IDBObjectStore.prototype.put
-    const put = vi.spyOn(IDBObjectStore.prototype, "put")
-    put.mockImplementation(function (this: IDBObjectStore, value: unknown, key?: IDBValidKey) {
-      const request = originalPut.call(this, value, key)
-      if (this.name === MOBILE_NOTE_ORDER_STORE_NAME) queueMicrotask(() => this.transaction.abort())
+    const originalDelete = IDBObjectStore.prototype.delete
+    const deletion = vi.spyOn(IDBObjectStore.prototype, "delete")
+    deletion.mockImplementation(function (this: IDBObjectStore, key: IDBValidKey | IDBKeyRange) {
+      const request = originalDelete.call(this, key)
+      if (this.name === NOTE_STORE_NAME) queueMicrotask(() => this.transaction.abort())
       return request
     })
     try {
       await expect(notes.remove(note)).rejects.toThrow()
     } finally {
-      put.mockRestore()
+      deletion.mockRestore()
     }
     expect(await order.read()).toEqual(before)
     expect(await notes.getAll()).toHaveLength(2)

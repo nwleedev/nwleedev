@@ -1,6 +1,6 @@
+export { NOTE_POSITION_INDEX } from "./api/stored-note"
 export {
   IndexedDbMobileNoteOrderRepository,
-  MOBILE_NOTE_ORDER_STORE_NAME,
 } from "./api/indexed-db-mobile-note-order-repository"
 export {
   insertMobileNote,

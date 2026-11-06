@@ -12,13 +12,10 @@ import {
   type NoteRepository,
 } from "../model/note"
 import { insertMobileNote, type MobileNotePosition } from "../model/mobile-note-order"
-import {
-  MOBILE_NOTE_ORDER_STORE_NAME,
-  readMobileNoteOrder,
-  writeMobileNoteOrder,
-} from "./indexed-db-mobile-note-order-repository"
+import { allocatePosition, readMobileIds } from "./indexed-db-mobile-note-order-repository"
+import { NOTE_STORE_NAME, readNote, StoredNoteSchema } from "./stored-note"
 
-export const NOTE_STORE_NAME = "notes"
+export { NOTE_STORE_NAME } from "./stored-note"
 
 export class StaleNoteRevisionError extends Error {
   constructor() {
@@ -43,24 +40,26 @@ export class IndexedDbNoteRepository implements NoteRepository {
     )
     await completion
 
-    return records.map(parseNoteRecord)
+    return records.map(readNote)
   }
 
   async save(note: Note, position?: MobileNotePosition) {
     const record = parseNoteRecord(note)
     const database = await this.#connection.get()
-    const transaction = database.transaction([NOTE_STORE_NAME, MOBILE_NOTE_ORDER_STORE_NAME], "readwrite")
+    const transaction = database.transaction(NOTE_STORE_NAME, "readwrite")
     const completion = waitForTransaction(transaction)
     try {
       const store = transaction.objectStore(NOTE_STORE_NAME)
-      const existingKey = await readRequest(store.getKey(record.id))
-      if (existingKey === undefined) {
-        const order = await readMobileNoteOrder(transaction)
-        store.put(record)
-        writeMobileNoteOrder(transaction, order, insertMobileNote(order.ids, record.id, position))
+      const stored: unknown = await readRequest(store.get(record.id))
+      let rank: number
+      if (stored === undefined) {
+        const ids = await readMobileIds(store)
+        const insertion = position ? insertMobileNote(ids, record.id, position).indexOf(record.id) : 0
+        rank = await allocatePosition(store, ids, insertion)
       } else {
-        store.put(record)
+        rank = StoredNoteSchema.parse(stored).position
       }
+      store.put({ ...record, position: rank })
       await completion
       return record
     } catch (error) {
@@ -72,15 +71,20 @@ export class IndexedDbNoteRepository implements NoteRepository {
   async saveAll(notes: readonly Note[]) {
     const records = notes.map(parseNoteRecord)
     const database = await this.#connection.get()
-    const transaction = database.transaction([NOTE_STORE_NAME, MOBILE_NOTE_ORDER_STORE_NAME], "readwrite")
+    const transaction = database.transaction(NOTE_STORE_NAME, "readwrite")
     const completion = waitForTransaction(transaction)
     const store = transaction.objectStore(NOTE_STORE_NAME)
 
     try {
-      const order = await readMobileNoteOrder(transaction)
-      const ids = [...new Set([...order.ids, ...records.map(({ id }) => id)])]
-      for (const record of records) store.put(record)
-      writeMobileNoteOrder(transaction, order, ids)
+      const ids = await readMobileIds(store)
+      for (const record of records) {
+        const stored: unknown = await readRequest(store.get(record.id))
+        const position = stored === undefined
+          ? await allocatePosition(store, ids, ids.length)
+          : StoredNoteSchema.parse(stored).position
+        store.put({ ...record, position })
+        if (stored === undefined) ids.push(record.id)
+      }
       await completion
       return records
     } catch (error) {
@@ -91,7 +95,7 @@ export class IndexedDbNoteRepository implements NoteRepository {
 
   async remove(reference: NoteReference) {
     const database = await this.#connection.get()
-    const transaction = database.transaction([NOTE_STORE_NAME, MOBILE_NOTE_ORDER_STORE_NAME], "readwrite")
+    const transaction = database.transaction(NOTE_STORE_NAME, "readwrite")
     const completion = waitForTransaction(transaction)
 
     try {
@@ -103,15 +107,13 @@ export class IndexedDbNoteRepository implements NoteRepository {
         return
       }
 
-      const note = parseNoteRecord(stored)
+      const note = readNote(stored)
 
       if (note.revision !== reference.revision) {
         throw new StaleNoteRevisionError()
       }
 
-      const order = await readMobileNoteOrder(transaction)
       store.delete(reference.id)
-      writeMobileNoteOrder(transaction, order, order.ids.filter((id) => id !== reference.id))
       await completion
     } catch (error) {
       await abortTransaction(transaction, completion)

@@ -122,9 +122,9 @@ test("짧은 터치는 복사하고 긴 터치는 손을 떼기 전에 한 번�
 test("메인과 확인 카드의 핸들 포커스와 실제 드래그 표시를 통일한다", async ({ context, page }, testInfo) => {
   await page.goto("/")
   const contents = [`카드 ${crypto.randomUUID().slice(0, 8)}`, `여러 줄 카드 비교 원문\n다음 줄 내용 ${crypto.randomUUID()}`, `마지막 카드 ${crypto.randomUUID().slice(0, 8)}`]
-  const first = await createMobileNoteThroughUi(page, contents[0])
-  const second = await createMobileNoteThroughUi(page, contents[1])
   const third = await createMobileNoteThroughUi(page, contents[2])
+  const second = await createMobileNoteThroughUi(page, contents[1])
+  const first = await createMobileNoteThroughUi(page, contents[0])
   const session = await context.newCDPSession(page)
 
   async function appearance(card: Locator) {
@@ -523,7 +523,7 @@ test("짧은 화면과 큰 글자에서도 메모 시트의 닫기와 삭제 및
 test("다른 탭의 순서 저장과 충돌하면 최신 순서를 보여주고 다시 이동한다", async ({ context, page }) => {
   await page.goto("/")
   const contents = Array.from({ length: 4 }, (_, index) => `탭 정렬 ${index + 1} ${crypto.randomUUID()}`)
-  for (const content of contents) await createMobileNoteThroughUi(page, content)
+  for (const content of [...contents].reverse()) await createMobileNoteThroughUi(page, content)
   const second = await context.newPage()
   await second.goto("/")
   await expect(second.getByRole("button", { name: `${contents[1]} 이동` })).toBeEnabled()
@@ -539,7 +539,7 @@ test("다른 탭의 순서 저장과 충돌하면 최신 순서를 보여주고 
   await page.evaluate(() => {
     const put = IDBObjectStore.prototype.put
     IDBObjectStore.prototype.put = function (...args: Parameters<IDBObjectStore["put"]>) {
-      if (this.name === "mobileNoteOrder") {
+      if (this.name === "notes") {
         IDBObjectStore.prototype.put = put
         throw new DOMException("Controlled order failure", "UnknownError")
       }
@@ -565,7 +565,7 @@ test("다른 탭의 순서 저장과 충돌하면 최신 순서를 보여주고 
 test("자동 스크롤한 목록 양 끝의 삽입선이 잘리지 않고 취소하면 순서를 유지한다", async ({ context, page }, testInfo) => {
   await page.goto("/")
   const contents = Array.from({ length: 9 }, (_, index) => `자동 스크롤 ${index + 1} ${crypto.randomUUID()}`)
-  for (const content of contents) await createMobileNoteThroughUi(page, content)
+  for (const content of [...contents].reverse()) await createMobileNoteThroughUi(page, content)
   const session = await context.newCDPSession(page)
 
   async function inspectEdges(notes: Locator, screen: string) {

@@ -9,6 +9,7 @@ import {
   NoteRecordSchema,
   validateAndClampNoteGeometry,
   normalizeNoteTabIndexes,
+  reconcileMobileNoteIds,
 } from "@/entities/note"
 import {
   InteractionPreferencesRecordSchema,
@@ -142,8 +143,31 @@ function migrateNotes(transaction: IDBTransaction) {
   request.onsuccess = () => {
     try {
       for (const note of migrateNoteRecords(request.result)) {
-        store.put(note)
+        store.put({ ...note, position: note.tabIndex })
       }
+    } catch {
+      transaction.abort()
+    }
+  }
+}
+
+const PREVIOUS_ORDER_STORE = "mobileNoteOrder"
+const PreviousOrderSchema = z.object({ ids: z.array(EntityIdSchema) })
+
+export function migrateNotePositions(database: IDBDatabase, transaction: IDBTransaction) {
+  const store = transaction.objectStore(NOTE_STORE_NAME)
+  const hasOrder = database.objectStoreNames.contains(PREVIOUS_ORDER_STORE)
+  const order = hasOrder ? transaction.objectStore(PREVIOUS_ORDER_STORE).get("current") : null
+  const records = store.getAll()
+  records.onsuccess = () => {
+    try {
+      const notes = records.result.map((value: unknown) => NoteRecordSchema.parse(value))
+      notes.sort((left, right) => left.tabIndex - right.tabIndex)
+      const stored: unknown = order?.result
+      const ids = reconcileMobileNoteIds(stored === undefined ? [] : PreviousOrderSchema.parse(stored).ids, notes.map(({ id }) => id))
+      const ranks = new Map(ids.map((id, index) => [id, index]))
+      for (const note of notes) store.put({ ...note, position: ranks.get(note.id) })
+      if (hasOrder) database.deleteObjectStore(PREVIOUS_ORDER_STORE)
     } catch {
       transaction.abort()
     }

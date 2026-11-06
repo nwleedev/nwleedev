@@ -20,7 +20,7 @@ async function createNotesBeyondViewport(page: Page) {
     await createMobileNoteThroughUi(page, content)
   }
 
-  return contents
+  return contents.reverse()
 }
 
 test("좁은 메모 목록의 탐색을 닫은 뒤 보조 화면으로 이동한다", async ({ page }) => {
@@ -282,6 +282,9 @@ test("메모가 있는 목록에서 새 메모를 만들어도 기존 메모와 
 
   await expect(page).toHaveURL("/")
   await expect(notes).toHaveCount(previousNoteCount + 1)
+  const menus = notes.getByRole("button", { name: / 더보기$/u })
+  await expect.poll(() => menus.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))))
+    .toEqual(["빈 메모 더보기", `${content} 더보기`])
   await expect(notes.filter({ hasText: content })).toBeVisible()
   await expect(page.getByRole("button", { name: "빈 메모 더보기" })).toBeVisible()
 })

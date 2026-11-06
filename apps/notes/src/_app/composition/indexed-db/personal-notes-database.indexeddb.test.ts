@@ -169,6 +169,29 @@ describe("personal notes IndexedDB storage", () => {
     expect(new Map(records.map((value) => [value.id, value]))).toEqual(new Map([[note.id, note], [companion.id, companion]]))
   })
 
+  it("v4에서 직접 옮긴 순서를 메모별 위치로 이전한다", async () => {
+    const previous = await openIndexedDatabase({
+      name: PERSONAL_NOTES_DATABASE_NAME,
+      version: 4,
+      upgrade(database) {
+        database.createObjectStore("notes", { keyPath: "id" })
+        database.createObjectStore("mobileNoteOrder")
+      },
+    })
+    const companion = { ...note, id: crypto.randomUUID(), tabIndex: note.tabIndex + 1 }
+    const write = previous.transaction(["notes", "mobileNoteOrder"], "readwrite")
+    const saved = waitForTransaction(write)
+    write.objectStore("notes").put(note)
+    write.objectStore("notes").put(companion)
+    write.objectStore("mobileNoteOrder").put({ ids: [companion.id, note.id], revision: 4 }, "current")
+    await saved
+    previous.close()
+
+    const current = createConnection()
+    expect((await new IndexedDbMobileNoteOrderRepository(current).read()).ids).toEqual([companion.id, note.id])
+    expect((await current.get()).objectStoreNames.contains("mobileNoteOrder")).toBe(false)
+  })
+
   it("restores all persistent records through a new connection", async () => {
     const identifiers = new CryptoEntityIdGenerator()
     const firstConnection = createConnection()

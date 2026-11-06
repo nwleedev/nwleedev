@@ -1,19 +1,10 @@
-import { z } from "zod"
-
-import { EntityIdSchema, RevisionSchema } from "@/shared/lib/entity-metadata"
-
-export const MobileNoteOrderSchema = z.object({
-  ids: z.array(EntityIdSchema),
-  revision: RevisionSchema,
-}).strict()
-
-export type MobileNoteOrder = z.infer<typeof MobileNoteOrderSchema>
+export type MobileNoteOrder = { ids: string[] }
 export type MobileNotePosition = {
   nextId: string | null
   previousId: string | null
 }
 export type MoveMobileNoteInput = {
-  expectedRevision: number
+  visibleIds: readonly string[]
   noteId: string
   targetIndex: number
 }

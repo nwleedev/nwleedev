@@ -1,7 +1,7 @@
 import {
   BATCH_COPY_LIST_STORE_NAME,
 } from "@/entities/batch-copy"
-import { MOBILE_NOTE_ORDER_STORE_NAME, NOTE_DRAFT_STORE_NAME, NOTE_STORE_NAME } from "@/entities/note"
+import { NOTE_POSITION_INDEX, NOTE_DRAFT_STORE_NAME, NOTE_STORE_NAME } from "@/entities/note"
 import { PREFERENCE_STORE_NAME } from "@/entities/preference"
 import { TEMPLATE_STORE_NAME } from "@/entities/template"
 import {
@@ -14,10 +14,11 @@ import {
   ensureBatchCopyListStore,
   migrateMobileBatchCopyDraftStore,
   migratePersonalNotesDatabase,
+  migrateNotePositions,
 } from "./migrate-personal-notes-database"
 
 export const PERSONAL_NOTES_DATABASE_NAME = "personal-notes"
-export const PERSONAL_NOTES_DATABASE_VERSION = 5
+export const PERSONAL_NOTES_DATABASE_VERSION = 6
 
 type PersonalNotesDatabaseCallbacks = {
   onBlocked?(): void
@@ -32,9 +33,9 @@ export function openPersonalNotesDatabase(
     onBlocked: callbacks.onBlocked,
     onVersionChange: callbacks.onVersionChange,
     upgrade: (database, transaction, oldVersion) => {
-      if (oldVersion < 4) database.createObjectStore(MOBILE_NOTE_ORDER_STORE_NAME)
       if (oldVersion === 0) {
-        database.createObjectStore(NOTE_STORE_NAME, { keyPath: "id" })
+        const notes = database.createObjectStore(NOTE_STORE_NAME, { keyPath: "id" })
+        notes.createIndex(NOTE_POSITION_INDEX, "position")
         database.createObjectStore(BATCH_COPY_LIST_STORE_NAME, {
           keyPath: "id",
         })
@@ -56,8 +57,11 @@ export function openPersonalNotesDatabase(
 
       ensureBatchCopyListStore(database, transaction)
 
+      transaction.objectStore(NOTE_STORE_NAME).createIndex(NOTE_POSITION_INDEX, "position")
       if (oldVersion < 2) {
         migratePersonalNotesDatabase(database, transaction)
+      } else {
+        migrateNotePositions(database, transaction)
       }
 
       if (oldVersion < 3) {

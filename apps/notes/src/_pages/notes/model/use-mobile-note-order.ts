@@ -20,7 +20,7 @@ export function useMobileNoteOrder(notes: readonly Note[]) {
     const version = ++readVersion.current
     void readMobileOrder().then((loaded) => {
       if (active && version === readVersion.current) {
-        setOrder((current) => current !== null && current.revision > loaded.revision ? current : loaded)
+        setOrder(loaded)
         setFailure(null)
       }
     }).catch(() => {
@@ -36,14 +36,14 @@ export function useMobileNoteOrder(notes: readonly Note[]) {
     return note === undefined ? [] : [note]
   })
 
-  async function move(noteId: string, targetIndex: number) {
+  async function move(noteId: string, targetIndex: number, visibleIds: readonly string[]) {
     if (order === null || saving.current) return false
     saving.current = true
     readVersion.current += 1
     setPending(true)
     setFailure(null)
     try {
-      const result = await moveMobileNote({ expectedRevision: order.revision, noteId, targetIndex })
+      const result = await moveMobileNote({ visibleIds, noteId, targetIndex })
       setOrder(result.order)
       if (result.status === "conflict") {
         setFailure("다른 탭에서 순서가 바뀌었습니다. 최신 순서를 확인한 뒤 다시 옮기세요.")

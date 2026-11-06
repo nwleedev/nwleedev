@@ -21,7 +21,7 @@ type Session = {
 type PointerReorderOptions = {
   disabled: boolean
   items: readonly { id: string }[]
-  onMove(itemId: string, index: number): Promise<boolean>
+  onMove(itemId: string, index: number, visibleIds: readonly string[]): Promise<boolean>
 }
 
 function scrollContainer(element: HTMLElement) {
@@ -190,9 +190,9 @@ export function usePointerReorder({ disabled, items, onMove }: PointerReorderOpt
     if (session.current?.pointerId === event.pointerId) clearSession(true)
   }
 
-  async function commit(id: string, index: number, from: number) {
+  async function commit(id: string, index: number, from: number, visibleIds: readonly string[]) {
     try {
-      const saved = await onMove(id, index)
+      const saved = await onMove(id, index, visibleIds)
       if (saved) setAnnouncement(`${from + 1}번째 항목을 ${index + 1}번째로 옮겼습니다.`)
       return saved
     } catch {
@@ -214,14 +214,14 @@ export function usePointerReorder({ disabled, items, onMove }: PointerReorderOpt
     const completion = finishReorderPointerSession(current.state)
     clearSession(true)
     if (completion.command !== null) {
-      void commit(completion.command.itemId, completion.command.targetIndex, current.state.originalIndex)
+      void commit(completion.command.itemId, completion.command.targetIndex, current.state.originalIndex, completion.snapshot.itemIds)
     }
   }
 
   function moveBy(id: string, index: number, offset: -1 | 1) {
     const target = index + offset
     if (disabled || target < 0 || target >= items.length) return false
-    void commit(id, target, index)
+    void commit(id, target, index, items.map((item) => item.id))
     return true
   }
 
