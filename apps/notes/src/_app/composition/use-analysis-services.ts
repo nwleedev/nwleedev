@@ -9,7 +9,7 @@ import type { PersonalNotesDatabase } from "./indexed-db/personal-notes-database
 export function useAnalysisServices(database: PersonalNotesDatabase) {
   const [services] = useState(() => ({
     analyzer: new WorkerTextAnalyzer(new CryptoEntityIdGenerator()),
-    now: () => new Date().toISOString(),
+    now: Date.now,
     reader: new IndexedDbNoteRepository(database),
   }))
 

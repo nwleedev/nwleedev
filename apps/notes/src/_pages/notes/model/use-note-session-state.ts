@@ -42,7 +42,7 @@ export const NoteSessionStateContext = createContext<NoteSessionState | null>(nu
 export const NoteSessionCommandsContext =
   createContext<NoteSessionCommands | null>(null)
 
-export function useNoteSessionStateModel(now: () => string) {
+export function useNoteSessionStateModel(now: () => number) {
   const workspaceModel = useNoteWorkspace()
   const removalHistory = useNoteRemovalHistory(now)
 

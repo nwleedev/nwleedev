@@ -144,7 +144,7 @@ export function useNoteCardActions(
     revision = toast.show({
       actionLabel: "실행 취소",
       expiresAtMs:
-        Date.parse(removal.removedAt) + NOTE_REMOVAL_UNDO_DURATION_MS,
+        removal.removedAt + NOTE_REMOVAL_UNDO_DURATION_MS,
       message: "메모를 삭제했습니다.",
       onAction: () => void restoreRemoval(removal, previousRemovals, revision),
       onDismiss: () => session.dismissRemovalNotice(),

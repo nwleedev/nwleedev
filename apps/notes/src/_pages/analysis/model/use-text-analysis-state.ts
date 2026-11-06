@@ -24,7 +24,7 @@ import {
 } from "./analysis-run-state"
 
 export type CompletedTextAnalysis = {
-  completedAt: string
+  completedAt: number
   input: AnalysisInput
   response: AnalysisResponseMessage
   rows: readonly AnalysisResultRow[]
@@ -48,7 +48,7 @@ export const TextAnalysisContext = createContext<TextAnalysisContextValue | null
 
 export type TextAnalysisDependencies = {
   analyzer: TextAnalyzer
-  now(): string
+  now(): number
   reader: NoteReader
 }
 

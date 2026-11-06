@@ -52,7 +52,7 @@ describe("메모 삭제 복구 이력", () => {
             (current, note, index) => rememberRemovedNote(
               current,
               note,
-              new Date(Date.parse(firstNote.updatedAt) + index).toISOString(),
+              Date.parse(firstNote.updatedAt) + index,
             ),
             createNoteRemovalHistory(),
           )
@@ -76,12 +76,12 @@ describe("메모 삭제 복구 이력", () => {
     const firstRemoval = rememberRemovedNote(
       createNoteRemovalHistory(),
       firstNote,
-      "2026-09-02T01:00:00.000Z",
+      Date.parse("2026-09-02T01:00:00.000Z"),
     )
     const secondRemoval = rememberRemovedNote(
       firstRemoval,
       secondNote,
-      "2026-09-02T02:00:00.000Z",
+      Date.parse("2026-09-02T02:00:00.000Z"),
     )
     const firstRestore = restoreMostRecentlyRemovedNote(secondRemoval)
 
@@ -103,12 +103,12 @@ describe("메모 삭제 복구 이력", () => {
     const firstRemoval = rememberRemovedNote(
       createNoteRemovalHistory(),
       firstNote,
-      "2026-09-02T01:00:00.000Z",
+      Date.parse("2026-09-02T01:00:00.000Z"),
     )
     const secondRemoval = rememberRemovedNote(
       firstRemoval,
       secondNote,
-      "2026-09-02T02:00:00.000Z",
+      Date.parse("2026-09-02T02:00:00.000Z"),
     )
 
     expect(dismissNoteRemovalHistory(secondRemoval).entries).toEqual([])
@@ -118,11 +118,11 @@ describe("메모 삭제 복구 이력", () => {
     const history = rememberRemovedNote(
       createNoteRemovalHistory(),
       firstNote,
-      "2026-09-02T01:00:00.000Z",
+      Date.parse("2026-09-02T01:00:00.000Z"),
     )
     const snapshot = history.entries[0]
 
-    const removedAt = Date.parse(snapshot.removedAt)
+    const removedAt = snapshot.removedAt
     expect(noteRemovalUndoRemainingMs(snapshot, removedAt + NOTE_REMOVAL_UNDO_DURATION_MS - 1)).toBe(1)
     expect(noteRemovalUndoRemainingMs(snapshot, removedAt + NOTE_REMOVAL_UNDO_DURATION_MS)).toBe(0)
   })
@@ -136,7 +136,7 @@ describe("메모 삭제 복구 이력", () => {
           const history = rememberRemovedNote(
             createNoteRemovalHistory(),
             firstNote,
-            new Date(removedAt).toISOString(),
+            removedAt,
           )
           const snapshot = history.entries[0]
           expect(noteRemovalUndoRemainingMs(snapshot, removedAt + elapsed)).toBe(
@@ -155,13 +155,13 @@ describe("메모 삭제 복구 이력", () => {
     const firstRemoval = rememberRemovedNote(
       createNoteRemovalHistory(),
       firstNote,
-      "2026-09-02T01:00:00.000Z",
+      Date.parse("2026-09-02T01:00:00.000Z"),
     )
     const firstSnapshot = firstRemoval.entries[0]
     const secondRemoval = rememberRemovedNote(
       firstRemoval,
       secondNote,
-      "2026-09-02T02:00:00.000Z",
+      Date.parse("2026-09-02T02:00:00.000Z"),
     )
 
     const remaining = forgetRemovedNote(secondRemoval, firstSnapshot)
@@ -173,19 +173,19 @@ describe("메모 삭제 복구 이력", () => {
     const firstRemoval = rememberRemovedNote(
       createNoteRemovalHistory(),
       firstNote,
-      "2026-09-02T01:00:00.000Z",
+      Date.parse("2026-09-02T01:00:00.000Z"),
     )
     const secondRemoval = rememberRemovedNote(
       firstRemoval,
       secondNote,
-      "2026-09-02T02:00:00.000Z",
+      Date.parse("2026-09-02T02:00:00.000Z"),
     )
     const latestSnapshot = secondRemoval.entries[1]
 
     const expired = expireNoteRemoval(
       secondRemoval,
       latestSnapshot,
-      Date.parse(latestSnapshot.removedAt) + NOTE_REMOVAL_UNDO_DURATION_MS,
+      latestSnapshot.removedAt + NOTE_REMOVAL_UNDO_DURATION_MS,
     )
 
     expect(expired.entries).toEqual([])

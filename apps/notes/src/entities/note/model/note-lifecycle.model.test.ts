@@ -310,9 +310,9 @@ class RemoveCommand implements fc.Command<Model, Real> {
     }
 
     model.notes.splice(index, 1)
-    model.removed.push({ note, removedAt: operationTimestamp })
+    model.removed.push({ note, removedAt: Date.parse(operationTimestamp) })
     real.notes = real.notes.filter((current) => current.id !== note.id)
-    real.history = rememberRemovedNote(real.history, note, operationTimestamp)
+    real.history = rememberRemovedNote(real.history, note, Date.parse(operationTimestamp))
     assertState(model, real)
   }
 
@@ -364,7 +364,7 @@ class ExpireLatestRemovalCommand implements fc.Command<Model, Real> {
     real.history = expireNoteRemoval(
       real.history,
       realSnapshot,
-      Date.parse(snapshot.removedAt) + 5_000,
+      snapshot.removedAt + 5_000,
     )
     assertState(model, real)
   }
@@ -471,7 +471,7 @@ describe("메모 생명 주기 모델", () => {
     const history = rememberRemovedNote(
       createNoteRemovalHistory(),
       removed,
-      operationTimestamp,
+      Date.parse(operationTimestamp),
     )
     const afterMove = sendNoteToFront(
       [first, third],
@@ -512,7 +512,7 @@ describe("메모 생명 주기 모델", () => {
     const history = rememberRemovedNote(
       createNoteRemovalHistory(),
       initialNoteAt(0),
-      "2026-09-01T00:00:00.000Z",
+      Date.parse("2026-09-01T00:00:00.000Z"),
     )
     const snapshot = latestRemoval(history)
 

@@ -10,7 +10,7 @@ import {
   type RemovedNoteSnapshot,
 } from "@/entities/note"
 
-export function useNoteRemovalHistory(now: () => string) {
+export function useNoteRemovalHistory(now: () => number) {
   const [removalHistory, setRemovalHistory] = useState(
     createNoteRemovalHistory,
   )

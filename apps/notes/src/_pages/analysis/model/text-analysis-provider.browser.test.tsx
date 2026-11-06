@@ -101,7 +101,7 @@ describe("TextAnalysisProvider", () => {
       root.render(
         <TextAnalysisProvider
           analyzer={analyzer}
-          now={() => timestamp}
+          now={() => Date.parse(timestamp)}
           reader={reader}
         >
           <AnalysisStateView />

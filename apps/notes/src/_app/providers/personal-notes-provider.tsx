@@ -67,7 +67,6 @@ function ConnectedProviders({
   )
 }
 
-const now = () => new Date().toISOString()
 
 export function PersonalNotesProvider({ children }: PropsWithChildren) {
   const database = useDatabase()
@@ -77,7 +76,7 @@ export function PersonalNotesProvider({ children }: PropsWithChildren) {
       <Preference database={database}>
         <SelectedSourceLinesProvider>
           <Template database={database}>
-            <NoteSessionProvider now={now}>
+            <NoteSessionProvider now={Date.now}>
               <ConnectedProviders database={database}>
                 {children}
               </ConnectedProviders>

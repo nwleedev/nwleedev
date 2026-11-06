@@ -9,7 +9,7 @@ import {
 } from "./use-note-session-state"
 
 type NoteSessionProviderProps = PropsWithChildren<{
-  now(): string
+  now(): number
 }>
 
 export function NoteSessionProvider({ children, now }: NoteSessionProviderProps) {

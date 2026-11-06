@@ -3,7 +3,7 @@ import type { MobileNotePosition } from "./mobile-note-order"
 
 export type RemovedNoteSnapshot = {
   note: Note
-  removedAt: string
+  removedAt: number
   mobilePosition?: MobileNotePosition
 }
 
@@ -27,7 +27,7 @@ export function createNoteRemovalHistory(): NoteRemovalHistory {
 export function rememberRemovedNote(
   history: NoteRemovalHistory,
   note: Note,
-  removedAt: string,
+  removedAt: number,
   mobilePosition?: MobileNotePosition,
 ): NoteRemovalHistory {
   return {
@@ -49,7 +49,7 @@ export function noteRemovalUndoRemainingMs(
   snapshot: RemovedNoteSnapshot,
   nowMs: number,
 ) {
-  const removedAtMs = Date.parse(snapshot.removedAt)
+  const removedAtMs = snapshot.removedAt
 
   if (!Number.isFinite(removedAtMs)) {
     return 0

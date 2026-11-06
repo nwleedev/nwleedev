@@ -111,7 +111,7 @@ export function AnalysisResults({
   onSuggest,
 }: AnalysisResultsProps) {
   const completedAt = completedTimeFormatter.format(
-    new Date(completed.completedAt),
+    completed.completedAt,
   )
   const noteCount = completed.input.notes.length.toLocaleString("ko-KR")
   const resultCount = completed.rows.length.toLocaleString("ko-KR")
