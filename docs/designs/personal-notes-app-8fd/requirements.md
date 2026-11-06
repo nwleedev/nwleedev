@@ -362,6 +362,11 @@ notes.nwlee.com의 메모 작성, 배치와 복사를 차별화된 실제 서비
 - 프론트엔드 소스 구조는 FSD의 계층별 의존 방향과 slice public API 규칙을 따라야 한다. Next.js 라우트 디렉터리와 FSD의 App 및 Pages 계층은 서로 구분할 수 있어야 한다. 정적 import와 동적 import에서 판정할 수 있는 FSD 위반은 ESLint가 실패로 알려야 한다.
 - IndexedDB, Clipboard, Worker, 시계, 식별자 생성기와 외부 SDK처럼 실행 환경에 따라 바뀔 수 있는 동작은 호출하는 기능이 필요한 최소 함수 또는 interface로 표현하고 `_app` 조립 지점에서 구현을 선택해야 한다. 모든 외부 동작을 한 객체, 전역 registry 또는 범용 Context에 모으지 않아야 하며, 순수 함수, React 지역 상태, React Hook Form 상태, DOM ref와 단순 UI event를 의존성 주입 대상으로 바꾸지 않아야 한다.
 - 컴포넌트는 직접 읽거나 렌더링하거나 변환하는 값과 직접 호출하는 callback만 Props로 받아야 한다. 중간 컴포넌트가 값이나 callback을 그대로 하위 컴포넌트에 전달하거나 전달만을 위해 callback으로 감싸지 않아야 한다. 먼저 불필요한 중간 컴포넌트를 없애거나 `children` 기반 합성으로 값을 쓰는 컴포넌트와 가까이 두고, 실제로 여러 하위 컴포넌트가 공유하는 값과 명령만 담는 기능별 Context를 검토해야 한다. Props 개수를 줄이기 위한 큰 객체, 범용 Context, service locator, render props와 JSX named slot을 만들지 않아야 한다.
+- 구현 절차를 시작할 때마다 [저장소 개발 지침](../../dev/README.md)과 [메모 앱 작성 지침](../../dev/personal-notes-app/anti-patterns.md)을 확인하고 변경할 모듈에 적용한다. 입력과 테스트는 같은 디렉터리의 React Hook Form 지침과 테스트 지침을 따른다.
+- 함께 쓰는 UI 부분은 compound components로 구성하고 부모는 `children`으로 조합한다. 애플리케이션 컴포넌트에 render props를 만들거나 `children` 이외의 prop으로 JSX나 컴포넌트를 주입하지 않는다. 컴포넌트 정의는 모듈에 둔다. 렌더 함수 안에서 정의하거나 `useCallback` 또는 `useMemo`로 감싸 정의하지 않는다.
+- 변경하는 FSD slice에서 실행 환경별 진입점은 `index.browser.ts`와 `index.server.ts`로 구분한다. 필요한 환경의 진입점만 두며 양쪽 구현을 하나의 `index.ts`에서 다시 내보내지 않는다. Next.js의 서버 및 클라이언트 모듈 지침을 적용해 서버 전용 모듈과 비밀 값이 브라우저 번들 또는 클라이언트에 전달되는 Props에 들어가지 않게 한다.
+- 렌더 시 계산할 값은 직접 계산한다. `useState`, `useRef`, `useCallback`, `useMemo`, `useEffect`와 React Context는 각자 맡을 상태, 외부 구독 또는 참조 수명이 필요한 곳에 한정한다. TanStack Query 같은 도구가 관리하는 결과나 상태를 `useState`에 복사하고 Effect로 맞추지 않는다.
+- 대단원마다 코드 리뷰를 한 번 진행하고 확인된 결함을 반영한 뒤 다음 대단원으로 넘어간다. 새 테스트는 TDD가 필요한 절차에서만 작성한다. 나머지는 기존 검사와 실제 사용자 조작으로 확인한다. 구현 내부 모양이나 가짜 저장소의 호출 횟수만 확인하는 테스트는 추가하지 않는다.
 - 검사 도구를 한 번 확인하려는 fixture나 별도 실행 스크립트를 저장소에 남기지 않아야 한다. fixture와 스크립트는 반복해서 실행할 사용자 동작, 자료 규칙 또는 기존 도구만으로 표현할 수 없는 검사를 직접 검증할 때만 추가해야 한다.
 - 애플리케이션은 Tailwind CSS를 스타일 작성 기반으로 사용하고, 의미가 정해진 디자인 토큰과 자체 `shared/ui` 구성요소로 고유 디자인 시스템을 만들어야 한다. 외부 UI 라이브러리의 기본 테마를 애플리케이션의 시각 기준으로 사용하지 않아야 한다.
 - 이미지 생성은 시각 판단에 반드시 필요한 경우에만 수행한다. 생성할 때는 고해상도로 생성해야 하며 기본 해상도는 1920x1080px로 한다.
