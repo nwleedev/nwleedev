@@ -1,6 +1,6 @@
 # 메모 사용 경험과 서버 저장 설계
 
-[IndexedDB 스키마 개선](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)은 메모별 기준 레코드와 본문 변경분 저장소를 사용한다. 모바일에서는 새 메모만 맨 앞에 넣는다. [이름 후보와 삭제 및 복원 사례](docs/designs/personal-notes-app-8fd/references/multi-window-note-editing.md#변경분-저장소-이름)에서 삭제 우선 여부와 복원할 본문을 비교할 수 있다. 저장소 이름과 최종 서버 저장 방식은 미정이다.
+[IndexedDB 스키마 개선](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)은 메모별 기준 레코드는 `notes`에, 본문 변경분은 `updates`에 저장하도록 정했다. 모바일에서는 새 메모만 맨 앞에 넣는다. [메모 삭제 및 복원 사례](docs/designs/personal-notes-app-8fd/references/multi-window-note-editing.md#삭제와-본문-편집이-겹칠-때)에서 삭제 우선 여부와 복원할 본문을 비교할 수 있다. 최종 서버 저장 방식은 미정이다.
 
 [본문 자동 저장 실패](docs/designs/personal-notes-app-8fd/requirements.md#본문-자동-저장-실패)는 데스크탑과 모바일 모두 내부 재시도로 처리한다. 현재 편집기에는 수동 재시도 버튼이 있어 구현과 동작 확인이 남아 있다.
 
