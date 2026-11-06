@@ -2,15 +2,13 @@
 
 [여러 창 편집과 모바일 순서 구현 계획](docs/designs/personal-notes-app-8fd/plan.md#여러-창-편집과-모바일-목록-순서-구현-계획)은 CRDT 가능성 확인, 저장 자료 이전, 편집 및 복원 연결, 실제 브라우저 인수 순서로 진행한다. 저장과 구독은 기능 훅에 연결하고 표시 컴포넌트에는 값과 UI 이벤트만 전달한다. 저장 구조 이전에는 기존 ISO 시각을 밀리초 타임스탬프로 옮기는 작업도 포함한다.
 
-[IndexedDB 스키마 개선](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)의 버전 10은 이전 본문과 일치하는 버전의 초안을 CRDT 변경분으로 옮긴 뒤 `noteDrafts`를 제거한다. 모바일 순서는 `notes.position` 인덱스로 읽는다. [여러 창에서 같은 메모를 편집할 때의 저장과 복구](docs/designs/personal-notes-app-8fd/references/multi-window-note-editing.md)에서 사례를 확인할 수 있다.
+현재 IndexedDB 버전은 13이다. 메모, 일괄 복사, 사용 기록, 템플릿과 설정의 시각은 정수 밀리초로 저장한다. 구버전의 복구 가능한 초안은 저장된 CRDT 변경분으로 이전한다. 메모 전체의 `revision`은 제거했고, 복사 원문을 구별하는 데 쓰는 `contentRevision`의 제거는 남아 있다. [스키마 요구사항](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)
 
 [모바일 목록 순서](docs/designs/personal-notes-app-8fd/requirements.md#모바일-메모-목록의-순서)는 `notes.position`에 저장한다. 다른 창에서 새 메모를 추가하는 동안에도 기존 메모의 드래그를 반영한다.
 
 [편집 중 다른 창에서 메모를 삭제한 경우](docs/designs/personal-notes-app-8fd/requirements.md#편집-중-다른-창에서-메모를-삭제한-경우)에 모바일 편집 잠금과 명시적 복원, 데스크탑 토스트의 동작을 정했다. 모바일 복원은 삭제 전에 저장된 본문만 사용한다. 삭제 당시 열려 있던 모바일 편집 화면은 각 화면을 나갈 때까지 복원할 수 있다. 마지막 복원 기회가 끝나면 보관한 본문을 정리한다. [미저장 입력을 포함하는 복원](docs/designs/personal-notes-app-8fd/requirements.md#그-밖의-후속-항목)은 백로그다. 최종 서버 저장 방식은 미정이다.
 
-[본문 자동 저장 실패](docs/designs/personal-notes-app-8fd/requirements.md#본문-자동-저장-실패)는 데스크탑과 모바일 모두 내부 재시도로 처리한다. 현재 편집기에는 수동 재시도 버튼이 있어 구현과 동작 확인이 남아 있다.
-
-[IndexedDB 스키마 개선](docs/designs/personal-notes-app-8fd/requirements.md#indexeddb-스키마-개선)의 출발점은 버전 4다. `indexed-db-note-draft-repository.ts`는 메모 ID로 초안을 저장하고 삭제한다. 두 창의 쓰기 순서와 미결 사항은 [여러 창에서 같은 메모를 편집할 때의 저장과 복구](docs/designs/personal-notes-app-8fd/references/multi-window-note-editing.md)에 있다. `indexed-db-mobile-note-order-repository.ts`는 순서를 읽을 때 본문을 포함한 모든 메모를 읽는다. 두 항목 모두 코드에서 확인했으며 동시 편집 재현과 조회 비용 측정은 남아 있다.
+[본문 자동 저장 실패](docs/designs/personal-notes-app-8fd/requirements.md#본문-자동-저장-실패)는 편집기에 입력을 유지하고 내부에서 재시도한다. 모바일 목록의 순서만 필요할 때는 위치 인덱스에서 메모 ID를 읽는다. 본문을 열 때는 기준 본문에 해당 ID의 변경분을 적용한다.
 
 [모바일 페이지 헤더 높이](docs/designs/personal-notes-app-8fd/plan.md#모바일-페이지-헤더-높이)는 기본 배율에서 60px다. 편집 화면의 200% 글자 확대 검사는 세 브라우저에서 통과했다.
 
