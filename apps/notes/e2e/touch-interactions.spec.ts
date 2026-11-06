@@ -549,21 +549,25 @@ test("드래그 도중 다른 창에서 만든 메모 아래에 이동한 메모
   await expect.poll(order).toEqual(expected)
 })
 
-test("다른 탭의 순서 저장과 충돌하면 최신 순서를 보여주고 다시 이동한다", async ({ context, page }) => {
+test("두 탭이 재정렬을 공유하고 이미 시작한 이동이 충돌하면 최신 순서로 다시 옮긴다", async ({ context, page }) => {
   await page.goto("/")
   const contents = Array.from({ length: 4 }, (_, index) => `탭 정렬 ${index + 1} ${crypto.randomUUID()}`)
   for (const content of [...contents].reverse()) await createMobileNoteThroughUi(page, content)
   const second = await context.newPage()
   await second.goto("/")
   await expect(second.getByRole("button", { name: `${contents[1]} 이동` })).toBeEnabled()
-  async function dragIn(targetPage: Page, source: string, destination: string) {
+  async function beginDrag(targetPage: Page, source: string, destination: string) {
     const session = await context.newCDPSession(targetPage)
     const articles = targetPage.getByRole("article")
     const from = await center(articles.filter({ hasText: source }).getByRole("button", { name: / 이동$/u }))
     const to = await center(articles.filter({ hasText: destination }), 0.8)
     await startTouch(session, from)
     await moveTouch(session, to)
-    await endTouch(session)
+    return () => endTouch(session)
+  }
+  async function dragIn(targetPage: Page, source: string, destination: string) {
+    const finish = await beginDrag(targetPage, source, destination)
+    await finish()
   }
   await page.evaluate(() => {
     const put = IDBObjectStore.prototype.put
@@ -578,15 +582,17 @@ test("다른 탭의 순서 저장과 충돌하면 최신 순서를 보여주고 
   await dragIn(page, contents[0], contents[3])
   await expect(page.getByRole("alert").filter({ hasText: "메모 순서를 저장하지 못했습니다" })).toBeVisible()
   await expect(page.getByRole("article")).toContainText(contents)
+  const finishConcurrentDrag = await beginDrag(second, contents[1], contents[3])
   await dragIn(page, contents[0], contents[3])
   const latest = [contents[1], contents[2], contents[3], contents[0]]
   await expect(page.getByRole("article")).toContainText(latest)
-  await dragIn(second, contents[1], contents[3])
+  await finishConcurrentDrag()
   await expect(second.getByRole("alert").filter({ hasText: "다른 탭에서 순서가 바뀌었습니다" })).toBeVisible()
   await expect(second.getByRole("article")).toContainText(latest)
   await dragIn(second, contents[1], contents[0])
   const retried = [contents[2], contents[3], contents[0], contents[1]]
   await expect(second.getByRole("article")).toContainText(retried)
+  await expect(page.getByRole("article")).toContainText(retried)
   await page.reload()
   await expect(page.getByRole("article")).toContainText(retried)
 })

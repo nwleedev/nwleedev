@@ -5,7 +5,6 @@ import { useRef } from "react"
 import type { Note } from "@/entities/note"
 import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
 import { useBatchCopyEditor } from "@/features/edit-batch-copy"
-import { usePointerReorder } from "@/shared/lib/pointer-reorder"
 import { Button } from "@/shared/ui/button"
 import { useActionToast } from "@/shared/ui/action-toast"
 import { IconButton } from "@/shared/ui/icon-button"
@@ -39,7 +38,7 @@ export function MobileNotesWorkspace({ creationPending, notes, onCreate }: Mobil
   const { forgetNote } = useNoteSession()
   const createButton = useRef<HTMLButtonElement>(null)
   const order = useMobileNoteOrder(notes)
-  const reorder = usePointerReorder({ allowAddedItems: true, disabled: order.pending || !order.ready, items: order.notes, onMove: order.move })
+  const { reorder } = order
   const actions = useMobileNoteActionSheet({ createButton, noteIds: order.noteIds, notes, onForget: forgetNote, onRemove: removeNote, onRestore: restoreNote })
   const count = batchCopy.draft?.entries.length ?? 0
   const countText = count.toLocaleString("ko-KR")
