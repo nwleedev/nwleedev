@@ -18,6 +18,11 @@ export function toTimestamp(value: string) {
   return timestamp
 }
 
+export const StoredTimestampSchema = z.codec(z.int(), IsoDateTimeSchema, {
+  decode: (timestamp) => new Date(timestamp).toISOString(),
+  encode: toTimestamp,
+})
+
 export const RevisionSchema = z.number().int().nonnegative().safe()
 
 export type EntityId = z.infer<typeof EntityIdSchema>

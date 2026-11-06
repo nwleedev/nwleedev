@@ -2,10 +2,9 @@ import {
   BatchCopyItemSchema,
   BatchCopyListSchema,
   PRIMARY_BATCH_COPY_LIST_ID,
-  parseBatchCopyList,
   type BatchCopyItem,
 } from "@/entities/batch-copy"
-import { BATCH_COPY_LIST_STORE_NAME } from "@/entities/batch-copy/index.browser"
+import { BATCH_COPY_LIST_STORE_NAME, readStoredBatch, storeBatch } from "@/entities/batch-copy/index.browser"
 import {
   TextUsageRecordSchema,
   parseTextUsageRecord,
@@ -65,7 +64,7 @@ export class IndexedDbBatchCopyItemWriter implements BatchCopyItemWriter {
           ),
         ])
       const currentList =
-        storedList === undefined ? null : parseBatchCopyList(storedList)
+        storedList === undefined ? null : readStoredBatch(storedList)
       const currentUsage =
         storedUsage === undefined ? null : parseTextUsageRecord(storedUsage)
 
@@ -106,7 +105,7 @@ export class IndexedDbBatchCopyItemWriter implements BatchCopyItemWriter {
             },
       )
 
-      listStore.put(list)
+      listStore.put(storeBatch(list))
       usageStore.put(usage)
       await completion
       return list

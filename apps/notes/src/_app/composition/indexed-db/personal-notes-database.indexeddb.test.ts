@@ -1,5 +1,5 @@
 import * as fc from "fast-check"
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, assert, beforeEach, describe, expect, it } from "vitest"
 
 import {
   IndexedDbBatchCopyItemWriter,
@@ -323,6 +323,44 @@ describe("personal notes IndexedDB storage", () => {
     const current = createConnection()
     expect((await new IndexedDbMobileNoteOrderRepository(current).read()).ids).toEqual([companion.id, note.id])
     expect((await current.get()).objectStoreNames.contains("mobileNoteOrder")).toBe(false)
+  })
+
+  it("v10 일괄 복사 항목과 목록의 시각을 밀리초로 이전하고 다음 쓰기에도 유지한다", async () => {
+    const legacy = {
+      id: PRIMARY_BATCH_COPY_LIST_ID,
+      content: { items: [{ ...batchCopyItem, addedAt: "1970-01-01T08:59:59.999999+09:00" }], separator: "\n" },
+      revision: 3,
+      updatedAt: timestamp,
+    }
+    const previous = await openIndexedDatabase({
+      name: PERSONAL_NOTES_DATABASE_NAME,
+      version: 10,
+      upgrade(database) {
+        database.createObjectStore("batches", { keyPath: "id" }).add(legacy)
+      },
+    })
+    previous.close()
+    const connection = createConnection()
+    const database = await connection.get()
+    async function readBatch() {
+      const transaction = database.transaction("batches")
+      const [record] = await Promise.all([
+        readRequest(transaction.objectStore("batches").get(legacy.id)),
+        waitForTransaction(transaction),
+      ])
+      return record
+    }
+    const expected = {
+      ...legacy,
+      updatedAt: Date.parse(timestamp),
+      content: { ...legacy.content, items: [{ ...batchCopyItem, addedAt: -1 }] },
+    }
+    expect(await readBatch()).toEqual(expected)
+    const batches = new IndexedDbBatchCopyRepository(connection)
+    const list = await batches.get()
+    assert.isNotNull(list)
+    await batches.save(list)
+    expect(await readBatch()).toEqual(expected)
   })
 
   it("restores all persistent records through a new connection", async () => {

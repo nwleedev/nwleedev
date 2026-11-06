@@ -2,7 +2,8 @@ import { z } from "zod"
 
 import { readRequest } from "@/shared/lib/indexed-db/index.browser"
 
-import { BATCH_COPY_LIST_STORE_NAME } from "@/entities/batch-copy/index.browser"
+import { parseBatchCopyList } from "@/entities/batch-copy"
+import { BATCH_COPY_LIST_STORE_NAME, storeBatch } from "@/entities/batch-copy/index.browser"
 import {
   NoteRecordSchema,
   NoteDraftSchema,
@@ -301,6 +302,21 @@ function migratePreferences(transaction: IDBTransaction) {
         },
         INTERACTION_PREFERENCE_KEY,
       )
+    } catch {
+      transaction.abort()
+    }
+  }
+}
+
+export function migrateBatchTimestamps(transaction: IDBTransaction) {
+  if (!transaction.objectStoreNames.contains(BATCH_COPY_LIST_STORE_NAME)) return
+  const cursor = transaction.objectStore(BATCH_COPY_LIST_STORE_NAME).openCursor()
+  cursor.onsuccess = () => {
+    const row = cursor.result
+    if (!row) return
+    try {
+      row.update(storeBatch(parseBatchCopyList(row.value)))
+      row.continue()
     } catch {
       transaction.abort()
     }

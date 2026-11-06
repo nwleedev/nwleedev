@@ -1,3 +1,6 @@
+import { z } from "zod"
+
+import { StoredTimestampSchema } from "@/shared/lib/entity-metadata"
 import {
   readRequest,
   waitForTransaction,
@@ -5,6 +8,8 @@ import {
 } from "@/shared/lib/indexed-db/index.browser"
 
 import {
+  BatchCopyItemSchema,
+  BatchCopyListSchema,
   PRIMARY_BATCH_COPY_LIST_ID,
   parseBatchCopyList,
   type BatchCopyList,
@@ -12,6 +17,22 @@ import {
 } from "../model/batch-copy-list"
 
 export const BATCH_COPY_LIST_STORE_NAME = "batches"
+
+const StoredBatchSchema = BatchCopyListSchema.extend({
+  content: z.strictObject({
+    ...BatchCopyListSchema.shape.content.shape,
+    items: z.array(BatchCopyItemSchema.extend({ addedAt: StoredTimestampSchema })),
+  }),
+  updatedAt: StoredTimestampSchema,
+})
+
+export function readStoredBatch(value: unknown) {
+  return parseBatchCopyList(StoredBatchSchema.parse(value))
+}
+
+export function storeBatch(list: BatchCopyList) {
+  return StoredBatchSchema.encode(list)
+}
 
 export class IndexedDbBatchCopyRepository
   implements BatchCopyRepository
@@ -36,7 +57,7 @@ export class IndexedDbBatchCopyRepository
     )
     await completion
 
-    return record === undefined ? null : parseBatchCopyList(record)
+    return record === undefined ? null : readStoredBatch(record)
   }
 
   async save(list: BatchCopyList) {
@@ -47,7 +68,7 @@ export class IndexedDbBatchCopyRepository
       "readwrite",
     )
     const completion = waitForTransaction(transaction)
-    transaction.objectStore(BATCH_COPY_LIST_STORE_NAME).put(record)
+    transaction.objectStore(BATCH_COPY_LIST_STORE_NAME).put(storeBatch(record))
     await completion
 
     return record
