@@ -12,12 +12,12 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 - 각 절차에서 코드를 열기 전에 [저장소 개발 지침](../../dev/README.md), [메모 앱 안티패턴](../../dev/personal-notes-app/anti-patterns.md), [입력 상태](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md) 중 적용할 규칙을 확인한다. 아래 파일은 `apps/notes` 기준이다. 실제 호출자와 재사용 여부를 확인하고 다음 절차에 필요한 코드를 먼저 지우지 않는다.
 - 모든 UI 변경에서 Props를 받는 곳이 직접 읽거나 호출하는지 확인한다. 전달 전용 객체나 함수는 제거하고 관련 부분은 compound components와 `children`으로 합성한다. render props, named JSX prop, 컴포넌트 주입 및 렌더 안에서 훅으로 감싼 컴포넌트 정의를 금지한다. 독립된 UI 하나를 위해 합성 API나 Context를 만들지 않는다. [React의 children 합성](https://react.dev/learn/passing-props-to-a-component#passing-jsx-as-children)
-- 각 절차에서 기존 상태의 주체와 외부 의존성을 먼저 찾는다. Query 결과를 state와 Effect로 복사하지 않는다. 현재 패키지에는 TanStack Query가 없으므로 이를 전제로 의존성을 추가하지 않는다. 지역 입력은 기존 폼이 관리하고 외부 저장 및 알림은 기존 조립부에서 주입한다. 훅이나 Context를 늘리기 전에 이벤트 처리, 렌더 중 계산, 기존 구독으로 가능한지 확인한다. [React의 Effect 선택 기준](https://react.dev/learn/you-might-not-need-an-effect)
+- 각 절차에서 기존 상태의 주체와 외부 의존성을 먼저 찾는다. Query 결과를 state와 Effect로 복사하지 않는다. 현재 패키지에는 TanStack Query가 없으므로 이를 전제로 의존성을 추가하지 않는다. 지역 입력은 기존 폼이 관리한다. 각 외부 동작은 호출자와 수명을 먼저 확인하고 FSD 의존 방향을 지키는 가장 가까운 곳에서 구현을 선택한다. 한 곳에서 쓰면 인자나 Props로 전달하고, 같은 트리의 여러 곳에서 공유하며 중간 전달이 생길 때만 그 트리에 Context를 둔다. 훅이나 Context를 늘리기 전에 이벤트 처리, 렌더 중 계산, 기존 구독으로 가능한지 확인한다. [React의 Effect 선택 기준](https://react.dev/learn/you-might-not-need-an-effect)
 - **테스트 작성 기준.** 아래에서 TDD로 표시한 절차만 기존 테스트에 빠진 실패 사례를 먼저 추가하고 정상 동작을 구현한다. 같은 회귀를 기존 테스트가 이미 잡으면 중복 작성하지 않는다. 그 밖의 절차는 테스트 파일을 추가하지 않고 지정한 기존 검사와 실제 브라우저 조작을 실행한다. 범위와 결과를 각 대단원 리뷰에 남긴다.
 
 ### 1. 기존 동작 확인과 CRDT 도입 가능성
 
-1. **보존할 동작과 모듈 연결 확인.** `app/` → `src/_app/composition/use-note-services.ts` → `src/_pages/notes/model/use-notes-data-model.ts` → `src/entities/note/api/`를 추적한다. 기존 조립부에서 DB, 시계, ID 생성기와 클립보드를 주입하는 방식을 사용한다. 이 단계의 앱 파일 추가 또는 삭제는 없다. 현재 매니페스트와 FSD ESLint 설정을 기준으로 두 탭을 같은 브라우저 프로필에서 열어 기존 저장과 목록 갱신 동작을 기록한다. **TDD 없음.** 기존 브라우저 검사와 모바일 편집, 캔버스 이동, 복사 및 삭제 취소를 실행해 기존 실패를 분리한다. [FSD의 slice 진입점](https://feature-sliced.design/docs/reference/public-api)
+1. **보존할 동작과 모듈 연결 확인.** `app/` → `src/_app/composition/use-note-services.ts` → `src/_pages/notes/model/use-notes-data-model.ts` → `src/entities/note/api/`를 추적한다. 기존 조립부는 현재 연결을 찾는 출발점으로 삼는다. DB 연결처럼 앱 전체에서 수명을 공유할 이유가 있는 자원과 편집, 복원, 복사에서만 쓰는 동작을 구분한다. 후자는 해당 기능 가까이에서 필요한 함수만 연결한다. 이 단계의 앱 파일 추가 또는 삭제는 없다. 현재 매니페스트와 FSD ESLint 설정을 기준으로 두 탭을 같은 브라우저 프로필에서 열어 기존 저장과 목록 갱신 동작을 기록한다. **TDD 없음.** 기존 브라우저 검사와 모바일 편집, 캔버스 이동, 복사 및 삭제 취소를 실행해 기존 실패를 분리한다. [FSD의 slice 진입점](https://feature-sliced.design/docs/reference/public-api)
 2. **실제 CRDT로 본문 왕복 확인.** `src/entities/note/model/`에 편집 구간과 바이너리 변경분을 연결할 모듈을 둘 후보로 삼고 `save-note-content.ts`의 문자열 전체 저장과 비교한다. Yjs는 후보이며 채택 전에는 런타임 의존성을 확정하지 않는다. 선택 시에만 `package.json`과 lockfile을 함께 수정한다. **TDD 필요.** 두 실제 문서가 같은 기준에서 삽입과 삭제를 하고 변경분을 역순 및 중복 수신한 뒤 재개해도 같은 본문이 되는지 확인한다. 삭제된 구간에 동시에 넣은 글자, 삭제만 담긴 변경분, 기준 상태를 다시 연 뒤의 늦은 변경을 포함한다. 문자열 전체 교체, 라이브러리 자체의 모의 구현, 매 입력마다 새 문서 생성은 피한다. 한글 조합과 선택 영역 붙여넣기는 실제 편집기에서 확인한다. [변경분의 성질](https://docs.yjs.dev/api/document-updates) / [현재 편집기와 삭제 단위 조사](references/multi-window-note-editing.md#본문-일부를-지울-때)
 3. **대단원 코드 리뷰와 반영.** 기존 편집 입력으로 변경 구간을 얻는지, 저장 후 다시 열어도 문자 식별 관계가 남는지 검토한다. 결함을 고치고 실패한 사례를 다시 실행한다. 후보가 이를 충족하지 못하면 저장 형식 확정과 스키마 이전을 중단한다. 다음 대단원의 DB 변경을 미리 배포하지 않는다.
 
@@ -30,7 +30,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ### 3. 여러 창의 편집 수명과 화면
 
-1. **편집 연결과 자동 저장.** `use-note-services.ts`에서 저장 및 창 간 변경 알림을 조립하고 `use-notes-data-model.ts`, `use-note-card-editor.ts`, `use-note-detail-draft.ts`, `use-note-content-autosave.ts`, `save-note-content.ts`의 중복 저장 흐름을 통합한다. 두 화면은 같은 변경분 저장 명령을 사용하되 폼의 로컬 입력과 편집 세션의 Undo/Redo를 보존한다. 커밋 후 알림은 다시 읽을 메모를 식별하는 데만 사용하고, 다시 열린 창은 DB에서 복구한다. 중복 통지로 다시 저장하는 순환과 오래된 완료가 새 입력을 저장 완료로 만드는 문제를 방지한다. 구독 해제와 재시도 종료를 편집 대상의 수명에 맞춘다. **TDD 필요.** 기존 `note-content-save-state.test.ts`와 `save-note-content.test.ts`에서 실패 후 추가 입력, 재전달, 늦은 완료를 차례로 주고 마지막 입력의 저장과 상태를 관찰한다. 타이머 호출 횟수는 판정 근거로 쓰지 않는다. [React의 외부 시스템 연결](https://react.dev/learn/synchronizing-with-effects)
+1. **편집 연결과 자동 저장.** `use-note-services.ts`가 현재 전달하는 동작을 확인한다. 편집에는 변경분 저장과 해당 메모의 변경 구독만, 복원에는 복원 함수만 연결한다. `use-notes-data-model.ts`, `use-note-card-editor.ts`, `use-note-detail-draft.ts`, `use-note-content-autosave.ts`, `save-note-content.ts`의 중복 저장 흐름을 통합한다. 두 화면은 같은 변경분 저장 명령을 사용하되 폼의 로컬 입력과 편집 세션의 Undo/Redo를 보존한다. 커밋 후 알림은 다시 읽을 메모를 식별하는 데만 사용하고, 다시 열린 창은 DB에서 복구한다. 중복 통지로 다시 저장하는 순환과 오래된 완료가 새 입력을 저장 완료로 만드는 문제를 방지한다. 구독 해제와 재시도 종료를 편집 대상의 수명에 맞춘다. **TDD 필요.** 기존 `note-content-save-state.test.ts`와 `save-note-content.test.ts`에서 실패 후 추가 입력, 재전달, 늦은 완료를 차례로 주고 마지막 입력의 저장과 상태를 관찰한다. 타이머 호출 횟수는 판정 근거로 쓰지 않는다. [React의 외부 시스템 연결](https://react.dev/learn/synchronizing-with-effects)
 2. **삭제 우선과 명시적 복원.** 메모 삭제 및 복원 명령과 저장 repository에서 삭제한 메모의 늦은 쓰기를 거른다. 삭제 전에 커밋한 본문과 변경분으로 같은 ID를 복원할 수 있도록 보존 기간과 이전 편집 세션의 쓰기를 구별하는 방식을 먼저 확인한다. `notes`에 revision을 다시 추가하거나 모바일 화면의 미저장 문자열을 통째로 복원하지 않는다. 기존 삭제 취소와 새 복원 명령은 저장 동작이 같은 부분만 통합한다. **TDD 필요.** 실제 DB에서 삭제 전 일부 저장, 삭제 뒤 늦은 쓰기, 다른 창의 중복 복원, 복원 뒤 예전 재시도 순서로 실행하고 새 연결에서 ID와 본문을 확인한다. 안전하게 구분할 방법이 확인되기 전에는 복원 UI를 활성화하지 않는다. [삭제와 복원 사례](requirements.md#편집-중-다른-창에서-메모를-삭제한-경우)
 3. **기기별 표시와 조작.** `ui/note-card.tsx`의 헤더 왼쪽, `ui/note-detail-page.tsx`의 저장 문구 왼쪽에 같은 상태 표시등을 합성한다. 삭제 상태는 상세 화면에서 편집 잠금, 점선 밑줄 버튼과 명시적으로 여는 전체 화면 안내, 우측 복원 버튼으로 표현한다. 기존 아이콘 버튼과 알림 UI를 재사용한다. 데스크탑에서는 삭제된 카드만 제거하고 한 번 알린다. 본문 저장 실패의 안내 및 재시도 버튼 연결만 제거하고 다른 오류와 이탈 경고까지 지우지 않는다. JSX 슬롯이나 전달 전용 Props 대신 모듈에 정의한 구성요소를 `children`으로 조합한다. **TDD 없음.** 기존 상세 화면 브라우저 검사와 두 실제 창에서 상태 표시, 정확한 안내 문구, 경고 문장의 색, 키보드 포커스 복귀, 복원 후 입력 및 미복원 이탈을 확인한다. 한글 조합, 커서, 모바일 Undo/Redo와 자동 저장 재시도도 조작한다.
 4. **대단원 코드 리뷰와 반영.** 동일 자료의 복제 state, 불필요한 훅, 구독 누수, 중복 토스트, 자동으로 열리는 모달, 새로 추가된 전달 전용 Props를 확인한다. 결함을 반영하고 영향을 받은 편집 및 복원 과업을 다시 수행한다.
@@ -39,7 +39,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 1. **FSD 진입점과 보안 확인.** 환경 분리는 앞 절차에서 각 slice를 바꿀 때 함께 적용한다. 여기서는 `app/`, `src/_app/composition/`, 변경한 slice의 진입점과 실제 import를 끝까지 확인한다. 브라우저 저장 구현은 `index.browser.ts`로 옮기고 실제 서버 소비자가 있는 경우만 `index.server.ts`를 둔다. 혼합 재수출을 제거하고 기존 호출자를 같은 변경에서 전환한다. 범용 barrel, 전체 페이지의 불필요한 client 전환, 서버 비밀이나 내부 레코드의 클라이언트 Props 전달을 피한다. 파일 접미사만으로 격리를 가정하지 말고 전용 모듈 표시, 의존 방향 및 운영 빌드로 확인한다. DB에서 읽은 값과 다른 창의 알림은 소비하기 전에 형식을 검사하고 메모 원문은 텍스트로 렌더링한다. 서버 저장 API는 추가하지 않는다. **TDD 없음.** 기존 ESLint, 타입 검사 및 Next.js 빌드를 실행한다. [Next.js 데이터 보안](https://nextjs.org/docs/app/guides/data-security) / [서버 및 클라이언트 컴포넌트](https://nextjs.org/docs/app/getting-started/server-and-client-components)
 2. **실제 서비스에서 보존 동작 확인.** 신규 앱 코드와 테스트 파일 추가 없이 `apps/notes`의 기존 `test`, `test:browser`, `test:e2e`를 실행한다. 같은 브라우저 프로필의 탭 두 개와 별도 창에서 본문 병합, 새 메모와 드래그, 저장 재시도, 삭제 및 복원을 실제 IndexedDB로 확인한다. 새로고침 후 본문과 순서, 일괄 복사 원문 및 횟수를 다시 읽는다. 기존 캔버스 앞뒤 이동, 탭 탐색, 선택, 템플릿과 모바일 복사 확인까지 회귀를 확인한다. 구독 메시지만 보거나 서로 저장소가 분리된 브라우저 컨텍스트로 성공을 판정하지 않는다. **TDD 없음.**
-3. **대단원 코드 리뷰와 반영.** 변경 파일과 의존성 diff를 요구사항에 대조해 의도하지 않은 동작 변경, 테스트 약화, 남은 서버/브라우저 혼합을 확인한다. 발견한 문제를 수정하고 영향을 받는 기존 검사와 실제 조작을 재실행한다. 미실행 환경이나 실패가 남으면 완료한 것으로 기록하지 않는다.
+3. **대단원 코드 리뷰와 반영.** 변경한 타입, 함수, 컴포넌트와 파일 이름에 `adapter`, `shell`, `presenter`, `capability` 또는 기존 금지어 `port`가 아키텍처 이름으로 들어갔는지 확인한다. `restoreNote`처럼 실제 동작을 나타내는 이름을 쓴다. 각 호출자가 사용하지 않는 동작까지 받거나 새 의존성이 모두 `_app`에 모였는지 살핀다. 변경 파일과 의존성 diff를 요구사항에 대조해 의도하지 않은 동작 변경, 테스트 약화, 남은 서버/브라우저 혼합을 확인한다. 발견한 문제를 수정하고 영향을 받는 기존 검사와 실제 조작을 재실행한다. 미실행 환경이나 실패가 남으면 완료한 것으로 기록하지 않는다.
 
 ## 전체 진행 상태와 남은 작업
 
@@ -2092,7 +2092,7 @@ U41에서 모바일 작업은 메모리로 옮기지만 사용 횟수 저장은 
 
 - 수정: `docs/dev/personal-notes-app/anti-patterns.md`에서 외부 동작의 최소 동작 단위, 조립 지점과 주입하지 않을 대상을 명시한다. 순수 함수, React 지역 상태, React Hook Form 상태, DOM ref와 단순 UI event는 주입 대상으로 만들지 않는다.
 - 검토: `apps/notes/src/_app/composition/**`, `apps/notes/src/_app/providers/**`, `apps/notes/src/features/**/model/**`, `apps/notes/src/_pages/**/model/**`와 UI import를 따라 IndexedDB, Clipboard, Worker, 시계, 식별자 생성기와 외부 SDK 구현이 실제 기능별 interface를 거치는지 확인한다.
-- 수정: 위반이 확인되면 위반을 보인 기능이 실제 사용하는 동작만 기존 interface 또는 기능별 accessor에 추가하고 `_app` 조립 지점에서 구현을 연결한다. 독립적으로 바뀌는 읽기, 변경과 삭제를 하나의 service interface로 합치지 않는다.
+- 수정: 위반이 확인되면 위반을 보인 기능이 실제 사용하는 동작만 기능 가까이에서 연결하고 호출자에게 전달한다. 독립적으로 바뀌는 읽기, 변경과 삭제를 하나의 service interface로 합치지 않는다.
 - 제외: 새 전역 의존성 객체, token registry, service locator, TanStack Query wrapper, 범용 Context와 외부 의존성은 추가하지 않는다. 위반이 없으면 운영 코드를 바꾸지 않는다.
 
 #### 검증과 중단 조건
@@ -2341,7 +2341,7 @@ apps/notes/
 
 FSD 계층 의존 방향은 `_app`, `_pages`, `features`, `entities`, `shared` 순서다. 한 slice는 같은 계층의 다른 slice를 직접 가져오지 않고 더 아래 계층만 가져온다. Entities 사이의 자료 관계를 type으로 직접 표현해야 할 때에만 `@x` public API를 예외로 사용한다. 다른 slice에서는 명시적 export를 둔 public API만 사용하고, 같은 slice 안에서는 자신의 public API를 거치지 않는 상대 경로를 사용한다. 화면 한 곳에서만 쓰는 UI와 동작은 그 화면의 `_pages` slice에 남기고, 여러 화면에서 실제로 다시 사용하는 사용자 동작만 `features`로 분리한다. `widgets`와 폐기된 `processes` 계층은 현재 만들지 않으며, 실제 파일이 없는 계층이나 segment도 만들지 않는다.
 
-브라우저 구현은 `_app/composition`에서 만들고 명시적인 속성을 가진 의존성 객체로 각 책임을 가진 slice의 provider에 전달한다. `_app/providers`의 `PersonalNotesProvider`가 이 provider를 공통 layout 아래에서 한 번 조립하지만, 아래 계층은 `_app`을 가져오지 않는다. React에서는 책임이 제한된 provider와 기능별 hook으로 의존성을 전달해 Props Drilling을 피한다. 문자열 token으로 전역 객체를 찾는 범용 Service Locator는 만들지 않는다. Context는 의존성을 임의 조회하는 저장소가 아니라 조립 지점에서 만든 명시적 동작만 전달한다.
+브라우저 구현을 선택하는 위치는 실제 호출자와 공유 수명에 따라 정한다. 기능 전용 동작은 그 기능 가까이에서 연결하고 앱 전체에서 함께 쓰는 자원만 `_app/composition`에서 연결한다. `_app/providers`의 `PersonalNotesProvider`가 이 provider를 공통 layout 아래에서 한 번 조립하지만, 아래 계층은 `_app`을 가져오지 않는다. React에서는 책임이 제한된 provider와 기능별 hook으로 의존성을 전달해 Props Drilling을 피한다. 문자열 token으로 전역 객체를 찾는 범용 Service Locator는 만들지 않는다. Context는 의존성을 임의 조회하는 저장소가 아니라 조립 지점에서 만든 명시적 동작만 전달한다.
 
 `PersonalNotesProvider`는 명시적인 Client Component 진입점이며 공통 루트 layout의 자식에서 한 번 유지한다. Client Component도 정적 빌드 중 미리 렌더링될 수 있으므로 `createLocalApplication`과 각 브라우저 구현의 생성 과정에서는 `navigator`, `indexedDB`, `window`나 Worker를 읽지 않는다. 이 브라우저 전역은 실제 읽기, 쓰기 또는 분석을 브라우저에서 시작할 때만 접근한다.
 
