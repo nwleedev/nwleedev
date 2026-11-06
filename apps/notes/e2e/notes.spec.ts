@@ -119,34 +119,28 @@ type CreationFailure = {
 }
 
 async function readStoredCreationState(page: Page): Promise<StoredCreationState> {
-  return page.evaluate(
-    () =>
-      new Promise<StoredCreationState>((resolve, reject) => {
-        const openRequest = indexedDB.open("personal-notes")
-        openRequest.onerror = () => reject(openRequest.error)
-        openRequest.onsuccess = () => {
-          const database = openRequest.result
-          const transaction = database.transaction("notes", "readonly")
-          const request = transaction.objectStore("notes").getAll()
-
-          transaction.onerror = () => {
-            database.close()
-            reject(transaction.error)
-          }
-          transaction.oncomplete = () => {
-            const records = request.result as {
-              content: string
-              id: string
-            }[]
-            database.close()
-            resolve({
-              contents: records.map(({ content }) => content).sort(),
-              distinctIds: new Set(records.map(({ id }) => id)).size,
-            })
-          }
-        }
-      }),
-  )
+  const ids = await page.evaluate(() => new Promise<string[]>((resolve, reject) => {
+    const open = indexedDB.open("personal-notes")
+    open.onerror = () => reject(open.error)
+    open.onsuccess = () => {
+      const db = open.result
+      const read = db.transaction("notes")
+      const keys = read.objectStore("notes").index("position").getAllKeys()
+      read.oncomplete = () => {
+        db.close()
+        resolve(keys.result.map(String))
+      }
+      read.onabort = () => {
+        db.close()
+        reject(read.error)
+      }
+    }
+  }))
+  const notes = await Promise.all(ids.map((id) => readStoredNote(page, id)))
+  return {
+    contents: notes.flatMap((note) => note ? [note.content] : []).sort(),
+    distinctIds: new Set(ids).size,
+  }
 }
 
 async function expectStoredCreationState(page: Page, contents: string[]) {
@@ -2077,7 +2071,7 @@ test("가장 최근에 활성화한 오른쪽 패널 하나만 표시한다", as
   const batchPanel = page.getByRole("complementary", { name: "일괄 복사" })
   await expect(batchPanel).toBeVisible()
   await expect(
-    page.getByRole("status").filter({ hasNotText: /^메모 \d+개$/u }),
+    page.getByRole("status").filter({ hasNotText: /^(?:메모 \d+개|저장됨|저장 중)$/u }),
   ).toHaveCount(0)
 
   await note.press("Enter")

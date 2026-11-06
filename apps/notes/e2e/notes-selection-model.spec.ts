@@ -561,10 +561,8 @@ async function executeSelectionCommands(
         await action.focus()
         await action.press("Enter")
         await expect(action).toHaveAttribute("aria-expanded", "true")
-        await action.focus()
-        await action.press("Enter")
+        await page.keyboard.press("Escape")
         await expect(action).toHaveAttribute("aria-expanded", "false")
-        await action.focus()
         await expect(action).toBeFocused()
       },
       async enterNote(notePosition) {
