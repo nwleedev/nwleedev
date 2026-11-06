@@ -1,3 +1,5 @@
+import { changedNoteText, openNoteBody, type Note } from "@/entities/note"
+
 export type EditSelection = {
   start: number
   end: number
@@ -64,16 +66,7 @@ function mergeEdit(previous: Edit, next: Edit): Edit | null {
 export function recordNoteEdit(history: NoteEditHistory, change: ContentEdit): NoteEditHistory {
   const { before, after, ...metadata } = change
   if (before === after) return history
-  let start = 0
-  const length = Math.min(before.length, after.length)
-  while (start < length && before[start] === after[start]) start += 1
-  let beforeEnd = before.length
-  let afterEnd = after.length
-  while (beforeEnd > start && afterEnd > start && before[beforeEnd - 1] === after[afterEnd - 1]) {
-    beforeEnd -= 1
-    afterEnd -= 1
-  }
-  const edit = { ...metadata, start, removed: before.slice(start, beforeEnd), inserted: after.slice(start, afterEnd) }
+  const edit = { ...metadata, ...changedNoteText(before, after) }
   const past = [...history.past]
   const previous = past.at(-1)
   const merged = history.grouping && previous ? mergeEdit(previous, edit) : null
@@ -88,6 +81,33 @@ export function recordNoteEdit(history: NoteEditHistory, change: ContentEdit): N
     first = index
   }
   return { past: past.slice(first), future: [], grouping: true }
+}
+
+export function rebaseNoteEditHistory(history: NoteEditHistory, previous: Note, saved: Note): NoteEditHistory {
+  function rebase(entries: readonly Edit[], undo: boolean) {
+    if (entries.length === 0) return entries
+    const original = openNoteBody(previous)
+    const merged = openNoteBody(saved)
+    if (!original || !merged) return entries
+    const result: Edit[] = []
+    const moveSelection = (selection: EditSelection) => ({
+      ...selection, ...original.selectionIn(merged, selection.start, selection.end),
+    })
+    for (const edit of [...entries].reverse()) {
+      const removed = undo ? edit.inserted : edit.removed
+      const inserted = undo ? edit.removed : edit.inserted
+      const current = merged.text
+      const from = moveSelection(undo ? edit.afterSelection : edit.beforeSelection)
+      merged.receive(original.replace(edit.start, edit.start + removed.length, inserted))
+      const next = merged.text
+      if (current === next) continue
+      const to = moveSelection(undo ? edit.beforeSelection : edit.afterSelection)
+      const change = undo ? changedNoteText(next, current) : changedNoteText(current, next)
+      result.push({ ...edit, ...change, beforeSelection: undo ? to : from, afterSelection: undo ? from : to })
+    }
+    return result.reverse()
+  }
+  return { past: rebase(history.past, true), future: rebase(history.future, false), grouping: false }
 }
 
 export function replayNoteEdit(history: NoteEditHistory, content: string, direction: "undo" | "redo") {

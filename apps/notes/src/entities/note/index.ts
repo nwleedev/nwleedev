@@ -1,4 +1,4 @@
-export { NoteBody, openNoteBody } from "./model/note-body"
+export { NoteBody, changedNoteText, openNoteBody } from "./model/note-body"
 export { NOTE_POSITION_INDEX, storeNote } from "./api/stored-note"
 export {
   IndexedDbMobileNoteOrderRepository,

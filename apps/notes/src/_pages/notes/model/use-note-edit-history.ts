@@ -2,7 +2,9 @@
 
 import { useEffect, useEffectEvent, useRef, useState, type KeyboardEvent, type RefObject } from "react"
 
-import { createNoteEditHistory, recordNoteEdit, replayNoteEdit, type EditSelection } from "./note-edit-history"
+import type { Note } from "@/entities/note"
+
+import { rebaseNoteEditHistory, createNoteEditHistory, recordNoteEdit, replayNoteEdit, type EditSelection } from "./note-edit-history"
 
 type HistoryOptions = {
   editor: RefObject<HTMLTextAreaElement | null>
@@ -113,5 +115,10 @@ export function useNoteEditHistory({ editor, readContent, replaceContent }: Hist
     replay(key === "y" || event.shiftKey ? "redo" : "undo")
   }
 
-  return { available, endComposition, keyDown, record, replay, select, startComposition }
+  function receiveNote(previous: Note, saved: Note) {
+    history.current = rebaseNoteEditHistory(history.current, previous, saved)
+    publish()
+  }
+
+  return { available, receiveNote, endComposition, keyDown, record, replay, select, startComposition }
 }

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, test, type Locator } from "@playwright/test"
 
 import {
   createMobileNoteThroughUi,
@@ -6,6 +6,12 @@ import {
 } from "./support/create-note-through-ui"
 import { readStoredNote } from "./support/read-stored-note"
 import { runNoteAction } from "./support/run-note-action"
+
+async function noteDetailUrl(card: Locator) {
+  const id = await card.getAttribute("id")
+  if (!id) throw new Error("Expected an open note")
+  return "/notes/" + id.slice("note-".length, -"-board".length) + "/"
+}
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/")
@@ -71,11 +77,9 @@ test("두 편집기에서 앞과 뒤를 수정한 뒤 새로 연 메모에는 �
 
 test("다른 창에서 앞에 글자를 넣어도 모바일 편집기의 선택은 같은 글자에 남는다", async ({ page, context }) => {
   const card = await createNoteThroughUi(page, "가나다")
-  const id = await card.getAttribute("id")
-  if (!id) throw new Error("Expected an open note")
   const mobile = await context.newPage()
   await mobile.setViewportSize({ width: 320, height: 720 })
-  await mobile.goto("/notes/" + id.slice("note-".length, -"-board".length) + "/")
+  await mobile.goto(await noteDetailUrl(card))
   const editor = mobile.getByRole("textbox", { name: "메모 내용" })
   await expect(editor).toHaveValue("가나다")
   await editor.evaluate((input: HTMLTextAreaElement) => {
@@ -90,6 +94,25 @@ test("다른 창에서 앞에 글자를 넣어도 모바일 편집기의 선택�
     selected: input.value.slice(input.selectionStart, input.selectionEnd),
     direction: input.selectionDirection,
   }))).toEqual({ selected: "나", direction: "backward" })
+})
+
+test("다른 창의 편집을 받은 뒤 모바일에서 내 입력만 되돌리고 다시 적용한다", async ({ page, context }) => {
+  const card = await createNoteThroughUi(page, "가나다")
+  const mobile = await context.newPage()
+  await mobile.setViewportSize({ width: 320, height: 720 })
+  await mobile.goto(await noteDetailUrl(card))
+  const editor = mobile.getByRole("textbox", { name: "메모 내용" })
+  const desktop = card.getByRole("textbox", { name: "메모 내용" })
+  await editor.fill("가나다 내 글")
+  await expect(desktop).toHaveValue("가나다 내 글")
+  await desktop.fill("제목 가나다 내 글")
+  await desktop.press("Tab")
+  await expect(editor).toHaveValue("제목 가나다 내 글")
+  await mobile.getByRole("button", { name: "실행 취소" }).click()
+  await expect(editor).toHaveValue("제목 가나다")
+  await expect(desktop).toHaveValue("제목 가나다")
+  await mobile.getByRole("button", { name: "다시 실행" }).click()
+  await expect(desktop).toHaveValue("제목 가나다 내 글")
 })
 
 test("800ms 타이머와 blur 및 내부 이동이 최신 원문을 저장한다", async ({

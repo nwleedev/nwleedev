@@ -13,6 +13,29 @@ export function openNoteBody(note: Note) {
   return snapshot ? new NoteBody(snapshot) : null
 }
 
+export function changedNoteText(original: string, value: string) {
+  const before = Array.from(original)
+  const after = Array.from(value)
+  const limit = Math.min(before.length, after.length)
+  let prefix = 0
+  let start = 0
+  while (prefix < limit && before[prefix] === after[prefix]) {
+    start += before[prefix].length
+    prefix += 1
+  }
+  let suffix = 0
+  let trailingLength = 0
+  while (suffix < limit - prefix && before.at(-1 - suffix) === after.at(-1 - suffix)) {
+    trailingLength += before[before.length - suffix - 1].length
+    suffix += 1
+  }
+  return {
+    start,
+    removed: original.slice(start, original.length - trailingLength),
+    inserted: value.slice(start, value.length - trailingLength),
+  }
+}
+
 export class NoteBody {
   readonly #document = new Doc()
   readonly #text = this.#document.getText("body")
@@ -46,23 +69,8 @@ export class NoteBody {
   }
 
   updateText(value: string) {
-    const original = this.text
-    const before = Array.from(original)
-    const after = Array.from(value)
-    const limit = Math.min(before.length, after.length)
-    let prefix = 0
-    let start = 0
-    while (prefix < limit && before[prefix] === after[prefix]) {
-      start += before[prefix].length
-      prefix += 1
-    }
-    let suffix = 0
-    let trailingLength = 0
-    while (suffix < limit - prefix && before.at(-1 - suffix) === after.at(-1 - suffix)) {
-      trailingLength += before[before.length - suffix - 1].length
-      suffix += 1
-    }
-    return this.replace(start, original.length - trailingLength, value.slice(start, value.length - trailingLength))
+    const change = changedNoteText(this.text, value)
+    return this.replace(change.start, change.start + change.removed.length, change.inserted)
   }
 
   selectionIn(next: NoteBody, start: number, end: number) {

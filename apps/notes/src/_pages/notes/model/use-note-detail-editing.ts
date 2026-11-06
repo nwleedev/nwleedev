@@ -62,7 +62,10 @@ export function useNoteDetailEditing({
       reset({ content }, { keepFieldsRef: true })
     },
     editor,
-    receiveContent: (value) => setValue("content", value),
+    receiveNote(previous, saved) {
+      history.receiveNote(previous, saved)
+      setValue("content", saved.content)
+    },
     onSave: saveContent,
     readContent,
     saveOnExit: false,
@@ -106,6 +109,7 @@ export function useNoteDetailEditing({
 
   function endComposition() {
     history.endComposition()
+    if (editor.current) setValue("content", editor.current.value, { shouldDirty: true })
     autosave.resume()
   }
 

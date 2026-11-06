@@ -379,12 +379,12 @@ describe("content and revision action sequences", () => {
       expect(replay.failed).toBe(true)
       expect(replay.errorInstance).toBeInstanceOf(RevisionMismatch)
       const directCommands = [...reduced.commands]
-      expect(directCommands.length).toBeLessThanOrEqual(
-        failures[0].actions.length,
-      )
-      expect(() => runRevisionCommands(directCommands, defectiveRevision)).toThrowError(
+      const reproduced: typeof failures = []
+      expect(() => runRevisionCommands(directCommands, defectiveRevision, reproduced)).toThrowError(
         RevisionMismatch,
       )
+      expect(reproduced).toHaveLength(1)
+      expect(reproduced[0].actions.length).toBeLessThanOrEqual(failures[0].actions.length)
       expect(() => runRevisionCommands(directCommands, reviseNote)).not.toThrow()
       process.stdout.write(`${JSON.stringify({
         classification: "controlled-domain-defect",

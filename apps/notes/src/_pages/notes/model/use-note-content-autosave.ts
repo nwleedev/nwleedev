@@ -24,7 +24,7 @@ type UseNoteContentAutosaveOptions = {
   note: Note
   onContentSaved(content: string): void
   editor: RefObject<HTMLTextAreaElement | null>
-  receiveContent(content: string): void
+  receiveNote(previous: Note, saved: Note): void
   onSave(note: Note, content: string): Promise<SaveNoteContentResult>
   readContent(): string
   saveOnExit?: boolean
@@ -35,7 +35,7 @@ export function useNoteContentAutosave({
   note,
   onContentSaved,
   editor,
-  receiveContent,
+  receiveNote,
   onSave,
   readContent,
   saveOnExit = true,
@@ -198,7 +198,7 @@ export function useNoteContentAutosave({
       const next = field ? openNoteBody(saved) : null
       const range = field && next ? openNoteBody(previous)?.selectionIn(next, field.selectionStart, field.selectionEnd) : null
       const direction = field?.selectionDirection
-      receiveContent(saved.content)
+      receiveNote(previous, saved)
       if (field && range) field.setSelectionRange(range.start, range.end, direction)
     }
     noteReference.current = saved

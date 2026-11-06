@@ -43,7 +43,7 @@ export function useNoteCardEditor({
     note,
     onContentSaved: acceptSavedContent,
     editor,
-    receiveContent: (value) => setValue("content", value),
+    receiveNote: (_previous, saved) => setValue("content", saved.content),
     onSave,
     readContent,
   })
