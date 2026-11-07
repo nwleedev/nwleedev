@@ -109,8 +109,6 @@
 
 .notes-action-sheet[data-fixed-height="true"] h2 {
   font-size: 1.125rem;
-  overflow: visible;
-  white-space: normal;
 }
 
 .notes-action-sheet[data-fixed-height="true"] .notes-action-sheet-heading {

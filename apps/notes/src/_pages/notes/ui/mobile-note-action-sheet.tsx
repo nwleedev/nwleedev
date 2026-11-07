@@ -25,8 +25,8 @@ export function MobileNoteActionSheet({ sheet, onCopy, onAdd }: MobileNoteAction
   const deleted = sheet.phase === "deleted" || sheet.phase === "restoring"
   const confirmation = sheet.phase === "confirm" || sheet.phase === "deleting"
   let title = "메모"
-  if (confirmation) title = "메모 삭제"
-  if (deleted) title = "메모 삭제 완료"
+  if (confirmation) title = "메모를 삭제할까요?"
+  if (deleted) title = "메모가 삭제됐습니다."
 
   function copy() {
     if (note === undefined) return
@@ -61,8 +61,6 @@ export function MobileNoteActionSheet({ sheet, onCopy, onAdd }: MobileNoteAction
           ) : null}
           {confirmation || deleted ? (
             <div className="notes-mobile-sheet-preview grid gap-6 px-2 py-5">
-              {confirmation ? <h3 className="text-xl font-semibold">메모를 삭제할까요?</h3> : null}
-              {deleted ? <p className="text-sm text-soft-ink" role="status">메모를 삭제했습니다.</p> : null}
               <p className="whitespace-pre-wrap break-words text-base leading-7 text-soft-ink">{note?.content || "빈 메모"}</p>
             </div>
           ) : null}

@@ -41,7 +41,7 @@ export function ActionSheet({ children, label, onClose, open, fixedHeight = fals
     >
       <div className="notes-action-sheet-frame px-4 pb-4 pt-3">
         <div className="notes-action-sheet-heading flex min-h-11 items-center justify-between gap-3">
-          <h2 className="min-w-0 truncate text-sm font-semibold" tabIndex={-1}>{label}</h2>
+          <h2 aria-live={fixedHeight ? "polite" : undefined} className="min-w-0 truncate text-sm font-semibold" tabIndex={-1}>{label}</h2>
           <IconButton className="notes-action-sheet-close" aria-label="동작 선택창 닫기" disabled={!dismissible} onClick={close} size="control">
             <CloseIcon />
           </IconButton>

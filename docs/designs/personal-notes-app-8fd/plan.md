@@ -13,7 +13,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 공식 [Tailwind 정렬](https://tailwindcss.com/docs/align-items)과 [한 줄 생략 표시](https://tailwindcss.com/docs/text-overflow), [WAI-ARIA 대화상자 제목](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)을 적용 근거로 사용한다. 본문에 같은 안내를 중복 표시하거나 글자 크기를 줄여 제목을 맞추는 방식은 사용하지 않는다.
 
-**상태: 구현 전.** 기존 lint가 통과했다.
+**상태: 완료.** 두 단계의 제목을 고정 헤더로 옮기고 중복 본문 안내를 제거했다. 고정 높이 시트만 제목 변경을 `aria-live="polite"`로 알린다. 기존 한 줄 제목과 중앙 정렬을 재사용하며 글자 확대 시에는 제목을 한 줄로 생략 표시한다. lint, 타입 검사, 운영 빌드와 기존 모바일 삭제 관련 E2E 3건이 통과했다. 320×720 화면에서 확인 및 완료 제목은 모두 한 줄이며 제목과 닫기 버튼의 세로 중심 차이는 0.01px 미만이었다. 본문을 1140px 스크롤해도 제목 위치는 유지됐다. 삭제 처리 훅과 저장소, 다른 시트의 스타일은 변경하지 않았다.
 
 ## 모바일 편집 화면의 상태 패널 분리 계획
 
