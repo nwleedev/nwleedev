@@ -24,7 +24,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ### 1. 패키지 전체 코드 분석과 보존 기준 확정
 
-**진행 상태: 분석 중.** 기준 커밋은 `1d5efe3`이며 `apps/notes`의 Git 추적 파일은 326개다. 아직 전체 파일 분석을 완료하지 않았다. 앱 진입과 공통 연결, 탐색 및 설정, 분석과 템플릿, 일괄 복사와 메모 페이지 전체 소스 및 단위 검사, 실제 DB 검사, 메모 및 일괄 복사 E2E, 패키지 실행 설정과 일부 공통 UI의 분석을 [구조 조사](references/ui-composition-refactor-research.md#파일별-분석-기록)에 기록했다. 소스와 테스트 변경은 시작하지 않았다.
+**진행 상태: 코드 분석 완료, 화면 비교 자료 대기.** `apps/notes`의 Git 추적 파일 326개에서 자체 작성 소스와 검사 및 설정을 분석하고 바이너리 자산을 구분했다. 앱 진입과 공통 연결, 탐색 및 설정, 분석과 템플릿, 일괄 복사와 메모 페이지 전체 소스 및 단위 검사, 실제 DB와 모든 E2E, 패키지 실행 설정과 공통 코드 및 문서의 분석을 [구조 조사](references/ui-composition-refactor-research.md#파일별-분석-기록)에 기록했다. 소스와 테스트 변경은 시작하지 않았다.
 
 변경 전 lint와 타입 검사, 단위 테스트 37개 파일의 181건, 세 브라우저 테스트 18개 파일의 144건이 통과했다. 브라우저 검사에는 기존 React `act` 경고가 남아 있다. 운영 빌드와 E2E 297건도 통과했다. 대표 화면 비교 자료 확보는 남아 있다. 전체 분석과 초기 검사가 끝난 뒤 1단계 리뷰를 진행한다.
 
@@ -74,7 +74,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 **수정 및 분할.** `use-notes-data-model.ts`의 변경 직렬화와 창 간 메시지 검증 및 재조회 책임을 각각 식별한다. 실제로 독립된 책임은 같은 slice의 `note-changes.ts`와 `note-commands.ts`로 분리하고, React 수명 관리는 기존 모델 훅에 둔다. 이 이름은 구현 대상 제안이며 기존 모듈이 같은 책임을 제공하면 그쪽으로 통합한다. 메모별 복원 기회와 저장 큐는 공유 수명을 유지한다.
 
-`use-note-content-autosave.ts`, `save-note-content.ts`, `use-note-card-editor.ts`, `use-note-detail-editing.ts`, `use-note-detail-draft.ts` 및 소비 훅은 실제 사용하는 함수만 받거나 읽게 수정한다. `NoteSessionProvider`는 운영 시계를 내부에서 선택하고 테스트에서는 같은 내부 Context를 사용하는 별도 구성으로 바꾼다. `_app/composition/note.tsx`와 기존 서비스 묶음은 호출자 전환 후 제거한다.
+`use-note-content-autosave.ts`, `save-note-content.ts`, `use-note-card-editor.ts`, `use-note-detail-editing.ts` 및 소비 훅은 실제 사용하는 함수만 받거나 읽게 수정한다. `NoteSessionProvider`는 운영 시계를 내부에서 선택하고 테스트에서는 같은 내부 Context를 사용하는 별도 구성으로 바꾼다. `_app/composition/note.tsx`와 기존 서비스 묶음은 호출자 전환 후 제거한다.
 
 **패턴과 근거.** 상태와 명령의 구분, 비동기 작업의 직렬화, 구독 수명의 명시적 정리를 사용한다. [React Effect 지침](https://react.dev/learn/you-might-not-need-an-effect)에 따라 외부 구독은 Effect로 연결하되 파생 값과 UI 이벤트를 Effect로 옮기지 않는다. [Yjs 변경분](https://docs.yjs.dev/api/document-updates)의 재전달과 병합 성질 및 현재 저장 방식을 보존한다.
 
@@ -100,7 +100,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 **패턴과 근거.** 같은 자료를 변경하는 기능은 함께 두되 독립된 작업 상태는 합치지 않는다. [FSD slice 규칙](https://feature-sliced.design/docs/reference/slices-segments)과 [최소 의존성 조사](references/ui-composition-refactor-research.md#실제-연결에서-확인한-문제와-유지할-부분)를 적용한다. 분석 Worker의 생성 및 dispose는 분석 기능이 맡고 결과와 선택한 줄의 기존 앱 수명은 유지한다.
 
-**TDD: 새로 추출하는 완료 후처리에 필요한 경우만 적용.** 저장 목록의 수정 실패에서는 선택이 남고 삭제 성공에서만 선택이 정리되는 결과를 기존 저장 명령 및 세션 검사로 확인한다. 현재 검사에서 빠진 결합 규칙을 별도 순수 명령으로 분리해야 한다면 실패 사례를 먼저 보완한다. 단순 파일 통합과 Provider 연결에는 새 테스트를 만들지 않는다.
+**테스트 보완: 삭제 실패 후 선택 보존 한 건.** 전체 분석에서 기존 단위 검사는 삭제 및 redo 성공의 응답 ID만 확인하며 E2E에는 삭제 실패 후 선택 유지가 빠져 있다. 4단계 구현 전에 기존 `batch-copy.spec.ts`에 선택한 항목의 실제 DB 쓰기를 실패시킨 뒤 원문, 순서와 선택이 남고 재시도 성공에서만 선택이 정리되는 검사를 추가한다. 현재 구현의 보존 조건을 먼저 검사하는 회귀 보완이며 실패를 만들기 위해 운영 코드를 고치지 않는다. 새 순수 명령을 만들 때에만 그 명령의 필요한 실패 사례를 TDD로 작성한다. 단순 파일 통합과 Provider 연결에는 새 테스트를 만들지 않는다.
 
 **확인할 결과.** 기존 `batch-copy.spec.ts`, `mobile-navigation.spec.ts`, `analysis.spec.ts`, `templates.spec.ts`, 분석 Provider 및 설정 저장소 검사를 실행한다. 모바일 확인 화면의 뒤로가기와 새로고침, 저장 목록 Undo/Redo, 분석 중 본문 변경과 geometry만의 변경, 선택한 줄의 템플릿 전달, 설정의 재조회 결과를 확인한다.
 
@@ -134,7 +134,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 `e2e/notes.spec.ts`는 본문 저장, 모바일 편집 및 이탈, 보드 조작별로 기존 시나리오를 옮긴다. 기존 모델별 spec과 겹치는 준비만 `e2e/support`의 실제 행동 및 읽기 도우미로 통합한다. 고정 사례, 생성 행동, 정답 모델과 실제 실행은 서로 구분한다. 새 파일은 테스트의 과업이 식별되는 이름을 사용한다.
 
-**전체 분석에서 확인한 수정 대상.** `entities/batch-copy/model/batch-copy-commands.test.ts`와 `batch-copy-list.test.ts`의 일부 제목은 제거된 revision을 여전히 설명한다. `e2e/notes-model.spec.ts`의 모바일 저장 제목도 명시적 저장을 언급하지만 실제로 자동 저장을 기다린다. 실제 원문 및 순서 단언을 유지하면서 현재 검사 내용에 맞춰 제목을 고친다.
+**전체 분석에서 확인한 수정 대상.** `entities/batch-copy/model/batch-copy-commands.test.ts`와 `batch-copy-list.test.ts`의 일부 제목은 제거된 revision을 여전히 설명한다. `e2e/notes-model.spec.ts`의 모바일 저장 제목도 명시적 저장을 언급하지만 실제로 자동 저장을 기다린다. 실제 원문 및 순서 단언을 유지하면서 현재 검사 내용에 맞춰 제목을 고친다. `DESIGN.md`의 과거 수동 저장 및 사용 기록 설명과 `shared/lib/entity-metadata/README.md`의 누락된 정수 시각 설명도 현재 요구사항과 구현에 맞춘다.
 
 **유지 및 삭제 조건.** `read-stored-note.ts`와 실제 IndexedDB 이전 검사는 보존한다. 같은 과업을 검사하더라도 단위, 실제 DB와 E2E의 실패 조건이 다르면 중복으로 지우지 않는다. 테스트를 삭제하려면 대체 검사가 보호하던 정상, 실패와 취소 결과를 모두 검사함을 먼저 확인한다. 범용 가짜 repository와 사용하지 않는 메서드는 이를 쓰던 코드가 전환된 뒤 제거한다.
 
