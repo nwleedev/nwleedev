@@ -142,6 +142,38 @@ Worker는 첫 분석에서 생성된다. 응답은 요청 ID, 알고리즘 식�
 
 단위 검사는 구간 겹침과 빈 선택, 원문 복원, 이름 검사, 기본값 및 grapheme 제안을 보호한다. E2E는 실제 선택 구간과 접근 가능한 설명, 잘못된 이름의 포커스, 저장 후 재조회, 생성문과 오류 해제를 검사한다. 5단계에서 폼 구성요소를 바꾸더라도 `shouldUnregister`, 선택 구간, 읽기 전용 조건과 입력 오류 연결을 유지한다. 표시가 비슷하다는 이유만으로 분석 원문 카드와 선택 원문 카드를 새 공통 카드로 합치지 않는다.
 
+### 저장 목록과 모바일 일괄 복사
+
+확인한 파일은 `src/entities/batch-copy`의 `index.ts`, `index.browser.ts`, `api/indexed-db-batch-copy-repository.ts`, `model/batch-copy-list.ts`, `batch-copy-list.test.ts`, `batch-copy-commands.ts`, `batch-copy-commands.test.ts`, `batch-copy-history.ts`, `batch-copy-history.test.ts`, `mobile-batch-copy-draft.ts`, `mobile-batch-copy-draft.test.ts`다.
+
+`src/features/add-note-to-batch-copy`에서는 `index.ts`, `index.browser.ts`, `api/indexed-db-batch-copy-item-writer.ts`, `model/add-note.ts`, `add-note.test.ts`, `batch-copy-item-writer.ts`, `copy-mobile-batch-text.ts`, `copy-mobile-batch-text.test.ts`, `mobile-batch-copy-session.ts`, `mobile-batch-copy-session.test.ts`, `use-add-note.ts`, `use-mobile-batch-copy-state.ts`, `add-note-to-batch-copy-provider.tsx`, `mobile-batch-copy-provider.tsx`를 확인했다.
+
+저장 목록은 `batches`의 `primary` 레코드이며 구분자와 추가 당시 원문을 보존한다. 항목 추가는 같은 트랜잭션에서 최신 목록을 읽고 추가한다. 목록 전체 저장과 추가는 서로 다른 API이므로 feature 통합 때 하나를 지워 대체하지 않는다. 저장 목록의 삭제 이력은 앱 메모리에서 유지되며 추가와 순서 변경은 redo만 비운다.
+
+모바일 작업은 별도 메모리 자료이며 반복 추가마다 항목 ID를 새로 만든다. 현재 메모가 바뀌어도 이미 담은 원문은 그대로다. 추가와 편집은 한 큐에서 실행하고 확인 화면으로 이동하기 전에 flush로 대기 중인 추가를 마친다. 복사 실패 사유는 클립보드 구현에서 받은 값을 보존한다. 이 작업을 저장 목록에 통합하거나 새 DB 테이블로 옮기지 않는다.
+
+단위 검사는 복사 원문과 구분자, 항목 삽입 위치, 삭제 복원 및 반복 추가에서 원문 보존을 검사한다. `batch-copy-commands.test.ts`와 `batch-copy-list.test.ts`에는 현재 코드에서 검사하지 않는 revision을 언급하는 테스트 제목이 남아 있다. 6단계에서 실제 검사하는 동작에 맞춰 제목을 수정하고 단언은 유지한다. 실제 DB 검사와 편집 feature 및 E2E 전체 분석은 별도로 남아 있다.
+
+### 저장 목록 편집과 확인 화면
+
+확인한 파일은 `src/features/edit-batch-copy`의 `index.ts`, `model/save-changes.ts`, `save-changes.test.ts`, `batch-copy-item-actions.ts`, `copy-batch-text.ts`, `copy-batch-text.test.ts`, `use-editor.ts`, `edit-batch-copy-provider.tsx`, `use-batch-copy-action-sheet.ts`, `use-batch-copy-editing.ts`, `use-batch-copy-history-shortcuts.ts`, `use-batch-copy-pointer-reorder.ts`, `use-copy-batch-text.ts`, `use-copy-batch-text-feedback.ts`, `ui/batch-copy-history-shortcuts.tsx`, `copy-batch-text-action.tsx`, `batch-copy-action-sheet.tsx`, `batch-copy-list.tsx`다.
+
+`src/_pages/batch-copy`의 `index.ts`, `model/use-batch-copy-action-presentation.ts`, `use-batch-copy-page.ts`, `use-mobile-batch-copy-confirmation.ts`, `ui/batch-copy-start-page.tsx`, `mobile-batch-copy-confirmation.tsx`, `mobile-batch-copy-confirmation-list.tsx`와 `src/shared/lib/pointer-reorder/index.ts`도 확인했다.
+
+저장 명령은 성공한 목록과 삭제한 항목 ID를 반환한다. 실패하면 새 세션을 반환하지 않아 기존 목록과 이력을 유지한다. 화면의 낙관적 이동 및 삭제는 저장 실패 시 되돌아가고 다시 시도할 동작을 제공한다. 단위 검사는 삭제 및 redo 성공의 항목 ID만 검사하므로 실패 시 선택 보존은 E2E의 보호 여부를 확인한 뒤 TDD 필요성을 판단한다.
+
+저장 목록의 포인터 이동은 패널 밖 놓기에서 삭제를 실행한다. 관리 화면은 같은 입력을 삭제로 처리하지 않는다. 모바일 확인 목록의 공통 포인터 훅은 실제 hit test와 기존 항목 ID를 기준으로 이동한다. 메모 목록에서 사용하는 추가 항목 허용 옵션은 드래그 중 새 메모 생성과 연결되므로 제거하지 않는다. 두 포인터 훅은 취소, 미리보기와 스크롤 처리가 비슷하지만 삭제 의미와 포커스 복귀 조건이 다르다. 공통화 전에 이 차이를 보호한다.
+
+관리 화면은 컨테이너 너비와 루트 글자 크기로 메뉴와 시트를 고른다. 확인 화면은 `view=current`와 메모리 작업의 존재에 따라 표시한다. 초기화 뒤에는 빈 확인 목록을 유지하며 현재 작업이 없는 새로고침에서는 저장 목록 화면으로 바뀐다. 4단계에서 전달 전용 의존성 Props를 줄이되 페이지 선택과 각 목록의 상태 수명은 보존한다. 5단계에서는 행의 본문, 이동 핸들과 동작 메뉴를 children으로 조합할 수 있는지 확인하고 DOM 및 ref 연결을 유지한다.
+
+### 공통 스타일과 메뉴
+
+추가로 확인한 파일은 `src/_app/styles/tokens.css`, `globals.css`, `src/shared/ui/action-popover/index.tsx`, `use-action-popover.ts`, `src/shared/ui/reorderable-text-card/index.tsx`, `src/shared/lib/note-model-settings/index.ts`, `src/shared/lib/note-model-exploration/index.ts`다.
+
+기본 탐색 높이, 모바일 헤더, 카드 헤더와 패널 폭은 기존 토큰을 따른다. forced-colors와 reduced-motion 규칙을 유지한다. 메뉴는 React Aria를 사용하며 dialog 안의 메뉴는 그 dialog를 Portal 대상으로 선택한다. 명령 이후 사용자가 다른 요소로 이동했다면 더보기 버튼으로 포커스를 빼앗지 않는다. 공통 재정렬 카드의 children 구성과 포인터 및 키보드 포커스 구분을 재사용한다.
+
+모델 검사 설정과 보고 함수는 실행 횟수, seed, 축소된 행동과 관찰값을 기록한다. 6단계에서 실제 사용하는 테스트를 따라 배치할 후보이며 운영 import 유무를 확인한다. 보고서용 자료라는 이유로 삭제하거나 운영 기능의 의존성으로 옮기지 않는다.
+
 ## 적용할 원칙과 적용하지 않을 예제
 
 제공된 문서는 UI 입력, 외부 동작, 구현 선택과 실행 수명을 구분한다. 운영 Provider에는 구현 함수를 Props로 전달하지 않고 기능별로 연결하며, 테스트는 동일 Context의 별도 Provider에서 구현을 선택한다. UI가 직접 쓰는 ID, 표시 값과 이벤트까지 없애거나 모든 외부 호출마다 Context를 만들라는 뜻은 아니다.

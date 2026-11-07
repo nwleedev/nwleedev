@@ -26,7 +26,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 **진행 상태: 분석 중.** 기준 커밋은 `1d5efe3`이며 `apps/notes`의 Git 추적 파일은 326개다. 아직 전체 파일 분석을 완료하지 않았다. 앱 진입과 공통 연결, 탐색 및 설정, 텍스트 분석과 템플릿, 일부 공통 도구와 UI의 분석을 [구조 조사](references/ui-composition-refactor-research.md#파일별-분석-기록)에 기록했다. 소스와 테스트 변경은 시작하지 않았다.
 
-변경 전 lint와 타입 검사, 단위 테스트 37개 파일의 181건, 세 브라우저 테스트 18개 파일의 144건이 통과했다. 브라우저 검사에는 기존 React `act` 경고가 남아 있다. 운영 빌드 기반 E2E와 대표 화면 비교 자료 확보는 진행 중이다. 전체 분석과 초기 검사가 끝난 뒤 1단계 리뷰를 진행한다.
+변경 전 lint와 타입 검사, 단위 테스트 37개 파일의 181건, 세 브라우저 테스트 18개 파일의 144건이 통과했다. 브라우저 검사에는 기존 React `act` 경고가 남아 있다. 운영 빌드와 E2E 297건도 통과했다. 대표 화면 비교 자료 확보는 남아 있다. 전체 분석과 초기 검사가 끝난 뒤 1단계 리뷰를 진행한다.
 
 **분석 대상.** `apps/notes`의 모든 자체 작성 파일을 목록화한다. `app/`, `src/`의 모든 계층과 스타일, `e2e/`, 단위 및 브라우저 테스트, 도우미, 패키지 루트의 스크립트, 실행 및 검사 설정, 배포 설정과 코드로 작성된 자산을 포함한다. 추적 중인 파일과 아직 커밋되지 않은 작성 파일을 함께 확인한다. 설치물과 생성물은 구분하고 패키지 밖에서 가져오는 코드 및 공통 설정도 영향을 추적한다.
 
@@ -127,6 +127,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 **수정 및 이동.** 각 기능을 바꾼 단계에서 테스트 import와 준비 코드도 함께 전환한다. 여기서는 남은 중복을 정리한다. `note-detail-page.browser.test.tsx`, `notes-data-provider.browser.test.tsx`와 `text-analysis-provider.browser.test.tsx`의 운영 Provider 구현 Props를 해당 slice의 테스트 Provider로 바꾼다. 공통 준비가 실제로 반복될 때만 slice 내부의 `testing/`에 분리한다.
 
 `e2e/notes.spec.ts`는 본문 저장, 모바일 편집 및 이탈, 보드 조작별로 기존 시나리오를 옮긴다. 기존 모델별 spec과 겹치는 준비만 `e2e/support`의 실제 행동 및 읽기 도우미로 통합한다. 고정 사례, 생성 행동, 정답 모델과 실제 실행은 서로 구분한다. 새 파일은 테스트의 과업이 식별되는 이름을 사용한다.
+
+**전체 분석에서 확인한 수정 대상.** `entities/batch-copy/model/batch-copy-commands.test.ts`와 `batch-copy-list.test.ts`의 일부 제목은 제거된 revision을 여전히 설명한다. 실제 원문 및 순서 단언을 유지하면서 현재 검사 내용에 맞춰 제목을 고친다.
 
 **유지 및 삭제 조건.** `read-stored-note.ts`와 실제 IndexedDB 이전 검사는 보존한다. 같은 과업을 검사하더라도 단위, 실제 DB와 E2E의 실패 조건이 다르면 중복으로 지우지 않는다. 테스트를 삭제하려면 대체 검사가 보호하던 정상, 실패와 취소 결과를 모두 검사함을 먼저 확인한다. 범용 가짜 repository와 사용하지 않는 메서드는 이를 쓰던 코드가 전환된 뒤 제거한다.
 
