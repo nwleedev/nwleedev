@@ -3,7 +3,7 @@
 import { Button } from "@/shared/ui/button"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
-import { useNotesData } from "../model/notes-data-provider"
+import { useNotesData } from "../model/notes-data-context"
 import { BatchCopyWorkspace } from "./batch-copy-workspace"
 import { NotesCollection } from "./notes-collection"
 

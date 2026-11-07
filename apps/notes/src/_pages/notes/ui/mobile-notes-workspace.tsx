@@ -13,7 +13,7 @@ import { BatchCopyIcon, PlusIcon } from "@/shared/ui/icons"
 import { ReorderHandle } from "@/shared/ui/reorderable-text-card"
 import { MobileNavigation, type SavedBatchCopyLink } from "@/widgets/application-navigation"
 
-import { useNotesData } from "../model/notes-data-provider"
+import { useNoteCommands } from "../model/notes-data-context"
 import { useNoteSession } from "../model/note-session-provider"
 import { useNoteCopyAction } from "../model/use-note-copy-action"
 import { useMobileBatchCopyNavigation } from "../model/use-mobile-batch-copy-navigation"
@@ -34,7 +34,7 @@ export function MobileNotesWorkspace({ creationPending, notes, onCreate }: Mobil
   const copy = useNoteCopyAction()
   const navigation = useMobileBatchCopyNavigation()
   const savedBatchCopy = useBatchCopyEditor()
-  const { removeNote, restoreNote } = useNotesData()
+  const { removeNote, restoreNote } = useNoteCommands()
   const { forgetNote } = useNoteSession()
   const createButton = useRef<HTMLButtonElement>(null)
   const order = useMobileNoteOrder(notes)

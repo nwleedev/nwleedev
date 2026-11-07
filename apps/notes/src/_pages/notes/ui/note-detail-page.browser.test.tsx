@@ -9,7 +9,7 @@ import type {
 } from "@/entities/note"
 import { NavigationGuardProvider } from "@/features/navigation-guard"
 
-import { NotesDataProvider } from "../model/notes-data-provider"
+import { TestNotesDataProvider } from "../model/test-notes-data-provider"
 import type { IndexedDbMonitor } from "@/shared/lib/indexed-db"
 import { NoteDetailPage } from "./note-detail-page"
 
@@ -93,7 +93,7 @@ async function renderDetail(noteId: string, storage: ReturnType<typeof createSto
   await act(async () => {
     root.render(
       <NavigationGuardProvider>
-        <NotesDataProvider
+        <TestNotesDataProvider
           batchCopyShortcutEnabled={false}
           clipboard={{ writeText: async () => ({ status: "written" }) }}
           createId={crypto.randomUUID}
@@ -104,7 +104,7 @@ async function renderDetail(noteId: string, storage: ReturnType<typeof createSto
           storageMonitor={monitor}
         >
           <NoteDetailPage noteId={noteId} />
-        </NotesDataProvider>
+        </TestNotesDataProvider>
       </NavigationGuardProvider>,
     )
   })

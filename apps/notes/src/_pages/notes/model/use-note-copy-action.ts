@@ -3,10 +3,10 @@ import { clipboardWriteFailureMessage } from "@/shared/lib/clipboard"
 import { useActionToast } from "@/shared/ui/action-toast"
 
 import type { CopyNoteResult } from "./copy-note"
-import { useNotesData } from "./notes-data-provider"
+import { useNoteCommands } from "./notes-data-context"
 
 export function useNoteCopyAction() {
-  const { copyNote } = useNotesData()
+  const { copyNote } = useNoteCommands()
   const toast = useActionToast()
 
   async function copy(note: Note) {

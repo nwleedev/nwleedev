@@ -2,7 +2,7 @@ import type { Note } from "@/entities/note"
 import { Button } from "@/shared/ui/button"
 
 import { useNoteSession } from "../model/note-session-provider"
-import { useNotesData } from "../model/notes-data-provider"
+import { useNoteCommands } from "../model/notes-data-context"
 import { useCreateNote } from "../model/use-create-note"
 import { useLinkedNote } from "../model/use-linked-note"
 import { useNotePropertiesSync } from "../model/use-note-properties-sync"
@@ -24,7 +24,7 @@ export function NotesCollection({
   batchCopyShortcutEnabled,
   notes,
 }: NotesCollectionProps) {
-  const { createNote } = useNotesData()
+  const { createNote } = useNoteCommands()
   const session = useNoteSession()
   const {
     clearSelection,

@@ -13,7 +13,7 @@ import type { SaveNoteContentResult } from "../model/save-note-content"
 import {
   useNoteDetailEditing,
 } from "../model/use-note-detail-editing"
-import { useNotesData } from "../model/notes-data-provider"
+import { useNotesData } from "../model/notes-data-context"
 
 import { NoteStatusLight } from "./note-status-light"
 

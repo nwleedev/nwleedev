@@ -22,7 +22,7 @@ import {
 import { propertiesTargetOf } from "./note-workspace-state"
 import { useNotePropertiesForm } from "./use-note-properties-form"
 import { useNoteSession } from "./use-note-session-state"
-import { useNotesData } from "./use-notes-data-model"
+import { useNotesData } from "./notes-data-context"
 
 export const geometryFields: ReadonlyArray<{
   field: NoteGeometryDraftField

@@ -4,15 +4,15 @@ import type { PropsWithChildren } from "react"
 
 import {
   NoteSessionProvider,
+  NotesDataProvider,
   useNoteSessionCommands,
-} from "@/_pages/notes/composition"
+} from "@/_pages/notes/composition.browser"
 import { useInteractionPreferences } from "@/_pages/settings/composition"
 import { SelectedSourceLinesProvider } from "@/features/suggest-template"
 import { ActionToastProvider } from "@/shared/ui/action-toast"
 
 import { Analysis } from "../composition/analysis"
 import { MobileBatchCopy } from "../composition/mobile-batch-copy"
-import { Note } from "../composition/note"
 import { Preference } from "../composition/preference"
 import { Template } from "../composition/template"
 import { DatabaseProvider } from "./database-provider"
@@ -39,9 +39,9 @@ function ConnectedProviders({ children }: PropsWithChildren) {
         reorderButtonsEnabled={batchCopyReorderButtonsEnabled}
       >
         <Analysis>
-          <Note batchCopyShortcutEnabled={batchCopyShortcutEnabled}>
+          <NotesDataProvider batchCopyShortcutEnabled={batchCopyShortcutEnabled}>
             {children}
-          </Note>
+          </NotesDataProvider>
         </Analysis>
       </BatchCopyProvider>
     </MobileBatchCopy>
@@ -55,7 +55,7 @@ export function PersonalNotesProvider({ children }: PropsWithChildren) {
         <Preference>
           <SelectedSourceLinesProvider>
             <Template>
-              <NoteSessionProvider now={Date.now}>
+              <NoteSessionProvider>
                 <ConnectedProviders>{children}</ConnectedProviders>
               </NoteSessionProvider>
             </Template>

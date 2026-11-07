@@ -18,7 +18,7 @@ import { useNotePropertiesForm } from "./note-properties-form-provider"
 import { useNoteSession } from "./note-session-provider"
 import { useBatchCopyWorkspace } from "./use-batch-copy-workspace"
 import { useNoteCopyAction } from "./use-note-copy-action"
-import { useNotesData } from "./notes-data-provider"
+import { useNoteCommands } from "./notes-data-context"
 import { focusNote } from "./use-linked-note"
 
 function byTabIndex(left: Note, right: Note) {
@@ -38,7 +38,7 @@ export function useNoteCardActions(
     readMobileOrder,
     saveContent,
     saveGeometry: storeGeometry,
-  } = useNotesData()
+  } = useNoteCommands()
   const session = useNoteSession()
   const {
     getFieldState: getNotePropertyFieldState,

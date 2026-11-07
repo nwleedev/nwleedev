@@ -8,12 +8,8 @@ import {
   useNoteSessionStateModel,
 } from "./use-note-session-state"
 
-type NoteSessionProviderProps = PropsWithChildren<{
-  now(): number
-}>
-
-export function NoteSessionProvider({ children, now }: NoteSessionProviderProps) {
-  const { commands, state } = useNoteSessionStateModel(now)
+export function NoteSessionProvider({ children }: PropsWithChildren) {
+  const { commands, state } = useNoteSessionStateModel(Date.now)
 
   return (
     <NoteSessionCommandsContext value={commands}>

@@ -6,13 +6,13 @@ import { type Note, type MobileNoteOrder } from "@/entities/note"
 
 import { usePointerReorder } from "@/shared/lib/pointer-reorder"
 
-import { useNotesData } from "./notes-data-provider"
+import { useNoteCommands } from "./notes-data-context"
 
 const orderChannelName = "personal-notes-mobile-order"
 const readFailure = "메모 순서를 불러오지 못했습니다. 다시 시도하세요."
 
 export function useMobileNoteOrder(notes: readonly Note[]) {
-  const { readMobileOrder, moveMobileNote } = useNotesData()
+  const { readMobileOrder, moveMobileNote } = useNoteCommands()
   const [order, setOrder] = useState<MobileNoteOrder | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   const [pending, setPending] = useState(false)

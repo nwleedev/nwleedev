@@ -2,19 +2,24 @@
 
 import type { PropsWithChildren } from "react"
 
-import {
-  NotesDataContext,
-  useNotesDataModel,
-  type NotesDataDependencies,
-} from "./use-notes-data-model"
+import { useBrowserNoteData } from "../api/use-browser-note-data"
+import { NotesStateContext, NoteCommandsContext } from "./notes-data-context"
+import { useNotesDataModel } from "./use-notes-data-model"
+
+type NotesDataProviderProps = PropsWithChildren<{
+  batchCopyShortcutEnabled: boolean
+}>
 
 export function NotesDataProvider({
   children,
-  ...dependencies
-}: PropsWithChildren<NotesDataDependencies>) {
-  const value = useNotesDataModel(dependencies)
+  batchCopyShortcutEnabled,
+}: NotesDataProviderProps) {
+  const data = useBrowserNoteData()
+  const { state, commands } = useNotesDataModel({ ...data, batchCopyShortcutEnabled })
 
-  return <NotesDataContext value={value}>{children}</NotesDataContext>
+  return (
+    <NoteCommandsContext value={commands}>
+      <NotesStateContext value={state}>{children}</NotesStateContext>
+    </NoteCommandsContext>
+  )
 }
-
-export { useNotesData } from "./use-notes-data-model"

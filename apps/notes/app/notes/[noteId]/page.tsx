@@ -1,5 +1,5 @@
 import { TaskPageFrame } from "@/_app"
-import { NoteDetailPage } from "@/_pages/notes"
+import { NoteDetailPage } from "@/_pages/notes/index.browser"
 
 type PageProps = {
   params: Promise<{ noteId: string }>

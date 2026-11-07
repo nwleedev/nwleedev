@@ -9,10 +9,10 @@ import type {
   IndexedDbEvent,
   IndexedDbMonitor,
 } from "@/shared/lib/indexed-db"
+import { useNotesData } from "./notes-data-context"
 import {
-  NotesDataProvider,
-  useNotesData,
-} from "./notes-data-provider"
+  TestNotesDataProvider,
+} from "./test-notes-data-provider"
 import { NoteCard } from "../ui/note-card"
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -227,7 +227,7 @@ function createStorageMonitor() {
   }
 }
 
-describe("NotesDataProvider", () => {
+describe("TestNotesDataProvider", () => {
   let container: HTMLDivElement
   let root: Root
 
@@ -248,7 +248,7 @@ describe("NotesDataProvider", () => {
   ) {
     await act(async () => {
       root.render(
-        <NotesDataProvider
+        <TestNotesDataProvider
           batchCopyShortcutEnabled
           clipboard={clipboard}
           createId={() => "created-note"}
@@ -259,7 +259,7 @@ describe("NotesDataProvider", () => {
           storageMonitor={storageMonitor}
         >
           <NotesDataProbe />
-        </NotesDataProvider>,
+        </TestNotesDataProvider>,
       )
     })
   }
