@@ -6,7 +6,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ## 모바일 편집 화면의 상태 패널 분리 계획
 
-[모바일 편집 화면의 상태 패널](requirements.md#모바일-편집-화면의-상태-패널)을 구현 대상으로 한다. 저장 완료 및 삭제 충돌 시안의 구성과 표시등 도형 및 본문 입력 시작선의 좌측 정렬을 함께 적용한다. 아래 절차는 아직 착수하지 않았다. 뒤의 구조 개선 완료 기록과 구분한다.
+[모바일 편집 화면의 상태 패널](requirements.md#모바일-편집-화면의-상태-패널)을 구현 대상으로 한다. 저장 완료 및 삭제 충돌 시안의 구성과 표시등 도형 및 본문 입력 시작선의 좌측 정렬을 함께 적용한다. 상태 패널 분리는 아래 절차로 진행한다. 뒤의 구조 개선 완료 기록과 구분한다.
 
 ### 모든 절차의 적용 조건
 
@@ -20,7 +20,9 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ### 1. 화면 구성과 좌측 정렬 기준 확인
 
-**상태: 미착수.** `ui/note-detail-layout.tsx`, `ui/note-detail-page.tsx`, `ui/deleted-note-detail.tsx`, `ui/note-status-light.tsx`와 `_app/styles/tokens.css`의 호출 및 스타일을 확인한다. UI 파일은 `src/_pages/notes/` 아래에 있다. 정상 편집과 삭제 화면이 같은 화면 구성을 쓰는 이유, 폼 및 편집 세션 수명, 상태 알림과 복원 버튼의 동작을 파악한다.
+**상태: 완료.** 정상 및 삭제 화면은 같은 `NoteDetailLayout`을 사용한다. 본문 좌측 여백은 `px-4`이며 표시등에는 왼쪽 여백 없이 문구 방향의 간격만 있다. 상태를 헤더 밖으로 옮기고 본문과 같은 여백 토큰을 적용할 대상으로 정했다. 편집 훅, 저장소와 복원 동작은 유지한다.
+
+`ui/note-detail-layout.tsx`, `ui/note-detail-page.tsx`, `ui/deleted-note-detail.tsx`, `ui/note-status-light.tsx`와 `_app/styles/tokens.css`의 호출 및 스타일을 확인한다. UI 파일은 `src/_pages/notes/` 아래에 있다. 정상 편집과 삭제 화면이 같은 화면 구성을 쓰는 이유, 폼 및 편집 세션 수명, 상태 알림과 복원 버튼의 동작을 파악한다.
 
 현재 `editorClassName`의 `px-4`는 본문 좌측 여백을 정하고 `.note-light`에는 문구와 간격을 두기 위한 `margin-inline-end`가 있다. 바깥 상자, 내부 여백과 도형의 위치를 구분해 좌측 비교 기준을 정한다. [CSS box model](https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Box_model/Introduction)의 content, padding, border와 margin 구분을 적용하며 표시등 전체 상자의 폭을 도형의 위치로 대신하지 않는다.
 
@@ -30,17 +32,25 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ### 2. 정상 편집과 삭제 화면의 공통 배치 변경
 
-**상태: 미착수.** 1단계 확인 뒤 진행한다. `note-detail-layout.tsx`의 한 줄 헤더, 별도 상태 영역과 남은 본문 높이를 수정하고 `note-detail-page.tsx` 및 `deleted-note-detail.tsx`의 합성을 함께 변경한다. 상태를 제목 아래에 배치하던 기존 행 및 열 스타일은 새 구성에서 사용하지 않으면 제거한다. 정상 및 삭제 화면에 별도 레이아웃을 복제하지 않는다.
+**상태: 완료.** 기존 화면 합성과 두 디자인 토큰으로 상태 패널을 분리했다. 새 컴포넌트, hook, Context와 테스트는 추가하지 않았다. lint, 타입 검사와 운영 빌드가 통과했다. 구현 리뷰에서 정상 및 삭제 화면의 공통 배치, 저장 및 복원 로직 보존, 데스크탑 표시등의 스타일 유지와 불필요한 헤더 스타일 제거를 확인했다.
+
+`note-detail-layout.tsx`의 한 줄 헤더, 별도 상태 영역과 남은 본문 높이를 수정하고 `note-detail-page.tsx` 및 `deleted-note-detail.tsx`의 합성을 함께 변경한다. 상태를 제목 아래에 배치하던 기존 행 및 열 스타일은 새 구성에서 사용하지 않으면 제거한다. 정상 및 삭제 화면에 별도 레이아웃을 복제하지 않는다.
 
 `tokens.css`의 기존 토큰과 `note-status-light.tsx`를 사용하는 화면을 확인해 공통으로 사용할 상태 패널 높이와 좌측 여백을 정리한다. 필요한 스타일 변경은 모바일 편집에 한정하고 데스크탑 표시등을 이동시키지 않는다. 새 파일과 의존성은 기존 구성으로 책임을 표현할 수 없는 경우에만 검토한다. 저장, 자동 재시도, Undo/Redo, 입력기 조합, 포커스, 삭제 감지 및 복원 처리는 변경하지 않는다.
 
 **적용 패턴.** 기존 `NoteDetailLayout`의 compound components와 children 합성을 사용한다. [React children 합성](https://react.dev/learn/passing-props-to-a-component#passing-jsx-as-children)의 구성 방식으로 화면별 동작을 유지하며, 새 상태 관리나 범용 주입 객체를 만들지 않는다. [상태 알림 지침](https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html)에 따라 표시 위치가 바뀌어도 입력 포커스를 옮기지 않는 알림을 유지한다. 요구사항의 코드 작성 규칙 전체를 적용한다.
 
-**TDD: 없음.** 저장 및 복원 규칙을 추가하지 않는 배치 변경이므로 새 테스트 코드를 만들지 않는다. 기존 `note-detail-page.browser.test.tsx`, `e2e/notes-mobile-editing.spec.ts`와 `e2e/notes-removal-model.spec.ts`의 실행 결과를 활용한다. 스타일 문자열이나 DOM 순서를 정답으로 고정하는 검사를 추가하지 않는다. 대단원 리뷰에서는 정상 및 삭제 상태의 동일 배치, 기존 구성의 재사용, 불필요한 코드 제거와 동작 보존을 확인한다.
+**TDD: 없음.** 저장 및 복원 규칙을 추가하지 않는 배치 변경이므로 새 테스트 코드를 만들지 않는다. 기존 `note-detail-page.browser.test.tsx`, `e2e/notes-mobile-editing.spec.ts`, `e2e/notes-model.spec.ts`, `e2e/notes-removal-model.spec.ts`와 `e2e/mobile-navigation.spec.ts`의 실행 결과를 활용한다. 스타일 문자열이나 DOM 순서를 정답으로 고정하는 검사를 추가하지 않는다. 대단원 리뷰에서는 정상 및 삭제 상태의 동일 배치, 기존 구성의 재사용, 불필요한 코드 제거와 동작 보존을 확인한다.
 
 ### 3. 두 상태의 화면 비교와 회귀 확인
 
-**상태: 미착수.** 코드 규칙 전체와 2단계의 실제 변경을 대조한다. lint와 타입 검사, 영향받는 기존 브라우저 검사 및 운영 빌드로 실행 가능 여부를 확인한다. Codex 브라우저에서 320 CSS px 너비의 저장 중, 저장 완료 및 삭제 화면을 비교한다. 실제 브라우저가 필요한 이유는 CSS 배치, 글자 확대, 포커스와 스크롤을 대역으로 판정할 수 없기 때문이다.
+**상태: 완료.** Codex 브라우저의 320 CSS px 화면에서 헤더 60px, 패널 44px와 본문 시작 높이 104px를 확인했다. 저장 완료 및 삭제 상태에서 표시등 왼쪽 끝과 본문 입력 시작선은 모두 16px다. 저장 중에도 패널 44px와 본문 시작 높이 104px를 유지했다. 삭제 감지 뒤 입력은 잠기고 안내는 자동으로 열리지 않았다. 명시적으로 연 안내는 화면보다 작으며 닫은 뒤 포커스가 `삭제됨`으로 돌아왔다. 복원 후 입력과 실행 취소 및 다시 실행 버튼이 돌아왔다.
+
+lint, 타입 검사, 운영 빌드와 상세 화면의 기존 브라우저 검사 18건이 통과했다. Chromium, Firefox와 WebKit에서 모바일 탐색, 본문 편집, 여러 창 편집 및 삭제 복원 E2E 105건이 통과했다. 검사에는 200% 글자 확대, 긴 본문 스크롤과 편집 이력 조작이 포함된다.
+
+320×360 CSS px 화면에서는 상태 패널 아래 본문 높이가 256px로 줄고 긴 본문의 스크롤 영역은 유지됐다. 실제 기기의 가상 키보드는 확인하지 못했으며 짧은 viewport 검사로 대신 통과 처리하지 않는다. 최종 대조에서 두 시안의 상태별 구성과 좌측 정렬 조건을 만족하고 데스크탑 카드 및 다른 페이지의 소스는 변경하지 않았음을 확인했다. 저장 및 복원 처리의 변경과 새 테스트, fixture 및 스크립트는 없다.
+
+코드 규칙 전체와 2단계의 실제 변경을 대조한다. lint와 타입 검사, 영향받는 기존 브라우저 검사 및 운영 빌드로 실행 가능 여부를 확인한다. Codex 브라우저에서 320 CSS px 너비의 저장 중, 저장 완료 및 삭제 화면을 비교한다. 실제 브라우저가 필요한 이유는 CSS 배치, 글자 확대, 포커스와 스크롤을 대역으로 판정할 수 없기 때문이다.
 
 - 헤더 60 CSS px와 상태 패널 약 44 CSS px, 표시등 도형 왼쪽 끝과 본문 입력 시작선의 같은 x좌표를 확인한다. 입력칸 바깥 테두리나 표시등 wrapper의 위치만 비교하지 않는다. 두 시안보다 새 좌측 정렬 조건을 우선한다.
 - 상태 전환으로 제목, 본문 시작 위치와 입력 포커스가 움직이지 않는지 확인한다. 긴 본문, 글자 확대 및 키보드 표시로 높이가 줄어든 화면에서 입력과 스크롤을 확인한다. 실제 키보드를 확인하지 못하면 미확인으로 남긴다.

@@ -18,20 +18,20 @@ export function DeletedNoteDetail({ content, restore }: { content: string; resto
             <RestoreIcon />
           </IconButton>
         </NoteDetailLayout.Actions>
-        <NoteDetailLayout.Status>
-          <NoteStatusLight status="삭제됨" />
-          <button
-            className="underline decoration-dotted underline-offset-4"
-            onClick={(event) => {
-              event.currentTarget.focus({ preventScroll: true })
-              dialog.current?.showModal()
-            }}
-            type="button"
-          >
-            삭제됨
-          </button>
-        </NoteDetailLayout.Status>
       </NoteDetailLayout.Header>
+      <NoteDetailLayout.Status>
+        <NoteStatusLight status="삭제됨" />
+        <button
+          className="underline decoration-dotted underline-offset-4"
+          onClick={(event) => {
+            event.currentTarget.focus({ preventScroll: true })
+            dialog.current?.showModal()
+          }}
+          type="button"
+        >
+          삭제됨
+        </button>
+      </NoteDetailLayout.Status>
       <textarea aria-label="메모 내용" className={editorClassName} disabled value={content} />
       <dialog aria-label="삭제된 메모 안내" className="m-auto max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100vw-2rem))] overflow-y-auto rounded-panel border border-line bg-surface-raised p-5 text-ink shadow-floating backdrop:bg-ink/25" ref={dialog}>
         <p>메모가 삭제됐습니다.<br />오른쪽 위의 복원 버튼을 누르면 다시 편집할 수 있습니다.</p>

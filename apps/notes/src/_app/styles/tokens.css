@@ -29,6 +29,8 @@
   --notes-font-ui: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Noto Sans KR", ui-sans-serif, system-ui, sans-serif;
   --notes-navigation-height: 44px;
   --notes-mobile-page-header-height: 60px;
+  --notes-editor-status-height: 44px;
+  --notes-editor-content-inset: 1rem;
   --notes-navigation-text-size: 0.875rem;
   --notes-logo-height: 1.5rem;
   --notes-board-action-top: 0.75rem;

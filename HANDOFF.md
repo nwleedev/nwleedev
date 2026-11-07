@@ -1,6 +1,8 @@
 # 메모 사용 경험과 서버 저장 설계
 
-모바일 편집 화면은 저장 완료와 삭제 충돌 시안 두 장을 기준으로 헤더 아래 상태 패널을 분리한다. 표시등 도형의 왼쪽 끝과 본문 입력 시작선을 맞추며 표시등 자체 여백은 기준에서 제외한다. [요구사항](docs/designs/personal-notes-app-8fd/requirements.md#모바일-편집-화면의-상태-패널)과 [후속 구현 계획](docs/designs/personal-notes-app-8fd/plan.md#모바일-편집-화면의-상태-패널-분리-계획)에 반영했다. 계획은 세 절차 모두 미착수이며 앱 코드는 변경하지 않았다. 기존 구조 개선 완료 기록은 이 화면 변경의 구현 완료를 뜻하지 않는다.
+모바일 편집 화면의 [상태 패널 분리 계획](docs/designs/personal-notes-app-8fd/plan.md#모바일-편집-화면의-상태-패널-분리-계획) 세 단계를 마쳤다. 앱 변경은 편집 레이아웃, 정상 및 삭제 화면의 합성과 두 디자인 토큰에 한정된다. 헤더 60px, 상태 패널 44px와 표시등 및 본문 입력 시작선의 좌측 16px를 실제 화면에서 확인했다.
+
+lint, 타입 검사, 운영 빌드와 상세 편집 브라우저 검사 18건 및 E2E 105건이 통과했다. 실제 화면 자료는 `temps/notes-status-panel-r11/`에 있다. E2E의 200% 글자 확대 화면은 `temps/notes-e2e-results-default/`에 있다. 실기기 가상 키보드는 미확인이며 짧은 viewport 검사와 구분한다. 검사 중 만든 메모는 정리했고 기존 메모 세 개는 유지했다. 새 테스트와 fixture 및 스크립트는 추가하지 않았다.
 
 [기능과 UI UX를 보존하는 구조 개선 계획](docs/designs/personal-notes-app-8fd/plan.md#기능과-ui-ux를-보존하는-구조-개선-계획)의 7단계를 모두 마쳤다. [현재 파일 구성과 이전 위치](docs/designs/personal-notes-app-8fd/references/ui-composition-refactor-research.md#현재-파일-구성과-이전-위치)에 최종 코드의 역할과 유지 이유를 기록했다. 최초 분석 대상은 326개 파일이며 최종 구성은 342개 파일이다.
 

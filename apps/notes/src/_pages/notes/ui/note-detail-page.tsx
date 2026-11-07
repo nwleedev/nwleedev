@@ -74,11 +74,11 @@ function ReadyNoteDetail({
               <RedoIcon />
             </IconButton>
         </NoteDetailLayout.Actions>
-        <NoteDetailLayout.Status>
-          <NoteStatusLight status={saveLabel} />
-          {saveLabel}
-        </NoteDetailLayout.Status>
       </NoteDetailLayout.Header>
+      <NoteDetailLayout.Status>
+        <NoteStatusLight status={saveLabel} />
+        {saveLabel}
+      </NoteDetailLayout.Status>
       <div className="grid min-h-0 grid-rows-[minmax(0,1fr)_auto]">
         <textarea
           aria-label="메모 내용"
