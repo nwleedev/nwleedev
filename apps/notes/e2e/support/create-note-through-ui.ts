@@ -62,6 +62,7 @@ export async function createMobileNoteThroughUi(
 
   await openMobileNoteEditor(page, page.getByRole("article").filter({ has: page.getByRole("button", { exact: true, name: "빈 메모 더보기" }) }))
   await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)
+  const noteId = new URL(page.url()).pathname.split("/").filter(Boolean).at(-1)
 
   const editor = page.getByRole("textbox", { name: "메모 내용" })
   await editor.fill(content)
@@ -69,7 +70,7 @@ export async function createMobileNoteThroughUi(
   await page.getByRole("link", { exact: true, name: "메모 목록" }).click()
   await expect(page).toHaveURL("/")
 
-  const note = page.getByRole("article").filter({ hasText: content })
+  const note = page.locator(`[data-reorder-id="${noteId}"]`).getByRole("article")
   await expect(note).toBeVisible()
   return note
 }

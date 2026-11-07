@@ -1,5 +1,6 @@
 import type { RefObject } from "react"
 
+import { PANEL_MIN_WIDTH_PX } from "../model/batch-copy-panel-dimensions"
 import { useBatchCopyPanelWidth } from "../model/use-batch-copy-panel-width"
 import { INLINE_PANEL_ID } from "../model/use-batch-copy-panel"
 
@@ -13,7 +14,7 @@ export function BatchCopyPanelResize({ container }: BatchCopyPanelResizeProps) {
       aria-controls={INLINE_PANEL_ID}
       aria-label="일괄 복사 너비"
       aria-orientation="vertical"
-      aria-valuemin={280}
+      aria-valuemin={PANEL_MIN_WIDTH_PX}
       aria-valuemax={dimensions.maximum}
       aria-valuenow={Math.round(dimensions.width)}
       aria-valuetext={`${Math.round(dimensions.width)}픽셀`}

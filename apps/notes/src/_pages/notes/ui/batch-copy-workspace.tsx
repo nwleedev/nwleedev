@@ -255,7 +255,7 @@ function BatchCopyWorkspaceContent({ children }: PropsWithChildren) {
           onKeyDown={handleDialogKeyDown}
           ref={dialog}
         >
-          {batchCopyActive ? (
+          {batchCopyActive && !showInlinePanel ? (
             <BatchCopyPanelContent
               countText={batchCopyCountText}
               headingId="batch-copy-dialog-title"

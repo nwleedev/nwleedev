@@ -10,8 +10,6 @@ import { NoteCard } from "./note-card"
 import { NotesBoardControls } from "./notes-board-controls"
 
 type NotesBoardProps = {
-  batchCopyShortcutEnabled: boolean
-  commandPressed: boolean
   focusedNoteId: string | null
   notes: readonly Note[]
   propertiesNoteId: string | null
@@ -21,8 +19,6 @@ type NotesBoardProps = {
 }
 
 export function NotesBoard({
-  batchCopyShortcutEnabled,
-  commandPressed,
   focusedNoteId,
   notes,
   createButtonRef,
@@ -73,8 +69,6 @@ export function NotesBoard({
         >
           {notes.map((note) => (
             <NoteCard
-              batchCopyShortcutEnabled={batchCopyShortcutEnabled}
-              commandPressed={commandPressed}
               key={note.id}
               note={note}
               onActivateProperties={actions.activateProperties}
@@ -84,7 +78,6 @@ export function NotesBoard({
               onMoveToBack={actions.moveToBack}
               onMoveToFront={actions.moveToFront}
               onRemove={actions.remove}
-              onSaveContent={actions.saveContent}
               onSaveFailure={actions.saveFailure}
               onSaveGeometry={actions.saveGeometry}
               onSelect={actions.select}

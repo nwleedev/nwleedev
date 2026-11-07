@@ -1,33 +1,29 @@
 "use client"
 
-import type {
-  CSSProperties,
-  FocusEvent as ReactFocusEvent,
-  KeyboardEvent as ReactKeyboardEvent,
-  MouseEvent as ReactMouseEvent,
-  PointerEvent as ReactPointerEvent,
+import {
+  use,
+  type CSSProperties,
+  type FocusEvent as ReactFocusEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
 } from "react"
 
 import type { Note, NoteGeometry } from "@/entities/note"
 import { joinClassNames } from "@/shared/lib/join-class-names"
-import {
-  ActionPopover,
-  type ActionPopoverAction,
-} from "@/shared/ui/action-popover"
-import { IconButton } from "@/shared/ui/icon-button"
-import { CopyIcon } from "@/shared/ui/icons"
+import type { ActionPopoverAction } from "@/shared/ui/action-popover"
 
-import { NoteStatusLight } from "./note-status-light"
-import type { SaveNoteContentResult } from "../model/save-note-content"
+import { useNoteCommands, useNotesState } from "../model/notes-data-context"
+import { NoteCardContext } from "../model/note-card-context"
+import { NoteCardBody } from "./note-card-body"
+import { NoteCardHeader } from "./note-card-header"
+import { NoteResizeHandles } from "./note-resize-handles"
+import { CommandKeyContext } from "../model/use-note-selection-keys"
 import { useNoteCardEditor } from "../model/use-note-card-editor"
 import {
   useNoteGeometryGesture,
-  type NoteResizeDirection,
 } from "../model/use-note-geometry-gesture"
 
 type NoteCardProps = {
-  batchCopyShortcutEnabled: boolean
-  commandPressed: boolean
   note: Note
   propertiesTarget: boolean
   scale: number
@@ -39,10 +35,6 @@ type NoteCardProps = {
   onMoveToBack(noteId: string): Promise<readonly Note[]>
   onMoveToFront(noteId: string): Promise<readonly Note[]>
   onRemove(note: Note): Promise<void>
-  onSaveContent(
-    note: Note,
-    content: string,
-  ): Promise<SaveNoteContentResult>
   onSaveFailure(message: string): void
   onSaveGeometry(note: Note, geometry: NoteGeometry): Promise<Note>
   onSelect(noteId: string): void
@@ -50,80 +42,7 @@ type NoteCardProps = {
   renderOriginY: number
 }
 
-type ResizeHandleProps = {
-  direction: NoteResizeDirection
-  disabled: boolean
-  positionClassName: string
-  onLostPointerCapture(event: ReactPointerEvent<HTMLElement>): void
-  onPointerCancel(event: ReactPointerEvent<HTMLElement>): void
-  onPointerDown(
-    event: ReactPointerEvent<HTMLElement>,
-    direction: NoteResizeDirection,
-  ): void
-  onPointerMove(event: ReactPointerEvent<HTMLElement>): void
-  onPointerUp(event: ReactPointerEvent<HTMLElement>): void
-}
-
-const resizeCursorClassNames: Record<NoteResizeDirection, string> = {
-  east: "cursor-e-resize",
-  north: "cursor-n-resize",
-  "north-east": "cursor-ne-resize",
-  "north-west": "cursor-nw-resize",
-  south: "cursor-s-resize",
-  "south-east": "cursor-se-resize",
-  "south-west": "cursor-sw-resize",
-  west: "cursor-w-resize",
-}
-
-const resizeHandles: readonly [NoteResizeDirection, string][] = [
-  ["north", "-left-1 -right-1 -top-1 h-2"],
-  ["south", "-bottom-1 -left-1 -right-1 h-2"],
-  ["west", "-bottom-1 -left-1 -top-1 w-2"],
-  ["east", "-bottom-1 -right-1 -top-1 w-2"],
-  ["north-west", "-left-1.5 -top-1.5 h-3 w-3"],
-  ["north-east", "-right-1.5 -top-1.5 h-3 w-3"],
-  ["south-west", "-bottom-1.5 -left-1.5 h-3 w-3"],
-  ["south-east", "-bottom-1.5 -right-1.5 h-3 w-3"],
-]
-
-function ResizeHandle({
-  direction,
-  disabled,
-  onLostPointerCapture,
-  onPointerCancel,
-  onPointerDown,
-  onPointerMove,
-  onPointerUp,
-  positionClassName,
-}: ResizeHandleProps) {
-  const handleClassName = joinClassNames(
-    "absolute z-20 touch-none",
-    resizeCursorClassNames[direction],
-    positionClassName,
-    disabled ? "pointer-events-none" : undefined,
-  )
-
-  return (
-    <span
-      aria-hidden="true"
-      className={handleClassName}
-      onLostPointerCapture={onLostPointerCapture}
-      onPointerCancel={onPointerCancel}
-      onPointerDown={(event) => onPointerDown(event, direction)}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      role="presentation"
-    />
-  )
-}
-
-function stopHeaderAction(event: { stopPropagation(): void }) {
-  event.stopPropagation()
-}
-
 export function NoteCard({
-  batchCopyShortcutEnabled,
-  commandPressed,
   note,
   onActivateProperties,
   onAddToBatchCopy,
@@ -132,7 +51,6 @@ export function NoteCard({
   onMoveToBack,
   onMoveToFront,
   onRemove,
-  onSaveContent,
   onSaveFailure,
   onSaveGeometry,
   onSelect,
@@ -142,9 +60,12 @@ export function NoteCard({
   scale,
   selected,
 }: NoteCardProps) {
+  const { batchCopyShortcutEnabled } = useNotesState()
+  const { saveContent } = useNoteCommands()
+  const commandPressed = use(CommandKeyContext)
   const editor = useNoteCardEditor({
     note,
-    onSave: onSaveContent,
+    onSave: saveContent,
   })
   const saveLabel = editor.autosave.pending ? "저장 중" : "저장됨"
   const interactionPending = editor.autosave.status === "saving"
@@ -281,7 +202,7 @@ export function NoteCard({
   }
 
   function copyCurrent(event: ReactMouseEvent<HTMLButtonElement>) {
-    stopHeaderAction(event)
+    event.stopPropagation()
     void onCopy({ ...note, content: editor.readContent() })
   }
 
@@ -344,87 +265,28 @@ export function NoteCard({
   ]
 
   return (
-    <article
-      aria-describedby={selectedVisible ? selectionDescriptionId : undefined}
-      aria-label="메모"
-      className={cardClassName}
-      id={articleId}
-      onFocus={selectFromKeyboard}
-      onKeyDown={openPropertiesFromKeyboard}
-      style={cardStyle}
-      tabIndex={note.tabIndex}
-    >
-      <span className="sr-only" id={selectionDescriptionId}>
-        선택됨
-      </span>
-      <header className={headerClassName}>
-        <button
-          aria-label="메모 이동"
-          className="h-full min-w-0 flex-1 cursor-grab touch-none rounded-tl-note disabled:cursor-default active:cursor-grabbing"
-          disabled={controlsDisabled}
-          onClick={selectFromHeader}
-          onDoubleClick={openPropertiesFromHeader}
-          onLostPointerCapture={gesture.cancel}
-          onPointerCancel={gesture.cancel}
-          onPointerDown={(event) => gesture.start(event, "move")}
-          onPointerMove={gesture.move}
-          onPointerUp={gesture.finish}
-          tabIndex={-1}
-          type="button"
-        />
-        <span className="note-card-status pointer-events-none absolute left-4 inline-flex items-center" role="status">
-          <NoteStatusLight status={saveLabel} />
-          <span className="sr-only">{saveLabel}</span>
+    <NoteCardContext value={{
+      actions, commandPressed, contentId, controlsDisabled, copyCurrent, editor,
+      gesture, headerClassName, openPropertiesFromHeader, prepareContentShortcut,
+      runContentShortcut, saveLabel, selectFromHeader,
+    }}>
+      <article
+        aria-describedby={selectedVisible ? selectionDescriptionId : undefined}
+        aria-label="메모"
+        className={cardClassName}
+        id={articleId}
+        onFocus={selectFromKeyboard}
+        onKeyDown={openPropertiesFromKeyboard}
+        style={cardStyle}
+        tabIndex={note.tabIndex}
+      >
+        <span className="sr-only" id={selectionDescriptionId}>
+          선택됨
         </span>
-        <div
-          className="flex items-center gap-0.5 pr-1.5"
-          data-note-header-actions=""
-          onClick={stopHeaderAction}
-          onDoubleClick={stopHeaderAction}
-          onPointerDown={stopHeaderAction}
-        >
-          <IconButton
-            aria-label="메모 복사"
-            className="h-6 w-6"
-            disabled={controlsDisabled}
-            onClick={copyCurrent}
-            size="compact"
-            tabIndex={commandPressed ? -1 : 0}
-          >
-            <CopyIcon />
-          </IconButton>
-          <ActionPopover
-            actions={actions}
-            disabled={controlsDisabled}
-            label="메모 동작"
-            triggerClassName="h-6 w-6"
-          />
-        </div>
-      </header>
-      <textarea
-        aria-label="메모 내용"
-        className="min-h-0 flex-1 resize-none overflow-auto border-0 bg-transparent px-4 pb-3 pt-1 text-base leading-7 text-text outline-none placeholder:text-soft-ink"
-        id={contentId}
-        onClick={runContentShortcut}
-        onMouseDown={prepareContentShortcut}
-        placeholder="메모를 입력하세요"
-        onCompositionStart={editor.autosave.pause}
-        onCompositionEnd={editor.autosave.resume}
-        {...editor.registration}
-      />
-      {resizeHandles.map(([direction, positionClassName]) => (
-        <ResizeHandle
-          direction={direction}
-          disabled={controlsDisabled}
-          key={direction}
-          onLostPointerCapture={gesture.cancel}
-          onPointerCancel={gesture.cancel}
-          onPointerDown={gesture.start}
-          onPointerMove={gesture.move}
-          onPointerUp={gesture.finish}
-          positionClassName={positionClassName}
-        />
-      ))}
-    </article>
+        <NoteCardHeader />
+        <NoteCardBody />
+        <NoteResizeHandles />
+      </article>
+    </NoteCardContext>
   )
 }

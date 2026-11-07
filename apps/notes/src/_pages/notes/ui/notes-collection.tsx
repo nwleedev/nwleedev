@@ -6,13 +6,12 @@ import { useNoteCommands } from "../model/notes-data-context"
 import { useCreateNote } from "../model/use-create-note"
 import { useLinkedNote } from "../model/use-linked-note"
 import { useNotePropertiesSync } from "../model/use-note-properties-sync"
-import { useNoteSelectionKeys } from "../model/use-note-selection-keys"
+import { CommandKeyContext, useNoteSelectionKeys } from "../model/use-note-selection-keys"
 import { useNoteWorkspaceLayout } from "../model/use-note-workspace-layout"
 import { MobileNotesWorkspace } from "./mobile-notes-workspace"
 import { NotesBoard } from "./notes-board"
 
 type NotesCollectionProps = {
-  batchCopyShortcutEnabled: boolean
   notes: readonly Note[]
 }
 
@@ -21,7 +20,6 @@ function byTabIndex(left: Note, right: Note) {
 }
 
 export function NotesCollection({
-  batchCopyShortcutEnabled,
   notes,
 }: NotesCollectionProps) {
   const { createNote } = useNoteCommands()
@@ -53,45 +51,45 @@ export function NotesCollection({
   })
 
   return (
-    <div className="relative h-full min-h-0 overflow-clip bg-canvas" data-notes-layout={layout} ref={container}>
-      {empty ? (
-        <p
-          className="pointer-events-none absolute inset-0 grid place-items-center p-6 text-sm text-soft-ink"
-          role="status"
-        >
-          메모가 없습니다.
-        </p>
-      ) : null}
-      {layout === "mobile" ? (
-        <MobileNotesWorkspace
-          creationPending={creationPending}
-          notes={orderedNotes}
-          onCreate={createMobileNote}
-        />
-      ) : null}
-      {layout === "desktop" ? (
-        <>
-          <NotesBoard
-            batchCopyShortcutEnabled={batchCopyShortcutEnabled}
-            commandPressed={commandPressed}
-            focusedNoteId={linkedNoteId}
-            notes={orderedNotes}
-            onClearSelection={clearSelection}
-            createButtonRef={createButton}
-            propertiesNoteId={propertiesNoteId}
-            selectedNoteId={selectedNoteId}
-          />
-          <Button
-            className="absolute left-[var(--notes-board-action-side)] top-[var(--notes-board-action-top)] z-30 min-w-[var(--notes-create-min-width)] whitespace-nowrap md:text-base"
-            disabled={creationPending}
-            onClick={createNewNote}
-            ref={createButton}
-            tabIndex={100}
+    <CommandKeyContext value={commandPressed}>
+      <div className="relative h-full min-h-0 overflow-clip bg-canvas" data-notes-layout={layout} ref={container}>
+        {empty ? (
+          <p
+            className="pointer-events-none absolute inset-0 grid place-items-center p-6 text-sm text-soft-ink"
+            role="status"
           >
-            {createLabel}
-          </Button>
-        </>
-      ) : null}
-    </div>
+            메모가 없습니다.
+          </p>
+        ) : null}
+        {layout === "mobile" ? (
+          <MobileNotesWorkspace
+            creationPending={creationPending}
+            notes={orderedNotes}
+            onCreate={createMobileNote}
+          />
+        ) : null}
+        {layout === "desktop" ? (
+          <>
+            <NotesBoard
+              focusedNoteId={linkedNoteId}
+              notes={orderedNotes}
+              onClearSelection={clearSelection}
+              createButtonRef={createButton}
+              propertiesNoteId={propertiesNoteId}
+              selectedNoteId={selectedNoteId}
+            />
+            <Button
+              className="absolute left-[var(--notes-board-action-side)] top-[var(--notes-board-action-top)] z-30 min-w-[var(--notes-create-min-width)] whitespace-nowrap md:text-base"
+              disabled={creationPending}
+              onClick={createNewNote}
+              ref={createButton}
+              tabIndex={100}
+            >
+              {createLabel}
+            </Button>
+          </>
+        ) : null}
+      </div>
+    </CommandKeyContext>
   )
 }

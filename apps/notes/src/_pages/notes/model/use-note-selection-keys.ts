@@ -1,6 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { createContext, useEffect, useState } from "react"
+
+export const CommandKeyContext = createContext(false)
 
 export function useNoteSelectionKeys(
   clearSelection: () => void,

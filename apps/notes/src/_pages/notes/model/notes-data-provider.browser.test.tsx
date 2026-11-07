@@ -79,8 +79,6 @@ function NotesDataProbe() {
       ))}
       {firstNote ? (
         <NoteCard
-          batchCopyShortcutEnabled={false}
-          commandPressed={false}
           note={firstNote}
           onActivateProperties={() => undefined}
           onAddToBatchCopy={async () => undefined}
@@ -89,7 +87,6 @@ function NotesDataProbe() {
           onMoveToBack={async () => []}
           onMoveToFront={async () => []}
           onRemove={async () => undefined}
-          onSaveContent={notesData.saveContent}
           onSaveFailure={() => undefined}
           onSaveGeometry={async (note) => note}
           onSelect={() => undefined}

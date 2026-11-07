@@ -2,17 +2,19 @@ import { useEffect, useEffectEvent, useRef, useState, type KeyboardEvent, type P
 
 import { readPanelWidth, savePanelWidth } from "../api/panel-width-storage"
 
+import { BOARD_MIN_WIDTH_REM, PANEL_DEFAULT_WIDTH_PX, PANEL_KEYBOARD_STEP_PX, PANEL_MAX_WIDTH_PX, PANEL_MIN_WIDTH_PX } from "./batch-copy-panel-dimensions"
+
 type ResizeGesture = { pointerId: number; startX: number; startWidth: number }
 
 export function useBatchCopyPanelWidth(container: RefObject<HTMLElement | null>) {
-  const [dimensions, setDimensions] = useState({ width: 320, maximum: 640 })
-  const preferred = useRef(320)
-  const current = useRef(320)
-  const maximum = useRef(640)
+  const [dimensions, setDimensions] = useState({ width: PANEL_DEFAULT_WIDTH_PX, maximum: PANEL_MAX_WIDTH_PX })
+  const preferred = useRef(PANEL_DEFAULT_WIDTH_PX)
+  const current = useRef(PANEL_DEFAULT_WIDTH_PX)
+  const maximum = useRef(PANEL_MAX_WIDTH_PX)
   const gesture = useRef<ResizeGesture | null>(null)
 
   function display(width: number) {
-    const bounded = Math.max(280, Math.min(width, maximum.current))
+    const bounded = Math.max(PANEL_MIN_WIDTH_PX, Math.min(width, maximum.current))
     current.current = bounded
     const element = container.current
     if (element !== null) element.style.setProperty("--notes-batch-panel-width", `${bounded}px`)
@@ -23,7 +25,7 @@ export function useBatchCopyPanelWidth(container: RefObject<HTMLElement | null>)
     const element = container.current
     if (element === null) return
     const rootSize = Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
-    maximum.current = Math.max(280, Math.min(640, element.clientWidth - (48 * rootSize)))
+    maximum.current = Math.max(PANEL_MIN_WIDTH_PX, Math.min(PANEL_MAX_WIDTH_PX, element.clientWidth - (BOARD_MIN_WIDTH_REM * rootSize)))
     display(preferred.current)
   })
 
@@ -80,9 +82,9 @@ export function useBatchCopyPanelWidth(container: RefObject<HTMLElement | null>)
     }
     if (gesture.current !== null) return
     const widths: { [key: string]: number | undefined } = {
-      ArrowLeft: current.current + 16,
-      ArrowRight: current.current - 16,
-      Home: 280,
+      ArrowLeft: current.current + PANEL_KEYBOARD_STEP_PX,
+      ArrowRight: current.current - PANEL_KEYBOARD_STEP_PX,
+      Home: PANEL_MIN_WIDTH_PX,
       End: maximum.current,
     }
     const nextWidth = widths[event.key]

@@ -135,7 +135,7 @@ test("허용되지 않은 주소의 안내도 보이는 화면 안에 남는다"
 })
 
 test("메모 본문은 복사하고 더보기의 수정으로 상세 화면에 이동한다", async ({ page }) => {
-  const [firstContent, secondContent] = fc.sample(
+  const [firstContent, suffix] = fc.sample(
     fc.uniqueArray(fc.stringMatching(/^[a-z]{10,24}$/u), {
       minLength: 2,
       maxLength: 2,
@@ -143,15 +143,17 @@ test("메모 본문은 복사하고 더보기의 수정으로 상세 화면에 �
     1,
   )[0]
 
+  const secondContent = firstContent + suffix
+
   await page.goto("/")
   const firstNote = await createMobileNoteThroughUi(page, firstContent)
   const secondNote = await createMobileNoteThroughUi(page, secondContent)
 
-  await firstNote.getByRole("button", { name: `${firstContent} 복사` }).click()
+  await firstNote.getByRole("button", { exact: true, name: `${firstContent} 복사` }).click()
   await expect(page).toHaveURL("/")
   await expect(page.getByRole("status").filter({ hasText: "복사했습니다." })).toBeVisible()
 
-  await secondNote.getByRole("button", { name: `${secondContent} 복사` }).click()
+  await secondNote.getByRole("button", { exact: true, name: `${secondContent} 복사` }).click()
   await expect(page.getByRole("status").filter({ hasText: "복사했습니다." })).toBeVisible()
   await openMobileNoteEditor(page, firstNote)
   await expect(page).toHaveURL(/\/notes\/[^/]+\/$/u)

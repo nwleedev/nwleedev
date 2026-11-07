@@ -32,7 +32,6 @@ export function NotesStartPage() {
           메모 {noteCountText}개
         </p>
         <NotesCollection
-          batchCopyShortcutEnabled={notesData.batchCopyShortcutEnabled}
           notes={notes}
         />
       </BatchCopyWorkspace>

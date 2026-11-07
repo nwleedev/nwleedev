@@ -36,7 +36,6 @@ export function useNoteCardActions(
     removeNote,
     restoreNote,
     readMobileOrder,
-    saveContent,
     saveGeometry: storeGeometry,
   } = useNoteCommands()
   const session = useNoteSession()
@@ -190,7 +189,6 @@ export function useNoteCardActions(
     moveToBack: moveNoteToBack,
     moveToFront: moveNoteToFront,
     remove,
-    saveContent,
     saveFailure: showSaveFailure,
     saveGeometry,
     select: session.select,
