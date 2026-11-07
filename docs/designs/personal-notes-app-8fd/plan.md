@@ -24,7 +24,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ### 1. 패키지 전체 코드 분석과 보존 기준 확정
 
-**진행 상태: 분석 중.** 기준 커밋은 `1d5efe3`이며 `apps/notes`의 Git 추적 파일은 326개다. 아직 전체 파일 분석을 완료하지 않았다. 앱 진입과 공통 연결, 탐색 및 설정, 텍스트 분석과 템플릿, 일부 공통 도구와 UI의 분석을 [구조 조사](references/ui-composition-refactor-research.md#파일별-분석-기록)에 기록했다. 소스와 테스트 변경은 시작하지 않았다.
+**진행 상태: 분석 중.** 기준 커밋은 `1d5efe3`이며 `apps/notes`의 Git 추적 파일은 326개다. 아직 전체 파일 분석을 완료하지 않았다. 앱 진입과 공통 연결, 탐색 및 설정, 분석과 템플릿, 일괄 복사, 메모 저장 및 자동 저장, 모바일 편집과 일부 공통 UI의 분석을 [구조 조사](references/ui-composition-refactor-research.md#파일별-분석-기록)에 기록했다. 소스와 테스트 변경은 시작하지 않았다.
 
 변경 전 lint와 타입 검사, 단위 테스트 37개 파일의 181건, 세 브라우저 테스트 18개 파일의 144건이 통과했다. 브라우저 검사에는 기존 React `act` 경고가 남아 있다. 운영 빌드와 E2E 297건도 통과했다. 대표 화면 비교 자료 확보는 남아 있다. 전체 분석과 초기 검사가 끝난 뒤 1단계 리뷰를 진행한다.
 
@@ -79,6 +79,10 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 **패턴과 근거.** 상태와 명령의 구분, 비동기 작업의 직렬화, 구독 수명의 명시적 정리를 사용한다. [React Effect 지침](https://react.dev/learn/you-might-not-need-an-effect)에 따라 외부 구독은 Effect로 연결하되 파생 값과 UI 이벤트를 Effect로 옮기지 않는다. [Yjs 변경분](https://docs.yjs.dev/api/document-updates)의 재전달과 병합 성질 및 현재 저장 방식을 보존한다.
 
 **TDD: 필요한 명령 분리 부분에 한정.** 먼저 기존 `note-content-save-state.test.ts`, `note-content.model.test.ts`, `notes-data-provider.browser.test.tsx`와 실제 저장소 검사가 동일 결과를 보호하는지 확인한다. 빠진 경우에만 이전 조회의 늦은 완료, 저장 실패 뒤 다음 입력의 저장, 삭제 후 예약된 저장의 거절을 해당 기존 테스트에 먼저 추가한다. 불변 조건은 마지막 본문과 삭제 상태이며 호출 횟수가 아니다. 이미 보호된 사례는 새로 작성하지 않고 기존 검사로 분리한다.
+
+**기존 검사가 보호하는 동작.** Provider 브라우저 검사는 재조회 뒤 이전 조회가 완료돼도 재조회한 메모를 유지하는지 확인한다. 본문 모델 및 상세 화면 검사는 쓰기 실패 뒤 최신 입력의 저장과 조작 없는 재시도를 검사한다. 이 사례에는 새 테스트를 추가하지 않는다.
+
+삭제 및 복원 후 예약된 쓰기의 거절은 실제 DB와 여러 창 검사의 분석이 남아 있다. 메모 객체의 WeakMap 본문 상태, 단일 변경 큐, 편집 화면의 Web Lock과 화면별 종료 시 저장 정책을 명령 분리 시 보존한다.
 
 **피할 변경과 완료 조건.** 함수 이름만 줄인 전체 repository, 큐의 중복 생성, 매 렌더의 BroadcastChannel 재생성, CRDT 상태를 잃는 메모 복제와 폼 값의 state 복사를 피한다. 같은 프로필의 두 페이지에서 입력 병합과 삭제를 확인하고, 마지막 복원 기회가 끝날 때 정리가 유지되는지 대단원 리뷰에서 판정한다.
 

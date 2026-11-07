@@ -8,6 +8,50 @@
 
 아래는 `1d5efe3`의 소스에서 확인한 기능과 유지 이유다. 파일 이름은 `apps/notes`를 기준으로 한다. 같은 항목의 파일은 함께 동작하는 모듈이며 각각 본문을 확인했다. 아직 기록하지 않은 파일은 전체 분석 완료에 포함하지 않는다. 기존 주요 연결 조사와 전체 파일 분석을 구분한다.
 
+### 메모 본문, 배치와 삭제 이력
+
+확인한 파일은 `src/entities/note`의 `index.ts`, `index.browser.ts`, `model/note.ts`, `note-body.ts`, `note-geometry.ts`, `note-order.ts`, `mobile-note-order.ts`, `note-removal-history.ts`와 각각의 `.test.ts`, `note-lifecycle.model.test.ts`다. 저장 구현은 `api/stored-note.ts`, `indexed-db-note-repository.ts`, `indexed-db-mobile-note-order-repository.ts`에서 확인했다.
+
+본문 문자열과 저장된 Yjs 상태는 같은 메모 객체를 키로 하는 WeakMap으로 연결된다. 문자열이 같아도 CRDT 변경분이 다를 수 있으므로 분석 원문 식별에는 저장 상태의 해시를 사용한다. 메모를 임의로 복제하면 이 연결이 사라진다. 저장소는 배치를 바꾸거나 조회한 메모 객체에 본문 상태를 다시 연결한다.
+
+본문 쓰기는 같은 원본과 입력에 대한 재시도에서 변경분 ID를 재사용한다. 같은 키에 다른 바이트를 쓰면 거절한다. 복원할 때 만든 식별값은 Yjs 메타데이터에 있으며 삭제 전의 본문 및 배치 쓰기를 거절하는 데 사용한다. 메모 테이블에 수정 횟수를 추가하는 방식이 아니다. 변경분 64개부터 진행하는 정리는 별도 트랜잭션이며 본문 저장 성공을 취소하지 않는다.
+
+이미 열린 편집 화면은 메모 ID별 공유 Web Lock을 유지한다. 삭제는 잠금이 있으면 저장된 본문만 보관한다. 마지막 편집 화면이 잠금을 풀면 보관한 본문을 지운다. 초기 전체 조회에서도 잠금이 없는 삭제 자료를 정리한다. 3단계에서 연결과 명령을 분리할 때 이 수명과 복원 이후의 오래된 쓰기 거절을 보존한다. [Web Locks 설명](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API)의 같은 origin 내 잠금 조건을 사용하며 다른 프로필의 동기화로 확대 해석하지 않는다.
+
+모바일 순서는 위치 인덱스에서 ID만 읽는다. 이동 트랜잭션은 시작 시 보이던 메모의 상대 순서를 최신 값과 비교한다. 새 메모만 추가된 경우에는 기존 메모의 이동을 반영한다. 두 위치 사이에 수를 배정할 수 없으면 위치를 다시 배분한다. 삭제 취소는 남아 있는 이웃을 기준으로 삽입한다. 데스크탑 겹침 순서와 Tab 순서는 별도로 유지한다.
+
+순수 검사는 CRDT의 중복 및 역순 수신, 부분 삭제와 이모지 교체, 배치 값 검사, 앞뒤 이동에서 원문과 Tab 순서가 보존되는지 검사한다. 삭제 이력은 최근 삭제부터 복원하고 마지막 알림이 만료되면 이전 삭제를 다시 알리지 않는다. 생성형 생명 주기 검사는 복원된 겹침 값을 바꾸는 결함도 검출한다. 실제 DB 트랜잭션과 잠금 검사는 별도로 확인해야 하므로 이 검사들만으로 저장소 전체를 검증했다고 판단하지 않는다.
+
+### 메모 조회, 자동 저장과 편집 이력
+
+확인한 파일은 `src/_pages/notes`의 `composition.ts`, `model/notes-data-provider.tsx`, `use-notes-data-model.ts`, `notes-data-provider.browser.test.tsx`, `save-note-content.ts`, `save-note-content.test.ts`, `note-content-save-state.ts`, `note-content-save-state.test.ts`, `note-content.model.test.ts`, `use-note-content-autosave.ts`, `use-note-card-editor.ts`, `use-note-detail-editing.ts`, `note-edit-history.ts`, `note-edit-history.test.ts`, `use-note-edit-history.ts`다.
+
+조회 모델은 변경 명령과 창 간 알림을 한 큐에서 처리한다. 초기 조회 및 재조회에는 요청 순번을 사용해 오래된 결과를 무시한다. 쓰기 실패 후에도 큐의 다음 작업은 실행한다. 원격 삭제를 받으면 편집 화면에 보관된 본문을 전달한 뒤 목록에서 제거한다. 원격 편집을 받으면 저장소에서 메모를 다시 읽는다. 3단계에서 큐와 알림을 분리해도 명령마다 새 큐를 만들거나 알림 본문을 저장 원문처럼 사용하지 않는다.
+
+자동 저장은 800ms 뒤 실행하고 실패하면 최대 30초 간격까지 재시도한다. 최신 입력의 저장이 끝날 때까지 대기 표시를 유지한다. 조합 입력 중에는 저장을 멈추며 원격 본문을 폼에 적용하지 않는다. 원격 본문 수신은 현재 폼이 기존 본문과 같고 수신 상태가 기존 변경분을 포함할 때만 진행한다. 선택 구간은 Yjs 상대 위치로 옮긴다. [Yjs 변경분 문서](https://docs.yjs.dev/api/document-updates)의 중복 및 순서 독립성은 이 상태를 보존할 때 활용할 수 있다.
+
+데스크탑 편집은 blur와 종료 시 저장한다. 모바일 편집은 이탈 확인 뒤 입력을 버릴 수 있어 unmount에서 저장을 멈춘다. 두 화면 모두 pagehide와 숨김 전환에는 저장을 시도한다. 이를 같은 종료 정책으로 통합하면 버리기로 한 입력이 저장될 수 있다.
+
+편집 이력은 연속 입력과 삭제를 묶고 붙여넣기 및 조합 입력을 별도로 기록한다. 저장 완료는 이력을 지우지 않는다. 원격 본문을 반영할 때 자신의 Undo 및 Redo 위치를 다시 계산한다. 단위 검사는 내용과 선택 구간의 복원 및 새 입력 이후 Redo 제거를 보호한다. 원격 입력이 섞인 이력의 전체 보존 여부는 실제 여러 창 검사까지 대조한다.
+
+기존 Provider 브라우저 검사는 이전 조회가 늦게 완료되는 경우와 첫 저장 중 추가한 내용의 저장을 이미 보호한다. 상세 화면 브라우저 검사도 실패 뒤 새 입력, 사용자 조작 없는 재시도, 최신 입력 완료 전 상태 표시와 조합 중 이전 저장 완료를 검사한다. 이 사례에는 새 TDD를 중복 적용하지 않는다. 테스트 Provider로 연결을 옮겨도 실제 자동 저장 모델과 입력기를 실행해야 한다.
+
+### 모바일 편집 상태와 이탈
+
+확인한 파일은 `src/_pages/notes/model/use-note-detail-navigation.ts`, `ui/note-detail-page.tsx`, `note-detail-page.browser.test.tsx`, `note-status-light.tsx`다.
+
+편집 화면은 children으로 헤더와 상태 및 본문을 구성한다. 저장 상태 변경으로 textarea의 key를 바꾸지 않는다. 삭제되면 당시 보이던 본문을 비활성화된 입력기에 남기되 복원에는 저장된 본문만 사용한다. 삭제 안내는 상태 버튼을 눌러야 열리며 너비와 높이를 제한한 dialog다. 복원 실패는 현재 화면에 남는다.
+
+미저장 이탈 확인은 계속 편집 버튼에 처음 포커스를 준다. Escape나 계속 편집은 입력기로 포커스를 돌려준다. 나가기는 저장 예약을 멈춘 뒤 보류한 이동을 실행한다. 삭제 안내와 이탈 확인은 초기 포커스 및 취소 동작이 다르므로 5단계에서 무리하게 같은 모달 동작으로 통합하지 않는다. 현재 테스트의 DOM 조합 이벤트는 실제 휴대전화 IME 검증을 대신하지 않는다.
+
+### 메모 선택과 화면 수명
+
+확인한 파일은 `src/_pages/notes/model/use-note-session-state.ts`, `note-session-provider.tsx`, `note-workspace-state.ts`, `use-note-workspace.ts`, `use-note-selection-keys.ts`, `use-create-note.ts`, `use-linked-note.ts`다.
+
+앱 수명의 선택 및 삭제 이력은 상태 Context와 명령 Context로 구분된다. 메모 선택과 일괄 복사 항목 선택은 서로 다른 값이다. 속성 저장 완료는 저장을 시작할 때의 대상 ID와 배치가 여전히 일치할 때만 대상을 갱신한다. 선택한 메모나 속성 편집 대상이 아닌 메모를 삭제해도 현재 선택과 패널은 유지한다.
+
+키 조작은 실제 이벤트의 Command 상태와 Escape를 확인한다. Command를 누를 때 헤더 동작에 있던 포커스는 카드로 옮긴다. 새 메모는 데스크탑에서 선택하고 입력기에 포커스를 주지만 모바일에서는 목록에 추가한다. 해시로 지정한 메모는 자료를 읽은 뒤 한 번 선택하며 잘못된 인코딩은 무시한다. 3단계와 5단계에서 이 동작을 유지하고 단순 상태 전달만 하는 부분을 정리한다.
+
 ### 앱 진입과 화면 연결
 
 확인한 파일: `app/layout.tsx`, `app/page.tsx`, `app/analysis/page.tsx`, `app/batch-copy/page.tsx`, `app/settings/page.tsx`, `app/templates/page.tsx`, `app/notes/[noteId]/page.tsx`, `src/_app/index.ts`
