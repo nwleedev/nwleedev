@@ -52,6 +52,38 @@
 
 키 조작은 실제 이벤트의 Command 상태와 Escape를 확인한다. Command를 누를 때 헤더 동작에 있던 포커스는 카드로 옮긴다. 새 메모는 데스크탑에서 선택하고 입력기에 포커스를 주지만 모바일에서는 목록에 추가한다. 해시로 지정한 메모는 자료를 읽은 뒤 한 번 선택하며 잘못된 인코딩은 무시한다. 3단계와 5단계에서 이 동작을 유지하고 단순 상태 전달만 하는 부분을 정리한다.
 
+### 데스크탑 카드와 캔버스
+
+확인한 파일은 `src/_pages/notes/index.ts`, `ui/notes-start-page.tsx`, `notes-collection.tsx`, `notes-board.tsx`, `notes-board-controls.tsx`, `note-card.tsx`, `model/use-note-card-actions.ts`, `use-note-geometry-gesture.ts`, `use-note-workspace-layout.ts`, `board-view.ts`, `board-view.test.ts`, `use-notes-board-view.ts`다.
+
+원격 삭제 구독과 토스트는 보드에서 한 번 연결한다. 카드마다 이 훅을 실행하면 알림이 반복될 수 있다. 카드의 복사와 일괄 복사는 현재 입력을 읽고 삭제는 먼저 자동 저장 완료를 기다린다. 저장 중 이동과 크기 조절을 막는 조건, Command 조작에서 선택 표시와 버튼을 숨기는 조건을 5단계에서 보존한다. 헤더, 본문과 크기 조절을 나누더라도 같은 편집기와 제스처 상태를 사용해야 한다.
+
+카드 이동량은 화면 배율로 나누어 저장하며 크기 변경은 반대쪽 모서리를 유지한다. Escape, 숨김, resize와 포인터 취소는 미리보기를 버린다. 캔버스 이동과 확대는 화면 상태만 바꾸고 저장 배치를 바꾸지 않는다. 이미 보이는 메모는 포커스만으로 이동하지 않으며 화면 밖이나 제어 버튼에 가려진 메모만 드러낸다. 순수 검사는 확대 기준점 유지와 포커스 메모 표시를 보호한다. 반응형 전환은 창 너비가 아닌 실제 보드 컨테이너 너비와 글자 크기를 사용한다.
+
+### 속성 입력과 패널 전환
+
+확인한 파일은 `src/_pages/notes/model/use-note-properties-form.ts`, `note-properties-form-provider.tsx`, `use-note-properties-sync.ts`, `use-note-properties-panel.ts`, `note-workspace-state.test.ts`, `ui/note-properties-panel.tsx`다. 일괄 복사 패널과 연결되는 `api/panel-width-storage.ts`, `model/use-batch-copy-panel.ts`, `use-batch-copy-panel-width.ts`, `use-batch-copy-workspace.ts`, `ui/batch-copy-workspace.tsx`, `batch-copy-panel-resize.tsx`도 확인했다.
+
+속성 입력은 RHF에서 유지한다. 저장된 배치가 바뀌어도 수정 중인 필드는 덮지 않는다. blur, Enter, 패널 밖 포인터 조작과 닫기에서 입력을 적용한다. 잘못된 입력이나 저장 실패가 있으면 닫기를 완료하지 않는다. 저장 완료 전에 입력이 달라지면 현재 값을 유지한다. 전체 form을 Props로 옮기지 않고 이 입력 수명을 보존한다.
+
+넓은 화면에서는 옆 패널을 사용하고 중간 폭에서는 모달로 전환한다. 모달에서 첫 Escape는 선택만 해제하고 다음 Escape는 패널을 닫는다. 저장 목록 추가 시 옆 패널은 열지만 모달은 자동으로 열지 않는다. 패널 너비는 localStorage에 저장하며 화면을 줄여도 선호 너비를 별도로 보존한다. 너비 제한값이 저장 도구, 훅과 UI에 반복되므로 5단계에서 같은 규칙의 상수로 통합할 대상이다.
+
+일괄 복사 패널 본문은 현재 옆 패널과 닫힌 dialog 양쪽에 렌더될 수 있다. 5단계에서는 활성 표시 위치에서만 본문을 마운트하는 구성을 검토한다. 이때 모달에서 옆 패널로 바뀌는 동안 목록 상태와 포커스, 드래그 취소가 보존되는지 기존 브라우저 과업으로 확인한다. JSX를 named Props로 옮기거나 화면별 목록 구현을 새로 만들지 않는다.
+
+### 모바일 목록과 삭제 시트
+
+확인한 파일은 `src/_pages/notes/model/use-mobile-note-order.ts`, `use-mobile-note-action-sheet.ts`, `use-mobile-note-long-press.ts`, `use-mobile-batch-copy-navigation.ts`, `ui/mobile-notes-workspace.tsx`, `mobile-note-card.tsx`, `mobile-note-action-sheet.tsx`, `mobile-note-action-sheet.browser.test.tsx`다.
+
+목록은 새 메모를 앞에 표시한다. 드래그 및 저장 중 다른 창의 순서 변경 알림은 뒤로 미루고 조작 완료 후 다시 읽는다. 저장 충돌은 최신 순서를 표시하고 재조작을 안내한다. 터치 길게 누르기는 500ms 뒤 일괄 복사에 추가하며 스크롤, 영역 이탈 및 취소 뒤의 click은 복사하지 않는다. 짧게 누르기와 키보드 click은 개별 복사다. 확인 화면으로 이동할 때는 추가 큐가 끝나는 것을 기다린다.
+
+삭제 시트는 삭제 및 복원 완료까지 닫히지 않는다. 삭제 후 시트가 열려 있는 동안 복원할 수 있으며 데스크탑의 5초 알림과 다르다. 시트가 닫히면 기존 버튼, 복원된 버튼, 다음 또는 이전 메모, 생성 버튼 순서로 포커스를 돌린다. 브라우저 검사는 지연된 삭제와 복원 중 Escape 및 닫기 제한과 완료 뒤 포커스를 보호한다. 5단계에서 공유 시트를 재사용하면서 이 명령 순서와 본문 스크롤 초기화를 유지한다.
+
+### 개별 복사와 삭제 알림 이력
+
+확인한 파일은 `src/_pages/notes/model/copy-note.ts`, `copy-note.test.ts`, `copy-note.model.test.ts`, `use-note-copy-action.ts`, `use-note-removal-history.ts`다.
+
+복사는 전달받은 원문을 그대로 쓰고 클립보드 실패 사유를 보존한다. 실패 토스트의 재시도는 당시 복사하려던 메모를 사용한다. 사용 기록을 저장하는 호출은 없다. 생성형 검사는 편집과 이동 및 실패가 섞인 복사에서 원문 손실을 검사한다. 삭제 알림 이력은 완료 시각과 모바일 이웃 위치를 메모리에 저장하며 저장소 테이블로 옮기지 않는다.
+
 ### 앱 진입과 화면 연결
 
 확인한 파일: `app/layout.tsx`, `app/page.tsx`, `app/analysis/page.tsx`, `app/batch-copy/page.tsx`, `app/settings/page.tsx`, `app/templates/page.tsx`, `app/notes/[noteId]/page.tsx`, `src/_app/index.ts`

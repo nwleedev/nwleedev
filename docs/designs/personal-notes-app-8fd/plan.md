@@ -24,7 +24,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ### 1. 패키지 전체 코드 분석과 보존 기준 확정
 
-**진행 상태: 분석 중.** 기준 커밋은 `1d5efe3`이며 `apps/notes`의 Git 추적 파일은 326개다. 아직 전체 파일 분석을 완료하지 않았다. 앱 진입과 공통 연결, 탐색 및 설정, 분석과 템플릿, 일괄 복사, 메모 저장 및 자동 저장, 모바일 편집과 일부 공통 UI의 분석을 [구조 조사](references/ui-composition-refactor-research.md#파일별-분석-기록)에 기록했다. 소스와 테스트 변경은 시작하지 않았다.
+**진행 상태: 분석 중.** 기준 커밋은 `1d5efe3`이며 `apps/notes`의 Git 추적 파일은 326개다. 아직 전체 파일 분석을 완료하지 않았다. 앱 진입과 공통 연결, 탐색 및 설정, 분석과 템플릿, 일괄 복사와 메모 페이지 전체 소스 및 단위 검사, 일부 공통 UI의 분석을 [구조 조사](references/ui-composition-refactor-research.md#파일별-분석-기록)에 기록했다. 소스와 테스트 변경은 시작하지 않았다.
 
 변경 전 lint와 타입 검사, 단위 테스트 37개 파일의 181건, 세 브라우저 테스트 18개 파일의 144건이 통과했다. 브라우저 검사에는 기존 React `act` 경고가 남아 있다. 운영 빌드와 E2E 297건도 통과했다. 대표 화면 비교 자료 확보는 남아 있다. 전체 분석과 초기 검사가 끝난 뒤 1단계 리뷰를 진행한다.
 
@@ -115,6 +115,8 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 `note-detail-page.tsx`는 현재 children 합성을 유지하고 삭제된 본문 표시와 안내를 `deleted-note-detail.tsx`, 미저장 이탈 안내를 `unsaved-changes-dialog.tsx`로 분리한다. 페이지는 로딩, 실패, 편집 및 삭제 상태의 구성을 맡는다. 상태 문구와 표시등은 기존 `note-status-light.tsx`를 재사용한다.
 
 **수정 및 통합.** `notes-board.tsx`, `notes-collection.tsx`, `use-note-card-actions.ts`의 전달 전용 Props를 실제 소비 위치의 훅 또는 children 조합으로 바꾼다. `useNoteCardActions`를 카드마다 그대로 호출해 원격 삭제 구독과 토스트가 카드 수만큼 실행되는 구조는 만들지 않는다. 공유 동작은 보드에서 한 번 연결하고 카드별 입력과 제스처는 카드에 둔다.
+
+패널 너비의 저장 도구, 훅과 UI에 반복된 제한값은 같은 규칙으로 통합한다. 옆 패널과 닫힌 dialog에 동시에 마운트되는 일괄 복사 본문은 활성 표시 위치에서만 마운트하도록 정리한다. 표시 위치 전환에서 상태와 포커스 및 드래그 취소를 유지한다.
 
 기존 `shared/ui/button`, `icon-button`, `action-popover`, `action-toast`를 사용한다. 공통 모달로 통합하려면 현재 삭제 안내와 이탈 확인의 초기 포커스, 취소, 경고 문구 및 복귀 대상이 유지되는지 먼저 확인한다. 다르면 두 모달의 동작을 유지하고 표시 부분만 합성한다.
 
