@@ -35,7 +35,7 @@ describe("일괄 복사 목록 편집", () => {
     expect(combineBatchCopyText(list)).toBe("첫 번째 문장\n---\n두 번째 문장")
   })
 
-  it("항목 이동은 목록 revision을 올리고 원문 스냅샷을 유지한다", () => {
+  it("항목 이동은 순서를 바꾸고 원문 스냅샷을 유지한다", () => {
     const moved = moveBatchCopyItem(
       list,
       secondItem.id,

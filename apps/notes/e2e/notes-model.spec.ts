@@ -249,7 +249,7 @@ test("삭제 뒤 순서를 바꾸고 복원한 메모를 새로고침 뒤에도 
     )
 })
 
-test("320px 화면에서는 명시적 저장 뒤 새로고침해도 원문을 유지한다", async ({
+test("320px 화면에서는 자동 저장 뒤 새로고침해도 원문을 유지한다", async ({
   browser,
 }) => {
   const context = await browser.newContext({
@@ -260,10 +260,10 @@ test("320px 화면에서는 명시적 저장 뒤 새로고침해도 원문을 �
   try {
     const page = await context.newPage()
     await page.goto("/")
-    await createMobileNoteThroughUi(page, "모바일 명시적 저장 메모")
+    await createMobileNoteThroughUi(page, "모바일 자동 저장 메모")
     await page.reload()
 
-    await expect(page.getByRole("article")).toContainText("모바일 명시적 저장 메모")
+    await expect(page.getByRole("article")).toContainText("모바일 자동 저장 메모")
   } finally {
     await context.close()
   }

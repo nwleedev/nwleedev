@@ -1,3 +1,4 @@
+import { visibleBox } from "./support/visible-box"
 import { ok } from "node:assert/strict"
 
 import {
@@ -318,14 +319,6 @@ class InspectGeometryBaselineCommand extends GeometryCommand {
   }
 }
 
-async function visibleBox(locator: Locator) {
-  await expect(locator).toBeVisible()
-  const box = await locator.boundingBox()
-  if (box === null) {
-    throw new Error("Visible element has no bounding box")
-  }
-  return box
-}
 
 function resizePoint(
   box: { height: number; width: number; x: number; y: number },

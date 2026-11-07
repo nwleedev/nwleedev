@@ -16,7 +16,7 @@ const list = {
 }
 
 describe("일괄 복사 목록 record", () => {
-  it("추가 당시 원문과 메모 revision을 포함한 목록을 받는다", () => {
+  it("추가 당시 원문과 메모 ID를 포함한 목록을 받는다", () => {
     expect(BatchCopyListSchema.safeParse(list).success).toBe(true)
   })
 

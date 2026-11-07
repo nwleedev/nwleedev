@@ -336,8 +336,8 @@ describe("TestNotesDataProvider", () => {
     await act(async () => {
       await userEvent.fill(editor, firstContent)
       await userEvent.tab()
+      await delayed.firstSaveStarted
     })
-    await delayed.firstSaveStarted
 
     await act(async () => {
       await userEvent.fill(editor, latestContent)

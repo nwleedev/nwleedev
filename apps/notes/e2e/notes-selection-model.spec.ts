@@ -1,3 +1,4 @@
+import { visibleBox } from "./support/visible-box"
 import { ok } from "node:assert/strict"
 
 import {
@@ -387,14 +388,6 @@ function articleForId(page: Page, noteId: string) {
   return page.locator(`[id="note-${encodeURIComponent(noteId)}-board"]`)
 }
 
-async function visibleBox(locator: Locator) {
-  await expect(locator).toBeVisible()
-  const box = await locator.boundingBox()
-  if (box === null) {
-    throw new Error("Expected a visible element box")
-  }
-  return box
-}
 
 async function clickBlankCanvas(page: Page) {
   const workspace = page.getByRole("region", { name: "메모 작업 영역" })
