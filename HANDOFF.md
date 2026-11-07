@@ -1,5 +1,7 @@
 # 메모 사용 경험과 서버 저장 설계
 
+모바일 편집 화면은 저장 완료와 삭제 충돌 시안 두 장을 기준으로 헤더 아래 상태 패널을 분리한다. 표시등 도형의 왼쪽 끝과 본문 입력 시작선을 맞추며 표시등 자체 여백은 기준에서 제외한다. [요구사항](docs/designs/personal-notes-app-8fd/requirements.md#모바일-편집-화면의-상태-패널)과 [후속 구현 계획](docs/designs/personal-notes-app-8fd/plan.md#모바일-편집-화면의-상태-패널-분리-계획)에 반영했다. 계획은 세 절차 모두 미착수이며 앱 코드는 변경하지 않았다. 기존 구조 개선 완료 기록은 이 화면 변경의 구현 완료를 뜻하지 않는다.
+
 [기능과 UI UX를 보존하는 구조 개선 계획](docs/designs/personal-notes-app-8fd/plan.md#기능과-ui-ux를-보존하는-구조-개선-계획)의 7단계를 모두 마쳤다. [현재 파일 구성과 이전 위치](docs/designs/personal-notes-app-8fd/references/ui-composition-refactor-research.md#현재-파일-구성과-이전-위치)에 최종 코드의 역할과 유지 이유를 기록했다. 최초 분석 대상은 326개 파일이며 최종 구성은 342개 파일이다.
 
 DB는 한 연결을 공유하고 구현 선택은 각 slice에 둔다. 메모 명령과 편집 수명을 분리했으며 일괄 복사 slice를 통합했다. 카드와 상세 편집 UI는 기존 동작을 유지하면서 부분별로 나눴다. 서버 화면 틀과 클라이언트 Provider는 서로 다른 앱 진입점을 사용한다. E2E는 과업별로 분리했고 기존 act 경고를 해결했다.
