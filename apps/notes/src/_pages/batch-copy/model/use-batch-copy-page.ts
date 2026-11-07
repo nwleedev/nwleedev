@@ -2,8 +2,8 @@
 
 import { useRouter, useSearchParams } from "next/navigation"
 
-import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
-import { useBatchCopyEditor, useCopyBatchTextFeedback } from "@/features/edit-batch-copy"
+import { useMobileBatchCopy } from "@/features/batch-copy/index.browser"
+import { useBatchCopyEditor, useCopyBatchTextFeedback } from "@/features/batch-copy/index.browser"
 
 export function useBatchCopyPage() {
   const currentTask = useSearchParams().get("view") === "current"

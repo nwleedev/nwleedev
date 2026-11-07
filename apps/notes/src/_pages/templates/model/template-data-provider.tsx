@@ -2,16 +2,17 @@
 
 import type { PropsWithChildren } from "react"
 
+import { useBrowserTemplates } from "../api/use-browser-templates"
+
 import {
   TemplateDataContext,
   useTemplateDataState,
-  type TemplateDataDependencies,
 } from "./use-template-data-state"
 
 export function TemplateDataProvider({
   children,
-  ...dependencies
-}: PropsWithChildren<TemplateDataDependencies>) {
+}: PropsWithChildren) {
+  const dependencies = useBrowserTemplates()
   const value = useTemplateDataState(dependencies)
 
   return <TemplateDataContext value={value}>{children}</TemplateDataContext>

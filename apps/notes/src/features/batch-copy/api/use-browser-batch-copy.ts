@@ -1,12 +1,12 @@
 import { useState } from "react"
 
 import { IndexedDbBatchCopyRepository } from "@/entities/batch-copy/index.browser"
-import { IndexedDbBatchCopyItemWriter } from "@/features/add-note-to-batch-copy/index.browser"
+import { IndexedDbBatchCopyItemWriter } from "./indexed-db-batch-copy-item-writer"
 import { BrowserClipboardWriter } from "@/shared/lib/clipboard"
 import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
 import { useDatabaseConnection } from "@/shared/lib/indexed-db/index.browser"
 
-export function useBatchCopyServices() {
+export function useBrowserBatchCopy() {
   const database = useDatabaseConnection()
   const [services] = useState(() => {
     const identifiers = new CryptoEntityIdGenerator()

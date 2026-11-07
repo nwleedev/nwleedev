@@ -7,7 +7,7 @@ import {
   BatchCopyList,
   CopyBatchTextAction,
   useBatchCopyEditor,
-} from "@/features/edit-batch-copy"
+} from "@/features/batch-copy/index.browser"
 import { Button } from "@/shared/ui/button"
 
 import { useBatchCopyActionPresentation } from "../model/use-batch-copy-action-presentation"

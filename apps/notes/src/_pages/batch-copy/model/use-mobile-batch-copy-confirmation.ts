@@ -5,11 +5,11 @@ import { useRef } from "react"
 import type {
   MobileBatchCopyDraft,
 } from "@/entities/batch-copy"
-import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
+import { useMobileBatchCopy } from "@/features/batch-copy/index.browser"
 import {
   useCopyBatchTextFeedback,
   type CopyBatchTextResult,
-} from "@/features/edit-batch-copy"
+} from "@/features/batch-copy/index.browser"
 import { useActionToast } from "@/shared/ui/action-toast"
 
 export function useMobileBatchCopyConfirmation(

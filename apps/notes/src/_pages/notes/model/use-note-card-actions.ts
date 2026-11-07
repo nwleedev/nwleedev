@@ -11,7 +11,7 @@ import {
   type RemovedNoteSnapshot,
 } from "@/entities/note"
 import { propertiesTargetOf } from "./note-workspace-state"
-import { useAddNoteToBatchCopy } from "@/features/add-note-to-batch-copy"
+import { useAddNoteToBatchCopy } from "@/features/batch-copy/index.browser"
 import { useActionToast } from "@/shared/ui/action-toast"
 
 import { useNotePropertiesForm } from "./note-properties-form-provider"

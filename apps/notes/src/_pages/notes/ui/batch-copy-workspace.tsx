@@ -6,7 +6,7 @@ import {
   BatchCopyList,
   BatchCopyHistoryShortcuts,
   CopyBatchTextAction,
-} from "@/features/edit-batch-copy"
+} from "@/features/batch-copy/index.browser"
 import { joinClassNames } from "@/shared/lib/join-class-names"
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"

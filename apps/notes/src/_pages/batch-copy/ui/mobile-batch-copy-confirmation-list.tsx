@@ -7,7 +7,7 @@ import {
   BatchCopyActionSheet,
   createBatchCopyItemActions,
   useBatchCopyActionSheet,
-} from "@/features/edit-batch-copy"
+} from "@/features/batch-copy/index.browser"
 import { usePointerReorder } from "@/shared/lib/pointer-reorder"
 import { IconButton } from "@/shared/ui/icon-button"
 import { MoreIcon } from "@/shared/ui/icons"

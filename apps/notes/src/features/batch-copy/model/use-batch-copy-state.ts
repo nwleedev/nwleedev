@@ -15,23 +15,20 @@ import {
   type BatchCopySession,
 } from "@/entities/batch-copy"
 import type { Note } from "@/entities/note"
+import { addNoteToBatchCopy, type AddNoteToBatchCopyResult } from "./add-note"
+import type { BatchCopyItemWriter } from "./batch-copy-item-writer"
+import { copyBatchText } from "./copy-batch-text"
+import type { EditBatchCopyContextValue } from "./use-editor"
 import {
-  addNoteToBatchCopy,
-  type AddNoteToBatchCopyResult,
-  type BatchCopyItemWriter,
-} from "@/features/add-note-to-batch-copy"
-import {
-  copyBatchText,
   duplicateBatchCopyItem,
   redoBatchCopyItemRemoval,
   removeBatchCopyItem,
   resetBatchCopyList,
   saveBatchCopyItemPosition,
   undoBatchCopyItemRemoval,
-  type EditBatchCopyContextValue,
   type EditBatchCopyExecution,
   type EditBatchCopyResult,
-} from "@/features/edit-batch-copy"
+} from "./save-changes"
 import type { ClipboardWriter } from "@/shared/lib/clipboard"
 
 type BatchCopyState =

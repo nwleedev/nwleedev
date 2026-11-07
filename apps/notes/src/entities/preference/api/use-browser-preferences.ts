@@ -1,9 +1,9 @@
 import { useState } from "react"
 
-import { IndexedDbInteractionPreferencesRepository } from "@/entities/preference/index.browser"
+import { IndexedDbInteractionPreferencesRepository } from "./indexed-db-interaction-preferences-repository"
 import { useDatabaseConnection } from "@/shared/lib/indexed-db/index.browser"
 
-export function usePreferenceServices() {
+export function useBrowserPreferences() {
   const database = useDatabaseConnection()
   const [services] = useState(() => ({
     now: Date.now,

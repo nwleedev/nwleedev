@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
+import { useMobileBatchCopy } from "@/features/batch-copy/index.browser"
 
 const confirmationHref = "/batch-copy/?view=current"
 

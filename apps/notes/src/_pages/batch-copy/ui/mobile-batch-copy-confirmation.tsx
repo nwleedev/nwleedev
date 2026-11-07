@@ -1,7 +1,7 @@
 "use client"
 
 import type { MobileBatchCopyDraft } from "@/entities/batch-copy"
-import { CopyBatchTextAction } from "@/features/edit-batch-copy"
+import { CopyBatchTextAction } from "@/features/batch-copy/index.browser"
 import { Button } from "@/shared/ui/button"
 import { IconButton } from "@/shared/ui/icon-button"
 import { NavigateBackIcon } from "@/shared/ui/icons"

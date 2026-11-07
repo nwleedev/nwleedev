@@ -2,7 +2,7 @@ import { afterEach, assert, beforeEach, describe, expect, it } from "vitest"
 
 import {
   IndexedDbBatchCopyItemWriter,
-} from "@/features/add-note-to-batch-copy/index.browser"
+} from "@/features/batch-copy/index.browser"
 import {
   PRIMARY_BATCH_COPY_LIST_ID,
   type BatchCopyItem,

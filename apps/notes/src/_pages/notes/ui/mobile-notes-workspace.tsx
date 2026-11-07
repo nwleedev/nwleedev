@@ -3,8 +3,8 @@
 import { useRef } from "react"
 
 import type { Note } from "@/entities/note"
-import { useMobileBatchCopy } from "@/features/add-note-to-batch-copy"
-import { useBatchCopyEditor } from "@/features/edit-batch-copy"
+import { useMobileBatchCopy } from "@/features/batch-copy/index.browser"
+import { useBatchCopyEditor } from "@/features/batch-copy/index.browser"
 import { Button } from "@/shared/ui/button"
 import { useActionToast } from "@/shared/ui/action-toast"
 import { IconButton } from "@/shared/ui/icon-button"

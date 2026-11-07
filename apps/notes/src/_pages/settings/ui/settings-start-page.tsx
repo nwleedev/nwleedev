@@ -7,7 +7,7 @@ import { Checkbox } from "@/shared/ui/checkbox"
 import { PageHeading } from "@/shared/ui/page-heading"
 import { StatusNotice } from "@/shared/ui/status-notice"
 
-import { useInteractionPreferences } from "../model/interaction-preferences-provider"
+import { useInteractionPreferences } from "@/entities/preference/index.browser"
 import { useInteractionPreferencesForm } from "../model/use-interaction-preferences-form"
 
 type InteractionPreferencesFormProps = {

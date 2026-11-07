@@ -8,7 +8,7 @@ import {
 import type {
   InteractionPreferences,
   InteractionPreferencesRepository,
-} from "@/entities/preference"
+} from "./interaction-preferences-record"
 
 type PreferencesState =
   | { status: "loading" }

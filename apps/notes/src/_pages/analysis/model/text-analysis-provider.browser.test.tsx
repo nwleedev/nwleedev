@@ -10,10 +10,8 @@ import type {
   AnalysisResponseMessage,
   TextAnalyzer,
 } from "./analysis-message"
-import {
-  TextAnalysisProvider,
-  useTextAnalysis,
-} from "./text-analysis-provider"
+import { TestTextAnalysisProvider } from "./test-text-analysis-provider"
+import { useTextAnalysis } from "./use-text-analysis-state"
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
@@ -80,7 +78,7 @@ function AnalysisStateView() {
   )
 }
 
-describe("TextAnalysisProvider", () => {
+describe("TestTextAnalysisProvider", () => {
   let container: HTMLDivElement
   let root: Root
 
@@ -98,13 +96,13 @@ describe("TextAnalysisProvider", () => {
   async function renderProvider(analyzer: TextAnalyzer, reader: NoteReader) {
     await act(async () => {
       root.render(
-        <TextAnalysisProvider
+        <TestTextAnalysisProvider
           analyzer={analyzer}
           now={() => timestamp}
           reader={reader}
         >
           <AnalysisStateView />
-        </TextAnalysisProvider>,
+        </TestTextAnalysisProvider>,
       )
     })
   }

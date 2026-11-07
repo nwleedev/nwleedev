@@ -2,65 +2,37 @@
 
 import type { PropsWithChildren } from "react"
 
-import {
-  NoteSessionProvider,
-  NotesDataProvider,
-  useNoteSessionCommands,
-} from "@/_pages/notes/composition.browser"
-import { useInteractionPreferences } from "@/_pages/settings/composition"
+import { TextAnalysisProvider } from "@/_pages/analysis/composition"
+import { NoteSessionProvider, NotesDataProvider } from "@/_pages/notes/composition.browser"
+import { TemplateDataProvider } from "@/_pages/templates/composition"
+import { InteractionPreferencesProvider } from "@/entities/preference/index.browser"
+import { BatchCopyProvider, MobileBatchCopyProvider } from "@/features/batch-copy/index.browser"
 import { SelectedSourceLinesProvider } from "@/features/suggest-template"
 import { ActionToastProvider } from "@/shared/ui/action-toast"
 
-import { Analysis } from "../composition/analysis"
-import { MobileBatchCopy } from "../composition/mobile-batch-copy"
-import { Preference } from "../composition/preference"
-import { Template } from "../composition/template"
+import { BatchCopySelection } from "../composition/batch-copy-selection"
 import { DatabaseProvider } from "./database-provider"
-import { BatchCopyProvider } from "./batch-copy-provider"
-
-function ConnectedProviders({ children }: PropsWithChildren) {
-  const { forgetBatchCopyItem } = useNoteSessionCommands()
-  const preferenceState = useInteractionPreferences()
-  const batchCopyShortcutEnabled =
-    "preferences" in preferenceState
-      ? preferenceState.preferences.batchCopyShortcutEnabled
-      : false
-  const batchCopyReorderButtonsEnabled =
-    "preferences" in preferenceState
-      ? preferenceState.preferences.batchCopyReorderButtonsEnabled
-      : false
-
-  return (
-    <MobileBatchCopy
-      reorderButtonsEnabled={batchCopyReorderButtonsEnabled}
-    >
-      <BatchCopyProvider
-        onItemRemoved={forgetBatchCopyItem}
-        reorderButtonsEnabled={batchCopyReorderButtonsEnabled}
-      >
-        <Analysis>
-          <NotesDataProvider batchCopyShortcutEnabled={batchCopyShortcutEnabled}>
-            {children}
-          </NotesDataProvider>
-        </Analysis>
-      </BatchCopyProvider>
-    </MobileBatchCopy>
-  )
-}
 
 export function PersonalNotesProvider({ children }: PropsWithChildren) {
   return (
     <DatabaseProvider>
       <ActionToastProvider>
-        <Preference>
+        <InteractionPreferencesProvider>
           <SelectedSourceLinesProvider>
-            <Template>
+            <TemplateDataProvider>
               <NoteSessionProvider>
-                <ConnectedProviders>{children}</ConnectedProviders>
+                <MobileBatchCopyProvider>
+                  <BatchCopyProvider>
+                    <BatchCopySelection />
+                    <TextAnalysisProvider>
+                      <NotesDataProvider>{children}</NotesDataProvider>
+                    </TextAnalysisProvider>
+                  </BatchCopyProvider>
+                </MobileBatchCopyProvider>
               </NoteSessionProvider>
-            </Template>
+            </TemplateDataProvider>
           </SelectedSourceLinesProvider>
-        </Preference>
+        </InteractionPreferencesProvider>
       </ActionToastProvider>
     </DatabaseProvider>
   )

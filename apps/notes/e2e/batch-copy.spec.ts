@@ -280,6 +280,51 @@ test("넓은 저장 목록의 메뉴에서 이동과 복제 후 포커스를 유
   await expect(items).toContainText([secondContent, secondContent])
 })
 
+test("선택한 항목의 삭제 실패는 원문과 순서를 유지하고 성공한 삭제만 선택을 해제한다", async ({ page }) => {
+  const { panel, firstContent, secondContent } = await createDesktopBatchCopy(page)
+  const items = panel.getByRole("listitem")
+  const firstItem = items.filter({ hasText: firstContent })
+  const selection = firstItem.getByRole("button", {
+    name: `일괄 복사 항목 선택: ${firstContent}`,
+    exact: true,
+  })
+  await selection.click()
+  await expect(selection).toHaveAttribute("aria-pressed", "true")
+  await page.evaluate(() => {
+    const put = IDBObjectStore.prototype.put
+    IDBObjectStore.prototype.put = function (...args: Parameters<IDBObjectStore["put"]>) {
+      const request = put.apply(this, args)
+      if (this.name === "batches") {
+        IDBObjectStore.prototype.put = put
+        request.addEventListener("success", () => this.transaction.abort(), { once: true })
+      }
+      return request
+    }
+  })
+  await firstItem.getByRole("button", { name: "1번째 일괄 복사 항목 동작" }).click()
+  await page.getByRole("menuitem", { name: "삭제", exact: true }).click()
+  await expect(panel.getByRole("alert")).toContainText("삭제하지 못했습니다")
+  await expect(items).toContainText([firstContent, secondContent])
+  await expect(selection).toHaveAttribute("aria-pressed", "true")
+
+  const storedPage = await page.context().newPage()
+  try {
+    await storedPage.goto("/batch-copy/")
+    const storedItems = storedPage.getByRole("region", { name: "일괄 복사 항목 관리" }).getByRole("listitem")
+    await expect(storedItems).toContainText([firstContent, secondContent])
+    await panel.getByRole("button", { name: "다시 시도", exact: true }).click()
+    await expect(firstItem).toHaveCount(0)
+    await expect(items).toContainText([secondContent])
+    await storedPage.reload()
+    await expect(storedItems).toContainText([secondContent])
+    await page.keyboard.press("ControlOrMeta+z")
+    await expect(items).toContainText([firstContent, secondContent])
+    await expect(selection).toHaveAttribute("aria-pressed", "false")
+  } finally {
+    await storedPage.close()
+  }
+})
+
 test("패널 초기화 실패 시 항목을 보존하고 재시도하면 빈 목록을 저장한다", async ({ page }) => {
   const { panel, firstContent, secondContent } = await createDesktopBatchCopy(page)
   const reset = panel.getByRole("button", { name: "초기화" })

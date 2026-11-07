@@ -3,7 +3,7 @@ import { createContext, useContext } from "react"
 import {
   useBatchCopyEditor,
   useCopyBatchTextFeedback,
-} from "@/features/edit-batch-copy"
+} from "@/features/batch-copy/index.browser"
 
 import { useBatchCopyPanel } from "./use-batch-copy-panel"
 import { useNoteSession } from "./use-note-session-state"
