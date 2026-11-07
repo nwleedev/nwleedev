@@ -4,6 +4,144 @@
 
 이 조사는 [구조 개선 요구사항](../requirements.md#기능과-화면을-보존하는-코드-구조-개선)의 구현 및 테스트 재구성에 사용한다. 2026-11-07의 브랜치 소스와 제공된 React/Next.js UI 책임 분리 문서, 아래 공식 자료를 비교했다. 소스에서 확인한 사실과 이후 적용할 제안을 구분하며, 실행하지 않은 화면이나 성능의 개선을 입증한 것으로 보지 않는다.
 
+## 파일별 분석 기록
+
+아래는 `1d5efe3`의 소스에서 확인한 기능과 유지 이유다. 파일 이름은 `apps/notes`를 기준으로 한다. 같은 항목의 파일은 함께 동작하는 모듈이며 각각 본문을 확인했다. 아직 기록하지 않은 파일은 전체 분석 완료에 포함하지 않는다. 기존 주요 연결 조사와 전체 파일 분석을 구분한다.
+
+### 앱 진입과 화면 연결
+
+확인한 파일: `app/layout.tsx`, `app/page.tsx`, `app/analysis/page.tsx`, `app/batch-copy/page.tsx`, `app/settings/page.tsx`, `app/templates/page.tsx`, `app/notes/[noteId]/page.tsx`, `src/_app/index.ts`
+
+서버 route가 화면과 프레임을 연결한다. 최상위 Provider는 내부 이동에도 유지된다. 상세 ID는 비동기 params에서 읽고 일괄 복사는 Suspense 안에서 시작한다.
+
+2단계의 실행 환경별 진입점 변경 대상이다. 페이지별 Provider 재생성으로 기존 상태를 초기화하지 않는다.
+
+### 화면 프레임과 본문 이동
+
+확인한 파일: `src/_app/ui/document-page-frame.tsx`, `notes-workspace-frame.tsx`, `task-page-frame.tsx`, `skip-link.tsx`
+
+문서 페이지는 본문 높이에 따라 늘어나고 보드 및 작업 화면은 표시 영역 높이를 사용한다. 본문 이동 링크는 `main-content`와 명시적 Tab 순서를 연결한다.
+
+5단계에서 같은 모양의 wrapper로 통합하지 않는다. 스크롤 주체와 모바일 탐색 표시 조건이 다르다.
+
+### 실행 주소 확인
+
+확인한 파일: `src/_app/model/runtime-access.ts`, `runtime-access.test.ts`, `use-runtime-access.ts`, `src/_app/ui/runtime-access-guard.tsx`
+
+안전한 HTTPS 또는 정확한 localhost HTTP 주소만 허용한다. 서버 렌더에서는 확인 중이고 hydration 뒤 브라우저 주소를 판단한다. 5개 주소 조건을 순수 함수 검사로 보호한다.
+
+주소 조건과 빈 확인 화면을 유지한다. 구독 대상이 변하지 않는 값을 `useSyncExternalStore`로 서버 값과 구분하므로 일반 로딩 Effect로 바꾸지 않는다.
+
+### 앱 상태와 저장 목록
+
+확인한 파일: `src/_app/providers/personal-notes-provider.tsx`, `batch-copy-provider.tsx`, `use-batch-copy-state.ts`
+
+저장 목록의 추가와 편집은 하나의 큐 및 세션을 공유한다. 작업 수로 pending을 유지하며 저장 성공 후에만 삭제한 항목의 선택을 해제한다. 모바일 작업은 별도 Provider다.
+
+4단계에서 저장 목록 책임을 feature로 옮긴다. 앱에는 메모 선택 해제와 실제 기능 조합을 남긴다. 조회 재시도와 작업 종료가 앱 수명을 넘는 경우도 확인한다.
+
+### DB 연결과 상태 구독
+
+확인한 파일: `src/_app/composition/use-database.ts`, `indexed-db/personal-notes-database.ts`, `src/shared/lib/indexed-db/index.browser.ts`, `src/_pages/notes/model/note-storage-monitor.ts`
+
+DB 열기 Promise와 연결을 공유한다. 세대 번호로 닫힌 뒤 도착한 연결을 폐기한다. blocked와 versionchange를 구독하고 트랜잭션 완료까지 기다린다.
+
+2단계에서 일반 연결 타입과 구독을 Shared로 통합한다. Pages 타입에 의존하는 DB 클래스를 수정하되 연결 세대 및 재열기는 유지한다.
+
+### 저장소 생성과 구버전 이전
+
+확인한 파일: `src/_app/composition/indexed-db/open-personal-notes-database.ts`, `migrate-personal-notes-database.ts`, `previous-note-draft.ts`
+
+v14 신규 저장소와 과거 버전별 이전을 실행한다. 구버전 초안은 메모 ID와 당시 본문 버전이 맞을 때만 CRDT 변경분으로 복구한다. 이전 실패는 트랜잭션을 중단한다.
+
+앱에 남길 스키마 조합이다. 이전 입력의 `contentRevision` 검사는 현행 저장 필드가 아니므로 단순 문자열 제거 대상으로 삼지 않는다. 관련 실제 DB 검사는 별도 분석한다.
+
+### 기능별 구현 선택
+
+확인한 파일: `src/_app/composition/use-analysis-services.ts`, `use-batch-copy-services.ts`, `use-mobile-batch-copy-services.ts`, `use-note-services.ts`, `use-preference-services.ts`, `use-template-services.ts`, `analysis.tsx`, `mobile-batch-copy.tsx`, `note.tsx`, `preference.tsx`, `template.tsx`
+
+기능별 저장소와 클립보드, 시계 및 ID 생성을 고정하고 Provider에 전달한다. 분석 Worker는 cleanup에서 dispose한다.
+
+3단계와 4단계에서 각 기능으로 구현 선택을 옮긴다. 전달만 하는 컴포넌트와 서비스 묶음은 호출자 전환 후 제거한다.
+
+### 설정 조회와 편집
+
+확인한 파일: `src/_pages/settings/model/interaction-preferences-provider.tsx`, `use-interaction-preferences-state.ts`, `use-interaction-preferences-form.ts`, `ui/settings-start-page.tsx`, `src/entities/preference/api/indexed-db-interaction-preferences-repository.ts`, `model/interaction-preferences-record.ts`, `model/interaction-preferences-record.test.ts`
+
+설정을 한 번 읽어 앱에서 공유한다. 저장 중 조작을 막고 실패하면 이전 값을 보존한다. 폼은 저장 결과에 따라 체크값을 되돌린다. 과거 직접 이동 옵션 누락은 false로 해석하고 시각 누락은 거절한다.
+
+4단계에서 저장 값과 구독을 entity로 이동하고 폼은 설정 페이지에 유지한다. 현재 구현에 없는 창 간 설정 동기화를 구조 변경으로 추가하지 않는다.
+
+### 페이지 이탈 확인
+
+확인한 파일: `src/features/navigation-guard/model/navigation-guard-provider.tsx`, `use-browser-navigation.ts`, `use-guard.ts`
+
+현재 이탈 확인 함수를 등록하고 브라우저 history 위치를 추적한다. 뒤로가기를 막으면 원래 위치로 돌아간 뒤 승인된 이동을 재개한다. cleanup에서는 자신이 설치한 history 함수만 복원한다.
+
+5단계의 모바일 편집 분리에서도 동일 등록 수명과 이동 재개를 유지한다. 안정된 callback이 외부 history 연결을 반복하지 않게 하므로 이름만 보고 제거하지 않는다.
+
+### 탐색 메뉴와 포커스
+
+확인한 파일: `src/widgets/application-navigation/model/use-bar-navigation.ts`, `use-navigation-drawer.ts`, `ui/mobile-navigation.tsx`, `navigation-bars.tsx`, `navigation-links.tsx`, `index.ts`
+
+Link 이동을 이탈 확인과 연결한다. Drawer는 닫힐 때 트리거에 포커스를 돌려주고 저장 목록 수가 있을 때 관리 링크를 표시한다. 사용 기록 링크는 없다.
+
+5단계에서 탐색 대상, aria-current, 명시적 Tab 순서, Drawer 닫기와 이탈 확인의 순서를 보존한다.
+
+### 공통 자료 처리 도구
+
+확인한 파일: `src/shared/lib/entity-metadata/index.ts`, `clipboard/browser-clipboard-writer.ts`, `clipboard/clipboard-writer.ts`, `clipboard/clipboard-write-failure-message.ts`, `clipboard/index.ts`, `id-generation/entity-id-generator.ts`, `id-generation/index.ts`, `grapheme/index.ts`, `join-class-names/index.ts`, `algorithm-reference/index.ts`
+
+시각의 밀리초 절삭, 클립보드 실패 사유, UUID, grapheme 분할, 정적 클래스 조합과 알고리즘 식별자를 제공한다. 클립보드 미지원 및 권한 거절은 성공으로 처리하지 않는다.
+
+기능별 구현 선택을 옮길 때 기존 도구를 재사용한다. 알고리즘 버전은 메모 수정 횟수가 아니다. 이름에 version이 있다는 이유로 제거하지 않는다.
+
+### 목록 순서 변경
+
+확인한 파일: `src/shared/lib/list-reorder/index.ts`, `session.ts`, `session.test.ts`
+
+포인터 이동 임계값, 유효한 삽입 위치와 변경 여부를 계산한다. 취소 및 자기 위치 놓기는 저장 명령을 만들지 않는다. 네 검사는 이동 결과와 다음 조작의 재개를 관찰한다.
+
+기존 순서 명령을 재사용한다. 화면별 별도 배열 이동 알고리즘을 만들지 않는다.
+
+### 공통 입력과 표시
+
+확인한 파일: `src/shared/ui/button/index.tsx`, `icon-button/index.tsx`, `checkbox/index.tsx`, `checkbox/use-id.ts`, `text-field/index.tsx`, `textarea/index.tsx`, `status-notice/index.tsx`, `page-heading/index.tsx`, `drop-indicator/index.tsx`, `service-logo/index.tsx`
+
+입력 ref와 네이티브 속성, 접근 가능한 이름, 오류 알림, 제목과 시각 토큰을 공유한다. Checkbox 설명 ID는 입력과 연결된다. 삽입선은 실제 위치가 있을 때만 표시한다.
+
+5단계의 공통 UI 재사용 대상이다. 기능별 동일 버튼을 다시 만들지 않는다. 스타일을 합칠 때 기존 크기와 disabled 및 focus 의미를 보존한다.
+
+### 토스트와 동작 시트
+
+확인한 파일: `src/shared/ui/action-toast/action-toast-provider.tsx`, `action-toast-state.ts`, `action-toast.tsx`, `index.ts`, `use-action-toast-timer.ts`, `src/shared/ui/action-sheet/index.tsx`, `use-action-sheet.ts`
+
+토스트 한 건과 종료 시각을 앱 수명으로 유지한다. hover 및 내부 포커스는 타이머를 멈춘다. 이전 토스트의 닫기는 새 토스트를 지우지 않는다. 시트는 native dialog이며 처리 중 닫기를 막을 수 있다.
+
+토스트 revision은 저장 버전이 아닌 알림 식별자다. 삭제 및 복원 안내를 분리해도 알림 닫기, 작업 실행, 포커스 복귀와 시트 높이 유지 동작을 구별한다.
+
+### 분석 요청과 원문 확인
+
+확인한 파일은 `src/_pages/analysis`의 `index.ts`, `composition.ts`, `api/analysis.worker.ts`, `api/worker-text-analyzer.ts`, `api/worker-text-analyzer.test.ts`, `model/analysis-message.ts`, `analysis-message.test.ts`, `analysis-order.ts`, `analysis-rows.ts`, `analysis-run-state.ts`, `analysis-run-state.test.ts`, `analyze-text.ts`, `analyze-text.test.ts`, `grapheme-ngrams.ts`, `normalize-lines.ts`, `normalize-lines.test.ts`, `text-analysis-provider.tsx`, `text-analysis-provider.browser.test.tsx`, `use-text-analysis-state.ts`, `ui/analysis-results.tsx`, `ui/analysis-start-page.tsx`와 `e2e/analysis.spec.ts`다.
+
+원문은 줄바꿈 위치를 보존하면서 비교용 공백, 대소문자와 NFC 정규화를 별도로 적용한다. 같은 줄, 포함 관계, grapheme 3개 단위의 Jaccard 점수 순서로 분류하고 메모 ID 및 줄 위치로 동점을 정리한다. 화면은 원문과 줄 번호를 표시하고 두 줄을 템플릿 제안으로 전달한다. 원문 자체를 정규화된 문자열로 교체하지 않는다.
+
+Worker는 첫 분석에서 생성된다. 응답은 요청 ID, 알고리즘 식별자, 원문 식별값과 줄 내용을 검사한다. 비정상 응답이나 Worker 오류는 대기 중인 요청을 거절하고 다음 요청에서 Worker를 다시 만든다. Provider의 요청 순번은 늦게 끝난 이전 분석이 최근 분석을 덮지 않게 한다. 페이지 재진입에서 원문이 바뀌었다면 이전 분석을 숨긴다.
+
+4단계에서는 Worker 생성과 종료를 분석 기능으로 옮기되 앱 수명은 유지한다. 6단계에서는 테스트 Provider가 운영 모델을 계속 실행하도록 연결을 바꾼다. 단위 검사의 Worker 대역은 응답 오류와 재시도를 제어한다. 브라우저 검사는 늦은 응답, 분석 중 원문 변경과 줄 누락을 검사한다. E2E는 실제 Worker 자산의 실행과 로드 실패 후 재실행 및 분석 직후 메모 화면 이동을 검사한다. 서로 다른 실패를 잡으므로 하나의 대역 검사로 통합하지 않는다.
+
+### 템플릿 작성, 제안과 생성문
+
+확인한 파일은 `src/entities/template`의 `index.ts`, `index.browser.ts`, `api/indexed-db-template-repository.ts`, `model/template-record.ts`, `template-record.test.ts`, `edit-segments.ts`, `edit-segments.test.ts`, `render-template.ts`, `render-template.test.ts`다. `src/features/suggest-template`의 `index.ts`, `model/suggestion.ts`, `suggestion.test.ts`, `use-selected-source-lines.ts`, `selected-source-lines-provider.tsx`도 확인했다.
+
+`src/_pages/templates`에서는 `index.ts`, `composition.ts`, `model/template-data-provider.tsx`, `template-workspace-context.ts`, `use-template-data-state.ts`, `use-template-workspace.ts`, `use-template-authoring.ts`, `use-template-editor.ts`, `use-template-output.ts`와 `ui/saved-templates.tsx`, `selected-source-lines-preview.tsx`, `template-authoring.tsx`, `template-editor.tsx`, `template-input-form.tsx`, `template-placeholder-fields.tsx`, `template-segment-preview.tsx`, `templates-start-page.tsx`를 확인했다. 사용자 조작 검사는 `e2e/templates.spec.ts`에서 확인했다.
+
+제안은 두 원문의 grapheme 차이를 찾아 공통 부분을 일반 텍스트로 보존한다. 같은 두 줄이나 의미 있는 공통 문자가 없는 경우에는 수동 작성으로 안내한다. 플레이스홀더의 위치는 원문 선택 구간이며 지정 뒤에는 원문을 읽기 전용으로 둔다. 이름의 공백 및 중복 오류와 일반 텍스트로 되돌리기는 현재 RHF 입력과 함께 처리한다. 저장한 템플릿은 갱신 시각 내림차순으로 표시한다. 이 정렬은 모바일 메모의 수동 순서와 별개다.
+
+저장 목록은 앱 수명으로 유지하지만 선택한 템플릿과 생성문은 페이지 수명이다. 다른 템플릿 선택 시 ID key가 입력 폼을 초기화한다. 생성문 복사 중 새 텍스트를 생성하면 이전 복사 완료가 새 생성문 상태를 덮지 않는다. 4단계에서 저장소 연결을 옮길 때 이 차이를 보존한다. 템플릿 작성용 메모리 `TemplateDraft`는 메모 초안 테이블이 아니므로 제거 대상이 아니다.
+
+단위 검사는 구간 겹침과 빈 선택, 원문 복원, 이름 검사, 기본값 및 grapheme 제안을 보호한다. E2E는 실제 선택 구간과 접근 가능한 설명, 잘못된 이름의 포커스, 저장 후 재조회, 생성문과 오류 해제를 검사한다. 5단계에서 폼 구성요소를 바꾸더라도 `shouldUnregister`, 선택 구간, 읽기 전용 조건과 입력 오류 연결을 유지한다. 표시가 비슷하다는 이유만으로 분석 원문 카드와 선택 원문 카드를 새 공통 카드로 합치지 않는다.
+
 ## 적용할 원칙과 적용하지 않을 예제
 
 제공된 문서는 UI 입력, 외부 동작, 구현 선택과 실행 수명을 구분한다. 운영 Provider에는 구현 함수를 Props로 전달하지 않고 기능별로 연결하며, 테스트는 동일 Context의 별도 Provider에서 구현을 선택한다. UI가 직접 쓰는 ID, 표시 값과 이벤트까지 없애거나 모든 외부 호출마다 Context를 만들라는 뜻은 아니다.
