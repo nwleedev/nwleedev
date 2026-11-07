@@ -2,9 +2,9 @@
 
 import type { PropsWithChildren } from "react"
 
-import { TextAnalysisProvider } from "@/_pages/analysis/composition"
+import { TextAnalysisProvider } from "@/_pages/analysis/composition.browser"
 import { NoteSessionProvider, NotesDataProvider } from "@/_pages/notes/composition.browser"
-import { TemplateDataProvider } from "@/_pages/templates/composition"
+import { TemplateDataProvider } from "@/_pages/templates/composition.browser"
 import { InteractionPreferencesProvider } from "@/entities/preference/index.browser"
 import { BatchCopyProvider, MobileBatchCopyProvider } from "@/features/batch-copy/index.browser"
 import { SelectedSourceLinesProvider } from "@/features/suggest-template"

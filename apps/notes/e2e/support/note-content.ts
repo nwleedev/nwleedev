@@ -5,4 +5,3 @@ export const noteContent = fc.string({
   minLength: 1,
   unit: "grapheme-ascii",
 })
-

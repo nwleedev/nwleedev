@@ -21,4 +21,3 @@ export function replaySequence<Model extends object, Real>(
 
   return { commands, path, printed, replayPath }
 }
-

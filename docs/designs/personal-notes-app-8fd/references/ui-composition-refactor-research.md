@@ -4,6 +4,42 @@
 
 이 조사는 [구조 개선 요구사항](../requirements.md#기능과-화면을-보존하는-코드-구조-개선)의 구현 및 테스트 재구성에 사용한다. 2026-11-07의 브랜치 소스와 제공된 React/Next.js UI 책임 분리 문서, 아래 공식 자료를 비교했다. 소스에서 확인한 사실과 이후 적용할 제안을 구분하며, 실행하지 않은 화면이나 성능의 개선을 입증한 것으로 보지 않는다.
 
+## 현재 파일 구성과 이전 위치
+
+현재 파일 구성과 이전 위치는 다음과 같다. 뒤의 파일별 기록은 변경 전 `1d5efe3`의 동작과 유지 이유를 설명한다. 저장 스키마, 본문 CRDT 규칙, 모바일 순서와 삭제 복원 정책은 구조 개선에서 바꾸지 않았다.
+
+### 공유 DB와 앱 조합
+
+`src/shared/lib/indexed-db/connection.ts`는 연결 및 상태 알림 타입을 정의한다. `connection-context.ts`는 같은 DB 연결을 읽고 `composition.browser.ts`는 앱에서 Context를 제공할 때만 사용한다. 순수 타입은 `index.ts`, 브라우저 접근은 `index.browser.ts`로 구분한다. `src/_app/providers/database-provider.tsx`가 연결 생성과 종료를 맡으며 기존 `use-database.ts`를 대체한다.
+
+`src/_app/index.server.ts`는 서버 화면 틀과 본문 이동 링크를, `index.browser.ts`는 클라이언트 Provider 및 접속 확인을 내보낸다. 각 페이지의 UI 진입점도 `index.browser.ts`로 구분한다. route에서만 앱의 두 진입점을 읽는다.
+
+`personal-notes-provider.tsx`는 내부 페이지 이동에서 유지할 Provider의 순서를 조합한다. 저장소, Clipboard와 시계의 구현 선택은 각 slice의 `api` 모듈로 옮겼다. `src/_app/composition/batch-copy-selection.tsx`는 일괄 복사 삭제 성공을 메모 선택 해제와 연결하므로 앱 조합에 남는다. DB 이전과 버전 변경 처리는 기존 IndexedDB 코드에 유지한다.
+
+### 메모 명령과 편집 수명
+
+`src/_pages/notes/api/use-browser-note-data.ts`가 기존 앱의 `use-note-services.ts`를 대체한다. `model/note-commands.ts`가 단일 큐, 최신 메모 참조와 저장 명령을 관리하고 `note-changes.ts`가 창 간 메시지를 검증한다. `use-notes-data-model.ts`는 구독, 초기 조회의 늦은 완료 판정과 편집 잠금을 관리한다. `notes-data-context.ts`는 변하는 목록 상태와 같은 참조를 유지하는 명령을 구분한다.
+
+`notes-data-provider.tsx`는 브라우저 구현을 선택하고 `test-notes-data-provider.tsx`는 같은 모델에 검사할 외부 동작을 연결한다. 테스트 전용 Provider의 호출자는 기존 Provider 및 상세 편집 검사뿐이다. UI 진입점은 `index.browser.ts`, 앱 조합은 `composition.browser.ts`다. 이전 앱 전달 컴포넌트와 메모 전용 저장 알림 타입은 제거했다.
+
+### 일괄 복사, 설정과 보조 화면
+
+`features/add-note-to-batch-copy`와 `features/edit-batch-copy`의 명령, 모델, UI 및 검사는 `features/batch-copy`로 합쳤다. 같은 저장 목록에 대한 단일 큐와 세션을 유지하고 모바일 임시 목록의 수명은 따로 유지한다. `api/use-browser-batch-copy.ts`와 `use-browser-mobile-batch-copy.ts`가 구현을 고른다. `model/batch-copy-provider.tsx`, `mobile-batch-copy-provider.tsx`와 `batch-copy-removals.ts`가 각각 저장 목록, 모바일 작업과 삭제 성공 알림을 관리한다. 전달만 하던 이전 Provider 두 개와 앱 연결 컴포넌트는 제거했다.
+
+설정의 공유 상태와 Provider는 `entities/preference/model`로 옮겼고 `api/use-browser-preferences.ts`가 연결을 선택한다. 폼은 `_pages/settings`에 유지한다. 분석과 템플릿은 각 slice의 `api/use-browser-analysis.ts`, `use-browser-templates.ts`가 구현을 고르고 `composition.browser.ts`에서 앱에 필요한 Provider만 내보낸다. 분석 테스트도 `test-text-analysis-provider.tsx`를 통해 운영 모델을 실행한다. Worker는 한 분석 인스턴스에서 재사용하고 Provider 종료 시 정리한다.
+
+### 카드, 상세 편집과 패널
+
+`note-card.tsx`는 한 카드의 편집과 제스처를 유지한다. `model/note-card-context.ts`를 통해 `ui/note-card-header.tsx`, `note-card-body.tsx`, `note-resize-handles.tsx`가 같은 카드의 상태와 동작을 읽는다. 상태 표시등, 폼 등록, 선택 및 조합 입력 이벤트와 크기 조절 이벤트는 기존 요소에 유지한다. Command 키 구독은 `use-note-selection-keys.ts`의 기존 목록 수명에 남는다.
+
+`ui/note-detail-layout.tsx`는 children을 사용하는 상세 화면의 틀이다. `deleted-note-detail.tsx`와 `unsaved-changes-dialog.tsx`는 각각 삭제 안내 및 복원과 미저장 이탈을 맡는다. 각 모달의 초기 포커스, 취소와 복귀 대상을 합치지 않았다. `model/batch-copy-panel-dimensions.ts`는 패널 너비의 같은 제한값을 통합한다. `batch-copy-workspace.tsx`는 실제 표시 중인 패널에만 목록 본문을 마운트한다.
+
+### 테스트 파일과 유지한 코드
+
+`e2e/notes.spec.ts`에는 초기 실행과 접속 주소 검사를 남겼다. 생성은 `notes-creation.spec.ts`, 저장은 `notes-autosave.spec.ts`, 모바일 편집과 이탈은 `notes-mobile-editing.spec.ts`, 보드 조작 검사는 `notes-board.spec.ts`로 구분한다. `support/note-content.ts`, `replay-sequence.ts`, `visible-box.ts`는 여러 검사에서 실제로 사용하는 원문 생성기, 축소 실패 읽기와 화면 좌표 읽기다. 키보드 속성 열기는 기존 `run-note-action.ts`에 합쳤다. 각 파일에서 초기 페이지 준비와 BrowserContext 정리, 기존 단언 및 실패 재현을 유지한다.
+
+그 밖의 엔티티 저장 및 순수 규칙, 공통 UI, 탐색과 이탈 확인, 분석 알고리즘, 템플릿 편집 규칙, 디자인 토큰과 배포 설정은 최초 분석에서 확인한 역할을 유지한다. 이름만 맞추기 위해 이 구현들을 다시 작성하지 않는다. 변경된 호출자는 새 진입점을 사용하며 이전 위치에 호환 재수출을 남기지 않는다.
+
 ## 파일별 분석 기록
 
 아래는 `1d5efe3`의 소스에서 확인한 기능과 유지 이유다. 파일 이름은 `apps/notes`를 기준으로 한다. 같은 항목의 파일은 함께 동작하는 모듈이며 각각 본문을 확인했다. 아직 기록하지 않은 파일은 전체 분석 완료에 포함하지 않는다. 기존 주요 연결 조사와 전체 파일 분석을 구분한다.
@@ -450,7 +486,7 @@ React 트리 모양, 훅 호출 수, Context 이름을 검사하지 않는다. �
 
 [Webiny PR #5387](https://github.com/webiny/webiny-js/pull/5387)과 [병합 573e347](https://github.com/webiny/webiny-js/commit/573e347c7ab5f027b9c367dd133b2469b9d97e1e)은 넓은 request context에서 필요한 기능을 찾던 구성을 직접 필요한 동작을 받도록 바꿨다. 해당 프로젝트의 DI 등록 체계까지 도입하지 않고 의존 범위를 줄이는 근거만 적용한다.
 
-환경별 진입점은 [FSD PR #924](https://github.com/feature-sliced/documentation/pull/924)의 [고정 변경 4f5ae68](https://github.com/feature-sliced/documentation/commit/4f5ae6875bb53b3b0a72ddaa527002ba8d86dd6a)에서도 구분한다. 현재 ESLint는 Pages의 `composition.ts`와 `index.ts`만 허용하므로 파일 이름만 바꾸면 검사와 호출자가 깨진다. 환경별 진입점, 소비 import와 제한 규칙을 같은 절차에서 변경해야 한다.
+환경별 진입점은 [FSD PR #924](https://github.com/feature-sliced/documentation/pull/924)의 [고정 변경 4f5ae68](https://github.com/feature-sliced/documentation/commit/4f5ae6875bb53b3b0a72ddaa527002ba8d86dd6a)에서도 구분한다. 구조 개선 전 ESLint는 Pages의 `composition.ts`와 `index.ts`만 허용했다. 파일 이름만 바꾸면 검사와 호출자가 깨지므로 허용 규칙도 함께 바꿔야 한다. 환경별 진입점, 호출자의 import와 제한 규칙을 같은 절차에서 변경해야 한다.
 
 기존 개발 지침의 일부 예제에는 중앙 조립, 전체 저장소, revision, 과거 초안과 테스트가 남아 있다. 이 예제는 새 요구사항의 예외가 아니다. 현행 v14 스키마와 기능 가까이에서 구현을 선택하는 조건을 우선하며, 구조 개선 때문에 이전 테이블이나 버전 필드를 되살리지 않는다. 구버전 이전 코드는 현재 저장 필드와 구분해 보존한다.
 

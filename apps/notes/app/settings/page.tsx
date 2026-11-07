@@ -1,5 +1,5 @@
-import { DocumentPageFrame } from "@/_app"
-import { SettingsStartPage } from "@/_pages/settings"
+import { DocumentPageFrame } from "@/_app/index.server"
+import { SettingsStartPage } from "@/_pages/settings/index.browser"
 
 export default function Page() {
   return (

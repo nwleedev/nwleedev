@@ -7,7 +7,7 @@ import playwright from "eslint-plugin-playwright"
 
 const sourceFiles = ["app/**/*.{ts,tsx}", "src/**/*.{ts,tsx}"]
 const publicEntryPoint = "{index,index.browser}.{ts,tsx}"
-const pagePublicEntryPoint = "{composition,composition.browser,index,index.browser}.{ts,tsx}"
+const pagePublicEntryPoint = "{composition.browser,index,index.browser}.{ts,tsx}"
 
 const element = (type, fileInternalPath) => ({
   element: {
@@ -40,7 +40,7 @@ const dependencyPolicies = [
     allow: {
       to: [
         element("page", publicEntryPoint),
-        element("app", "index.{ts,tsx}"),
+        element("app", "index.{browser,server}.{ts,tsx}"),
         element("app", "styles/globals.css"),
       ],
     },

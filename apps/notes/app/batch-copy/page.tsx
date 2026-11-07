@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 
-import { TaskPageFrame } from "@/_app"
-import { BatchCopyStartPage } from "@/_pages/batch-copy"
+import { TaskPageFrame } from "@/_app/index.server"
+import { BatchCopyStartPage } from "@/_pages/batch-copy/index.browser"
 
 export default function Page() {
   return (

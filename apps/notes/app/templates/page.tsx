@@ -1,5 +1,5 @@
-import { DocumentPageFrame } from "@/_app"
-import { TemplatesStartPage } from "@/_pages/templates"
+import { DocumentPageFrame } from "@/_app/index.server"
+import { TemplatesStartPage } from "@/_pages/templates/index.browser"
 
 export default function Page() {
   return (

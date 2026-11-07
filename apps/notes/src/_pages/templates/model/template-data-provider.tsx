@@ -19,7 +19,3 @@ export function TemplateDataProvider({
 }
 
 export { useTemplateData } from "./use-template-data-state"
-export type {
-  CopyTemplateResult,
-  CreateTemplateResult,
-} from "./use-template-data-state"

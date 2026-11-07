@@ -1,9 +1,7 @@
-export {
-  NotesDataProvider,
-} from "./model/notes-data-provider"
+"use client"
+
+export { NotesDataProvider } from "./model/notes-data-provider"
 export {
   NoteSessionProvider,
-  useNoteSession,
   useNoteSessionCommands,
-  useNoteSessionState,
 } from "./model/note-session-provider"

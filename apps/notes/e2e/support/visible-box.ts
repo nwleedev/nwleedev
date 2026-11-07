@@ -10,4 +10,3 @@ export async function visibleBox(locator: Locator) {
 
   return box
 }
-

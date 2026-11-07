@@ -5,8 +5,8 @@ import {
   NavigationGuardProvider,
   PersonalNotesProvider,
   RuntimeAccessGuard,
-  SkipLink,
-} from "@/_app"
+} from "@/_app/index.browser"
+import { SkipLink } from "@/_app/index.server"
 import "@/_app/styles/globals.css"
 
 export const metadata: Metadata = {

@@ -1,4 +1,4 @@
-import { TaskPageFrame } from "@/_app"
+import { TaskPageFrame } from "@/_app/index.server"
 import { NoteDetailPage } from "@/_pages/notes/index.browser"
 
 type PageProps = {
