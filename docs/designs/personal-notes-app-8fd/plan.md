@@ -4,6 +4,130 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 # 개인 메모 화면 개선과 서버 저장 전환 계획
 
+## 기능과 UI UX를 보존하는 구조 개선 계획
+
+[구조 개선 요구사항](requirements.md#기능과-화면을-보존하는-코드-구조-개선)을 기준으로 현재 로컬 기능을 유지하면서 의존성 연결, 컴포넌트와 테스트를 재구성한다. [현재 코드와 대안 조사](references/ui-composition-refactor-research.md)는 아래 변경 대상과 선택 이유를 설명한다. 여러 창 편집 및 v14 저장 구조의 구현 기록과 구분하며, 아래 절차는 후속 구조 개선에 적용한다.
+
+### 적용 범위와 실행 규칙
+
+대상 파일은 `apps/notes/` 기준이다. 서버 저장, 인증, 새로운 동기화 방식, 사용 기록 재개와 스키마 변경은 포함하지 않는다. 아래 순서로 한 대단원씩 완료하고 각 대단원 끝에 코드 리뷰 한 번과 결함 반영을 거친다. 절차별 상태, 실제 변경 대상, 실행 증거와 미확인 사항을 갱신하고 기능 단위로 커밋한다.
+
+각 단계에서 [개발 지침](../../dev/README.md), [FSD 및 메모 앱 지침](../../dev/personal-notes-app/anti-patterns.md), [입력 상태 지침](../../dev/personal-notes-app/react-hook-form.md), [테스트 전략](../../dev/personal-notes-app/testing-strategy.md)과 [테스트 안티패턴](../../dev/personal-notes-app/test-anti-patterns.md)의 해당 부분을 읽는다. 과거 중앙 조립, revision과 초안 예제는 최신 요구사항을 대체하지 않는다.
+
+변경 순서는 관찰할 결과 확인, 필요한 기존 검사 실행, 해당 모듈 변경, 결과 확인, 대단원 리뷰와 반영이다. 기존 실패가 있으면 구조 변경으로 숨기지 않고 해당 단계의 착수 조건에서 구분한다. 다른 기능의 미정 사항까지 해결하려고 범위를 늘리지 않는다.
+
+새 파일은 아래에 맡을 책임이 있는 경우만 만든다. 파일 이동 시 기존 파일과 호출자, 테스트를 같은 변경에서 전환하고 임시 호환 재수출을 남기지 않는다. 별도 이름만 생기는 wrapper, 전체 폼 Props, JSX Props, render props, 렌더 안의 컴포넌트 정의와 범용 의존성 조회는 사용하지 않는다. hooks와 Context는 상태 및 자원 수명에 필요한 만큼만 사용한다.
+
+### 1. 보존할 결과와 테스트 실행 범위 확정
+
+**작성 및 수정 대상.** `app/`, `src/_app/providers/personal-notes-provider.tsx`, 각 composition, `_pages/notes`, `features/`, `shared/ui`와 기존 테스트의 호출 관계를 확인한다. 현재 화면과 같은 자료, 화면 크기, 입력 및 저장 결과를 비교할 기준을 기록한다. 앱 코드, 테스트, fixture나 스크립트는 추가하지 않는다.
+
+**보존할 결과.** 다음 과업을 기존 검사와 연결한다.
+
+- 메모 본문 및 상태: `e2e/notes.spec.ts`의 자동 저장, 이탈, 선택 범위와 기존 `note-detail-page.browser.test.tsx`의 재시도 및 Undo/Redo.
+- 여러 창과 삭제 복원: `e2e/notes-model.spec.ts`, `notes-removal-model.spec.ts` 및 note 저장소의 실제 IndexedDB 검사. 삭제한 창 종료, 마지막 모바일 편집 화면 이탈과 늦은 저장도 포함한다.
+- 배치, 선택과 순서: `notes-geometry-model.spec.ts`, `notes-selection-model.spec.ts`, `notes-order-model.spec.ts`와 `touch-interactions.spec.ts`. 배율과 모바일 전환이 저장 배치를 바꾸지 않는지 확인한다.
+- 일괄 복사 및 이동: `batch-copy.spec.ts`, `mobile-navigation.spec.ts`, `clipboard-permissions.spec.ts`. 저장 목록과 모바일 작업의 분리, 페이지 왕복의 이력, 클립보드 실패와 포커스를 확인한다.
+- 분석, 템플릿과 설정: `analysis.spec.ts`, `templates.spec.ts` 및 기존 저장소 검사. 분석 원문 변경 판정, 선택한 줄의 전달, 입력 오류와 설정의 재조회 결과를 확인한다.
+
+**패턴과 근거.** 사용자 행동과 관찰 결과를 기준으로 하는 회귀 검사다. [Playwright 권고](https://playwright.dev/docs/best-practices)에 따라 역할과 이름으로 조작하고 화면 결과와 저장 자료를 함께 읽는다. 대표 화면은 넓은 보드, 중간 폭의 모달 패널, 320px 모바일 목록 및 편집, 삭제 안내와 보조 페이지를 포함한다. 기존 디자인 토큰과 문구를 비교 기준으로 삼는다.
+
+**TDD: 없음.** 기존 검사의 보호 범위를 확인하는 단계다. 초기 실행은 `pnpm notes:lint`, `pnpm notes:typecheck`, `pnpm notes:test`, `pnpm --filter notes-app test:browser`, `pnpm notes:test:e2e`를 사용한다. 실행 실패, 미수집, skip과 환경 미지원은 통과로 처리하지 않는다. 부족한 순수 명령 검사가 확인될 때만 해당 단계의 TDD 대상으로 기록한다.
+
+**피할 변경과 완료 조건.** 현재 구현과 상충하는 과거 요구사항을 새 회귀의 정답으로 삼지 않는다. UI 비교 자료는 프로젝트의 임시 디렉터리에 보관하고 커밋하지 않는다. 구현 전후 같은 조건으로 비교할 수 있고 각 검사에서 실제 구현과 대역을 구분한 뒤 대단원 리뷰를 진행한다.
+
+### 2. 공통 DB 연결과 실행 환경별 진입점 분리
+
+**추가 및 이동.** `src/shared/lib/indexed-db`에 연결과 상태 구독 타입, 내부 연결 Context 및 이를 읽는 브라우저 훅을 분리한다. `src/_app/providers/database-provider.tsx`는 현재 `useDatabase`의 생성과 정리를 맡으며 children만 받는다. 내부 Context를 제공하는 `composition.browser.ts`는 앱 조립 및 해당 테스트에서만 사용하도록 제한한다.
+
+**수정 및 제거.** `PersonalNotesDatabase`가 `_pages/notes/composition`에서 알림 타입을 가져오는 의존을 제거한다. `_pages/notes/model/note-storage-monitor.ts`의 일반 연결 이벤트 타입은 Shared의 같은 정의로 통합한다. 기존 `use-database.ts`는 새 Provider로 책임이 옮겨지고 호출자가 사라진 뒤 제거한다. DB 열기, v14 migration, 레코드와 트랜잭션 구현은 그대로 둔다.
+
+`eslint.config.mjs`의 진입점 허용 규칙과 소비 import를 함께 수정한다. 실제 변경하는 UI 및 Provider 진입점은 `index.browser.ts`, 공통 순수 타입은 `index.ts`로 구분한다. 새 내부 조립 진입점을 모든 파일에 허용하지 않는다. 서버 구현이 없는 slice에 빈 `index.server.ts`를 만들지 않는다.
+
+**패턴과 근거.** 연결 수명을 한 곳에서 관리하고 기능별 구현 선택은 분산한다. [FSD 환경별 API 조사](references/ui-composition-refactor-research.md#대안과-적용-한계)와 [Next.js 서버 및 클라이언트 구성](https://nextjs.org/docs/app/getting-started/server-and-client-components)을 적용한다. 파일 접미사 외에 `client-only`, Client Component 진입점과 실제 import를 확인한다.
+
+**TDD: 없음.** 새 저장 규칙이 없는 연결 이동이다. 기존 `personal-notes-database.indexeddb.test.ts`의 열기, 중단, 업그레이드와 연결 종료 검사를 그대로 실행하고 Provider 수명은 운영 화면의 이동 및 재열기로 확인한다. 기존 lint, 타입 및 빌드로 실행 환경과 순환 import를 확인한다.
+
+**피할 변경과 완료 조건.** Shared에 앱 스키마를 옮기거나 전역 singleton, 기능마다 새 DB, 아래 계층의 `_app` import를 만들지 않는다. Strict Mode의 재연결에서도 정상적으로 읽고 구독할 수 있어야 한다. 앱 종료 정리와 versionchange 이후 재열기가 유지되고 저장 스키마 diff가 없음을 대단원 리뷰에서 확인한다.
+
+### 3. 메모의 외부 동작과 편집 수명 분리
+
+**추가 및 이동.** `_app/composition/use-note-services.ts`의 메모 전용 연결을 `_pages/notes/api/use-browser-note-data.ts`로 옮긴다. `notes-data-provider.tsx`가 기능 안에서 구현을 선택한다. 목록 상태와 편집, 배치, 모바일 순서, 삭제 및 복원의 소비 훅은 `_pages/notes/model`에서 구분한다. Context 정의는 내부 모듈에 두고 화면용 진입점에서 내보내지 않는다.
+
+**수정 및 분할.** `use-notes-data-model.ts`의 변경 직렬화와 창 간 메시지 검증 및 재조회 책임을 각각 식별한다. 실제로 독립된 책임은 같은 slice의 `note-changes.ts`와 `note-commands.ts`로 분리하고, React 수명 관리는 기존 모델 훅에 둔다. 이 이름은 구현 대상 제안이며 기존 모듈이 같은 책임을 제공하면 그쪽으로 통합한다. 메모별 복원 기회와 저장 큐는 공유 수명을 유지한다.
+
+`use-note-content-autosave.ts`, `save-note-content.ts`, `use-note-card-editor.ts`, `use-note-detail-editing.ts`, `use-note-detail-draft.ts` 및 소비 훅은 실제 사용하는 함수만 받거나 읽게 수정한다. `NoteSessionProvider`는 운영 시계를 내부에서 선택하고 테스트에서는 같은 내부 Context를 사용하는 별도 구성으로 바꾼다. `_app/composition/note.tsx`와 기존 서비스 묶음은 호출자 전환 후 제거한다.
+
+**패턴과 근거.** 상태와 명령의 구분, 비동기 작업의 직렬화, 구독 수명의 명시적 정리를 사용한다. [React Effect 지침](https://react.dev/learn/you-might-not-need-an-effect)에 따라 외부 구독은 Effect로 연결하되 파생 값과 UI 이벤트를 Effect로 옮기지 않는다. [Yjs 변경분](https://docs.yjs.dev/api/document-updates)의 재전달과 병합 성질 및 현재 저장 방식을 보존한다.
+
+**TDD: 필요한 명령 분리 부분에 한정.** 먼저 기존 `note-content-save-state.test.ts`, `note-content.model.test.ts`, `notes-data-provider.browser.test.tsx`와 실제 저장소 검사가 동일 결과를 보호하는지 확인한다. 빠진 경우에만 이전 조회의 늦은 완료, 저장 실패 뒤 다음 입력의 저장, 삭제 후 예약된 저장의 거절을 해당 기존 테스트에 먼저 추가한다. 불변 조건은 마지막 본문과 삭제 상태이며 호출 횟수가 아니다. 이미 보호된 사례는 새로 작성하지 않고 기존 검사로 분리한다.
+
+**피할 변경과 완료 조건.** 함수 이름만 줄인 전체 repository, 큐의 중복 생성, 매 렌더의 BroadcastChannel 재생성, CRDT 상태를 잃는 메모 복제와 폼 값의 state 복사를 피한다. 같은 프로필의 두 페이지에서 입력 병합과 삭제를 확인하고, 마지막 복원 기회가 끝날 때 정리가 유지되는지 대단원 리뷰에서 판정한다.
+
+### 4. 일괄 복사와 보조 기능의 연결 정리
+
+**통합 및 이동.** `features/add-note-to-batch-copy`와 `features/edit-batch-copy`를 `features/batch-copy`의 한 slice로 통합한다. 추가와 편집 함수, writer 및 UI는 각각 api, model, ui의 같은 책임으로 옮긴다. `_app/providers/use-batch-copy-state.ts`의 저장 목록 세션과 큐를 이 slice로 이동한다. 모바일 메모리 작업의 상태와 저장 목록 상태는 별도로 유지한다.
+
+**수정 및 제거.** `_app/providers/batch-copy-provider.tsx`의 기능 연결을 새 feature Provider로 옮긴다. 기능별 외부 구현을 직접 고르는 Provider로 바꾸고 `use-batch-copy-services.ts`, `use-mobile-batch-copy-services.ts` 및 전달 전용 composition은 제거한다. `_pages/notes`, `_pages/batch-copy`와 기존 feature 소비 import를 함께 바꾼다.
+
+항목 삭제 성공 뒤 메모 작업 공간의 선택 해제는 앱의 실제 기능 조합으로 남긴다. 새 feature의 완료 알림을 앱 조합부가 소비해 `forgetBatchCopyItem`을 실행하며 페이지 간 역방향 import는 만들지 않는다. 완료 알림이 필요하면 해당 이벤트에만 구독을 제공하고 실패나 단순 알림 닫기를 삭제 완료로 처리하지 않는다.
+
+설정의 저장 값과 읽기 구독은 `entities/preference`에 두고 설정 폼은 `_pages/settings`에 둔다. 메모와 일괄 복사는 실제 쓰는 설정만 읽는다. 분석 및 템플릿의 연결은 각각 `_pages/analysis/api`, `_pages/templates/api`에 옮기고 Provider가 내부에서 구현을 선택한다. `_app/composition/{analysis,template,preference}.tsx`와 해당 `use-*-services.ts`는 호출자 전환 후 제거한다.
+
+**패턴과 근거.** 같은 자료를 변경하는 기능은 함께 두되 독립된 작업 상태는 합치지 않는다. [FSD slice 규칙](https://feature-sliced.design/docs/reference/slices-segments)과 [최소 의존성 조사](references/ui-composition-refactor-research.md#실제-연결에서-확인한-문제와-유지할-부분)를 적용한다. 분석 Worker의 생성 및 dispose는 분석 기능이 맡고 결과와 선택한 줄의 기존 앱 수명은 유지한다.
+
+**TDD: 새로 추출하는 완료 후처리에 필요한 경우만 적용.** 저장 목록의 수정 실패에서는 선택이 남고 삭제 성공에서만 선택이 정리되는 결과를 기존 저장 명령 및 세션 검사로 확인한다. 현재 검사에서 빠진 결합 규칙을 별도 순수 명령으로 분리해야 한다면 실패 사례를 먼저 보완한다. 단순 파일 통합과 Provider 연결에는 새 테스트를 만들지 않는다.
+
+**확인할 결과.** 기존 `batch-copy.spec.ts`, `mobile-navigation.spec.ts`, `analysis.spec.ts`, `templates.spec.ts`, 분석 Provider 및 설정 저장소 검사를 실행한다. 모바일 확인 화면의 뒤로가기와 새로고침, 저장 목록 Undo/Redo, 분석 중 본문 변경과 geometry만의 변경, 선택한 줄의 템플릿 전달, 설정의 재조회 결과를 확인한다.
+
+**피할 변경과 완료 조건.** 모든 feature를 읽는 훅, feature끼리의 임의 import, 모바일 작업의 영구 저장, 저장 목록과 모바일 상태의 합치기, 페이지 이탈 때 분석 자료를 지우는 변경을 피한다. 큐, Worker와 공유 상태의 시작 및 종료 시점이 유지되는지 대단원 리뷰에서 확인한다.
+
+### 5. 데스크탑 카드와 모바일 편집 화면의 합성
+
+**분할 및 작성.** `note-card.tsx`에서 본문 편집, 헤더 액션, 크기 조절 부분을 역할이 드러나는 `note-card-body.tsx`, `note-card-header.tsx`, `note-resize-handles.tsx`로 분리한다. 카드 하나의 편집과 제스처 정보가 여러 부분에 필요할 때만 같은 slice의 카드 단위 Provider를 둔다. 단일 부분에서만 쓰는 값은 그 부분에서 관리한다.
+
+`note-detail-page.tsx`는 현재 children 합성을 유지하고 삭제된 본문 표시와 안내를 `deleted-note-detail.tsx`, 미저장 이탈 안내를 `unsaved-changes-dialog.tsx`로 분리한다. 페이지는 로딩, 실패, 편집 및 삭제 상태의 구성을 맡는다. 상태 문구와 표시등은 기존 `note-status-light.tsx`를 재사용한다.
+
+**수정 및 통합.** `notes-board.tsx`, `notes-collection.tsx`, `use-note-card-actions.ts`의 전달 전용 Props를 실제 소비 위치의 훅 또는 children 조합으로 바꾼다. `useNoteCardActions`를 카드마다 그대로 호출해 원격 삭제 구독과 토스트가 카드 수만큼 실행되는 구조는 만들지 않는다. 공유 동작은 보드에서 한 번 연결하고 카드별 입력과 제스처는 카드에 둔다.
+
+기존 `shared/ui/button`, `icon-button`, `action-popover`, `action-toast`를 사용한다. 공통 모달로 통합하려면 현재 삭제 안내와 이탈 확인의 초기 포커스, 취소, 경고 문구 및 복귀 대상이 유지되는지 먼저 확인한다. 다르면 두 모달의 동작을 유지하고 표시 부분만 합성한다.
+
+**패턴과 근거.** children 합성과 같은 카드 안의 compound components를 사용한다. [React의 상태 보존](https://react.dev/learn/preserving-and-resetting-state)과 [모달 접근성](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)을 적용한다. 컴포넌트 정의는 모듈 수준에 두며 저장 상태나 배열 위치를 key로 사용하지 않는다. 폼 객체 전체를 넘기지 않는다.
+
+**TDD: 없음.** DOM과 브라우저 조작의 연결 변경이다. 기존 모바일 편집, 카드 조작, touch, geometry, selection, navigation 검사를 그대로 사용한다. 대표 화면에서 변경 전후 크기와 간격, 서체, 버튼 위치, 스크롤, 포커스 및 실제 조작을 비교한다. 저장 표시 변화만으로 textarea가 교체되지 않고 한글 조합 및 선택 범위가 유지되는지 확인한다.
+
+**피할 변경과 완료 조건.** 불필요한 wrapper DOM, JSX named slot, 데스크탑과 모바일의 옵션 많은 통합 UI, 모달의 전체 화면 전환을 피한다. 삭제 안내의 정확한 문구와 마지막 붉은 경고, 저장 실패의 무표시 재시도를 유지한다. 외형과 이벤트 순서를 대단원 리뷰에서 함께 확인한다.
+
+### 6. 테스트 구성과 준비 코드 정리
+
+**수정 및 이동.** 각 기능을 바꾼 단계에서 테스트 import와 준비 코드도 함께 전환한다. 여기서는 남은 중복을 정리한다. `note-detail-page.browser.test.tsx`, `notes-data-provider.browser.test.tsx`와 `text-analysis-provider.browser.test.tsx`의 운영 Provider 구현 Props를 해당 slice의 테스트 Provider로 바꾼다. 공통 준비가 실제로 반복될 때만 slice 내부의 `testing/`에 분리한다.
+
+`e2e/notes.spec.ts`는 본문 저장, 모바일 편집 및 이탈, 보드 조작별로 기존 시나리오를 옮긴다. 기존 모델별 spec과 겹치는 준비만 `e2e/support`의 실제 행동 및 읽기 도우미로 통합한다. 고정 사례, 생성 행동, 정답 모델과 실제 실행은 서로 구분한다. 새 파일은 테스트의 과업이 식별되는 이름을 사용한다.
+
+**유지 및 삭제 조건.** `read-stored-note.ts`와 실제 IndexedDB 이전 검사는 보존한다. 같은 과업을 검사하더라도 단위, 실제 DB와 E2E의 실패 조건이 다르면 중복으로 지우지 않는다. 테스트를 삭제하려면 대체 검사가 보호하던 정상, 실패와 취소 결과를 모두 검사함을 먼저 확인한다. 범용 가짜 repository와 사용하지 않는 메서드는 이를 쓰던 코드가 전환된 뒤 제거한다.
+
+Provider 및 모델 동작을 검사할 때는 운영 모델을 실행하고 외부 호출만 대체한다. Context에 테스트가 만든 최종 상태와 명령을 공급해 자동 저장, 큐와 재시도 모델을 건너뛰지 않는다. 순수 UI 표시 검사와 전체 저장 과업의 검사를 구분한다.
+
+**패턴과 근거.** [Playwright 격리](https://playwright.dev/docs/browser-contexts)와 [Vitest 브라우저 컴포넌트 검사](https://vitest.dev/guide/browser/component-testing)를 적용한다. 테스트마다 root, DB, timer, Worker, 채널과 잠금을 정리한다. 실제 동기화는 같은 BrowserContext의 여러 페이지에서 검사하고 독립 테스트는 서로 분리한다.
+
+**TDD: 없음.** 기존 행동 검사의 재구성이다. 새 사례를 늘리는 단계가 아니다. 옮기기 전후 수집한 시나리오와 실행 결과를 대조하고, act 경고는 비동기 조작과 정리 완료를 기다리는 방식으로 해결하며 console을 막지 않는다. 예상값에 운영 알고리즘을 재사용하거나 실패를 가리는 timeout 확대와 force click을 하지 않는다.
+
+**완료 조건.** 기존 `vitest.config.ts`, `vitest.browser.config.ts`와 `playwright.config.ts`의 실행 구분을 유지한다. 파일 이동으로 testMatch 밖에 빠진 검사가 없고 생성형 테스트의 seed 및 축소 결과 재현이 유지되는지 대단원 리뷰에서 확인한다. 새 실행기와 의존성은 도입하지 않는다.
+
+### 7. 전체 동작, 화면과 실행 환경 인수
+
+**추가 및 정리.** 신규 기능 코드나 테스트는 만들지 않는다. 전환이 끝난 composition, 재수출과 호출 없는 도우미를 제거한다. 각 slice의 최종 export, FSD 방향, 직접 및 간접 순환, 실제 소비 Props, 테스트 전용 코드의 운영 import 여부를 확인한다. `_app`에 남은 각각의 연결에는 앱 전체 수명이나 기능 조합의 이유가 있어야 한다.
+
+**실행과 목적.** `pnpm notes:lint`, `pnpm notes:typecheck`, `pnpm notes:test`, `pnpm --filter notes-app test:browser`, `pnpm notes:test:e2e`를 실행한다. E2E 스크립트가 운영 빌드도 수행한다. 같은 자료로 1단계의 화면과 조작을 비교하고 입력 시 다른 카드의 재렌더링, 반복 이동 뒤 연결 및 구독 증가와 Worker 정리를 확인한다. Profiler 수치만을 위해 state나 측정 코드를 운영 앱에 추가하지 않는다.
+
+**패턴과 근거.** 관찰 가능한 동작을 보존하는 점진적 리팩터링과 [Next.js 데이터 보안 지침](https://nextjs.org/docs/app/guides/data-security)을 적용한다. 서버 전용 모듈이 브라우저 import에 섞이지 않고 메모 내용이 HTML로 해석되지 않는지 확인한다. 현재 없는 계정 A/B 격리 검사는 서버 백로그에 남긴다.
+
+**TDD: 없음.** 전체 결과와 실행 환경을 확인하는 단계다. 최종 코드 리뷰 한 번에서 요구사항, 변경 파일과 관찰 결과를 대조하고 확인된 결함을 반영한다. 결함을 고친 경우 해당 검사만 다시 실행하되 영향 범위가 넓으면 필요한 회귀까지 확장한다. 실행하지 못한 환경은 미확인으로 남기고 통과한 검사만 완료 증거로 기록한다.
+
+### 중단 조건
+
+사용자가 보는 결과나 저장 자료를 바꿔야만 구조를 바꿀 수 있는 경우 해당 절차를 멈춘다. 요구사항에서 정하지 않은 상태 초기화, 복원 수명 변경, 서버 도입이나 새 영구 저장이 필요하면 임의로 진행하지 않는다. 단순 파일 배치 선택, 기존 동작을 유지하는 함수 분리와 import 수정은 이 계획 안에서 결정한다.
+
 ## 여러 창 편집과 모바일 목록 순서 구현 계획
 
 이번 작업은 [여러 창 편집, 자동 저장, 삭제 복원과 모바일 순서](requirements.md#모바일-메모-목록의-순서) 및 [IndexedDB 스키마 개선](requirements.md#indexeddb-스키마-개선)을 따른다. 아래 순서로 진행한다. 뒤의 U 번호는 이전 구현 기록이다. 서버 저장 전환, 기기 간 동기화, 미저장 입력까지 복원하는 기능은 이번 배포에서 제외한다.
@@ -188,13 +312,13 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 
 ## 전체 진행 상태와 남은 작업
 
-[현재 요구사항](requirements.md)에 따른 우선순위 화면 개선은 구현과 설치된 브라우저 검사를 마쳤다. 다음 현장 확인은 모바일 편집이며, 다음 개발 단계는 후순위 서버 저장 전환이다. 현재 메모는 브라우저의 IndexedDB에 저장된다.
+[현재 요구사항](requirements.md)에 따른 우선순위 화면 개선과 여러 창 편집은 위 구현 기록의 범위에서 검사를 마쳤다. 다음 개발 대상은 [기능과 UI UX를 보존하는 구조 개선](#기능과-ui-ux를-보존하는-구조-개선-계획)이다. 실제 휴대전화의 모바일 편집 확인과 대표 자료량 측정은 별도 조건을 유지한다. 현재 메모는 브라우저의 IndexedDB에 저장되며 서버 저장 방식은 아직 확정하지 않았다.
 
 여러 창의 본문 편집에는 [기준 본문과 CRDT 변경분 저장](requirements.md#indexeddb-스키마-개선)을 적용한다. 기존 초안 저장과 revision 검사는 이전 구현 기록이다. 변경분의 중복 전달, 정리와 새 쓰기의 동시 실행, 구버전 초안 이전, 메모별 저장 표시등을 확인해야 한다. [다른 창에서 삭제한 경우](requirements.md#편집-중-다른-창에서-메모를-삭제한-경우)의 모바일 복원은 변경분 일부만 저장한 상태에서 확인한다. 복원 뒤 이전 자동 저장을 다시 전달해도 삭제 전에 저장된 본문만 보여야 한다.
 
 [모바일 목록 순서](requirements.md#모바일-메모-목록의-순서)는 기존 ID 배열을 메모별 `notes.position`으로 옮긴 뒤 이전 목록과 비교한다. 두 창에서 새 메모 추가와 드래그의 저장 순서를 바꿔 보고, 두 변경이 모두 반영되어 새로고침 후에도 같은 목록이 보이는지 확인한다. 아래 U47과 U48의 순서 저장소 및 revision 검사는 이전 구현에 해당한다.
 
-데스크탑과 모바일의 [본문 자동 저장 실패](requirements.md#본문-자동-저장-실패) 처리 변경은 아직 구현 전이다. 아래 구현 기록의 오류 표시와 재시도 버튼은 이전 화면의 동작이다. 새 완료 기준은 저장을 한 번 실패시킨 뒤에도 편집을 이어가고 별도 조작 없이 마지막 입력까지 저장되는지다.
+데스크탑과 모바일의 [본문 자동 저장 실패](requirements.md#본문-자동-저장-실패)는 현재 내부 재시도로 처리한다. 아래 과거 기록의 오류 표시와 재시도 버튼을 되살리지 않는다. 구조 개선에서도 실패 후 추가 입력이 별도 조작 없이 저장되는 결과를 보존한다.
 
 ### 구현을 마친 화면
 
@@ -211,7 +335,7 @@ origin: docs/designs/personal-notes-app-8fd/requirements.md
 ### 후순위와 검증 환경
 
 - 다른 카드 위를 지날 때의 강조 테두리는 후순위다. 최근 사용에서는 현상이 보이지 않았고 Chromium 터치 검사에서도 재현되지 않았다. 다시 관찰되면 기종, 브라우저, 화면과 조작 순서로 재현한다.
-- 오프라인 편집과 재접속 동기화, 여러 탭의 동시 편집 및 드래그, 모바일 원본 목록의 드래그 대체 조작은 백로그다. 라이브러리 패키지와 포트폴리오 연결 등 장기 항목은 [요구사항의 백로그](requirements.md#초기-범위에서-제외한-백로그)에 있다.
+- 오프라인 편집과 재접속 동기화, 현재 대응 범위 밖의 삭제 및 복원과 드래그 조합, 모바일 원본 목록의 드래그 대체 조작은 백로그다. 여러 창의 본문 병합 및 새 메모 추가와 기존 메모 드래그는 현재 보존 대상이다. 라이브러리 패키지와 포트폴리오 연결 등 장기 항목은 [요구사항의 백로그](requirements.md#초기-범위에서-제외한-백로그)에 있다.
 - 현재 검증에는 설치된 브라우저만 사용한다. VoiceOver와 별도 설치가 필요한 최소 버전 검사는 보류한다. 이전 배포본에서 수집한 수치와 로컬 실행 결과를 구분한다. 현 버전을 배포할 때 실제 기기의 주소 표시줄, 안전 영역, 화면 회전, 첫 이동과 반복 이동 시간은 배포본에서 별도로 확인한다.
 
 ## 모바일 페이지 헤더 높이
