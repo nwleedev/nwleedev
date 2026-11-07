@@ -50,6 +50,7 @@ const dependencyPolicies = [
     allow: {
       to: [
         element("page", pagePublicEntryPoint),
+        element("shared", "composition.browser.ts"),
         element("widget", publicEntryPoint),
         ...allowPublicEntries(["feature", "entity", "shared"]),
       ],

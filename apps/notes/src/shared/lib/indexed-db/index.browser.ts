@@ -1,8 +1,7 @@
 import "client-only"
 
-export interface IndexedDbConnection {
-  get(): Promise<IDBDatabase>
-}
+export type { IndexedDbConnection } from "./connection"
+export { useDatabaseConnection } from "./connection-context"
 
 type OpenIndexedDatabaseOptions = {
   name: string

@@ -22,7 +22,7 @@ import { z } from "zod"
 import { EntityIdSchema } from "@/shared/lib/entity-metadata"
 import type { ClipboardWriter } from "@/shared/lib/clipboard"
 
-import type { NoteStorageMonitor } from "./note-storage-monitor"
+import type { IndexedDbMonitor } from "@/shared/lib/indexed-db"
 import {
   copyNote as executeCopyNote,
   type CopyNoteResult,
@@ -87,7 +87,7 @@ export type NotesDataDependencies = {
   repository: NoteRepository
   readMobileOrder(): Promise<MobileNoteOrder>
   moveMobileNote(input: MoveMobileNoteInput): Promise<MoveMobileNoteResult>
-  storageMonitor: NoteStorageMonitor
+  storageMonitor: IndexedDbMonitor
 }
 
 export function useNotesDataModel({

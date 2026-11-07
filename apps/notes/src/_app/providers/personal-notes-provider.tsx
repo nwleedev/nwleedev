@@ -11,22 +11,14 @@ import { SelectedSourceLinesProvider } from "@/features/suggest-template"
 import { ActionToastProvider } from "@/shared/ui/action-toast"
 
 import { Analysis } from "../composition/analysis"
-import type { PersonalNotesDatabase } from "../composition/indexed-db/personal-notes-database"
 import { MobileBatchCopy } from "../composition/mobile-batch-copy"
 import { Note } from "../composition/note"
 import { Preference } from "../composition/preference"
 import { Template } from "../composition/template"
-import { useDatabase } from "../composition/use-database"
+import { DatabaseProvider } from "./database-provider"
 import { BatchCopyProvider } from "./batch-copy-provider"
 
-type ConnectedProvidersProps = PropsWithChildren<{
-  database: PersonalNotesDatabase
-}>
-
-function ConnectedProviders({
-  children,
-  database,
-}: ConnectedProvidersProps) {
+function ConnectedProviders({ children }: PropsWithChildren) {
   const { forgetBatchCopyItem } = useNoteSessionCommands()
   const preferenceState = useInteractionPreferences()
   const batchCopyShortcutEnabled =
@@ -43,15 +35,11 @@ function ConnectedProviders({
       reorderButtonsEnabled={batchCopyReorderButtonsEnabled}
     >
       <BatchCopyProvider
-        database={database}
         onItemRemoved={forgetBatchCopyItem}
         reorderButtonsEnabled={batchCopyReorderButtonsEnabled}
       >
-        <Analysis database={database}>
-          <Note
-            batchCopyShortcutEnabled={batchCopyShortcutEnabled}
-            database={database}
-          >
+        <Analysis>
+          <Note batchCopyShortcutEnabled={batchCopyShortcutEnabled}>
             {children}
           </Note>
         </Analysis>
@@ -60,23 +48,20 @@ function ConnectedProviders({
   )
 }
 
-
 export function PersonalNotesProvider({ children }: PropsWithChildren) {
-  const database = useDatabase()
-
   return (
-    <ActionToastProvider>
-      <Preference database={database}>
-        <SelectedSourceLinesProvider>
-          <Template database={database}>
-            <NoteSessionProvider now={Date.now}>
-              <ConnectedProviders database={database}>
-                {children}
-              </ConnectedProviders>
-            </NoteSessionProvider>
-          </Template>
-        </SelectedSourceLinesProvider>
-      </Preference>
-    </ActionToastProvider>
+    <DatabaseProvider>
+      <ActionToastProvider>
+        <Preference>
+          <SelectedSourceLinesProvider>
+            <Template>
+              <NoteSessionProvider now={Date.now}>
+                <ConnectedProviders>{children}</ConnectedProviders>
+              </NoteSessionProvider>
+            </Template>
+          </SelectedSourceLinesProvider>
+        </Preference>
+      </ActionToastProvider>
+    </DatabaseProvider>
   )
 }

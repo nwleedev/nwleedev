@@ -5,7 +5,6 @@ import type { PropsWithChildren } from "react"
 import { AddNoteToBatchCopyProvider } from "@/features/add-note-to-batch-copy"
 import { EditBatchCopyProvider } from "@/features/edit-batch-copy"
 
-import type { PersonalNotesDatabase } from "../composition/indexed-db/personal-notes-database"
 import { useBatchCopyServices } from "../composition/use-batch-copy-services"
 import {
   useBatchCopyState,
@@ -13,18 +12,15 @@ import {
 } from "./use-batch-copy-state"
 
 type BatchCopyProviderProps = PropsWithChildren<
-  Pick<BatchCopyDependencies, "onItemRemoved" | "reorderButtonsEnabled"> & {
-    database: PersonalNotesDatabase
-  }
+  Pick<BatchCopyDependencies, "onItemRemoved" | "reorderButtonsEnabled">
 >
 
 export function BatchCopyProvider({
   children,
-  database,
   onItemRemoved,
   reorderButtonsEnabled,
 }: BatchCopyProviderProps) {
-  const services = useBatchCopyServices(database)
+  const services = useBatchCopyServices()
   const { add, editorState, ready } = useBatchCopyState({
     ...services,
     onItemRemoved,

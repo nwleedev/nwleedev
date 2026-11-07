@@ -1,5 +1,8 @@
-import type { NoteStorageMonitor } from "@/_pages/notes/composition"
-import type { IndexedDbConnection } from "@/shared/lib/indexed-db/index.browser"
+import type {
+  IndexedDbConnection,
+  IndexedDbEvent,
+  IndexedDbMonitor,
+} from "@/shared/lib/indexed-db"
 
 import { openPersonalNotesDatabase } from "./open-personal-notes-database"
 
@@ -11,10 +14,10 @@ export class DatabaseConnectionClosedError extends Error {
 }
 
 export class PersonalNotesDatabase
-  implements IndexedDbConnection, NoteStorageMonitor
+  implements IndexedDbConnection, IndexedDbMonitor
 {
   readonly #listeners = new Set<
-    (event: "blocked" | "version-changed") => void
+    (event: IndexedDbEvent) => void
   >()
   #database: IDBDatabase | null = null
   #generation = 0
@@ -69,7 +72,7 @@ export class PersonalNotesDatabase
     return opening
   }
 
-  subscribe(listener: (event: "blocked" | "version-changed") => void) {
+  subscribe(listener: (event: IndexedDbEvent) => void) {
     this.#listeners.add(listener)
     return () => this.#listeners.delete(listener)
   }
@@ -81,7 +84,7 @@ export class PersonalNotesDatabase
     this.#opening = null
   }
 
-  #emit(event: "blocked" | "version-changed") {
+  #emit(event: IndexedDbEvent) {
     for (const listener of this.#listeners) {
       listener(event)
     }

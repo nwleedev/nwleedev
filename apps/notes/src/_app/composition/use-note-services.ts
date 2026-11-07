@@ -6,10 +6,10 @@ import {
 } from "@/entities/note/index.browser"
 import { BrowserClipboardWriter } from "@/shared/lib/clipboard"
 import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
+import { useDatabaseConnection } from "@/shared/lib/indexed-db/index.browser"
 
-import type { PersonalNotesDatabase } from "./indexed-db/personal-notes-database"
-
-export function useNoteServices(database: PersonalNotesDatabase) {
+export function useNoteServices() {
+  const database = useDatabaseConnection()
   const [services] = useState(() => {
     const identifiers = new CryptoEntityIdGenerator()
     const order = new IndexedDbMobileNoteOrderRepository(database)

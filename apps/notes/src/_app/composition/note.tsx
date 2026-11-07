@@ -2,21 +2,18 @@ import type { PropsWithChildren } from "react"
 
 import { NotesDataProvider } from "@/_pages/notes/composition"
 
-import type { PersonalNotesDatabase } from "./indexed-db/personal-notes-database"
 import { useNoteServices } from "./use-note-services"
 
 type NoteProps = PropsWithChildren<{
   batchCopyShortcutEnabled: boolean
-  database: PersonalNotesDatabase
 }>
 
 export function Note({
   batchCopyShortcutEnabled,
   children,
-  database,
 }: NoteProps) {
   const { clipboard, createId, now, repository, storageMonitor, readMobileOrder, moveMobileNote } =
-    useNoteServices(database)
+    useNoteServices()
 
   return (
     <NotesDataProvider

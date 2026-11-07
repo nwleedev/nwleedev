@@ -10,7 +10,7 @@ import type {
 import { NavigationGuardProvider } from "@/features/navigation-guard"
 
 import { NotesDataProvider } from "../model/notes-data-provider"
-import type { NoteStorageMonitor } from "../model/note-storage-monitor"
+import type { IndexedDbMonitor } from "@/shared/lib/indexed-db"
 import { NoteDetailPage } from "./note-detail-page"
 
 vi.mock("next/navigation", () => ({
@@ -67,7 +67,7 @@ function createStorage(initialNote: Note, rejectFirstSave = true) {
   }
 }
 
-const monitor: NoteStorageMonitor = {
+const monitor: IndexedDbMonitor = {
   subscribe: () => () => undefined,
 }
 

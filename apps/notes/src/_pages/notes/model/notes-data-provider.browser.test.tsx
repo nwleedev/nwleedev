@@ -6,9 +6,9 @@ import { page, userEvent } from "vitest/browser"
 
 import type { Note, NoteRepository } from "@/entities/note"
 import type {
-  NoteStorageEvent,
-  NoteStorageMonitor,
-} from "./note-storage-monitor"
+  IndexedDbEvent,
+  IndexedDbMonitor,
+} from "@/shared/lib/indexed-db"
 import {
   NotesDataProvider,
   useNotesData,
@@ -202,8 +202,8 @@ function createDelayedSaveRepository(note: Note) {
 }
 
 function createStorageMonitor() {
-  let listener: ((event: NoteStorageEvent) => void) | null = null
-  const monitor: NoteStorageMonitor = {
+  let listener: ((event: IndexedDbEvent) => void) | null = null
+  const monitor: IndexedDbMonitor = {
     subscribe(nextListener) {
       listener = nextListener
 
@@ -216,7 +216,7 @@ function createStorageMonitor() {
   }
 
   return {
-    emit(event: NoteStorageEvent) {
+    emit(event: IndexedDbEvent) {
       if (listener === null) {
         throw new Error("Storage monitor has no subscriber")
       }
@@ -244,7 +244,7 @@ describe("NotesDataProvider", () => {
 
   async function renderNotes(
     repository: NoteRepository,
-    storageMonitor: NoteStorageMonitor,
+    storageMonitor: IndexedDbMonitor,
   ) {
     await act(async () => {
       root.render(

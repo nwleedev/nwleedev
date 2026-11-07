@@ -3,10 +3,10 @@ import { useState } from "react"
 import { IndexedDbTemplateRepository } from "@/entities/template/index.browser"
 import { BrowserClipboardWriter } from "@/shared/lib/clipboard"
 import { CryptoEntityIdGenerator } from "@/shared/lib/id-generation"
+import { useDatabaseConnection } from "@/shared/lib/indexed-db/index.browser"
 
-import type { PersonalNotesDatabase } from "./indexed-db/personal-notes-database"
-
-export function useTemplateServices(database: PersonalNotesDatabase) {
+export function useTemplateServices() {
+  const database = useDatabaseConnection()
   const [services] = useState(() => {
     const identifiers = new CryptoEntityIdGenerator()
 
