@@ -8,6 +8,7 @@ const alphaOffset = 3
 const bytesPerPixel = 4
 const opaque = 255
 const scanRows = 64
+const previewDimension = 768
 const escapeCharacters = /[&<>"']/gu
 const xmlEntities: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }
 
@@ -77,17 +78,18 @@ function hasTransparency(context: OffscreenCanvasRenderingContext2D, width: numb
   return false
 }
 
-export async function render(request: ExportRequest): Promise<ExportResult> {
+export async function render(request: ExportRequest, previewScale = 1): Promise<ExportResult> {
   const { bounds, region, format, quality, images, paper, ink } = request
   if (!fitsOutput(bounds)) throw new Error("Export dimensions exceed limits")
   const svg = format === "svg"
   const { width, height } = bounds
-  const canvas = svg ? new OffscreenCanvas(1, 1) : new OffscreenCanvas(width, height)
+  const canvas = svg ? new OffscreenCanvas(1, 1) : new OffscreenCanvas(Math.ceil(width * previewScale), Math.ceil(height * previewScale))
   const context = canvas.getContext("2d", { colorSpace: "srgb", willReadFrequently: format === "jpg" })
   if (!context) throw new Error("Image export context unavailable")
   context.imageSmoothingQuality = "high"
   context.font = memoFont
   context.textBaseline = "top"
+  context.scale(previewScale, previewScale)
   context.translate(-bounds.x, -bounds.y)
   const clip = clipShape(region, bounds)
   if (clip) context.clip(clip.path)
@@ -145,7 +147,11 @@ export async function render(request: ExportRequest): Promise<ExportResult> {
   if (svg) {
     const start = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="${bounds.x} ${bounds.y} ${width} ${height}">`
     const mask = clip ? `<defs><clipPath id="selection">${clip.svg}</clipPath></defs><g clip-path="url(#selection)">` : ""
-    return { blob: new Blob([start, mask, ...markup, clip ? "</g></svg>" : "</svg>"], { type: "image/svg+xml" }), clippedMemo }
+    const blob = new Blob([start, mask, ...markup, clip ? "</g></svg>" : "</svg>"], { type: "image/svg+xml" })
+    if (Math.max(width, height) <= previewDimension) return { blob, clippedMemo }
+    const scale = previewDimension / Math.max(width, height)
+    const preview = await render({ ...request, format: "png" }, scale)
+    return { blob, previewBlob: preview.blob, clippedMemo }
   }
   if (format === "jpg" && hasTransparency(context, width, height)) return { clippedMemo, transparent: true }
   const type = format === "jpg" ? "image/jpeg" : "image/png"

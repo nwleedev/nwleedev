@@ -15,7 +15,7 @@ export type ExportRequest = {
   ink: string
   paper: string
 }
-export type ExportResult = { blob?: Blob; clippedMemo: boolean; transparent?: boolean }
+export type ExportResult = { blob?: Blob; previewBlob?: Blob; clippedMemo: boolean; transparent?: boolean }
 export type RenderExport = (request: ExportRequest, signal: AbortSignal) => Promise<ExportResult>
 
 export function exportImages(document: ProjectDocument): ExportImage[] {

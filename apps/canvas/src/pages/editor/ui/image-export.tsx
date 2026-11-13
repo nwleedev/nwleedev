@@ -49,7 +49,7 @@ export function ImageExport({ document, region, selectScope, scope, render, clos
     let url: string | undefined
     void render(request, controller.signal).then((result) => {
       if (controller.signal.aborted) return
-      if (result.blob && result.blob.size <= maximumExportBytes) url = URL.createObjectURL(result.blob)
+      if (result.blob && result.blob.size <= maximumExportBytes) url = URL.createObjectURL(result.previewBlob ?? result.blob)
       setPreview({ request, result, url })
     }).catch(() => {
       if (!controller.signal.aborted) setPreview({ request, failed: true })
