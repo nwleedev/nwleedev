@@ -1,0 +1,107 @@
+.projects-header,
+.projects {
+  padding-inline: clamp(1rem, 3vw, 3rem);
+}
+
+.projects-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.projects-logo {
+  width: 3.5rem;
+  height: 1.375rem;
+  background: var(--placeholder);
+}
+
+.projects-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.projects-actions button {
+  display: grid;
+  place-items: center;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.projects-actions .projects-create {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.projects-actions button:disabled {
+  opacity: 0.65;
+}
+
+.projects-actions svg {
+  width: 1.375rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.projects {
+  padding-block: clamp(2rem, 5vw, 5rem);
+}
+
+.projects h1 {
+  margin: 0 0 1.75rem;
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.projects-empty,
+.project-card time {
+  color: var(--muted);
+}
+
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-card {
+  display: block;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.project-preview {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 5 / 4;
+  border-radius: 0.5rem;
+  background: var(--placeholder);
+  overflow: clip;
+}
+
+.project-preview img {
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
+  object-fit: contain;
+}
+
+.project-card h2 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 1.125rem;
+}

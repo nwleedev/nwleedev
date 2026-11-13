@@ -22,7 +22,7 @@ const lowerLayerPolicies = layers.slice(0, -1).map((type, index) => ({
     to: layers.slice(index + 1).map((target) => ({
       element: {
         type: target,
-        fileInternalPath: target === "shared" ? `**/${publicEntry}` : publicEntry,
+        fileInternalPath: target === "shared" ? [`**/${publicEntry}`, "styles/index.css"] : publicEntry,
       },
     })),
   },

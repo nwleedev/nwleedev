@@ -1,0 +1,41 @@
+:root {
+  --accent: #ee5165;
+  --on-accent: #fff;
+  --surface: #fff;
+  --text: #242321;
+  --muted: #625f5b;
+  --line: #d8d5cf;
+  --placeholder: #eeece8;
+  --focus: #a92340;
+  font-family: Inter, system-ui, sans-serif;
+  color: var(--text);
+  background: var(--surface);
+}
+
+body {
+  margin: 0;
+}
+
+:is(button, a):focus {
+  outline: none;
+}
+
+:is(button, a):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -1px;
+}
+
+:is(input, select, textarea):focus {
+  outline: none;
+  border-color: var(--focus);
+}
+
+@media (forced-colors: active) {
+  :is(button, a):focus-visible {
+    outline-color: Highlight;
+  }
+
+  :is(input, select, textarea):focus {
+    border-color: Highlight;
+  }
+}
