@@ -539,6 +539,10 @@ IndexedDB v4에 메모 변경분을 저장하고 커밋을 다른 탭에 알린�
 - 모바일에서 드래그, 스크롤, 두 손가락 확대와 축소를 연이어 수행할 때 동작이 충돌하는지 확인한다. 확대율을 변경한 뒤에도 화면이 입력에 응답하는지 확인한다.
 - 편집 이력을 제공할지, 제공한다면 어떤 변경을 기록할지 정한다. 오프라인에서 앱을 처음 여는 경우와 다시 여는 경우에 각각 어떤 동작을 제공할지도 정한다.
 
+[내보내기 절차](docs/designs/image-annotation-canvas-2cb1ec/plan.md#이미지-내보내기와-여백)에서 초기 한도의 브라우저 측정 항목을 확인한다. 수치는 기준 배치로 산정했으며 합성 성능은 아직 측정하지 않았다.
+
+[캔버스 화면 이동과 확대](docs/designs/image-annotation-canvas-2cb1ec/plan.md#캔버스-화면-이동과-확대)는 이미지 내보내기 전에 진행한다. 편집 화면 렌더링의 측정 조건은 [화면 통합과 배포 확인](docs/designs/image-annotation-canvas-2cb1ec/plan.md#화면-통합과-배포-확인)에 있다.
+
 ## HTML 시안 검토
 
 [목록 헤더와 불러오기](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#로컬-프로젝트-관리), [내보내기 패널](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#이미지-파일로-저장)의 최신 기준을 시안에 적용한다. 새 프로젝트와 불러오기 아이콘은 도움말을 열기 전에 각 동작을 구별할 수 있는지 확인한다. 전체 내보내기 시안에서는 여백 0px와 24px의 미리보기를 비교한다.
