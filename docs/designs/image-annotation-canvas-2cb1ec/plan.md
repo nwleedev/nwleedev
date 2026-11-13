@@ -162,7 +162,7 @@ Chrome DevTools의 Performance 패널에서 CPU 제한을 보정한다. 동일�
 
 저장 버튼을 누른 뒤 다운로드 완료까지, 파일을 선택한 뒤 미리보기까지, 불러오기 확인 뒤 첫 이미지 표시까지의 시간을 각각 잰다. ZIP 크기, 압축 해제 후 총량, 항목 수와 원본 픽셀 수를 함께 기록한다. 프레임 간격과 입력 지연을 구분하고, JS 힙과 브라우저 메모리 사용량을 따로 기록한다. 측정 후 초기 한도를 정하고 저장과 불러오기 양쪽에서 한도 이내와 초과를 검사한다. [Chrome DevTools 메모리 측정](https://developer.chrome.com/docs/devtools/memory-problems)
 
-데스크톱에서는 ZIP 쓰기와 읽기, 다운로드, 미리보기와 편집 재개를 세 작업량으로 측정했다. 프레임 간격, Chromium 프로세스 RSS 및 포인터 이벤트 전달 시간을 표본으로 기록했다. 이 기록을 CPU 제한 없음 조건의 비교 자료로 사용한다. [데스크톱 ZIP 처리 시간](references/editable-file-format.md#데스크톱-zip-처리-시간)
+데스크톱에서는 ZIP 쓰기와 읽기, 다운로드, 미리보기와 편집 재개를 세 작업량으로 측정했다. 프레임 간격, Chromium 프로세스 RSS 및 포인터 이벤트 전달 시간을 표본으로 기록했다. 이 기록을 CPU 제한 없음 조건의 비교 자료로 사용한다. CPU 제한 예비 측정도 기록했다. 두 실행이 일부 겹쳐 한도는 순차 재측정 뒤에 정한다. [CPU 제한 예비 측정](references/editable-file-format.md#cpu-제한-예비-측정) [데스크톱 ZIP 처리 시간](references/editable-file-format.md#데스크톱-zip-처리-시간)
 
 ZIP 생성은 저장소에서 읽은 문서를 전달받은 Worker가 처리한다. Chromium에서 다운로드 및 불러오기를 다시 검증했다. 237.50 MB 파일을 저장 버튼으로 다운로드할 때 화면 공백을 관측했으나 단계별 실행에서는 재현하지 못했다. [단계별 프레임 간격](references/editable-file-format.md#zip-저장-단계별-프레임-간격)
 
