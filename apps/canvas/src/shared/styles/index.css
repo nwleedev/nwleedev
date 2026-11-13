@@ -40,3 +40,50 @@ body {
     border-color: Highlight;
   }
 }
+
+.choice {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.choice-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.625rem;
+  min-height: 2rem;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.choice-trigger[data-focused],
+.choice-trigger[data-pressed] {
+  border-color: var(--focus);
+  outline: none;
+}
+
+.choice-popover {
+  min-width: var(--trigger-width);
+  padding: 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+  background: var(--surface);
+}
+
+.choice-popover [role="option"] {
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.125rem;
+}
+
+.choice-popover [role="option"][data-focused] {
+  outline: 1px solid var(--focus);
+}
+
+.choice-popover [role="option"][data-selected] {
+  color: var(--accent-ink);
+  font-weight: 600;
+}

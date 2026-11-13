@@ -1,3 +1,8 @@
+import { Input } from "react-aria-components/Input"
+import { Label } from "react-aria-components/Label"
+import { TextArea } from "react-aria-components/TextArea"
+import { TextField } from "react-aria-components/TextField"
+import { Button } from "react-aria-components/Button"
 import { useCallback, useRef, useState } from "react"
 import { Link } from "react-router"
 
@@ -36,6 +41,7 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
   const [zoomHost, setZoomHost] = useState<HTMLDivElement | null>(null)
   const [scope, setScope] = useState<"all" | Region["kind"]>("all")
   const [region, setRegion] = useState<Region>()
+  const [inspectorOpen, setInspectorOpen] = useState(false)
   const [selected, select] = useState<string>()
   const [placementFailed, setPlacementFailed] = useState(false)
   const [memoResizeFailed, setMemoResizeFailed] = useState(false)
@@ -85,7 +91,7 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
   }
 
   return (
-    <main>
+    <main className="editor-page">
       <header className="editor-header">
         <div className="editor-document">
           <Link to="/">프로젝트 목록</Link>
@@ -102,7 +108,7 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
           }} />
           <div className="editor-output-actions">
             <div ref={setZoomHost} />
-            <button className="image-export-trigger" type="button" aria-expanded={exporting} disabled={openingExport || (exportRevision !== undefined && !exporting)} onClick={() => void toggleExport()}>이미지 내보내기</button>
+            <Button className="image-export-trigger" type="button" aria-expanded={exporting} isDisabled={openingExport || (exportRevision !== undefined && !exporting)} onPress={() => void toggleExport()}>이미지 내보내기</Button>
           </div>
         </div>
       </header>
@@ -125,6 +131,17 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
             }
           }}
         />
+        {!exporting && <div className="editor-touch-tools">
+          <Button
+            type="button"
+            aria-expanded={inspectorOpen}
+            aria-controls="editor-inspector"
+            isDisabled={!selectedId && !inspectorOpen}
+            onPress={() => setInspectorOpen(!inspectorOpen)}
+          >
+            {inspectorOpen ? "캔버스 편집" : "이미지 속성"}
+          </Button>
+        </div>}
         {exporting ? <ImageExport
           document={document}
           scope={scope}
@@ -135,7 +152,7 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
           }}
           render={renderExport}
           close={() => setExportRevision(undefined)}
-        /> : <aside className="editor-inspector" aria-label="이미지 속성">
+        /> : <aside id="editor-inspector" className="editor-inspector" aria-label="이미지 속성" data-mobile-open={inspectorOpen}>
           {original && (
             <div className="editor-selection">
               <BlobImage original={original.original} alt="선택한 이미지" />
@@ -165,15 +182,13 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
           ))}
           {placement && original && (
             <div className="editor-image-width">
-              <label>
-                이미지 너비 (px)
-                <input
-                  key={`${placement.id}:${placement.width}`}
+              <TextField key={`${placement.id}:${placement.width}`} defaultValue={String(placement.width)}>
+                <Label>이미지 너비 (px)</Label>
+                <Input
                   type="number"
                   min={1}
                   max={original.originalWidth}
                   step="any"
-                  defaultValue={placement.width}
                   onBlur={({ currentTarget }) => {
                     const width = currentTarget.valueAsNumber
                     if (!currentTarget.validity.valid || !Number.isFinite(width)) {
@@ -188,26 +203,26 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
                     if (event.key === "Enter") event.currentTarget.blur()
                   }}
                 />
-              </label>
-              <button
+              </TextField>
+              <Button
                 type="button"
-                disabled={placement.width === original.originalWidth}
-                onClick={() => void editPlacement(placement.id, {
+                isDisabled={placement.width === original.originalWidth}
+                onPress={() => void editPlacement(placement.id, {
                   kind: "size",
                   ...imageSizeAtWidth(original, original.originalWidth),
                 })}
               >
                 원본 크기로 복원
-              </button>
+              </Button>
             </div>
           )}
         </aside>}
       </div>
       {Array.from(unsaved, ([id, value]) => (
-        <label key={id}>
-          저장하지 못한 메모
-          <textarea readOnly value={value} />
-        </label>
+        <TextField key={id} isReadOnly value={value}>
+          <Label>저장하지 못한 메모</Label>
+          <TextArea />
+        </TextField>
       ))}
     </main>
   )

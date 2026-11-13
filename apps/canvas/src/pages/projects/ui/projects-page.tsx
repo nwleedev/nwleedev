@@ -1,3 +1,4 @@
+import { Button } from "react-aria-components/Button"
 import { Link } from "react-router"
 
 import type { ProjectDocument } from "@/entities/project"
@@ -35,9 +36,9 @@ export function ProjectsPage({ projects = [], readPreview, onCreate, readArchive
       <header className="projects-header">
         <span className="projects-logo" aria-hidden="true" />
         <div className="projects-actions">
-          <button type="button" className="projects-create" aria-label="새 프로젝트" title="새 프로젝트" onClick={onCreate} disabled={!onCreate}>
+          <Button type="button" className="projects-create" aria-label="새 프로젝트" onPress={onCreate} isDisabled={!onCreate}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-          </button>
+          </Button>
           <ProjectImport read={readArchive} restore={restore} />
         </div>
       </header>

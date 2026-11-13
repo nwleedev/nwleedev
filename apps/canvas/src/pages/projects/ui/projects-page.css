@@ -136,3 +136,17 @@
   background: var(--surface);
   color: var(--text);
 }
+
+.project-import-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  overflow: auto;
+  background: rgb(0 0 0 / 35%);
+}
+
+.project-import [role="dialog"]:focus {
+  outline: none;
+}

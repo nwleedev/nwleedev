@@ -13,3 +13,5 @@ export function BlobImage({ original, alt }: { original: Blob; alt: string }) {
 
   return <img ref={image} alt={alt} />
 }
+
+export { Choice } from "./choice"

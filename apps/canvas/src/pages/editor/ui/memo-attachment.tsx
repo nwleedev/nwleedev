@@ -1,6 +1,9 @@
+import { Button } from "react-aria-components/Button"
 import { useState } from "react"
 
 import type { Memo } from "@/entities/project"
+
+import { Choice } from "@/shared/ui"
 
 const sides = { top: "위", right: "오른쪽", bottom: "아래", left: "왼쪽" } satisfies Record<Memo["side"], string>
 
@@ -29,17 +32,10 @@ export function MemoAttachment({ memo, onAdd, onChange }: Props) {
   return (
     <div>
       {memo ? (
-        <label>
-          메모 부착 방향
-          <select value={memo.side} disabled={pending} onChange={({ currentTarget }) => {
-            const side = currentTarget.value as Memo["side"]
-            void commit(() => onChange(memo.id, side))
-          }}>
-            {Object.entries(sides).map(([side, label]) => <option key={side} value={side}>{label}</option>)}
-          </select>
-        </label>
+        <Choice label="메모 부착 방향" value={memo.side} options={sides} isDisabled={pending}
+          onChange={(side) => void commit(() => onChange(memo.id, side))} />
       ) : (
-        <button type="button" disabled={pending} onClick={() => void commit(onAdd)}>메모 추가</button>
+        <Button type="button" isDisabled={pending} onPress={() => void commit(onAdd)}>메모 추가</Button>
       )}
       {failed && <p role="alert">메모 부착 정보를 저장하지 못했습니다.</p>}
     </div>

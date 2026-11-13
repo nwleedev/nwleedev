@@ -1,4 +1,4 @@
-import { createMemoText, type Memo, type Placement, type ProjectDocument } from "@/entities/project"
+import { readMemoBodies, type Memo, type Placement, type ProjectDocument } from "@/entities/project"
 
 export const manifestName = "manifest.json"
 export const format = "nwlee.canvas"
@@ -18,12 +18,7 @@ export function originalEntry(index: number) {
 }
 
 export function buildManifest(document: ProjectDocument): Manifest {
-  const updates = new Map<string, Uint8Array[]>()
-  for (const { memoId, payload } of document.memoUpdates) {
-    const group = updates.get(memoId)
-    if (group) group.push(payload)
-    else updates.set(memoId, [payload])
-  }
+  const bodies = readMemoBodies(document.memoUpdates)
 
   return {
     format,
@@ -35,13 +30,6 @@ export function buildManifest(document: ProjectDocument): Manifest {
     placements: document.placements.map(({ id, assetId, x, y, width, height, zIndex, quality }) => ({
       id, assetId, x, y, width, height, zIndex, quality,
     })),
-    memos: document.memos.map((memo) => {
-      const text = createMemoText(updates.get(memo.id))
-      try {
-        return { ...memo, body: text.read() }
-      } finally {
-        text.destroy()
-      }
-    }),
+    memos: document.memos.map((memo) => ({ ...memo, body: bodies.get(memo.id) ?? "" })),
   }
 }

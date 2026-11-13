@@ -1,7 +1,13 @@
+import { Button } from "react-aria-components/Button"
+import { Input } from "react-aria-components/Input"
+import { Label } from "react-aria-components/Label"
+import { NumberField } from "react-aria-components/NumberField"
+import { Slider, SliderThumb, SliderTrack } from "react-aria-components/Slider"
 import { useEffect, useMemo, useState } from "react"
 
 import type { ProjectDocument } from "@/entities/project"
 
+import { Choice } from "@/shared/ui"
 import { fitsOutput, maximumExportBytes, maximumExportMargin } from "@/shared/export"
 import { exportImages, requestBounds, type ExportFormat, type ExportRequest, type ExportResult, type Region, type RenderExport } from "../model/export-request"
 import { downloadBlob, downloadName } from "../model/download"
@@ -16,8 +22,22 @@ type Props = {
   close: () => void
 }
 type Preview = { request: ExportRequest; result: ExportResult; url?: string } | { request: ExportRequest; failed: true }
+const formats = { png: "PNG", svg: "SVG", jpg: "JPG" } satisfies Record<ExportFormat, string>
+const scopes = { all: "전체", rectangle: "사각형", ellipse: "원형", freehand: "자유형" } satisfies Record<Scope, string>
 const maximumQuality = 100
 const mib = 1024 ** 2
+
+function QualitySlider({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+  return (
+    <Slider className="quality-slider" minValue={1} maxValue={maximumQuality} value={value} onChange={onChange}>
+      <Label>{label}</Label>
+      <span aria-hidden="true">{value}%</span>
+      <SliderTrack className="quality-track">
+        <SliderThumb className="quality-thumb" />
+      </SliderTrack>
+    </Slider>
+  )
+}
 
 export function ImageExport({ document, region, selectScope, scope, render, close }: Props) {
   const [format, setFormat] = useState<ExportFormat>("png")
@@ -67,48 +87,24 @@ export function ImageExport({ document, region, selectScope, scope, render, clos
   const tooLarge = output && output.size > maximumExportBytes
 
   return <section className="image-export" aria-label="이미지 내보내기 설정">
-    <button type="button" onClick={close}>닫기</button>
-    <label>형식
-      <select aria-label="형식" value={format} onChange={({ currentTarget }) => {
-        const next = currentTarget.value
-        if (next === "png" || next === "jpg" || next === "svg") setFormat(next)
+    <Button type="button" onPress={close}>닫기</Button>
+    <Choice label="형식" value={format} options={formats} onChange={setFormat} />
+    <Choice label="범위" value={scope} options={scopes} onChange={selectScope} />
+    {scope === "all" && <NumberField className="export-number" minValue={0} maxValue={maximumExportMargin}
+      step={1} value={margin} onChange={(value) => {
+        if (Number.isInteger(value)) setMargin(value)
       }}>
-        <option value="png">PNG</option>
-        <option value="svg">SVG</option>
-        <option value="jpg">JPG</option>
-      </select>
-    </label>
-    <label>범위
-      <select aria-label="범위" value={scope} onChange={({ currentTarget }) => {
-        const next = currentTarget.value
-        if (next !== "all" && next !== "rectangle" && next !== "ellipse" && next !== "freehand") return
-        selectScope(next)
-      }}>
-        <option value="all">전체</option>
-        <option value="rectangle">사각형</option>
-        <option value="ellipse">원형</option>
-        <option value="freehand">자유형</option>
-      </select>
-    </label>
-    {scope === "all" && <label>여백 (px)
-      <input type="number" min={0} max={maximumExportMargin} step={1} value={margin} onChange={({ currentTarget }) => {
-        const next = currentTarget.valueAsNumber
-        if (Number.isInteger(next) && next >= 0 && next <= maximumExportMargin) setMargin(next)
-      }} />
-    </label>}
+      <Label>여백 (px)</Label>
+      <Input />
+    </NumberField>}
     {format === "jpg" && <>
       <p>JPG는 흰색 배경으로 저장되며 손실 압축을 적용합니다.</p>
-      <label>전체 JPG 품질 <span aria-hidden="true">{quality}%</span>
-        <input type="range" min={1} max={maximumQuality} value={quality} onChange={({ currentTarget }) => setQuality(currentTarget.valueAsNumber)} />
-      </label>
+      <QualitySlider label="전체 JPG 품질" value={quality} onChange={setQuality} />
       {images.map(({ id, quality }, index) => {
         const percent = Math.round((imageQualities.get(id) ?? quality) * maximumQuality)
-        return <label key={id}>이미지 {index + 1} 품질 <span aria-hidden="true">{percent}%</span>
-          <input type="range" min={1} max={maximumQuality} value={percent} onChange={({ currentTarget }) => {
-            const value = currentTarget.valueAsNumber / maximumQuality
-            setImageQualities((previous) => new Map(previous).set(id, value))
-          }} />
-        </label>
+        return <QualitySlider key={id} label={`이미지 ${index + 1} 품질`} value={percent} onChange={(value) => {
+          setImageQualities((previous) => new Map(previous).set(id, value / maximumQuality))
+        }} />
       })}
     </>}
     <p>{filename}</p>
@@ -121,8 +117,8 @@ export function ImageExport({ document, region, selectScope, scope, render, clos
     {output && <p>예상 용량 {(output.size / mib).toFixed(2)} MiB</p>}
     {tooLarge && <p role="alert">64 MiB를 초과했습니다. 영역이나 형식을 조정해 주세요.</p>}
     {current && "url" in current && current.url && <img src={current.url} alt="내보내기 미리보기" />}
-    <button type="button" disabled={!output || !!tooLarge} onClick={() => {
+    <Button type="button" isDisabled={!output || !!tooLarge} onPress={() => {
       if (output && !tooLarge) downloadBlob(output, filename)
-    }}>이미지 저장</button>
+    }}>이미지 저장</Button>
   </section>
 }

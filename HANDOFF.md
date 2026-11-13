@@ -549,6 +549,8 @@ IndexedDB v4에 메모 변경분을 저장하고 커밋을 다른 탭에 알린�
 
 ## HTML 시안 검토
 
+화면 통합 검증을 재개하기 전에 [React Aria 기반 UI 정비](docs/designs/image-annotation-canvas-2cb1ec/plan.md#react-aria-기반-ui-정비)를 진행한다. 데스크톱과 모바일 시안을 각각 정리하고 최신 요구사항에 맞는 도구 배치와 편집 흐름을 확인한다.
+
 [목록 헤더와 불러오기](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#로컬-프로젝트-관리), [내보내기 패널](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#이미지-파일로-저장)의 최신 기준을 시안에 적용한다. 새 프로젝트와 불러오기 아이콘은 도움말을 열기 전에 각 동작을 구별할 수 있는지 확인한다. 전체 내보내기 시안에서는 여백 0px와 24px의 미리보기를 비교한다.
 
 데스크톱 화면은 [캔버스 요구사항의 UI 기준](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#ui-디자인과-시안-검토)을 따른다. 이전 시안의 메모 방향 표시 띠와 배경이 채워진 내보내기 버튼은 이 기준과 다르다. 시안을 검토할 때는 선택한 이미지를 보여 주는 썸네일, 위치와 품질을 조절하는 요소, 헤더의 아이콘과 글자가 각자의 역할을 시각적으로 전달하는지 확인한다.

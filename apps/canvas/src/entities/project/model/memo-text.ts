@@ -41,3 +41,23 @@ export function createMemoText(updates: Iterable<Uint8Array> = []) {
     destroy: () => doc.destroy(),
   }
 }
+
+export function readMemoBodies(updates: Iterable<{ memoId: string; payload: Uint8Array }>) {
+  const groups = new Map<string, Uint8Array[]>()
+  for (const { memoId, payload } of updates) {
+    const group = groups.get(memoId)
+    if (group) group.push(payload)
+    else groups.set(memoId, [payload])
+  }
+
+  const bodies = new Map<string, string>()
+  for (const [memoId, payloads] of groups) {
+    const text = createMemoText(payloads)
+    try {
+      bodies.set(memoId, text.read())
+    } finally {
+      text.destroy()
+    }
+  }
+  return bodies
+}

@@ -1,4 +1,4 @@
-import { attachedMemoRect, createMemoText, type ProjectDocument, type Rect } from "@/entities/project"
+import { attachedMemoRect, readMemoBodies, type ProjectDocument, type Rect } from "@/entities/project"
 
 import { exportBounds } from "@/shared/export"
 import type { Point } from "./viewport"
@@ -21,6 +21,7 @@ export type RenderExport = (request: ExportRequest, signal: AbortSignal) => Prom
 export function exportImages(document: ProjectDocument): ExportImage[] {
   const assets = new Map(document.assets.map((asset) => [asset.id, asset]))
   const memos = new Map(document.memos.map((memo) => [memo.placementId, memo]))
+  const bodies = readMemoBodies(document.memoUpdates)
   return [...document.placements].sort((a, b) => a.zIndex - b.zIndex).flatMap((placement) => {
     const asset = assets.get(placement.assetId)
     if (!asset) return []
@@ -29,12 +30,7 @@ export function exportImages(document: ProjectDocument): ExportImage[] {
     const memo = memos.get(id)
     const item = { id, rect, original: asset.original, quality: quality / 100 }
     if (!memo) return [item]
-    const text = createMemoText(document.memoUpdates.filter(({ memoId }) => memoId === memo.id).map(({ payload }) => payload))
-    try {
-      return [{ ...item, memo: { rect: attachedMemoRect(rect, memo), body: text.read() } }]
-    } finally {
-      text.destroy()
-    }
+    return [{ ...item, memo: { rect: attachedMemoRect(rect, memo), body: bodies.get(memo.id) ?? "" } }]
   })
 }
 

@@ -1,8 +1,11 @@
+import { Button } from "react-aria-components/Button"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { Group, Layer, Stage } from "react-konva"
 
-import { createMemoText, type PlacementGeometry, type ProjectDocument, type Size } from "@/entities/project"
+import { readMemoBodies, type PlacementGeometry, type ProjectDocument, type Size } from "@/entities/project"
+
+import { Choice } from "@/shared/ui"
 
 import type { Region } from "../model/export-request"
 import { RegionPicker } from "./region-picker"
@@ -20,27 +23,15 @@ type Props = {
   onResizeMemo: (id: string, size: Size) => Promise<void>
 }
 
+const inputOptions = { mouse: "마우스", trackpad: "터치패드" }
+
 export function CanvasStage({ document, zoomHost, selection, onRegion, selectedId, onSelect, onEdit, onResizeMemo }: Props) {
   const viewport = useViewport(selectedId, onSelect)
   const container = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<Size>()
   const assets = new Map(document.assets.map((asset) => [asset.id, asset]))
   const memos = new Map(document.memos.map((memo) => [memo.placementId, memo]))
-  const bodies = useMemo(() => {
-    const updates = new Map<string, Uint8Array[]>()
-    for (const { memoId, payload } of document.memoUpdates) {
-      const list = updates.get(memoId)
-      if (list) list.push(payload)
-      else updates.set(memoId, [payload])
-    }
-    const result = new Map<string, string>()
-    for (const [id, payloads] of updates) {
-      const text = createMemoText(payloads)
-      result.set(id, text.read())
-      text.destroy()
-    }
-    return result
-  }, [document.memoUpdates])
+  const bodies = useMemo(() => readMemoBodies(document.memoUpdates), [document.memoUpdates])
 
   useEffect(() => {
     if (!container.current) return
@@ -56,18 +47,16 @@ export function CanvasStage({ document, zoomHost, selection, onRegion, selectedI
   return (
     <div ref={container} className="editor-canvas" aria-label="캔버스" role="region">
       <div className="canvas-navigation" role="group" aria-label="캔버스 화면 조작">
-        <button type="button" aria-pressed={viewport.hand} onClick={() => viewport.setHand(!viewport.hand)}>화면 이동</button>
-        <button type="button" onClick={viewport.fit}>전체 보기</button>
-        <select aria-label="캔버스 입력 방식" value={viewport.input} onChange={({ currentTarget }) => viewport.setInput(currentTarget.value === "trackpad" ? "trackpad" : "mouse")}>
-          <option value="mouse">마우스</option>
-          <option value="trackpad">터치패드</option>
-        </select>
+        <Button type="button" aria-pressed={viewport.hand} onPress={() => viewport.setHand(!viewport.hand)}>화면 이동</Button>
+        <Button type="button" onPress={viewport.fit}>전체 보기</Button>
+        <Choice label="캔버스 입력 방식" hideLabel value={viewport.input}
+          options={inputOptions} onChange={viewport.setInput} />
       </div>
       {zoomHost && createPortal(
         <div className="editor-zoom" role="group" aria-label="캔버스 확대 및 축소">
-          <button type="button" aria-label="축소" onClick={() => viewport.zoom(false)}>−</button>
+          <Button type="button" aria-label="축소" onPress={() => viewport.zoom(false)}>−</Button>
           <output aria-label="확대율">{Math.round(viewport.view.scale * 100)}%</output>
-          <button type="button" aria-label="확대" onClick={() => viewport.zoom(true)}>+</button>
+          <Button type="button" aria-label="확대" onPress={() => viewport.zoom(true)}>+</Button>
         </div>,
         zoomHost,
       )}
