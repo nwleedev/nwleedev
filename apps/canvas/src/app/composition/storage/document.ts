@@ -1,10 +1,13 @@
 import type { IDBPDatabase, IDBPTransaction } from "idb"
 
-import type { MemoUpdate, Project, ProjectChange, ProjectDocument } from "@/entities/project"
+import { applyPlacementGeometry, resizeMemo, validatePlacementGeometry, validateSize } from "@/entities/project"
+import type { MemoUpdate, PlacementGeometry, Project, ProjectChange, ProjectDocument, Size } from "@/entities/project"
 
 import type { Schema } from "./schema"
 
 const stores = ["projects", "assets", "placements", "memos", "memoUpdates"] as const
+const minimumQuality = 0
+const maximumQuality = 100
 
 type WriteTransaction = IDBPTransaction<Schema, typeof stores, "readwrite">
 
@@ -62,25 +65,20 @@ function validateDocument(document: ProjectDocument) {
   for (const placement of placements) {
     const asset = originals.get(placement.assetId)
     if (!asset || placement.projectId !== project.id) throw new Error("Invalid placement reference")
-    const { x, y, width, height, zIndex, quality } = placement
-    const expectedHeight = (width / asset.originalWidth) * asset.originalHeight
+    validatePlacementGeometry(placement, asset)
+    const { zIndex, quality } = placement
     if (
-      ![x, y, width, height].every(Number.isFinite) ||
-      width <= 0 || height <= 0 ||
-      width > asset.originalWidth || height > asset.originalHeight ||
-      Math.abs(height - expectedHeight) > expectedHeight * 1e-9 ||
       !Number.isSafeInteger(zIndex) ||
-      !Number.isInteger(quality) || quality < 0 || quality > 100
-    ) throw new Error("Invalid placement geometry or quality")
+      !Number.isInteger(quality) || quality < minimumQuality || quality > maximumQuality
+    ) throw new Error("Invalid placement order or quality")
   }
 
   for (const memo of memos) {
     if (
       !placementIds.has(memo.placementId) ||
-      !["top", "right", "bottom", "left"].includes(memo.side) ||
-      ![memo.width, memo.height].every(Number.isFinite) ||
-      memo.width <= 0 || memo.height <= 0
+      !["top", "right", "bottom", "left"].includes(memo.side)
     ) throw new Error("Invalid memo")
+    validateSize(memo)
   }
   const memoIds = new Set(memos.map(({ id }) => id))
   for (const update of memoUpdates) {
@@ -95,59 +93,93 @@ function validateMemoUpdate(update: MemoUpdate) {
   }
 }
 
-function revise(project: Project): Project {
-  return { ...project, updatedAt: Date.now(), revision: project.revision + 1 }
-}
-
 export function documentStorage(
   database: () => Promise<IDBPDatabase<Schema>>,
   validateProject: (value: unknown) => Project,
   publish: (change: ProjectChange) => void,
 ) {
+  async function commitEdit(
+    projectId: string,
+    edit: (tx: WriteTransaction) => Promise<boolean>,
+    missingProject: "reject" | "skip" = "reject",
+  ) {
+    const db = await database()
+    const tx = db.transaction(stores, "readwrite")
+    const committed = await commitWrite(tx, async () => {
+      const projects = tx.objectStore("projects")
+      const record = await projects.get(projectId)
+      if (!record) {
+        if (missingProject === "skip") return undefined
+        throw new Error("Project no longer exists")
+      }
+      const project = validateProject(record)
+      if (!await edit(tx)) return undefined
+
+      const next = { ...project, updatedAt: Date.now(), revision: project.revision + 1 }
+      await projects.put(next)
+      return next
+    })
+    if (committed) publish({ projectId, revision: committed.revision })
+    return committed !== undefined
+  }
+
   return {
+    async updatePlacement(projectId: string, placementId: string, change: PlacementGeometry) {
+      await commitEdit(projectId, async (tx) => {
+        const placements = tx.objectStore("placements")
+        const placement = await placements.get(placementId)
+        if (placement?.projectId !== projectId) throw new Error("Placement no longer exists")
+        const asset = await tx.objectStore("assets").get([projectId, placement.assetId])
+        if (!asset) throw new Error("Invalid placement reference")
+
+        const next = applyPlacementGeometry(placement, change)
+        validatePlacementGeometry(next, asset)
+        await placements.put(next)
+        return true
+      })
+    },
+
+    async updateMemoSize(projectId: string, memoId: string, size: Size) {
+      await commitEdit(projectId, async (tx) => {
+        const memos = tx.objectStore("memos")
+        const memo = await memos.get(memoId)
+        if (!memo) throw new Error("Memo no longer exists")
+        const placement = await tx.objectStore("placements").get(memo.placementId)
+        if (placement?.projectId !== projectId) throw new Error("Memo no longer exists")
+
+        await memos.put(resizeMemo(memo, size))
+        return true
+      })
+    },
+
     async saveMemoUpdate(projectId: string, update: MemoUpdate) {
       validateMemoUpdate(update)
-      const db = await database()
-      const tx = db.transaction(stores, "readwrite")
-      const committed = await commitWrite(tx, async () => {
-        const projects = tx.objectStore("projects")
-        const project = await projects.get(projectId)
+      await commitEdit(projectId, async (tx) => {
         const memo = await tx.objectStore("memos").get(update.memoId)
         const placement = memo && await tx.objectStore("placements").get(memo.placementId)
-        if (!project || placement?.projectId !== projectId) throw new Error("Memo no longer exists")
+        if (placement?.projectId !== projectId) throw new Error("Memo no longer exists")
 
         const updates = tx.objectStore("memoUpdates")
-        if (await updates.getKey([update.memoId, update.updateId]) !== undefined) return undefined
+        if (await updates.getKey([update.memoId, update.updateId]) !== undefined) return false
 
-        const next = revise(validateProject(project))
         await updates.add(update)
-        await projects.put(next)
-        return next
+        return true
       })
-      if (committed) publish({ projectId, revision: committed.revision })
     },
 
     async deletePlacement(projectId: string, placementId: string) {
-      const db = await database()
-      const tx = db.transaction(stores, "readwrite")
-      const committed = await commitWrite(tx, async () => {
-        const projects = tx.objectStore("projects")
+      return commitEdit(projectId, async (tx) => {
         const placements = tx.objectStore("placements")
-        const project = await projects.get(projectId)
         const placement = await placements.get(placementId)
-        if (!project || placement?.projectId !== projectId) return undefined
+        if (placement?.projectId !== projectId) return false
 
         const assetKey: [string, string] = [projectId, placement.assetId]
         await deletePlacementRecords(tx, placementId)
         if (await placements.index("asset").count(assetKey) === 0) {
           await tx.objectStore("assets").delete(assetKey)
         }
-        const next = revise(validateProject(project))
-        await projects.put(next)
-        return next
-      })
-      if (committed) publish({ projectId, revision: committed.revision })
-      return committed !== undefined
+        return true
+      }, "skip")
     },
 
     async deleteDocument(id: string) {
