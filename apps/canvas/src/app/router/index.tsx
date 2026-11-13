@@ -4,13 +4,14 @@ import { EditorPage } from "@/pages/editor"
 import { ProjectsPage } from "@/pages/projects"
 
 import { composeProjects } from "../composition/storage/projects"
+import { useProjectRevalidation } from "./use-project-revalidation"
 
 const projects = composeProjects()
 
-async function readProject(id: string | undefined) {
-  const project = id ? await projects.read(id) : undefined
-  if (!project) throw data(null, { status: 404 })
-  return project
+async function readEditorDocument(id: string | undefined) {
+  const document = id ? await projects.readDocument(id) : undefined
+  if (!document) throw data(null, { status: 404 })
+  return document
 }
 
 function ProjectListRoute() {
@@ -28,7 +29,9 @@ function ProjectListRoute() {
 }
 
 function ProjectRoute() {
-  return <EditorPage project={useLoaderData<typeof readProject>()} />
+  const { project } = useLoaderData<typeof readEditorDocument>()
+  useProjectRevalidation(project, projects.subscribe)
+  return <EditorPage project={project} />
 }
 
 function PendingProjects() {
@@ -68,7 +71,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "projects/:id",
-        loader: ({ params }) => readProject(params.id),
+        loader: ({ params }) => readEditorDocument(params.id),
         Component: ProjectRoute,
       },
     ],
