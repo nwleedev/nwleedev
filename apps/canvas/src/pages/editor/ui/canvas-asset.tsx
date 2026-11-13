@@ -3,7 +3,9 @@ import { Group, Image, Rect, Text } from "react-konva"
 
 import { attachedMemoRect, imageSizeAtWidth, type Asset, type Memo, type Placement, type PlacementGeometry, type Size } from "@/entities/project"
 
-const handleRadius = 5
+import { memoCorner, memoSizeAtCorner } from "../model/memo-resize"
+import { ResizeHandle } from "./resize-handle"
+
 const minimumWidth = 1
 
 type Props = {
@@ -14,6 +16,7 @@ type Props = {
   selected: boolean
   onSelect: (id: string) => void
   onEdit: (id: string, change: PlacementGeometry) => Promise<void>
+  onResizeMemo: (id: string, size: Size) => Promise<void>
 }
 
 function useOriginal(original: Blob) {
@@ -33,14 +36,17 @@ function useOriginal(original: Blob) {
   return decoded?.source === original ? decoded.image : undefined
 }
 
-export function CanvasAsset({ asset, placement, memo, memoBody, selected, onSelect, onEdit }: Props) {
+export function CanvasAsset({ asset, placement, memo, memoBody, selected, onSelect, onEdit, onResizeMemo }: Props) {
   const image = useOriginal(asset.original)
   const [preview, setPreview] = useState<Size>()
+  const [memoPreview, setMemoPreview] = useState<Size>()
   const { id, x, y } = placement
   const { width, height } = preview ?? placement
-  const note = memo && attachedMemoRect({ x: 0, y: 0, width, height }, memo)
+  const imageRect = { x: 0, y: 0, width, height }
+  const note = memo && attachedMemoRect(imageRect, { ...memo, ...memoPreview })
   const theme = getComputedStyle(document.documentElement)
   const accent = theme.getPropertyValue("--accent").trim()
+  const surface = theme.getPropertyValue("--surface").trim()
 
   function resize(position: { x: number; y: number }) {
     const ratio = asset.originalHeight / asset.originalWidth
@@ -65,30 +71,40 @@ export function CanvasAsset({ asset, placement, memo, memoBody, selected, onSele
         {selected && <Rect width={width} height={height} stroke={accent} listening={false} />}
         {note && (
           <>
-            <Rect {...note} fill={theme.getPropertyValue("--surface").trim()} listening={false} />
+            <Rect {...note} fill={surface} listening={false} />
             <Text {...note} text={memoBody} fill={theme.getPropertyValue("--text").trim()} listening={false} />
           </>
         )}
       </Group>
       {selected && (
-        <Rect
-          x={width}
-          y={height}
-          width={handleRadius * 2}
-          height={handleRadius * 2}
-          offsetX={handleRadius}
-          offsetY={handleRadius}
-          fill={theme.getPropertyValue("--surface").trim()}
+        <ResizeHandle
+          point={{ x: width, y: height }}
+          fill={surface}
           stroke={accent}
-          draggable
-          onDragMove={({ target }) => {
-            const next = resize(target.position())
-            target.position({ x: next.width, y: next.height })
+          onPreview={(point) => {
+            const next = resize(point)
             setPreview(next)
+            return { x: next.width, y: next.height }
           }}
-          onDragEnd={({ target }) => {
-            const next = resize(target.position())
+          onCommit={(point) => {
+            const next = resize(point)
             void onEdit(id, { kind: "size", ...next }).finally(() => setPreview(undefined))
+          }}
+        />
+      )}
+      {selected && memo && note && (
+        <ResizeHandle
+          point={memoCorner(note, memo.side)}
+          fill={surface}
+          stroke={accent}
+          onPreview={(point) => {
+            const next = memoSizeAtCorner(imageRect, memo.side, point)
+            setMemoPreview(next)
+            return memoCorner(attachedMemoRect(imageRect, { side: memo.side, ...next }), memo.side)
+          }}
+          onCommit={(point) => {
+            const next = memoSizeAtCorner(imageRect, memo.side, point)
+            void onResizeMemo(memo.id, next).finally(() => setMemoPreview(undefined))
           }}
         />
       )}

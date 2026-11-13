@@ -10,9 +10,10 @@ type Props = {
   selectedId?: string
   onSelect: (id: string) => void
   onEdit: (id: string, change: PlacementGeometry) => Promise<void>
+  onResizeMemo: (id: string, size: Size) => Promise<void>
 }
 
-export function CanvasStage({ document, selectedId, onSelect, onEdit }: Props) {
+export function CanvasStage({ document, selectedId, onSelect, onEdit, onResizeMemo }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<Size>()
   const assets = new Map(document.assets.map((asset) => [asset.id, asset]))
@@ -63,6 +64,7 @@ export function CanvasStage({ document, selectedId, onSelect, onEdit }: Props) {
                   selected={selectedId === placement.id}
                   onSelect={onSelect}
                   onEdit={onEdit}
+                  onResizeMemo={onResizeMemo}
                 />
               )
             })}

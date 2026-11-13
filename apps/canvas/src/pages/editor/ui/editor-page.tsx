@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react"
 import { Link } from "react-router"
 
-import type { Asset, Memo, MemoUpdate, PlacementGeometry, ProjectDocument } from "@/entities/project"
+import type { Asset, Memo, MemoUpdate, PlacementGeometry, ProjectDocument, Size } from "@/entities/project"
 import { imageSizeAtWidth } from "@/entities/project"
 
 import { CanvasStage } from "./canvas-stage"
@@ -18,11 +18,13 @@ type Props = {
   addImage: (image: Omit<Asset, "projectId">) => Promise<void>
   addMemo: (placementId: string) => Promise<void>
   updateMemoSide: (memoId: string, side: Memo["side"]) => Promise<void>
+  updateMemoSize: (memoId: string, size: Size) => Promise<void>
 }
 
-export function EditorPage({ document, saveMemo, updatePlacement, addImage, addMemo, updateMemoSide }: Props) {
+export function EditorPage({ document, saveMemo, updatePlacement, addImage, addMemo, updateMemoSide, updateMemoSize }: Props) {
   const [selected, select] = useState<string>()
   const [placementFailed, setPlacementFailed] = useState(false)
+  const [memoResizeFailed, setMemoResizeFailed] = useState(false)
   const placement = document.placements.find(({ id }) => id === selected) ?? document.placements[0]
   const selectedId = placement?.id
   const memo = document.memos.find(({ placementId }) => placementId === selectedId)
@@ -50,9 +52,23 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
         select(image.id)
       }} />
       <div className="editor-workspace">
-        <CanvasStage document={document} selectedId={selectedId} onSelect={select} onEdit={editPlacement} />
+        <CanvasStage
+          document={document}
+          selectedId={selectedId}
+          onSelect={select}
+          onEdit={editPlacement}
+          onResizeMemo={async (id, size) => {
+            try {
+              await updateMemoSize(id, size)
+              setMemoResizeFailed(false)
+            } catch {
+              setMemoResizeFailed(true)
+            }
+          }}
+        />
         <aside className="editor-inspector" aria-label="이미지 속성">
           {placementFailed && <p role="alert">이미지 배치를 저장하지 못했습니다.</p>}
+          {memoResizeFailed && <p role="alert">메모 크기를 저장하지 못했습니다.</p>}
           {placement && original && (
             <label>
               이미지 너비 (px)

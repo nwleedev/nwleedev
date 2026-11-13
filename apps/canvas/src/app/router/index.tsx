@@ -57,6 +57,10 @@ function ProjectRoute() {
         await projects.updateMemoSide(id, memoId, side)
         await revalidate()
       }}
+      updateMemoSize={async (memoId, size) => {
+        await projects.updateMemoSize(id, memoId, size)
+        await revalidate()
+      }}
     />
   )
 }

@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import { attachedMemoRect, imageSizeAtWidth } from "../src/entities/project/model/geometry.ts"
+import { memoCorner, memoSizeAtCorner } from "../src/pages/editor/model/memo-resize.ts"
 
 test("resizing preserves the original ratio and caps enlargement at the original size", () => {
   for (const [originalWidth, originalHeight] of [[640, 480], [300, 600]]) {
@@ -16,6 +17,22 @@ test("resizing preserves the original ratio and caps enlargement at the original
     })
     assert.throws(() => imageSizeAtWidth(original, Infinity))
     assert.throws(() => imageSizeAtWidth(original, 0))
+  }
+})
+
+test("dragging the outer memo corner changes both dimensions on every attached edge", () => {
+  const image = { x: -20, y: 10, width: 120, height: 100 }
+  const cases = [
+    ["top", { x: 90, y: -50 }],
+    ["right", { x: 200, y: 90 }],
+    ["bottom", { x: 90, y: 170 }],
+    ["left", { x: -120, y: 90 }],
+  ]
+
+  for (const [side, point] of cases) {
+    const size = memoSizeAtCorner(image, side, point)
+    assert.deepEqual(size, { width: 100, height: 60 })
+    assert.deepEqual(memoCorner(attachedMemoRect(image, { side, ...size }), side), point)
   }
 })
 
