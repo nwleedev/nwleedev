@@ -1,4 +1,4 @@
-import type { ExportResult, RenderExport } from "@/pages/editor"
+import type { ExportRequest, ExportResult, RenderExport } from "@/pages/editor"
 
 import { requestWorker } from "../request-worker"
 import ExportWorker from "./export-worker?worker&inline"
@@ -12,4 +12,8 @@ function decode(value: unknown): ExportResult | undefined {
 }
 
 export const prepareExport: RenderExport = (request, signal) =>
-  requestWorker(() => new ExportWorker(), request, decode, signal)
+  requestWorker(() => new ExportWorker(), { request }, decode, signal)
+
+export function prepareThumbnail(request: ExportRequest, scale: number, signal: AbortSignal) {
+  return requestWorker(() => new ExportWorker(), { request, scale }, decode, signal)
+}

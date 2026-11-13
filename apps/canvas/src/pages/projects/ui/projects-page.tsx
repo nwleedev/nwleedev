@@ -2,6 +2,7 @@ import { Link } from "react-router"
 
 import type { ProjectDocument } from "@/entities/project"
 
+import { CardPreview, type ReadPreview } from "./card-preview"
 import { ProjectImport, type ReadArchive } from "./project-import"
 
 import "./projects-page.css"
@@ -11,11 +12,12 @@ type ProjectCard = {
   href: string
   title: string
   updatedAt: number
-  previewUrl?: string
+  revision: number
 }
 
 type Props = {
   projects?: readonly ProjectCard[]
+  readPreview: ReadPreview
   onCreate?: () => void
   readArchive: ReadArchive
   restore: (project: ProjectDocument) => Promise<void>
@@ -27,7 +29,7 @@ const dateFormat = new Intl.DateTimeFormat("ko-KR", {
   timeStyle: "short",
 })
 
-export function ProjectsPage({ projects = [], onCreate, readArchive, restore, createFailed }: Props) {
+export function ProjectsPage({ projects = [], readPreview, onCreate, readArchive, restore, createFailed }: Props) {
   return (
     <>
       <header className="projects-header">
@@ -46,12 +48,10 @@ export function ProjectsPage({ projects = [], onCreate, readArchive, restore, cr
           <p className="projects-empty">저장된 프로젝트가 없습니다.</p>
         ) : (
           <ul className="project-grid">
-            {projects.map(({ id, href, title, updatedAt, previewUrl }) => (
+            {projects.map(({ id, href, title, updatedAt, revision }) => (
               <li key={id}>
                 <Link className="project-card" to={href}>
-                  <div className="project-preview">
-                    {previewUrl && <img src={previewUrl} alt="" loading="lazy" />}
-                  </div>
+                  <CardPreview key={revision} id={id} read={readPreview} />
                   <h2>{title}</h2>
                   <time dateTime={new Date(updatedAt).toISOString()}>{dateFormat.format(new Date(updatedAt))}</time>
                 </Link>

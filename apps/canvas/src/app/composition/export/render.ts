@@ -81,7 +81,7 @@ function hasTransparency(context: OffscreenCanvasRenderingContext2D, width: numb
 
 export async function render(request: ExportRequest, previewScale = 1): Promise<ExportResult> {
   const { bounds, region, format, quality, images, paper, ink } = request
-  if (!fitsOutput(bounds)) throw new Error("Export dimensions exceed limits")
+  if (!fitsOutput({ ...bounds, width: Math.ceil(bounds.width * previewScale), height: Math.ceil(bounds.height * previewScale) })) throw new Error("Export dimensions exceed limits")
   const svg = format === "svg"
   const { width, height } = bounds
   const canvas = svg
@@ -163,7 +163,7 @@ export async function render(request: ExportRequest, previewScale = 1): Promise<
   const type = format === "jpg" ? "image/jpeg" : "image/png"
   const blob = await canvas.convertToBlob({ type, quality })
   if (blob.type !== type) throw new Error("Output image format unavailable")
-  const longestSide = Math.max(width, height)
+  const longestSide = Math.max(canvas.width, canvas.height)
   if (format === "png" && longestSide > previewDimension && blob.size <= maximumExportBytes) {
     const scale = previewDimension / longestSide
     const preview = new OffscreenCanvas(Math.ceil(width * scale), Math.ceil(height * scale))

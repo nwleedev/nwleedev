@@ -3,12 +3,12 @@ import { useCallback } from "react"
 
 import type { MemoUpdate } from "@/entities/project"
 
-import { EditorPage } from "@/pages/editor"
+import { EditorPage, exportImages, requestBounds } from "@/pages/editor"
 import { ProjectsPage } from "@/pages/projects"
 
 import { prepareArchive } from "../composition/archive/prepare-archive"
 import { readProjectArchive, UnsupportedArchiveVersion } from "../composition/archive/read-project"
-import { prepareExport } from "../composition/export/prepare-export"
+import { prepareExport, prepareThumbnail } from "../composition/export/prepare-export"
 import { composeProjects } from "../composition/storage/projects"
 import { useProjectRevalidation } from "./use-project-revalidation"
 
@@ -19,6 +19,28 @@ async function readEditorDocument(id: string | undefined) {
   if (!document) throw data(null, { status: 404 })
   return document
 }
+const cardPreviewSize = 320
+
+async function readCardPreview(id: string, signal: AbortSignal) {
+  const saved = await projects.readDocument(id)
+  if (!saved) return undefined
+  const images = exportImages(saved)
+  const bounds = requestBounds(images, 0)
+  if (!bounds || !Number.isFinite(bounds.width) || !Number.isFinite(bounds.height)) return undefined
+
+  const scale = Math.min(1, cardPreviewSize / Math.max(bounds.width, bounds.height))
+  const theme = getComputedStyle(document.documentElement)
+  const { blob } = await prepareThumbnail({
+    bounds,
+    images,
+    format: "png",
+    quality: 1,
+    ink: theme.getPropertyValue("--text").trim(),
+    paper: theme.getPropertyValue("--surface").trim(),
+  }, scale, signal)
+  return blob
+}
+
 function ProjectListRoute() {
   const navigate = useNavigate()
   const saved = useLoaderData<typeof projects.list>()
@@ -28,6 +50,7 @@ function ProjectListRoute() {
   return (
     <ProjectsPage
       projects={saved.map((project) => ({ ...project, href: `/projects/${project.id}` }))}
+      readPreview={readCardPreview}
       onCreate={creating ? undefined : () => creation.submit(null, { method: "post" })}
       createFailed={!creating && creation.data?.failed === true}
       readArchive={async (file, signal) => {
