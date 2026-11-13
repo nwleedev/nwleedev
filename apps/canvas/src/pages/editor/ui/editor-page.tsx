@@ -3,6 +3,7 @@ import { Link } from "react-router"
 
 import type { Asset, Memo, MemoUpdate, PlacementGeometry, ProjectDocument, Size } from "@/entities/project"
 import { imageSizeAtWidth } from "@/entities/project"
+import { BlobImage } from "@/shared/ui"
 
 import type { Region, RenderExport } from "../model/export-request"
 import { ImageExport } from "./image-export"
@@ -104,6 +105,12 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
           render={renderExport}
           close={() => setExporting(false)}
         /> : <aside className="editor-inspector" aria-label="이미지 속성">
+          {original && (
+            <div className="editor-selection">
+              <BlobImage original={original.original} alt="선택한 이미지" />
+              <span>{original.originalWidth} × {original.originalHeight}px</span>
+            </div>
+          )}
           {placementFailed && <p role="alert">이미지 배치를 저장하지 못했습니다.</p>}
           {memoResizeFailed && <p role="alert">메모 크기를 저장하지 못했습니다.</p>}
           {placement && original && (

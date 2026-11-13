@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 
 import type { ProjectDocument } from "@/entities/project"
+import { BlobImage } from "@/shared/ui"
 
 export type ReadArchive = (file: File, signal: AbortSignal) => Promise<
   { project: ProjectDocument } | { issue: "unsupported-version" }
@@ -14,18 +15,6 @@ type Props = {
 type ImportState =
   | { status: "reading" | "invalid" | "unsupported-version"; name: string }
   | { status: "ready" | "saving" | "failed"; name: string; project: ProjectDocument }
-
-function Preview({ original }: { original: Blob }) {
-  const image = useRef<HTMLImageElement>(null)
-  useEffect(() => {
-    const element = image.current
-    if (!element) return
-    const url = URL.createObjectURL(original)
-    element.src = url
-    return () => URL.revokeObjectURL(url)
-  }, [original])
-  return <img ref={image} alt="프로젝트 대표 이미지" />
-}
 
 export function ProjectImport({ read, restore }: Props) {
   const trigger = useRef<HTMLButtonElement>(null)
@@ -98,7 +87,7 @@ export function ProjectImport({ read, restore }: Props) {
         {status === "failed" && <p role="alert">프로젝트를 저장하지 못했습니다. 다시 시도해 주세요.</p>}
         {project && (
           <div className="project-preview">
-            {original ? <Preview original={original} /> : <span>빈 캔버스</span>}
+            {original ? <BlobImage original={original} alt="프로젝트 대표 이미지" /> : <span>빈 캔버스</span>}
           </div>
         )}
         <div className="project-import-actions">

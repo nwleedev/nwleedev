@@ -49,6 +49,21 @@
   border-inline-start: 1px solid var(--line);
 }
 
+.editor-selection {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-block-end: 1rem;
+  color: var(--muted);
+}
+
+.editor-selection img {
+  width: 4rem;
+  height: 3rem;
+  object-fit: contain;
+  background: var(--placeholder);
+}
+
 .editor-stage {
   position: absolute;
   inset: 0;
