@@ -52,7 +52,7 @@ CREATE TABLE memo_updates (
 );
 ```
 
-DDL은 배치당 메모 하나를 가정한다. `memo_updates`는 동시 입력을 병합하는 설계 후보다. 변경분의 바이너리 형식과 본문 복원 및 변경분 정리 방식은 동시 편집 도구를 결정할 때 확정한다. [Yjs 변경분 형식](https://docs.yjs.dev/api/document-updates)
+DDL은 배치당 메모 하나를 가정한다. IndexedDB v4의 `memoUpdates`는 `memoId`와 `updateId`를 복합 키로 사용한다. `payload`에는 Yjs가 생성한 `Uint8Array`를 저장한다. 본문을 열 때 메모의 변경분을 적용한다. 메모를 삭제할 때는 변경분도 같은 트랜잭션에서 정리한다. [Yjs 변경분 형식](https://docs.yjs.dev/api/document-updates)
 
 ## 필드와 인덱스 변경 기준
 

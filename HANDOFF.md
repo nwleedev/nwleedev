@@ -521,7 +521,9 @@ WebKit의 나머지 실패 세 건은 `temps/notes-webkit-u27`을 사용한 재�
 
 [로컬 프로젝트 화면의 라우팅 결정](docs/designs/image-annotation-canvas-2cb1ec/decisions/browser-routing.md)을 바탕으로 프로젝트 목록과 편집 화면을 설계한다. 목록과 편집 화면의 전환, 프로젝트 조회 실패, 브라우저 저장 실패의 화면을 확인한다.
 
-로컬 데이터 구조와 트랜잭션 검증은 [프로젝트 목록과 로컬 저장](docs/designs/image-annotation-canvas-2cb1ec/plan.md#프로젝트-목록과-로컬-저장)에 있다. 위치와 크기의 동시 수정 규칙과 검증 시나리오는 [여러 탭에서 수정 반영](docs/designs/image-annotation-canvas-2cb1ec/plan.md#여러-탭에서-수정-반영)을 따른다. 메모 본문의 변경 저장 방식은 구현 전에 정한다.
+로컬 데이터 구조와 트랜잭션 검증은 [프로젝트 목록과 로컬 저장](docs/designs/image-annotation-canvas-2cb1ec/plan.md#프로젝트-목록과-로컬-저장)에 있다. [여러 탭에서 수정 반영](docs/designs/image-annotation-canvas-2cb1ec/plan.md#여러-탭에서-수정-반영)에 위치와 크기의 충돌 규칙, Yjs 변경분 저장, BroadcastChannel 알림과 누락 시 재조회 검증을 정리했다.
+
+IndexedDB v4에 메모 변경분을 저장하고 커밋을 다른 탭에 알린다. Chromium 두 탭에서 커밋 후 조회, Yjs 본문 복원, 동일 변경 재시도와 배치 삭제 후 변경분 정리를 확인했다. 편집 화면의 변경분 생성과 수신 처리, 위치와 크기 수정 명령 및 화면 복귀 시 재조회는 이어서 구현한다.
 
 캔버스 구현 계획의 각 절차에서 해결할 문제에 맞는 디자인 패턴을 조사한다. 계획에는 채택한 패턴과 이 서비스에서 활용할 지점, 선택 이유를 적는다. 기존 구조로 해결할 수 있는 절차는 그 근거를 적는다.
 

@@ -1,6 +1,6 @@
 import type { DBSchema } from "idb"
 
-import type { Asset, Memo, Placement, Project } from "@/entities/project"
+import type { Asset, Memo, MemoUpdate, Placement, Project } from "@/entities/project"
 
 export interface Schema extends DBSchema {
   projects: { key: string; value: Project; indexes: { updatedAt: number } }
@@ -11,4 +11,5 @@ export interface Schema extends DBSchema {
     indexes: { projectOrder: [string, number]; asset: [string, string] }
   }
   memos: { key: string; value: Memo; indexes: { placement: string } }
+  memoUpdates: { key: [string, string]; value: MemoUpdate }
 }

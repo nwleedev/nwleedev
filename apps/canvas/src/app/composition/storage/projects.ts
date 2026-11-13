@@ -2,12 +2,14 @@ import { openDB, type IDBPDatabase } from "idb"
 
 import type { CreateProject, ListProjects, Project, ReadProject } from "@/entities/project"
 
+import { projectChanges } from "./changes"
 import { documentStorage } from "./document"
 import type { Schema } from "./schema"
 
-const databaseVersion = 3
+const databaseVersion = 4
 const documentStoresVersion = 2
 const timestampVersion = 3
+const memoUpdatesVersion = 4
 
 function validateProject(value: unknown): Project {
   if (
@@ -47,6 +49,9 @@ export function composeProjects(name = "canvas") {
           placements.createIndex("asset", ["projectId", "assetId"])
           db.createObjectStore("memos", { keyPath: "id" }).createIndex("placement", "placementId", { unique: true })
         }
+        if (oldVersion < memoUpdatesVersion) {
+          db.createObjectStore("memoUpdates", { keyPath: ["memoId", "updateId"] })
+        }
         if (oldVersion > 0 && oldVersion < timestampVersion) {
           try {
             const projects = transaction.objectStore("projects")
@@ -80,7 +85,8 @@ export function composeProjects(name = "canvas") {
     return connection
   }
 
-  const documents = documentStorage(database, validateProject)
+  const changes = projectChanges(name)
+  const documents = documentStorage(database, validateProject, changes.publish)
 
   const list: ListProjects = async () => {
     const db = await database()
@@ -105,10 +111,11 @@ export function composeProjects(name = "canvas") {
   }
 
   async function close() {
+    changes.close()
     const db = await connection
     db?.close()
     connection = undefined
   }
 
-  return { list, read, create, close, ...documents }
+  return { list, read, create, close, subscribe: changes.subscribe, ...documents }
 }

@@ -1,21 +1,24 @@
 import type { IDBPDatabase, IDBPTransaction } from "idb"
 
-import type { Project, ProjectDocument } from "@/entities/project"
+import type { MemoUpdate, Project, ProjectChange, ProjectDocument } from "@/entities/project"
 
 import type { Schema } from "./schema"
 
-const stores = ["projects", "assets", "placements", "memos"] as const
+const stores = ["projects", "assets", "placements", "memos", "memoUpdates"] as const
 
 type WriteTransaction = IDBPTransaction<Schema, typeof stores, "readwrite">
 
-function projectRange(id: string) {
+function keyPrefix(id: string) {
   return IDBKeyRange.bound([id], [id, []], false, true)
 }
 
 async function deletePlacementRecords(tx: WriteTransaction, placementId: string) {
   const memos = tx.objectStore("memos")
   const memoId = await memos.index("placement").getKey(placementId)
-  if (memoId !== undefined) await memos.delete(memoId)
+  if (memoId !== undefined) {
+    await tx.objectStore("memoUpdates").delete(keyPrefix(memoId))
+    await memos.delete(memoId)
+  }
   await tx.objectStore("placements").delete(placementId)
 }
 
@@ -44,7 +47,7 @@ async function commitWrite<Result>(
 }
 
 function validateDocument(document: ProjectDocument) {
-  const { project, assets, placements, memos } = document
+  const { project, assets, placements, memos, memoUpdates } = document
   const originals = new Map(assets.map((asset) => [asset.id, asset]))
   const placementIds = new Set(placements.map(({ id }) => id))
 
@@ -79,35 +82,72 @@ function validateDocument(document: ProjectDocument) {
       memo.width <= 0 || memo.height <= 0
     ) throw new Error("Invalid memo")
   }
+  const memoIds = new Set(memos.map(({ id }) => id))
+  for (const update of memoUpdates) {
+    validateMemoUpdate(update)
+    if (!memoIds.has(update.memoId)) throw new Error("Invalid memo update reference")
+  }
+}
+
+function validateMemoUpdate(update: MemoUpdate) {
+  if (!(update.payload instanceof Uint8Array) || !update.payload.length || !update.updateId) {
+    throw new Error("Invalid memo update")
+  }
+}
+
+function revise(project: Project): Project {
+  return { ...project, updatedAt: Date.now(), revision: project.revision + 1 }
 }
 
 export function documentStorage(
   database: () => Promise<IDBPDatabase<Schema>>,
   validateProject: (value: unknown) => Project,
+  publish: (change: ProjectChange) => void,
 ) {
   return {
+    async saveMemoUpdate(projectId: string, update: MemoUpdate) {
+      validateMemoUpdate(update)
+      const db = await database()
+      const tx = db.transaction(stores, "readwrite")
+      const committed = await commitWrite(tx, async () => {
+        const projects = tx.objectStore("projects")
+        const project = await projects.get(projectId)
+        const memo = await tx.objectStore("memos").get(update.memoId)
+        const placement = memo && await tx.objectStore("placements").get(memo.placementId)
+        if (!project || placement?.projectId !== projectId) throw new Error("Memo no longer exists")
+
+        const updates = tx.objectStore("memoUpdates")
+        if (await updates.getKey([update.memoId, update.updateId]) !== undefined) return undefined
+
+        const next = revise(validateProject(project))
+        await updates.add(update)
+        await projects.put(next)
+        return next
+      })
+      if (committed) publish({ projectId, revision: committed.revision })
+    },
+
     async deletePlacement(projectId: string, placementId: string) {
       const db = await database()
       const tx = db.transaction(stores, "readwrite")
-      return commitWrite(tx, async () => {
+      const committed = await commitWrite(tx, async () => {
         const projects = tx.objectStore("projects")
         const placements = tx.objectStore("placements")
         const project = await projects.get(projectId)
         const placement = await placements.get(placementId)
-        if (!project || placement?.projectId !== projectId) return false
+        if (!project || placement?.projectId !== projectId) return undefined
 
         const assetKey: [string, string] = [projectId, placement.assetId]
         await deletePlacementRecords(tx, placementId)
         if (await placements.index("asset").count(assetKey) === 0) {
           await tx.objectStore("assets").delete(assetKey)
         }
-        await projects.put({
-          ...validateProject(project),
-          updatedAt: Date.now(),
-          revision: project.revision + 1,
-        })
-        return true
+        const next = revise(validateProject(project))
+        await projects.put(next)
+        return next
       })
+      if (committed) publish({ projectId, revision: committed.revision })
+      return committed !== undefined
     },
 
     async deleteDocument(id: string) {
@@ -117,7 +157,7 @@ export function documentStorage(
         const projects = tx.objectStore("projects")
         if (await projects.getKey(id) === undefined) return false
 
-        const range = projectRange(id)
+        const range = keyPrefix(id)
         const placements = await tx.objectStore("placements").index("projectOrder").getAllKeys(range)
         for (const placementId of placements) await deletePlacementRecords(tx, placementId)
         await tx.objectStore("assets").delete(range)
@@ -126,10 +166,11 @@ export function documentStorage(
       })
     },
 
-    async addDocument(document: ProjectDocument) {
+    async addDocument(document: Omit<ProjectDocument, "memoUpdates"> & { memoUpdates?: readonly MemoUpdate[] }) {
       const { project, assets, placements, memos } = document
+      const memoUpdates = document.memoUpdates ?? []
       validateProject(project)
-      validateDocument(document)
+      validateDocument({ ...document, memoUpdates })
       const db = await database()
       const tx = db.transaction(stores, "readwrite")
 
@@ -138,13 +179,14 @@ export function documentStorage(
         for (const asset of assets) await tx.objectStore("assets").add(asset)
         for (const placement of placements) await tx.objectStore("placements").add(placement)
         for (const memo of memos) await tx.objectStore("memos").add(memo)
+        for (const update of memoUpdates) await tx.objectStore("memoUpdates").add(update)
       })
     },
 
     async readDocument(id: string): Promise<ProjectDocument | undefined> {
       const db = await database()
       const tx = db.transaction(stores)
-      const range = projectRange(id)
+      const range = keyPrefix(id)
       const project = await tx.objectStore("projects").get(id)
 
       if (!project) {
@@ -156,11 +198,15 @@ export function documentStorage(
         tx.objectStore("assets").getAll(range),
         tx.objectStore("placements").index("projectOrder").getAll(range),
       ])
-      const memos = await Promise.all(
+      const records = await Promise.all(
         placements.map(({ id: placementId }) => tx.objectStore("memos").index("placement").get(placementId)),
       )
+      const memos = records.filter((memo) => memo !== undefined)
+      const updates = tx.objectStore("memoUpdates")
+      const changes = await Promise.all(memos.map(({ id: memoId }) => updates.getAll(keyPrefix(memoId))))
+      const memoUpdates = changes.flat()
       await tx.done
-      const document = { project: validateProject(project), assets, placements, memos: memos.filter((memo) => memo !== undefined) }
+      const document = { project: validateProject(project), assets, placements, memos, memoUpdates }
       validateDocument(document)
       return document
     },
