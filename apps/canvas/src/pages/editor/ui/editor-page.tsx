@@ -29,6 +29,7 @@ type Props = {
 
 export function EditorPage({ document, saveMemo, updatePlacement, addImage, addMemo, updateMemoSide, updateMemoSize, prepareArchive, renderExport }: Props) {
   const [exporting, setExporting] = useState(false)
+  const [zoomHost, setZoomHost] = useState<HTMLDivElement | null>(null)
   const [scope, setScope] = useState<"all" | Region["kind"]>("all")
   const [region, setRegion] = useState<Region>()
   const [selected, select] = useState<string>()
@@ -74,12 +75,16 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
             await Promise.all(Array.from(memoFlushes.current.values(), (flush) => flush()))
             return prepareArchive()
           }} />
-          <button className="image-export-trigger" type="button" aria-expanded={exporting} onClick={() => setExporting(!exporting)}>이미지 내보내기</button>
+          <div className="editor-output-actions">
+            <div ref={setZoomHost} />
+            <button className="image-export-trigger" type="button" aria-expanded={exporting} onClick={() => setExporting(!exporting)}>이미지 내보내기</button>
+          </div>
         </div>
       </header>
       <div className="editor-workspace">
         <CanvasStage
           document={document}
+          zoomHost={zoomHost}
           selection={exporting && scope !== "all" ? scope : undefined}
           onRegion={setRegion}
           selectedId={selectedId}

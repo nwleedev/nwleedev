@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { Group, Layer, Stage } from "react-konva"
 
 import { createMemoText, type PlacementGeometry, type ProjectDocument, type Size } from "@/entities/project"
@@ -10,6 +11,7 @@ import { CanvasAsset } from "./canvas-asset"
 
 type Props = {
   document: ProjectDocument
+  zoomHost: HTMLDivElement | null
   selection?: Region["kind"]
   onRegion: (region: Region) => void
   selectedId?: string
@@ -18,7 +20,7 @@ type Props = {
   onResizeMemo: (id: string, size: Size) => Promise<void>
 }
 
-export function CanvasStage({ document, selection, onRegion, selectedId, onSelect, onEdit, onResizeMemo }: Props) {
+export function CanvasStage({ document, zoomHost, selection, onRegion, selectedId, onSelect, onEdit, onResizeMemo }: Props) {
   const viewport = useViewport(selectedId, onSelect)
   const container = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<Size>()
@@ -55,15 +57,20 @@ export function CanvasStage({ document, selection, onRegion, selectedId, onSelec
     <div ref={container} className="editor-canvas" aria-label="캔버스" role="region">
       <div className="canvas-navigation" role="group" aria-label="캔버스 화면 조작">
         <button type="button" aria-pressed={viewport.hand} onClick={() => viewport.setHand(!viewport.hand)}>화면 이동</button>
-        <button type="button" aria-label="축소" onClick={() => viewport.zoom(false)}>−</button>
-        <output aria-label="확대율">{Math.round(viewport.view.scale * 100)}%</output>
-        <button type="button" aria-label="확대" onClick={() => viewport.zoom(true)}>+</button>
         <button type="button" onClick={viewport.fit}>전체 보기</button>
         <select aria-label="캔버스 입력 방식" value={viewport.input} onChange={({ currentTarget }) => viewport.setInput(currentTarget.value === "trackpad" ? "trackpad" : "mouse")}>
           <option value="mouse">마우스</option>
           <option value="trackpad">터치패드</option>
         </select>
       </div>
+      {zoomHost && createPortal(
+        <div className="editor-zoom" role="group" aria-label="캔버스 확대 및 축소">
+          <button type="button" aria-label="축소" onClick={() => viewport.zoom(false)}>−</button>
+          <output aria-label="확대율">{Math.round(viewport.view.scale * 100)}%</output>
+          <button type="button" aria-label="확대" onClick={() => viewport.zoom(true)}>+</button>
+        </div>,
+        zoomHost,
+      )}
       {size && (
         <div
           className="editor-stage"
