@@ -230,6 +230,8 @@ Chromium 156에서 256×128px 원본 PNG에 픽셀을 바꾸지 않는 보조 �
 
 [PNG 축소 미리보기 적용](references/image-export-quality.md#png-축소-미리보기-적용)에서 다운로드 파일의 바이트를 유지하면서 Chromium의 최대 프레임 콜백 간격을 200~800ms에서 약 17ms로 줄였다. JPG의 공백 원인과 실제 입력 지연은 별도로 확인한다.
 
+[JPG 투명도 검사 비용 분리](references/image-export-quality.md#jpg-투명도-검사-비용-분리)에서 투명 여백이 있는 단색 표본은 첫 64행 읽기에서 검사가 끝났다. 실제 10장 합성에서 프레임 공백이 생긴 원인은 아직 확정하지 못했다. 메모 잘림 경고를 유지하면서 여백이 있는 전체 JPG를 합성 전에 판정하는 방안을 검증한다.
+
 ## 화면 통합과 배포 확인
 
 목록에서 작업 열기, 메모 편집, 이미지 내보내기, ZIP으로 다시 열기를 이어서 확인한다. 정적 배포에서 편집 주소로 직접 진입하거나 새로고침할 때 앱이 열리고 Worker 파일을 로드하는지 확인한다. TDD는 적용하지 않는다. 앞 절차의 동작 검사를 통과한 운영 빌드를 대상으로 화면과 배포 환경을 확인한다. [Vite Worker 지원](https://vite.dev/guide/features#web-workers), [React Router SPA 배포](https://reactrouter.com/how-to/spa)
