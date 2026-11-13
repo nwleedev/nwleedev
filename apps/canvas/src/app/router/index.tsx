@@ -36,7 +36,10 @@ function ProjectRoute() {
   const { id } = document.project
   const saveMemo = useCallback((update: MemoUpdate) => projects.saveMemoUpdate(id, update), [id])
   useProjectRevalidation(document.project, projects.subscribe)
-  return <EditorPage key={id} document={document} saveMemo={saveMemo} updatePlacement={async (placementId: string, change: PlacementGeometry) => {
+  return <EditorPage key={id} document={document} saveMemo={saveMemo} addImage={async (image) => {
+    await projects.addImage(id, { ...image, projectId: id })
+    await revalidate()
+  }} updatePlacement={async (placementId: string, change: PlacementGeometry) => {
     await projects.updatePlacement(id, placementId, change)
     await revalidate()
   }} />

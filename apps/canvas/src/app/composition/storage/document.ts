@@ -1,13 +1,15 @@
 import type { IDBPDatabase, IDBPTransaction } from "idb"
 
 import { applyPlacementGeometry, resizeMemo, validatePlacementGeometry, validateSize } from "@/entities/project"
-import type { MemoUpdate, PlacementGeometry, Project, ProjectChange, ProjectDocument, Size } from "@/entities/project"
+import type { Asset, MemoUpdate, PlacementGeometry, Project, ProjectChange, ProjectDocument, Size } from "@/entities/project"
 
 import type { Schema } from "./schema"
 
 const stores = ["projects", "assets", "placements", "memos", "memoUpdates"] as const
 const minimumQuality = 0
 const maximumQuality = 100
+const initialInset = 24
+const insetSteps = 5
 
 type WriteTransaction = IDBPTransaction<Schema, typeof stores, "readwrite">
 
@@ -54,13 +56,7 @@ function validateDocument(document: ProjectDocument) {
   const originals = new Map(assets.map((asset) => [asset.id, asset]))
   const placementIds = new Set(placements.map(({ id }) => id))
 
-  for (const asset of assets) {
-    if (
-      asset.projectId !== project.id || !(asset.original instanceof Blob) ||
-      !Number.isSafeInteger(asset.originalWidth) || asset.originalWidth <= 0 ||
-      !Number.isSafeInteger(asset.originalHeight) || asset.originalHeight <= 0
-    ) throw new Error("Invalid project asset")
-  }
+  for (const asset of assets) validateAsset(asset, project.id)
 
   for (const placement of placements) {
     const asset = originals.get(placement.assetId)
@@ -85,6 +81,14 @@ function validateDocument(document: ProjectDocument) {
     validateMemoUpdate(update)
     if (!memoIds.has(update.memoId)) throw new Error("Invalid memo update reference")
   }
+}
+
+function validateAsset(asset: Asset, projectId: string) {
+  if (
+    asset.projectId !== projectId || !(asset.original instanceof Blob) ||
+    !Number.isSafeInteger(asset.originalWidth) || asset.originalWidth <= 0 ||
+    !Number.isSafeInteger(asset.originalHeight) || asset.originalHeight <= 0
+  ) throw new Error("Invalid project asset")
 }
 
 function validateMemoUpdate(update: MemoUpdate) {
@@ -124,6 +128,25 @@ export function documentStorage(
   }
 
   return {
+    async addImage(projectId: string, asset: Asset) {
+      validateAsset(asset, projectId)
+      const { id, originalWidth, originalHeight } = asset
+      await commitEdit(projectId, async (tx) => {
+        const placements = tx.objectStore("placements")
+        const previous = await placements.index("projectOrder").openCursor(keyPrefix(projectId), "prev")
+        const zIndex = previous ? previous.value.zIndex + 1 : 0
+        const inset = initialInset + (zIndex % insetSteps) * initialInset
+        await tx.objectStore("assets").add(asset)
+        await placements.add({
+          id, projectId, assetId: id,
+          x: inset, y: inset,
+          width: originalWidth, height: originalHeight,
+          zIndex, quality: maximumQuality,
+        })
+        return true
+      })
+    },
+
     async updatePlacement(projectId: string, placementId: string, change: PlacementGeometry) {
       await commitEdit(projectId, async (tx) => {
         const placements = tx.objectStore("placements")

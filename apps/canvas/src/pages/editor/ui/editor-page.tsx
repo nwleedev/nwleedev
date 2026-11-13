@@ -1,9 +1,10 @@
 import { useCallback, useState } from "react"
 import { Link } from "react-router"
 
-import type { MemoUpdate, PlacementGeometry, ProjectDocument } from "@/entities/project"
+import type { Asset, MemoUpdate, PlacementGeometry, ProjectDocument } from "@/entities/project"
 
 import { CanvasStage } from "./canvas-stage"
+import { ImageUpload } from "./image-upload"
 import { MemoField } from "./memo-field"
 
 import "./editor-page.css"
@@ -12,9 +13,10 @@ type Props = {
   document: ProjectDocument
   saveMemo: (update: MemoUpdate) => Promise<void>
   updatePlacement: (id: string, change: PlacementGeometry) => Promise<void>
+  addImage: (image: Omit<Asset, "projectId">) => Promise<void>
 }
 
-export function EditorPage({ document, saveMemo, updatePlacement }: Props) {
+export function EditorPage({ document, saveMemo, updatePlacement, addImage }: Props) {
   const [selected, select] = useState<string>()
   const [moveFailed, setMoveFailed] = useState(false)
   const selectedId = document.placements.find(({ id }) => id === selected)?.id ?? document.placements[0]?.id
@@ -27,6 +29,10 @@ export function EditorPage({ document, saveMemo, updatePlacement }: Props) {
     <main>
       <Link to="/">프로젝트 목록</Link>
       <h1>{document.project.title}</h1>
+      <ImageUpload add={async (image) => {
+        await addImage(image)
+        select(image.id)
+      }} />
       <div className="editor-workspace">
         <CanvasStage document={document} selectedId={selectedId} onSelect={select} onMove={async (id, position) => {
           try {
