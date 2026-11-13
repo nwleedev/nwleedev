@@ -99,12 +99,12 @@ export function ImageExport({ document, region, selectScope, scope, render, clos
     </label>}
     {format === "jpg" && <>
       <p>JPG 저장 시 손실 압축을 적용합니다.</p>
-      <label>전체 JPG 품질 <output>{quality}%</output>
+      <label>전체 JPG 품질 <span aria-hidden="true">{quality}%</span>
         <input type="range" min={1} max={maximumQuality} value={quality} onChange={({ currentTarget }) => setQuality(currentTarget.valueAsNumber)} />
       </label>
       {images.map(({ id, quality }, index) => {
         const percent = Math.round((imageQualities.get(id) ?? quality) * maximumQuality)
-        return <label key={id}>이미지 {index + 1} 품질 <output>{percent}%</output>
+        return <label key={id}>이미지 {index + 1} 품질 <span aria-hidden="true">{percent}%</span>
           <input type="range" min={1} max={maximumQuality} value={percent} onChange={({ currentTarget }) => {
             const value = currentTarget.valueAsNumber / maximumQuality
             setImageQualities((previous) => new Map(previous).set(id, value))
