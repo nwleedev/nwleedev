@@ -31,6 +31,27 @@
   margin-inline-start: auto;
 }
 
+.editor-image-upload {
+  display: grid;
+  place-items: center;
+  min-inline-size: 2rem;
+  min-block-size: 2rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+}
+
+.editor-image-upload svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .editor-output-actions,
 .editor-zoom {
   display: flex;
