@@ -59,8 +59,8 @@ function ProjectRoute() {
       document={document}
       saveMemo={saveMemo}
       prepareArchive={async () => {
-        const { writeProject } = await import("../composition/archive/write-project")
-        return writeProject(await readEditorDocument(id))
+        const { prepareArchive } = await import("../composition/archive/prepare-archive")
+        return prepareArchive(await readEditorDocument(id))
       }}
       addImage={(image) => commit(projects.addImage(id, { ...image, projectId: id }))}
       updatePlacement={(placementId, change) => commit(projects.updatePlacement(id, placementId, change))}
