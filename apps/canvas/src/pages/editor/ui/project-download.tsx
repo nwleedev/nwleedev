@@ -1,7 +1,6 @@
 import { useState } from "react"
 
-const releaseDelay = 60_000
-const unsafeFilenameCharacters = /[<>:"/\\|?*\u0000-\u001f]/gu
+import { downloadBlob, downloadName } from "../model/download"
 
 export function ProjectDownload({ title, prepare }: {
   title: string
@@ -13,16 +12,7 @@ export function ProjectDownload({ title, prepare }: {
     setStatus("pending")
     try {
       const blob = await prepare()
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      const name = title.replace(unsafeFilenameCharacters, "_").trim()
-      link.href = url
-      link.download = `${name || "canvas"}.nwlee.zip`
-      try {
-        link.click()
-      } finally {
-        window.setTimeout(() => URL.revokeObjectURL(url), releaseDelay)
-      }
+      downloadBlob(blob, downloadName(title, "zip"))
       setStatus("idle")
     } catch {
       setStatus("failed")

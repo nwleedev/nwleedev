@@ -3,18 +3,22 @@ import { Group, Layer, Stage } from "react-konva"
 
 import { createMemoText, type PlacementGeometry, type ProjectDocument, type Size } from "@/entities/project"
 
+import type { Region } from "../model/export-request"
+import { RegionPicker } from "./region-picker"
 import { useViewport } from "../model/use-viewport"
 import { CanvasAsset } from "./canvas-asset"
 
 type Props = {
   document: ProjectDocument
+  selection?: Region["kind"]
+  onRegion: (region: Region) => void
   selectedId?: string
   onSelect: (id: string | undefined) => void
   onEdit: (id: string, change: PlacementGeometry) => Promise<void>
   onResizeMemo: (id: string, size: Size) => Promise<void>
 }
 
-export function CanvasStage({ document, selectedId, onSelect, onEdit, onResizeMemo }: Props) {
+export function CanvasStage({ document, selection, onRegion, selectedId, onSelect, onEdit, onResizeMemo }: Props) {
   const viewport = useViewport(selectedId, onSelect)
   const container = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<Size>()
@@ -112,6 +116,7 @@ export function CanvasStage({ document, selectedId, onSelect, onEdit, onResizeMe
           </Stage>
         </div>
       )}
+      {selection && <RegionPicker key={selection} kind={selection} view={viewport.view} choose={onRegion} />}
     </div>
   )
 }

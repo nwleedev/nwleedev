@@ -194,6 +194,8 @@ Chromium에서 선택 전 이미지 위 드래그로 화면이 이동하고, 손
 
 ## 이미지 내보내기와 여백
 
+PNG, SVG, JPG 내보내기와 영역 선택을 연결했다. Chromium에서 PNG 여백 0px와 24px의 치수와 픽셀, PNG 다운로드 이름, SVG의 원본 내장, JPG 미리보기와 투명 영역의 저장 제한, 사각형과 원형 및 자유형 선택을 확인했다. 출력 한도의 경계값은 모델 테스트에서 검사한다. WebKit 자동화에서는 원본을 IndexedDB에 기록할 때 오류가 발생해 내보내기까지 도달하지 못했다. WebKit 원본 저장, 원본 품질의 추가 표본, 내보내기 한도 근처의 작업량과 렌더링 성능은 검증이 남아 있다.
+
 패널 UI와 내보내기 설정은 `pages/editor/ui/`와 `pages/editor/model/`에 둔다. 합성 영역과 여백은 편집 문서 및 출력 설정을 입력으로 계산한다. Worker 실행과 메시지 연결은 `app/composition/export/`에서 관리한다.
 
 [이미지 파일로 저장](requirements.md#이미지-파일로-저장)을 적용한다. 편집기 안에서 미리보기와 설정을 함께 확인한다. 형식과 범위에는 선택의 의미가 드러나는 라벨을 두고, 여백은 정확한 값을 지정하는 숫자 입력을 우선 검토한다. 전체에서만 0~24px 입력 하나를 제공한다. 라벨과 입력 사이, 설정 묶음 사이의 간격으로 구조를 드러낸다. 현재 문서와 내보내기 설정을 한 단위로 사용해 미리보기, 예상 용량과 실제 출력이 같은 설정을 반영하게 한다. 합성과 인코딩은 Worker에 맡긴다. [속성별 조작 조사](references/property-controls.md), [이미지 내보내기 품질 조사](references/image-export-quality.md), [WHATWG Canvas 표준](https://html.spec.whatwg.org/multipage/canvas.html)

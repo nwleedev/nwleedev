@@ -6,6 +6,7 @@ import type { MemoUpdate } from "@/entities/project"
 import { EditorPage } from "@/pages/editor"
 import { ProjectsPage } from "@/pages/projects"
 
+import { prepareExport } from "../composition/export/prepare-export"
 import { composeProjects } from "../composition/storage/projects"
 import { useProjectRevalidation } from "./use-project-revalidation"
 
@@ -63,6 +64,7 @@ function ProjectRoute() {
       key={id}
       document={document}
       saveMemo={saveMemo}
+      renderExport={prepareExport}
       prepareArchive={async () => {
         const { prepareArchive } = await import("../composition/archive/prepare-archive")
         return prepareArchive(await readEditorDocument(id))

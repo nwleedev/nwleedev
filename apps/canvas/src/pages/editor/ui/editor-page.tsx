@@ -4,6 +4,8 @@ import { Link } from "react-router"
 import type { Asset, Memo, MemoUpdate, PlacementGeometry, ProjectDocument, Size } from "@/entities/project"
 import { imageSizeAtWidth } from "@/entities/project"
 
+import type { Region, RenderExport } from "../model/export-request"
+import { ImageExport } from "./image-export"
 import { CanvasStage } from "./canvas-stage"
 import { ImageUpload } from "./image-upload"
 import { MemoAttachment } from "./memo-attachment"
@@ -21,9 +23,13 @@ type Props = {
   updateMemoSide: (memoId: string, side: Memo["side"]) => Promise<void>
   updateMemoSize: (memoId: string, size: Size) => Promise<void>
   prepareArchive: () => Promise<Blob>
+  renderExport: RenderExport
 }
 
-export function EditorPage({ document, saveMemo, updatePlacement, addImage, addMemo, updateMemoSide, updateMemoSize, prepareArchive }: Props) {
+export function EditorPage({ document, saveMemo, updatePlacement, addImage, addMemo, updateMemoSide, updateMemoSize, prepareArchive, renderExport }: Props) {
+  const [exporting, setExporting] = useState(false)
+  const [scope, setScope] = useState<"all" | Region["kind"]>("all")
+  const [region, setRegion] = useState<Region>()
   const [selected, select] = useState<string>()
   const [placementFailed, setPlacementFailed] = useState(false)
   const [memoResizeFailed, setMemoResizeFailed] = useState(false)
@@ -55,6 +61,7 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
     <main>
       <Link to="/">프로젝트 목록</Link>
       <h1>{document.project.title}</h1>
+      <button className="image-export-trigger" type="button" aria-expanded={exporting} onClick={() => setExporting(!exporting)}>이미지 내보내기</button>
       <ProjectDownload title={document.project.title} prepare={async () => {
         await Promise.all(Array.from(memoFlushes.current.values(), (flush) => flush()))
         return prepareArchive()
@@ -66,6 +73,8 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
       <div className="editor-workspace">
         <CanvasStage
           document={document}
+          selection={exporting && scope !== "all" ? scope : undefined}
+          onRegion={setRegion}
           selectedId={selectedId}
           onSelect={select}
           onEdit={editPlacement}
@@ -78,7 +87,17 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
             }
           }}
         />
-        <aside className="editor-inspector" aria-label="이미지 속성">
+        {exporting ? <ImageExport
+          document={document}
+          scope={scope}
+          region={region}
+          selectScope={(next) => {
+            setRegion(undefined)
+            setScope(next)
+          }}
+          render={renderExport}
+          close={() => setExporting(false)}
+        /> : <aside className="editor-inspector" aria-label="이미지 속성">
           {placementFailed && <p role="alert">이미지 배치를 저장하지 못했습니다.</p>}
           {memoResizeFailed && <p role="alert">메모 크기를 저장하지 못했습니다.</p>}
           {placement && original && (
@@ -126,7 +145,7 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
               />
             </div>
           ))}
-        </aside>
+        </aside>}
       </div>
       {Array.from(unsaved, ([id, value]) => (
         <label key={id}>

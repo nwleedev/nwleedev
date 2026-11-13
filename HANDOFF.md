@@ -539,7 +539,7 @@ IndexedDB v4에 메모 변경분을 저장하고 커밋을 다른 탭에 알린�
 - 모바일에서 드래그, 스크롤, 두 손가락 확대와 축소를 연이어 수행할 때 동작이 충돌하는지 확인한다. 확대율을 변경한 뒤에도 화면이 입력에 응답하는지 확인한다.
 - 편집 이력을 제공할지, 제공한다면 어떤 변경을 기록할지 정한다. 오프라인에서 앱을 처음 여는 경우와 다시 여는 경우에 각각 어떤 동작을 제공할지도 정한다.
 
-[내보내기 절차](docs/designs/image-annotation-canvas-2cb1ec/plan.md#이미지-내보내기와-여백)에서 초기 한도의 브라우저 측정 항목을 확인한다. 수치는 기준 배치로 산정했으며 합성 성능은 아직 측정하지 않았다.
+[내보내기 절차](docs/designs/image-annotation-canvas-2cb1ec/plan.md#이미지-내보내기와-여백)에서 초기 한도의 브라우저 측정 항목을 확인한다. Chromium에서 PNG, SVG와 JPG를 확인했다. WebKit 자동화에서는 원본 이미지의 IndexedDB 기록에서 오류가 발생했다. 합성 성능은 아직 측정하지 않았다.
 
 [캔버스 화면 이동과 확대](docs/designs/image-annotation-canvas-2cb1ec/plan.md#캔버스-화면-이동과-확대)를 구현하고 Chromium에서 입력 동작을 확인했다. 실제 기기 조작과 편집 화면 렌더링의 측정 조건은 [화면 통합과 배포 확인](docs/designs/image-annotation-canvas-2cb1ec/plan.md#화면-통합과-배포-확인)에 있다.
 
