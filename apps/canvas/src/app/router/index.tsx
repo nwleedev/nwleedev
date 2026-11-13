@@ -1,7 +1,7 @@
 import { createBrowserRouter, data, isRouteErrorResponse, Link, redirect, useFetcher, useLoaderData, useRevalidator, useRouteError } from "react-router"
 import { useCallback } from "react"
 
-import type { MemoUpdate, PlacementGeometry } from "@/entities/project"
+import type { MemoUpdate } from "@/entities/project"
 
 import { EditorPage } from "@/pages/editor"
 import { ProjectsPage } from "@/pages/projects"
@@ -34,33 +34,26 @@ function ProjectRoute() {
   const { revalidate } = useRevalidator()
   const document = useLoaderData() as Awaited<ReturnType<typeof readEditorDocument>>
   const { id } = document.project
-  const saveMemo = useCallback((update: MemoUpdate) => projects.saveMemoUpdate(id, update), [id])
+  const saveMemo = useCallback(async (update: MemoUpdate) => {
+    await projects.saveMemoUpdate(id, update)
+    await revalidate()
+  }, [id, revalidate])
   useProjectRevalidation(document.project, projects.subscribe)
+
+  async function commit(operation: Promise<unknown>) {
+    await operation
+    await revalidate()
+  }
   return (
     <EditorPage
       key={id}
       document={document}
       saveMemo={saveMemo}
-      addImage={async (image) => {
-        await projects.addImage(id, { ...image, projectId: id })
-        await revalidate()
-      }}
-      updatePlacement={async (placementId: string, change: PlacementGeometry) => {
-        await projects.updatePlacement(id, placementId, change)
-        await revalidate()
-      }}
-      addMemo={async (placementId) => {
-        await projects.addMemo(id, placementId)
-        await revalidate()
-      }}
-      updateMemoSide={async (memoId, side) => {
-        await projects.updateMemoSide(id, memoId, side)
-        await revalidate()
-      }}
-      updateMemoSize={async (memoId, size) => {
-        await projects.updateMemoSize(id, memoId, size)
-        await revalidate()
-      }}
+      addImage={(image) => commit(projects.addImage(id, { ...image, projectId: id }))}
+      updatePlacement={(placementId, change) => commit(projects.updatePlacement(id, placementId, change))}
+      addMemo={(placementId) => commit(projects.addMemo(id, placementId))}
+      updateMemoSide={(memoId, side) => commit(projects.updateMemoSide(id, memoId, side))}
+      updateMemoSize={(memoId, size) => commit(projects.updateMemoSize(id, memoId, size))}
     />
   )
 }
