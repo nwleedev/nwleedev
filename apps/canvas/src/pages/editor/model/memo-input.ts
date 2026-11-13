@@ -96,6 +96,11 @@ export function bindMemoInput(
   return {
     merge,
     persist,
+    flush() {
+      if (composing) return Promise.reject(new Error("Memo composition is active"))
+      clearTimeout(timeout)
+      return writer.flush()
+    },
     unsaved() {
       if (text.hasPending() || writer.hasPending() || input.value !== text.read()) return input.value
       return undefined

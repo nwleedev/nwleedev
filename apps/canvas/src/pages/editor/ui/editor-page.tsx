@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { Link } from "react-router"
 
 import type { Asset, Memo, MemoUpdate, PlacementGeometry, ProjectDocument, Size } from "@/entities/project"
@@ -8,6 +8,7 @@ import { CanvasStage } from "./canvas-stage"
 import { ImageUpload } from "./image-upload"
 import { MemoAttachment } from "./memo-attachment"
 import { MemoField } from "./memo-field"
+import { ProjectDownload } from "./project-download"
 
 import "./editor-page.css"
 
@@ -19,9 +20,10 @@ type Props = {
   addMemo: (placementId: string) => Promise<void>
   updateMemoSide: (memoId: string, side: Memo["side"]) => Promise<void>
   updateMemoSize: (memoId: string, size: Size) => Promise<void>
+  prepareArchive: () => Promise<Blob>
 }
 
-export function EditorPage({ document, saveMemo, updatePlacement, addImage, addMemo, updateMemoSide, updateMemoSize }: Props) {
+export function EditorPage({ document, saveMemo, updatePlacement, addImage, addMemo, updateMemoSide, updateMemoSize, prepareArchive }: Props) {
   const [selected, select] = useState<string>()
   const [placementFailed, setPlacementFailed] = useState(false)
   const [memoResizeFailed, setMemoResizeFailed] = useState(false)
@@ -30,6 +32,12 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
   const memo = document.memos.find(({ placementId }) => placementId === selectedId)
   const original = document.assets.find(({ id }) => id === placement?.assetId)
   const [unsaved, setUnsaved] = useState<ReadonlyMap<string, string>>(() => new Map())
+  const memoFlushes = useRef(new Map<string, () => Promise<void>>())
+  const registerFlush = useCallback((id: string, flush: () => Promise<void>) => {
+    const flushes = memoFlushes.current
+    flushes.set(id, flush)
+    return () => { flushes.delete(id) }
+  }, [])
   const preserve = useCallback((id: string, value: string) => {
     setUnsaved((previous) => new Map(previous).set(id, value))
   }, [])
@@ -47,6 +55,10 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
     <main>
       <Link to="/">프로젝트 목록</Link>
       <h1>{document.project.title}</h1>
+      <ProjectDownload title={document.project.title} prepare={async () => {
+        await Promise.all(Array.from(memoFlushes.current.values(), (flush) => flush()))
+        return prepareArchive()
+      }} />
       <ImageUpload add={async (image) => {
         await addImage(image)
         select(image.id)
@@ -110,6 +122,7 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
                 updates={document.memoUpdates.filter((update) => update.memoId === id)}
                 save={saveMemo}
                 preserve={preserve}
+                registerFlush={registerFlush}
               />
             </div>
           ))}
