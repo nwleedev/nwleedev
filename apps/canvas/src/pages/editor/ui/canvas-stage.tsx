@@ -97,7 +97,7 @@ export function CanvasStage({ document, selection, onRegion, selectedId, onSelec
                     if (!asset) return null
                     return (
                       <CanvasAsset
-                        key={placement.id}
+                        key={`${placement.id}:${asset.id}`}
                         asset={asset}
                         placement={placement}
                         memo={memo}

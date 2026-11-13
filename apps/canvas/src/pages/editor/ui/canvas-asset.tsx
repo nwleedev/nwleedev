@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useEffectEvent, useState } from "react"
 import { Group, Image, Rect, Text } from "react-konva"
 
 import { attachedMemoRect, imageSizeAtWidth, type Asset, type Memo, type Placement, type PlacementGeometry, type Size } from "@/entities/project"
@@ -21,25 +21,26 @@ type Props = {
   onResizeMemo: (id: string, size: Size) => Promise<void>
 }
 
-function useOriginal(original: Blob) {
-  const [decoded, setDecoded] = useState<{ source: Blob; image: HTMLImageElement }>()
+function useOriginal({ id, original }: Asset) {
+  const readOriginal = useEffectEvent(() => original)
+  const [decoded, setDecoded] = useState<HTMLImageElement>()
 
   useEffect(() => {
-    const url = URL.createObjectURL(original)
+    const url = URL.createObjectURL(readOriginal())
     const image = new window.Image()
-    image.onload = () => setDecoded({ source: original, image })
+    image.onload = () => setDecoded(image)
     image.src = url
     return () => {
       image.onload = null
       URL.revokeObjectURL(url)
     }
-  }, [original])
+  }, [id])
 
-  return decoded?.source === original ? decoded.image : undefined
+  return decoded
 }
 
 export function CanvasAsset({ asset, placement, memo, memoBody, selected, movable, dragCancelled, onSelect, onEdit, onResizeMemo }: Props) {
-  const image = useOriginal(asset.original)
+  const image = useOriginal(asset)
   const [preview, setPreview] = useState<Size>()
   const [memoPreview, setMemoPreview] = useState<Size>()
   const { id, x, y } = placement
