@@ -158,7 +158,7 @@ TDD를 적용한다. 배치 규칙은 서로 다른 비율의 이미지와 네 �
 
 데스크톱에서는 ZIP 쓰기와 읽기, 다운로드, 미리보기와 편집 재개를 세 작업량으로 측정했다. 프레임 간격, Chromium 프로세스 RSS 및 포인터 이벤트 전달 시간을 표본으로 기록했다. 모바일 실기기 측정과 한도 결정은 남아 있다. [데스크톱 ZIP 처리 시간](references/editable-file-format.md#데스크톱-zip-처리-시간)
 
-ZIP 생성은 저장소에서 읽은 문서를 전달받은 Worker가 처리한다. Chromium에서 다운로드 및 불러오기를 다시 검증했다. 237.50 MB 저장에서 화면 갱신 공백이 남았다. [Worker 적용 후 측정](references/editable-file-format.md#zip-생성-worker-적용-후)
+ZIP 생성은 저장소에서 읽은 문서를 전달받은 Worker가 처리한다. Chromium에서 다운로드 및 불러오기를 다시 검증했다. 237.50 MB 파일을 저장 버튼으로 다운로드할 때 화면 공백을 관측했으나 단계별 실행에서는 재현하지 못했다. [단계별 프레임 간격](references/editable-file-format.md#zip-저장-단계별-프레임-간격)
 
 불러오기 창과 확인 상태는 `pages/projects/ui/` 및 `pages/projects/model/`에 둔다. 저장 동작은 편집기에서 시작한다. ZIP을 읽고 쓰는 구현은 `app/composition/archive/`에 두고, 각 화면에는 필요한 읽기 또는 쓰기 동작만 주입한다. 페이지 사이에 불러오기 UI를 공유하게 되면 그 동작을 `features/import-project/`로 옮긴다.
 
