@@ -29,12 +29,14 @@ export function bindMemoInput(
 ) {
   const text = createMemoText()
   const writer = memoSave(memoId, text.takeUpdate, save)
+  const merged = new Set<string>()
   let composing = false
   let deferred: readonly MemoUpdate[] = []
   let timeout: ReturnType<typeof setTimeout> | undefined
   let disposed = false
 
   async function persist() {
+    if (composing) return
     try {
       await writer.flush()
       if (!disposed) reportFailure(false)
@@ -48,26 +50,35 @@ export function bindMemoInput(
       deferred = updates
       return
     }
+    const incoming = updates.filter(({ updateId }) => !merged.has(updateId))
+    if (!incoming.length) return
     const start = text.anchor(input.selectionStart)
     const end = text.anchor(input.selectionEnd)
     const direction = input.selectionDirection
-    text.merge(updates.map(({ payload }) => payload))
+    text.merge(incoming.map(({ payload }) => payload))
+    for (const { updateId } of incoming) merged.add(updateId)
     const next = text.read()
     if (input.value === next) return
     input.value = next
     input.setSelectionRange(text.resolve(start) ?? 0, text.resolve(end) ?? 0, direction)
   }
 
-  function accept() {
-    if (composing || input.value === text.read()) return
-    const { index, length, value } = changedRange(text.read(), input.value)
-    text.replace(index, length, value)
+  function scheduleSave() {
     clearTimeout(timeout)
     timeout = setTimeout(() => void persist(), idleDelay)
   }
 
+  function accept() {
+    const previous = text.read()
+    if (composing || input.value === previous) return
+    const { index, length, value } = changedRange(previous, input.value)
+    text.replace(index, length, value)
+    scheduleSave()
+  }
+
   function startComposition() {
     composing = true
+    clearTimeout(timeout)
   }
 
   function endComposition() {
@@ -75,6 +86,7 @@ export function bindMemoInput(
     accept()
     merge(deferred)
     deferred = []
+    if (text.hasPending() || writer.hasPending()) scheduleSave()
   }
 
   input.addEventListener("input", accept)
