@@ -4,6 +4,7 @@ import { fitsOutput, maximumExportBytes, overlapsOutput } from "@/shared/export"
 
 const memoFont = "12px Arial, sans-serif"
 const memoLineHeight = 14
+const jpegBackground = "#ffffff"
 const alphaOffset = 3
 const bytesPerPixel = 4
 const opaque = 255
@@ -83,12 +84,18 @@ export async function render(request: ExportRequest, previewScale = 1): Promise<
   if (!fitsOutput(bounds)) throw new Error("Export dimensions exceed limits")
   const svg = format === "svg"
   const { width, height } = bounds
-  const canvas = svg ? new OffscreenCanvas(1, 1) : new OffscreenCanvas(Math.ceil(width * previewScale), Math.ceil(height * previewScale))
-  const context = canvas.getContext("2d", { colorSpace: "srgb", willReadFrequently: format === "jpg" })
+  const canvas = svg
+    ? new OffscreenCanvas(1, 1)
+    : new OffscreenCanvas(Math.ceil(width * previewScale), Math.ceil(height * previewScale))
+  const context = canvas.getContext("2d", { colorSpace: "srgb" })
   if (!context) throw new Error("Image export context unavailable")
   context.imageSmoothingQuality = "high"
   context.font = memoFont
   context.textBaseline = "top"
+  if (format === "jpg") {
+    context.fillStyle = jpegBackground
+    context.fillRect(0, 0, canvas.width, canvas.height)
+  }
   context.scale(previewScale, previewScale)
   context.translate(-bounds.x, -bounds.y)
   const clip = clipShape(region, bounds)
@@ -106,7 +113,7 @@ export async function render(request: ExportRequest, previewScale = 1): Promise<
         try {
           if (format === "jpg" && imageQuality < 1) {
             const source = new OffscreenCanvas(bitmap.width, bitmap.height)
-            const sourceContext = source.getContext("2d")
+            const sourceContext = source.getContext("2d", { willReadFrequently: true })
             if (!sourceContext) throw new Error("Image quality context unavailable")
             sourceContext.drawImage(bitmap, 0, 0)
             if (!hasTransparency(sourceContext, source.width, source.height)) {
@@ -153,7 +160,6 @@ export async function render(request: ExportRequest, previewScale = 1): Promise<
     const preview = await render({ ...request, format: "png" }, scale)
     return { blob, previewBlob: preview.blob, clippedMemo }
   }
-  if (format === "jpg" && hasTransparency(context, width, height)) return { clippedMemo, transparent: true }
   const type = format === "jpg" ? "image/jpeg" : "image/png"
   const blob = await canvas.convertToBlob({ type, quality })
   if (blob.type !== type) throw new Error("Output image format unavailable")

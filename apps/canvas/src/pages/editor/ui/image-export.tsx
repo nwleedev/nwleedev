@@ -75,14 +75,13 @@ export function ImageExport({ document, region, selectScope, scope, render, clos
       }}>
         <option value="png">PNG</option>
         <option value="svg">SVG</option>
-        <option value="jpg" disabled={scope === "ellipse" || scope === "freehand"}>JPG</option>
+        <option value="jpg">JPG</option>
       </select>
     </label>
     <label>범위
       <select aria-label="범위" value={scope} onChange={({ currentTarget }) => {
         const next = currentTarget.value
         if (next !== "all" && next !== "rectangle" && next !== "ellipse" && next !== "freehand") return
-        if ((next === "ellipse" || next === "freehand") && format === "jpg") setFormat("png")
         selectScope(next)
       }}>
         <option value="all">전체</option>
@@ -98,7 +97,7 @@ export function ImageExport({ document, region, selectScope, scope, render, clos
       }} />
     </label>}
     {format === "jpg" && <>
-      <p>JPG 저장 시 손실 압축을 적용합니다.</p>
+      <p>JPG는 흰색 배경으로 저장되며 손실 압축을 적용합니다.</p>
       <label>전체 JPG 품질 <span aria-hidden="true">{quality}%</span>
         <input type="range" min={1} max={maximumQuality} value={quality} onChange={({ currentTarget }) => setQuality(currentTarget.valueAsNumber)} />
       </label>
@@ -118,7 +117,6 @@ export function ImageExport({ document, region, selectScope, scope, render, clos
     {bounds && !request && <p role="alert">출력 크기 한도를 넘었습니다. 선택 영역이나 배치를 조정해 주세요.</p>}
     {request && !current && <p role="status">미리보기를 만드는 중입니다.</p>}
     {current && "failed" in current && <p role="alert">이미지를 내보낼 수 없습니다.</p>}
-    {result?.transparent && <p role="alert">투명한 부분이 있어 JPG로 저장할 수 없습니다. PNG 또는 SVG를 선택해 주세요.</p>}
     {result?.clippedMemo && <p role="alert">표시 영역을 넘는 메모는 일부 잘립니다.</p>}
     {output && <p>예상 용량 {(output.size / mib).toFixed(2)} MiB</p>}
     {tooLarge && <p role="alert">64 MiB를 초과했습니다. 영역이나 형식을 조정해 주세요.</p>}
