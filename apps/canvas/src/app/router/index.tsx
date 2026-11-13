@@ -1,4 +1,4 @@
-import { createBrowserRouter, data, isRouteErrorResponse, Link, redirect, useFetcher, useLoaderData, useRevalidator, useRouteError } from "react-router"
+import { createBrowserRouter, data, isRouteErrorResponse, Link, redirect, useFetcher, useLoaderData, useNavigate, useRevalidator, useRouteError } from "react-router"
 import { useCallback } from "react"
 
 import type { MemoUpdate } from "@/entities/project"
@@ -17,6 +17,7 @@ async function readEditorDocument(id: string | undefined) {
   return document
 }
 function ProjectListRoute() {
+  const navigate = useNavigate()
   const saved = useLoaderData<typeof projects.list>()
   const creation = useFetcher<{ failed: true }>()
   const creating = creation.state !== "idle"
@@ -26,6 +27,14 @@ function ProjectListRoute() {
       projects={saved.map((project) => ({ ...project, href: `/projects/${project.id}` }))}
       onCreate={creating ? undefined : () => creation.submit(null, { method: "post" })}
       createFailed={!creating && creation.data?.failed === true}
+      readArchive={async (file) => {
+        const { readProjectArchive } = await import("../composition/archive/read-project")
+        return readProjectArchive(file)
+      }}
+      restore={async (document) => {
+        await projects.addDocument(document)
+        await navigate(`/projects/${document.project.id}`)
+      }}
     />
   )
 }

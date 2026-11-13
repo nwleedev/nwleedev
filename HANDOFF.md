@@ -525,7 +525,7 @@ WebKit의 나머지 실패 세 건은 `temps/notes-webkit-u27`을 사용한 재�
 
 IndexedDB v4에 메모 변경분을 저장하고 커밋을 다른 탭에 알린다. 기존 메모 입력을 Yjs에 연결했으며 다른 탭에서 삭제한 배치의 미저장 메모는 현재 편집 화면에서 복사할 수 있다. 다중 탭 대단원 코드 리뷰와 두 탭 검증은 [여러 탭에서 수정 반영](docs/designs/image-annotation-canvas-2cb1ec/plan.md#여러-탭에서-수정-반영)에 있다. 다음 절차는 캔버스 배치와 메모 부착이다.
 
-[캔버스 배치와 메모 부착](docs/designs/image-annotation-canvas-2cb1ec/plan.md#캔버스-편집과-메모-부착)의 좌표 계산을 Konva 화면에 연결했고 대단원 리뷰를 마쳤다. [편집용 ZIP](docs/designs/image-annotation-canvas-2cb1ec/plan.md#편집용-zip-저장과-불러오기)은 편집기에서 다운로드할 수 있고, 읽기 모듈은 새 프로젝트로 저장할 문서를 만든다. 목록의 불러오기 창을 연결한 뒤 실제 기기에서 한도를 측정한다. 현재 빌드에서 초기 번들의 크기 경고가 발생한다.
+[캔버스 배치와 메모 부착](docs/designs/image-annotation-canvas-2cb1ec/plan.md#캔버스-편집과-메모-부착)의 좌표 계산을 Konva 화면에 연결했고 대단원 리뷰를 마쳤다. [편집용 ZIP](docs/designs/image-annotation-canvas-2cb1ec/plan.md#편집용-zip-저장과-불러오기)은 편집기에서 다운로드할 수 있고, 읽기 모듈은 새 프로젝트로 저장할 문서를 만든다. 목록에서 파일을 확인하고 새 프로젝트로 열 수 있다. 실제 기기에서 한도를 측정한다. 현재 빌드에서 초기 번들의 크기 경고가 발생한다.
 
 캔버스 구현 계획의 각 절차에서 해결할 문제에 맞는 디자인 패턴을 조사한다. 계획에는 채택한 패턴과 이 서비스에서 활용할 지점, 선택 이유를 적는다. 기존 구조로 해결할 수 있는 절차는 그 근거를 적는다.
 

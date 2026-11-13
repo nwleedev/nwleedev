@@ -1,5 +1,9 @@
 import { Link } from "react-router"
 
+import type { ProjectDocument } from "@/entities/project"
+
+import { ProjectImport } from "./project-import"
+
 import "./projects-page.css"
 
 type ProjectCard = {
@@ -13,7 +17,8 @@ type ProjectCard = {
 type Props = {
   projects?: readonly ProjectCard[]
   onCreate?: () => void
-  onImport?: () => void
+  readArchive: (file: File) => Promise<ProjectDocument>
+  restore: (project: ProjectDocument) => Promise<void>
   createFailed?: boolean
 }
 
@@ -22,7 +27,7 @@ const dateFormat = new Intl.DateTimeFormat("ko-KR", {
   timeStyle: "short",
 })
 
-export function ProjectsPage({ projects = [], onCreate, onImport, createFailed }: Props) {
+export function ProjectsPage({ projects = [], onCreate, readArchive, restore, createFailed }: Props) {
   return (
     <>
       <header className="projects-header">
@@ -31,9 +36,7 @@ export function ProjectsPage({ projects = [], onCreate, onImport, createFailed }
           <button type="button" className="projects-create" aria-label="새 프로젝트" title="새 프로젝트" onClick={onCreate} disabled={!onCreate}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
           </button>
-          <button type="button" aria-label="불러오기" title="불러오기" onClick={onImport} disabled={!onImport}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5h6l2 2h10v12H3V7Zm9 3v6m-3-3 3 3 3-3" /></svg>
-          </button>
+          <ProjectImport read={readArchive} restore={restore} />
         </div>
       </header>
       <main className="projects">
