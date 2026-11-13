@@ -230,6 +230,8 @@ Chromium 156에서 1,440×900, 픽셀 비율 1의 화면으로 1080p 이미지 1
 
 수정 뒤 같은 CPU 제한과 10장 배치에서 너비와 위치가 IndexedDB에 저장됐으며 원본에 대한 객체 URL은 처음 생성한 10개 그대로였다. 프레임 콜백 최대 간격은 너비 저장 16.7ms, 드래그 33.4ms였다. 전후 각 한 번의 표본이며 실제 화면 표시 지연을 직접 측정한 값은 아니다. [React Effect Event](https://react.dev/reference/react/useEffectEvent) [IndexedDB 값 복제](https://w3c.github.io/IndexedDB/#clone-a-value)
 
+Chromium 운영 빌드에서 편집 주소를 직접 열고 네트워크를 끊은 뒤 메모를 편집하고 첫 PNG 내보내기를 실행했다. 변경 전에는 Worker 스크립트 요청이 실패해 미리보기가 열리지 않았다. 이미지 내보내기 Worker를 초기 앱 번들에 포함한 뒤 미리보기와 PNG 다운로드를 확인했다. ZIP의 오프라인 첫 실행과 브라우저를 다시 시작한 뒤 오프라인으로 여는 동작은 이 검사에서 확인하지 않았다. [Vite 인라인 Worker](https://vite.dev/guide/features#web-workers)
+
 자동화 검사는 계획의 시나리오와 대응하되 계획 파일을 참조하지 않는다. 실제 브라우저 저장소, ZIP 입출력과 인코딩 결과를 관찰한다. 예상 결과를 대신 반환하는 모의 객체나 사용하지 않는 픽스처와 스크립트는 작성하지 않는다. [Playwright 검증 지침](https://playwright.dev/docs/best-practices)
 
 ## 진행 조건

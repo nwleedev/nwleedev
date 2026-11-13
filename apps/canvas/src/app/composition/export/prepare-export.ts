@@ -1,8 +1,10 @@
 import type { RenderExport } from "@/pages/editor"
 
+import ExportWorker from "./export-worker?worker&inline"
+
 export const prepareExport: RenderExport = async (request, signal) => {
   signal.throwIfAborted()
-  const worker = new Worker(new URL("./export-worker.ts", import.meta.url), { type: "module" })
+  const worker = new ExportWorker()
   const abort = () => rejectRequest?.(signal.reason)
   let rejectRequest: ((reason: unknown) => void) | undefined
   try {
