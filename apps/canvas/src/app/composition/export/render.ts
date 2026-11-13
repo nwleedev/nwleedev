@@ -1,6 +1,6 @@
 import type { Rect } from "@/entities/project"
 import type { ExportRequest, ExportResult, Region } from "@/pages/editor"
-import { fitsOutput } from "@/shared/export"
+import { fitsOutput, overlapsOutput } from "@/shared/export"
 
 const memoFont = "12px Arial, sans-serif"
 const memoLineHeight = 14
@@ -95,29 +95,31 @@ export async function render(request: ExportRequest): Promise<ExportResult> {
   let clippedMemo = false
 
   for (const { rect, original, quality: imageQuality, memo } of images) {
-    if (svg) {
-      const data = await dataUrl(original)
-      markup.push(`<image ${svgRect(rect)} href="${xml(data)}"/>`)
-    } else {
-      let bitmap = await createImageBitmap(original)
-      try {
-        if (format === "jpg" && imageQuality < 1) {
-          const source = new OffscreenCanvas(bitmap.width, bitmap.height)
-          const sourceContext = source.getContext("2d")
-          if (!sourceContext) throw new Error("Image quality context unavailable")
-          sourceContext.drawImage(bitmap, 0, 0)
-          if (!hasTransparency(sourceContext, source.width, source.height)) {
-            const encoded = await source.convertToBlob({ type: "image/jpeg", quality: imageQuality })
-            bitmap.close()
-            bitmap = await createImageBitmap(encoded)
+    if (overlapsOutput(bounds, rect)) {
+      if (svg) {
+        const data = await dataUrl(original)
+        markup.push(`<image ${svgRect(rect)} href="${xml(data)}"/>`)
+      } else {
+        let bitmap = await createImageBitmap(original)
+        try {
+          if (format === "jpg" && imageQuality < 1) {
+            const source = new OffscreenCanvas(bitmap.width, bitmap.height)
+            const sourceContext = source.getContext("2d")
+            if (!sourceContext) throw new Error("Image quality context unavailable")
+            sourceContext.drawImage(bitmap, 0, 0)
+            if (!hasTransparency(sourceContext, source.width, source.height)) {
+              const encoded = await source.convertToBlob({ type: "image/jpeg", quality: imageQuality })
+              bitmap.close()
+              bitmap = await createImageBitmap(encoded)
+            }
           }
+          context.drawImage(bitmap, rect.x, rect.y, rect.width, rect.height)
+        } finally {
+          bitmap.close()
         }
-        context.drawImage(bitmap, rect.x, rect.y, rect.width, rect.height)
-      } finally {
-        bitmap.close()
       }
     }
-    if (!memo) continue
+    if (!memo || !overlapsOutput(bounds, memo.rect)) continue
     const box = memo.rect
     const lines = memoLines(context, memo.body, box.width)
     const maxLines = Math.floor(box.height / memoLineHeight)

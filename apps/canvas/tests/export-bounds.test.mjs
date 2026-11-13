@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import { exportBounds, fitsOutput } from "../src/shared/export/index.ts"
+import { exportBounds, fitsOutput, overlapsOutput } from "../src/shared/export/index.ts"
 
 test("export bounds encloses every rectangle at integer pixel edges", () => {
   const rectangles = [
@@ -63,4 +63,11 @@ test("output exceeds the limit when either side is one pixel too long", () => {
 test("output accepts exactly 28 million pixels and rejects one pixel more", () => {
   assert.equal(fitsOutput({ x: -24, y: -24, width: 5_000, height: 5_600 }), true)
   assert.equal(fitsOutput({ x: -24, y: -24, width: 5_000, height: 5_601 }), false)
+})
+
+test("only rectangles with visible area inside the output overlap it", () => {
+  const output = { x: -20, y: 30, width: 100, height: 80 }
+  assert.equal(overlapsOutput(output, { x: 75, y: 90, width: 20, height: 30 }), true)
+  assert.equal(overlapsOutput(output, { x: 80, y: 90, width: 20, height: 30 }), false)
+  assert.equal(overlapsOutput(output, { x: -40, y: -20, width: 60, height: 50 }), false)
 })

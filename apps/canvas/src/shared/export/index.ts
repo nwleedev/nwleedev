@@ -43,3 +43,9 @@ export function fitsOutput({ width, height }: Rect): boolean {
   if (width > maximumExportDimension || height > maximumExportDimension) return false
   return width * height <= maximumExportPixels
 }
+
+export function overlapsOutput(output: Rect, element: Rect): boolean {
+  const horizontal = element.x < output.x + output.width && output.x < element.x + element.width
+  const vertical = element.y < output.y + output.height && output.y < element.y + element.height
+  return horizontal && vertical
+}
