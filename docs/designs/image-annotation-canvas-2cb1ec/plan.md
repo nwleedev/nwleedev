@@ -226,6 +226,8 @@ Chromium 156에서 256×128px 원본 PNG에 픽셀을 바꾸지 않는 보조 �
 
 [1080p 이미지 10장의 배치 비교](references/image-export-quality.md#1080p-이미지-10장의-배치-비교)에서 Chromium과 WebKit은 5열 2행의 PNG와 SVG 미리보기를 표시했다. 세로 한 줄과 간격이 넓은 배치는 각각 높이와 총 픽셀 한도에서 차단됐다. JPG는 5열 2행의 투명 영역 때문에 차단됐다. PNG와 JPG 처리 중 관측한 프레임 공백의 원인, 최대 메모리와 실제 입력 지연은 추가로 확인한다.
 
+[프레임 공백 추적](references/image-export-quality.md#프레임-공백이-발생한-구간)에서 PNG는 Worker 응답 이후에 최대 간격과 메인 스레드 지연이 반복됐다. JPG 투명 영역 경고는 미리보기 디코딩 없이도 응답 전후에 공백이 있었다. PNG 축소 미리보기의 효과와 추가 인코딩 비용을 비교하고, JPG는 별도로 Worker 처리와 브라우저 표시를 추적한다.
+
 ## 화면 통합과 배포 확인
 
 목록에서 작업 열기, 메모 편집, 이미지 내보내기, ZIP으로 다시 열기를 이어서 확인한다. 정적 배포에서 편집 주소로 직접 진입하거나 새로고침할 때 앱이 열리고 Worker 파일을 로드하는지 확인한다. TDD는 적용하지 않는다. 앞 절차의 동작 검사를 통과한 운영 빌드를 대상으로 화면과 배포 환경을 확인한다. [Vite Worker 지원](https://vite.dev/guide/features#web-workers), [React Router SPA 배포](https://reactrouter.com/how-to/spa)

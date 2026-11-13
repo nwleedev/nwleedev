@@ -543,7 +543,7 @@ IndexedDB v4에 메모 변경분을 저장하고 커밋을 다른 탭에 알린�
 
 [캔버스 화면 이동과 확대](docs/designs/image-annotation-canvas-2cb1ec/plan.md#캔버스-화면-이동과-확대)를 구현하고 Chromium에서 입력 동작을 확인했다. 실제 기기 조작과 편집 화면 렌더링의 측정 조건은 [화면 통합과 배포 확인](docs/designs/image-annotation-canvas-2cb1ec/plan.md#화면-통합과-배포-확인)에 있다.
 
-[내보내기 절차](docs/designs/image-annotation-canvas-2cb1ec/plan.md#이미지-내보내기와-여백)에 화면 이동과 확대 전후의 PNG 비교, Chromium의 한도 검증과 1080p 이미지 10장의 배치 비교를 기록했다. PNG와 JPG 처리 중 프레임 공백의 원인, 최대 메모리와 실제 입력 지연은 확인이 남아 있다.
+[내보내기 절차](docs/designs/image-annotation-canvas-2cb1ec/plan.md#이미지-내보내기와-여백)에 PNG 비교, Chromium의 한도 검증과 1080p 이미지 10장의 배치 비교를 기록했다. 프레임 공백이 반복된 Worker 응답 이후 구간을 중심으로 PNG 축소 미리보기를 비교한다. JPG 공백의 원인, 최대 메모리와 실제 입력 지연은 확인이 남아 있다.
 
 [이미지 편집 후 프레임 공백](docs/designs/image-annotation-canvas-2cb1ec/references/edit-rendering-performance.md)에 전후 수치와 대안 비교를 기록했다. 추가 성능 검증에서는 [정량 개선 기록](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#정량-개선-기록)을 따른다.
 
