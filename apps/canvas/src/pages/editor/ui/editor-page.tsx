@@ -138,30 +138,42 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
             </div>
           ))}
           {placement && original && (
-            <label className="editor-image-width">
-              이미지 너비 (px)
-              <input
-                key={`${placement.id}:${placement.width}`}
-                type="number"
-                min={1}
-                max={original.originalWidth}
-                step="any"
-                defaultValue={placement.width}
-                onBlur={({ currentTarget }) => {
-                  const width = currentTarget.valueAsNumber
-                  if (!currentTarget.validity.valid || !Number.isFinite(width)) {
-                    currentTarget.value = String(placement.width)
-                    return
-                  }
-                  if (width !== placement.width) {
-                    void editPlacement(placement.id, { kind: "size", ...imageSizeAtWidth(original, width) })
-                  }
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") event.currentTarget.blur()
-                }}
-              />
-            </label>
+            <div className="editor-image-width">
+              <label>
+                이미지 너비 (px)
+                <input
+                  key={`${placement.id}:${placement.width}`}
+                  type="number"
+                  min={1}
+                  max={original.originalWidth}
+                  step="any"
+                  defaultValue={placement.width}
+                  onBlur={({ currentTarget }) => {
+                    const width = currentTarget.valueAsNumber
+                    if (!currentTarget.validity.valid || !Number.isFinite(width)) {
+                      currentTarget.value = String(placement.width)
+                      return
+                    }
+                    if (width !== placement.width) {
+                      void editPlacement(placement.id, { kind: "size", ...imageSizeAtWidth(original, width) })
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") event.currentTarget.blur()
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                disabled={placement.width === original.originalWidth}
+                onClick={() => void editPlacement(placement.id, {
+                  kind: "size",
+                  ...imageSizeAtWidth(original, original.originalWidth),
+                })}
+              >
+                원본 크기로 복원
+              </button>
+            </div>
           )}
         </aside>}
       </div>
