@@ -1,0 +1,76 @@
+import { createBrowserRouter, data, isRouteErrorResponse, Link, redirect, useFetcher, useLoaderData, useRouteError } from "react-router"
+
+import { EditorPage } from "@/pages/editor"
+import { ProjectsPage } from "@/pages/projects"
+
+import { composeProjects } from "../composition/storage/projects"
+
+const projects = composeProjects()
+
+async function readProject(id: string | undefined) {
+  const project = id ? await projects.read(id) : undefined
+  if (!project) throw data(null, { status: 404 })
+  return project
+}
+
+function ProjectListRoute() {
+  const saved = useLoaderData<typeof projects.list>()
+  const creation = useFetcher<{ failed: true }>()
+  const creating = creation.state !== "idle"
+
+  return (
+    <ProjectsPage
+      projects={saved.map((project) => ({ ...project, href: `/projects/${project.id}` }))}
+      onCreate={creating ? undefined : () => creation.submit(null, { method: "post" })}
+      createFailed={!creating && creation.data?.failed === true}
+    />
+  )
+}
+
+function ProjectRoute() {
+  return <EditorPage project={useLoaderData<typeof readProject>()} />
+}
+
+function PendingProjects() {
+  return <p role="status">프로젝트를 불러오는 중입니다.</p>
+}
+
+function ProjectRouteError() {
+  const error: unknown = useRouteError()
+  const missing = isRouteErrorResponse(error) && error.status === 404
+
+  return (
+    <main>
+      <h1>{missing ? "프로젝트를 찾을 수 없습니다." : "프로젝트를 불러오지 못했습니다."}</h1>
+      <Link to="/">프로젝트 목록</Link>
+    </main>
+  )
+}
+
+export const router = createBrowserRouter([
+  {
+    path: "/",
+    HydrateFallback: PendingProjects,
+    ErrorBoundary: ProjectRouteError,
+    children: [
+      {
+        index: true,
+        loader: projects.list,
+        async action() {
+          try {
+            const project = await projects.create()
+            return redirect(`/projects/${project.id}`)
+          } catch {
+            return data({ failed: true }, { status: 500 })
+          }
+        },
+        Component: ProjectListRoute,
+      },
+      {
+        path: "projects/:id",
+        loader: ({ params }) => readProject(params.id),
+        Component: ProjectRoute,
+      },
+    ],
+  },
+])

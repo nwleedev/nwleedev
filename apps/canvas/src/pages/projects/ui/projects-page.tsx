@@ -1,3 +1,5 @@
+import { Link } from "react-router"
+
 import "./projects-page.css"
 
 type ProjectCard = {
@@ -12,6 +14,7 @@ type Props = {
   projects?: readonly ProjectCard[]
   onCreate?: () => void
   onImport?: () => void
+  createFailed?: boolean
 }
 
 const dateFormat = new Intl.DateTimeFormat("ko-KR", {
@@ -19,7 +22,7 @@ const dateFormat = new Intl.DateTimeFormat("ko-KR", {
   timeStyle: "short",
 })
 
-export function ProjectsPage({ projects = [], onCreate, onImport }: Props) {
+export function ProjectsPage({ projects = [], onCreate, onImport, createFailed }: Props) {
   return (
     <>
       <header className="projects-header">
@@ -35,19 +38,20 @@ export function ProjectsPage({ projects = [], onCreate, onImport }: Props) {
       </header>
       <main className="projects">
         <h1>이 브라우저의 프로젝트</h1>
+        {createFailed && <p role="alert">프로젝트를 만들지 못했습니다. 다시 시도해 주세요.</p>}
         {projects.length === 0 ? (
           <p className="projects-empty">저장된 프로젝트가 없습니다.</p>
         ) : (
           <ul className="project-grid">
             {projects.map(({ id, href, title, updatedAt, previewUrl }) => (
               <li key={id}>
-                <a className="project-card" href={href}>
+                <Link className="project-card" to={href}>
                   <div className="project-preview">
                     {previewUrl && <img src={previewUrl} alt="" loading="lazy" />}
                   </div>
                   <h2>{title}</h2>
                   <time dateTime={updatedAt}>{dateFormat.format(new Date(updatedAt))}</time>
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
