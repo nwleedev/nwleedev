@@ -1,19 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Layer, Stage } from "react-konva"
+import { Group, Layer, Stage } from "react-konva"
 
 import { createMemoText, type PlacementGeometry, type ProjectDocument, type Size } from "@/entities/project"
 
+import { useViewport } from "../model/use-viewport"
 import { CanvasAsset } from "./canvas-asset"
 
 type Props = {
   document: ProjectDocument
   selectedId?: string
-  onSelect: (id: string) => void
+  onSelect: (id: string | undefined) => void
   onEdit: (id: string, change: PlacementGeometry) => Promise<void>
   onResizeMemo: (id: string, size: Size) => Promise<void>
 }
 
 export function CanvasStage({ document, selectedId, onSelect, onEdit, onResizeMemo }: Props) {
+  const viewport = useViewport(selectedId, onSelect)
   const container = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<Size>()
   const assets = new Map(document.assets.map((asset) => [asset.id, asset]))
@@ -47,29 +49,68 @@ export function CanvasStage({ document, selectedId, onSelect, onEdit, onResizeMe
 
   return (
     <div ref={container} className="editor-canvas" aria-label="캔버스" role="region">
+      <div className="canvas-navigation" role="group" aria-label="캔버스 화면 조작">
+        <button type="button" aria-pressed={viewport.hand} onClick={() => viewport.setHand(!viewport.hand)}>화면 이동</button>
+        <button type="button" aria-label="축소" onClick={() => viewport.zoom(false)}>−</button>
+        <output aria-label="확대율">{Math.round(viewport.view.scale * 100)}%</output>
+        <button type="button" aria-label="확대" onClick={() => viewport.zoom(true)}>+</button>
+        <button type="button" onClick={viewport.fit}>전체 보기</button>
+        <select aria-label="캔버스 입력 방식" value={viewport.input} onChange={({ currentTarget }) => viewport.setInput(currentTarget.value === "trackpad" ? "trackpad" : "mouse")}>
+          <option value="mouse">마우스</option>
+          <option value="trackpad">터치패드</option>
+        </select>
+      </div>
       {size && (
-        <Stage {...size} className="editor-stage">
-          <Layer>
-            {document.placements.map((placement) => {
-              const asset = assets.get(placement.assetId)
-              const memo = memos.get(placement.id)
-              if (!asset) return null
-              return (
-                <CanvasAsset
-                  key={placement.id}
-                  asset={asset}
-                  placement={placement}
-                  memo={memo}
-                  memoBody={memo ? bodies.get(memo.id) ?? "" : ""}
-                  selected={selectedId === placement.id}
-                  onSelect={onSelect}
-                  onEdit={onEdit}
-                  onResizeMemo={onResizeMemo}
-                />
-              )
-            })}
-          </Layer>
-        </Stage>
+        <div
+          className="editor-stage"
+          tabIndex={0}
+          aria-label="캔버스 작업 영역"
+          onPointerDownCapture={(event) => {
+            event.currentTarget.focus({ preventScroll: true })
+            viewport.down(event)
+          }}
+          onPointerMoveCapture={viewport.move}
+          onPointerUpCapture={viewport.end}
+          onPointerCancelCapture={viewport.end}
+          onLostPointerCapture={viewport.end}
+          onBlur={() => viewport.setSpace(false)}
+          onKeyDown={(event) => {
+            if (event.code === "Space") {
+              event.preventDefault()
+              viewport.setSpace(true)
+            }
+          }}
+          onKeyUp={(event) => {
+            if (event.code === "Space") viewport.setSpace(false)
+          }}
+        >
+          <Stage ref={viewport.stage} {...size} onWheel={({ evt }) => viewport.wheel(evt)}>
+            <Layer>
+              <Group ref={viewport.scene} x={viewport.view.x} y={viewport.view.y} scaleX={viewport.view.scale} scaleY={viewport.view.scale}>
+                  {document.placements.map((placement) => {
+                    const asset = assets.get(placement.assetId)
+                    const memo = memos.get(placement.id)
+                    if (!asset) return null
+                    return (
+                      <CanvasAsset
+                        key={placement.id}
+                        asset={asset}
+                        placement={placement}
+                        memo={memo}
+                        memoBody={memo ? bodies.get(memo.id) ?? "" : ""}
+                        selected={selectedId === placement.id}
+                        movable={!viewport.hand}
+                        dragCancelled={viewport.dragCancelled}
+                        onSelect={onSelect}
+                        onEdit={onEdit}
+                        onResizeMemo={onResizeMemo}
+                      />
+                    )
+                  })}
+              </Group>
+            </Layer>
+          </Stage>
+        </div>
       )}
     </div>
   )

@@ -4,10 +4,13 @@ type Point = { x: number; y: number }
 
 const radius = 5
 
-export function ResizeHandle({ point, fill, stroke, onPreview, onCommit }: {
+export function ResizeHandle({ point, fill, stroke, draggable, dragCancelled, onCancel, onPreview, onCommit }: {
   point: Point
   fill: string
   stroke: string
+  draggable: boolean
+  dragCancelled: () => boolean
+  onCancel: () => void
   onPreview: (point: Point) => Point
   onCommit: (point: Point) => void
 }) {
@@ -20,9 +23,15 @@ export function ResizeHandle({ point, fill, stroke, onPreview, onCommit }: {
       offsetY={radius}
       fill={fill}
       stroke={stroke}
-      draggable
+      name="resize-handle"
+      draggable={draggable}
       onDragMove={({ target }) => target.position(onPreview(target.position()))}
-      onDragEnd={({ target }) => onCommit(target.position())}
+      onDragEnd={({ target }) => {
+        if (dragCancelled()) {
+          target.position(point)
+          onCancel()
+        } else onCommit(target.position())
+      }}
     />
   )
 }

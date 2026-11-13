@@ -14,6 +14,8 @@ type Props = {
   memo?: Memo
   memoBody: string
   selected: boolean
+  movable: boolean
+  dragCancelled: () => boolean
   onSelect: (id: string) => void
   onEdit: (id: string, change: PlacementGeometry) => Promise<void>
   onResizeMemo: (id: string, size: Size) => Promise<void>
@@ -36,7 +38,7 @@ function useOriginal(original: Blob) {
   return decoded?.source === original ? decoded.image : undefined
 }
 
-export function CanvasAsset({ asset, placement, memo, memoBody, selected, onSelect, onEdit, onResizeMemo }: Props) {
+export function CanvasAsset({ asset, placement, memo, memoBody, selected, movable, dragCancelled, onSelect, onEdit, onResizeMemo }: Props) {
   const image = useOriginal(asset.original)
   const [preview, setPreview] = useState<Size>()
   const [memoPreview, setMemoPreview] = useState<Size>()
@@ -57,13 +59,18 @@ export function CanvasAsset({ asset, placement, memo, memoBody, selected, onSele
   return (
     <Group x={x} y={y}>
       <Group
-        draggable
-        onPointerDown={() => onSelect(id)}
+        name="placement"
+        id={id}
+        draggable={movable}
+        onPointerDown={({ evt }) => {
+          if (movable && evt.pointerType !== "touch") onSelect(id)
+        }}
         onDragStart={() => onSelect(id)}
         onDragEnd={(event) => {
           const node = event.target
           const offset = node.position()
           node.position({ x: 0, y: 0 })
+          if (dragCancelled()) return
           void onEdit(id, { kind: "position", x: x + offset.x, y: y + offset.y })
         }}
       >
@@ -81,6 +88,9 @@ export function CanvasAsset({ asset, placement, memo, memoBody, selected, onSele
           point={{ x: width, y: height }}
           fill={surface}
           stroke={accent}
+          draggable={movable}
+          dragCancelled={dragCancelled}
+          onCancel={() => setPreview(undefined)}
           onPreview={(point) => {
             const next = resize(point)
             setPreview(next)
@@ -97,6 +107,9 @@ export function CanvasAsset({ asset, placement, memo, memoBody, selected, onSele
           point={memoCorner(note, memo.side)}
           fill={surface}
           stroke={accent}
+          draggable={movable}
+          dragCancelled={dragCancelled}
+          onCancel={() => setMemoPreview(undefined)}
           onPreview={(point) => {
             const next = memoSizeAtCorner(imageRect, memo.side, point)
             setMemoPreview(next)

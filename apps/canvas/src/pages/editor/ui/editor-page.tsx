@@ -27,7 +27,7 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
   const [selected, select] = useState<string>()
   const [placementFailed, setPlacementFailed] = useState(false)
   const [memoResizeFailed, setMemoResizeFailed] = useState(false)
-  const placement = document.placements.find(({ id }) => id === selected) ?? document.placements[0]
+  const placement = document.placements.find(({ id }) => id === selected)
   const selectedId = placement?.id
   const memo = document.memos.find(({ placementId }) => placementId === selectedId)
   const original = document.assets.find(({ id }) => id === placement?.assetId)
