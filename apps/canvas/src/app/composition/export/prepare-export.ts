@@ -1,27 +1,18 @@
-import type { RenderExport } from "@/pages/editor"
+import type { ExportResult, RenderExport } from "@/pages/editor"
 
+import { requestWorker } from "../request-worker"
 import ExportWorker from "./export-worker?worker&inline"
 
-export const prepareExport: RenderExport = async (request, signal) => {
-  signal.throwIfAborted()
-  const worker = new ExportWorker()
-  const abort = () => rejectRequest?.(signal.reason)
-  let rejectRequest: ((reason: unknown) => void) | undefined
-  try {
-    return await new Promise((resolve, reject) => {
-      const fail = () => reject(new Error("Image export failed"))
-      rejectRequest = reject
-      signal.addEventListener("abort", abort, { once: true })
-      worker.addEventListener("error", fail, { once: true })
-      worker.addEventListener("messageerror", fail, { once: true })
-      worker.addEventListener("message", ({ data }) => {
-        if (data === null) fail()
-        else resolve(data)
-      }, { once: true })
-      worker.postMessage(request)
-    })
-  } finally {
-    signal.removeEventListener("abort", abort)
-    worker.terminate()
+function decode(value: unknown): ExportResult | undefined {
+  if (!value || typeof value !== "object") return undefined
+  if (!("clippedMemo" in value) || typeof value.clippedMemo !== "boolean") return undefined
+  if ("transparent" in value && value.transparent === true) {
+    return { transparent: true, clippedMemo: value.clippedMemo }
   }
+  if (!("blob" in value) || !(value.blob instanceof Blob)) return undefined
+  const previewBlob = "previewBlob" in value && value.previewBlob instanceof Blob ? value.previewBlob : undefined
+  return { blob: value.blob, previewBlob, clippedMemo: value.clippedMemo }
 }
+
+export const prepareExport: RenderExport = (request, signal) =>
+  requestWorker(() => new ExportWorker(), request, decode, signal)
