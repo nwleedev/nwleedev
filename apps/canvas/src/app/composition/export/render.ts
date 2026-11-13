@@ -1,6 +1,6 @@
 import type { Rect } from "@/entities/project"
 import type { ExportRequest, ExportResult, Region } from "@/pages/editor"
-import { fitsOutput, overlapsOutput } from "@/shared/export"
+import { fitsOutput, maximumExportBytes, overlapsOutput } from "@/shared/export"
 
 const memoFont = "12px Arial, sans-serif"
 const memoLineHeight = 14
@@ -157,5 +157,17 @@ export async function render(request: ExportRequest, previewScale = 1): Promise<
   const type = format === "jpg" ? "image/jpeg" : "image/png"
   const blob = await canvas.convertToBlob({ type, quality })
   if (blob.type !== type) throw new Error("Output image format unavailable")
+  const longestSide = Math.max(width, height)
+  if (format === "png" && longestSide > previewDimension && blob.size <= maximumExportBytes) {
+    const scale = previewDimension / longestSide
+    const preview = new OffscreenCanvas(Math.ceil(width * scale), Math.ceil(height * scale))
+    const previewContext = preview.getContext("2d", { colorSpace: "srgb" })
+    if (previewContext) {
+      previewContext.imageSmoothingQuality = "high"
+      previewContext.drawImage(canvas, 0, 0, preview.width, preview.height)
+      const previewBlob = await preview.convertToBlob({ type })
+      return { blob, previewBlob, clippedMemo }
+    }
+  }
   return { blob, clippedMemo }
 }
