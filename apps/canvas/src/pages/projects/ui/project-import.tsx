@@ -11,6 +11,10 @@ type Props = {
   restore: (project: ProjectDocument) => Promise<void>
 }
 
+type ImportState =
+  | { status: "reading" | "invalid" | "unsupported-version"; name: string }
+  | { status: "ready" | "saving" | "failed"; name: string; project: ProjectDocument }
+
 function Preview({ original }: { original: Blob }) {
   const image = useRef<HTMLImageElement>(null)
   useEffect(() => {
@@ -28,9 +32,7 @@ export function ProjectImport({ read, restore }: Props) {
   const picker = useRef<HTMLInputElement>(null)
   const dialog = useRef<HTMLDialogElement>(null)
   const request = useRef<AbortController | null>(null)
-  const [name, setName] = useState("")
-  const [project, setProject] = useState<ProjectDocument>()
-  const [status, setStatus] = useState<"reading" | "ready" | "saving" | "invalid" | "unsupported-version" | "failed">("reading")
+  const [state, setState] = useState<ImportState>()
 
   useEffect(() => () => request.current?.abort(), [])
 
@@ -38,41 +40,41 @@ export function ProjectImport({ read, restore }: Props) {
     request.current?.abort()
     const attempt = new AbortController()
     request.current = attempt
-    setName(file.name)
-    setProject(undefined)
-    setStatus("reading")
+    setState({ status: "reading", name: file.name })
     dialog.current?.showModal()
     try {
       const inspected = await read(file, attempt.signal)
       if (attempt.signal.aborted) return
       if ("issue" in inspected) {
-        setStatus(inspected.issue)
+        setState({ status: inspected.issue, name: file.name })
         return
       }
-      setProject(inspected.project)
-      setStatus("ready")
+      setState({ status: "ready", name: file.name, project: inspected.project })
     } catch {
-      if (!attempt.signal.aborted) setStatus("invalid")
+      if (!attempt.signal.aborted) setState({ status: "invalid", name: file.name })
     }
   }
 
   async function confirm() {
-    if (!project || status === "saving") return
-    setStatus("saving")
+    if (!state || !("project" in state) || state.status === "saving") return
+    setState({ ...state, status: "saving" })
     try {
-      await restore(project)
+      await restore(state.project)
     } catch {
-      setStatus("failed")
+      setState({ ...state, status: "failed" })
     }
   }
 
   function reset() {
     if (dialog.current?.open) return
     request.current?.abort()
-    setProject(undefined)
+    request.current = null
+    setState(undefined)
     trigger.current?.focus()
   }
 
+  const project = state && "project" in state ? state.project : undefined
+  const status = state?.status
   const original = project?.assets.find(({ id }) => id === project.placements[0]?.assetId)?.original
 
   return (
@@ -89,7 +91,7 @@ export function ProjectImport({ read, restore }: Props) {
         if (status === "saving") event.preventDefault()
       }}>
         <h2 id="project-import-title">프로젝트 불러오기</h2>
-        <p>{name}</p>
+        <p>{state?.name}</p>
         {status === "reading" && <p role="status">파일을 확인하는 중입니다.</p>}
         {status === "invalid" && <p role="alert">편집 파일을 읽을 수 없습니다.</p>}
         {status === "unsupported-version" && <p role="alert">이 버전의 편집 파일은 열 수 없습니다.</p>}
