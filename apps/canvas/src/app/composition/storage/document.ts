@@ -1,18 +1,17 @@
 import type { IDBPDatabase, IDBPTransaction } from "idb"
 
-import { applyPlacementGeometry, resizeMemo, validatePlacementGeometry, validateSize } from "@/entities/project"
+import { applyPlacementGeometry, resizeMemo, validatePlacementGeometry } from "@/entities/project"
 import type { Asset, Memo, MemoUpdate, PlacementGeometry, Project, ProjectChange, ProjectDocument, Size } from "@/entities/project"
+
+import { maximumQuality, memoSides, validateAsset, validateDocument, validateMemoUpdate } from "../validate-document"
 
 import type { Schema } from "./schema"
 
 const stores = ["projects", "assets", "placements", "memos", "memoUpdates"] as const
-const minimumQuality = 0
-const maximumQuality = 100
 const initialInset = 24
 const insetSteps = 5
 const initialMemoHeight = 72
 const minimumMemoWidth = 120
-const memoSides = ["top", "right", "bottom", "left"] as const
 
 type WriteTransaction = IDBPTransaction<Schema, typeof stores, "readwrite">
 
@@ -51,52 +50,6 @@ async function commitWrite<Result>(
     }
     await completion.catch(() => undefined)
     throw error
-  }
-}
-
-function validateDocument(document: ProjectDocument) {
-  const { project, assets, placements, memos, memoUpdates } = document
-  const originals = new Map(assets.map((asset) => [asset.id, asset]))
-  const placementIds = new Set(placements.map(({ id }) => id))
-
-  for (const asset of assets) validateAsset(asset, project.id)
-
-  for (const placement of placements) {
-    const asset = originals.get(placement.assetId)
-    if (!asset || placement.projectId !== project.id) throw new Error("Invalid placement reference")
-    validatePlacementGeometry(placement, asset)
-    const { zIndex, quality } = placement
-    if (
-      !Number.isSafeInteger(zIndex) ||
-      !Number.isInteger(quality) || quality < minimumQuality || quality > maximumQuality
-    ) throw new Error("Invalid placement order or quality")
-  }
-
-  for (const memo of memos) {
-    if (
-      !placementIds.has(memo.placementId) ||
-      !memoSides.includes(memo.side)
-    ) throw new Error("Invalid memo")
-    validateSize(memo)
-  }
-  const memoIds = new Set(memos.map(({ id }) => id))
-  for (const update of memoUpdates) {
-    validateMemoUpdate(update)
-    if (!memoIds.has(update.memoId)) throw new Error("Invalid memo update reference")
-  }
-}
-
-function validateAsset(asset: Asset, projectId: string) {
-  if (
-    asset.projectId !== projectId || !(asset.original instanceof Blob) ||
-    !Number.isSafeInteger(asset.originalWidth) || asset.originalWidth <= 0 ||
-    !Number.isSafeInteger(asset.originalHeight) || asset.originalHeight <= 0
-  ) throw new Error("Invalid project asset")
-}
-
-function validateMemoUpdate(update: MemoUpdate) {
-  if (!(update.payload instanceof Uint8Array) || !update.payload.length || !update.updateId) {
-    throw new Error("Invalid memo update")
   }
 }
 
