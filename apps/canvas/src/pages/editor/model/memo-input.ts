@@ -28,7 +28,7 @@ export function bindMemoInput(
   reportFailure: (failed: boolean) => void,
 ) {
   const text = createMemoText()
-  const flush = memoSave(memoId, text.takeUpdate, save)
+  const writer = memoSave(memoId, text.takeUpdate, save)
   let composing = false
   let deferred: readonly MemoUpdate[] = []
   let timeout: ReturnType<typeof setTimeout> | undefined
@@ -36,7 +36,7 @@ export function bindMemoInput(
 
   async function persist() {
     try {
-      await flush()
+      await writer.flush()
       if (!disposed) reportFailure(false)
     } catch {
       if (!disposed) reportFailure(true)
@@ -84,13 +84,17 @@ export function bindMemoInput(
   return {
     merge,
     persist,
+    unsaved() {
+      if (text.hasPending() || writer.hasPending() || input.value !== text.read()) return input.value
+      return undefined
+    },
     dispose() {
       disposed = true
       clearTimeout(timeout)
       input.removeEventListener("input", accept)
       input.removeEventListener("compositionstart", startComposition)
       input.removeEventListener("compositionend", endComposition)
-      void flush().finally(text.destroy).catch(() => undefined)
+      void writer.flush().finally(text.destroy).catch(() => undefined)
     },
   }
 }

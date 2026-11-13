@@ -19,10 +19,13 @@ export function memoSave(memoId: string, takeUpdate: () => Uint8Array | undefine
     }
   }
 
-  return function flush() {
-    inFlight ??= drain().finally(() => {
-      inFlight = undefined
-    })
-    return inFlight
+  return {
+    hasPending: () => queued !== undefined,
+    flush() {
+      inFlight ??= drain().finally(() => {
+        inFlight = undefined
+      })
+      return inFlight
+    },
   }
 }

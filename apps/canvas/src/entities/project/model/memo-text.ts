@@ -19,6 +19,7 @@ export function createMemoText(updates: Iterable<Uint8Array> = []) {
 
   return {
     read: () => body.toString(),
+    hasPending: () => pending.length > 0,
     merge,
     replace(index: number, length: number, value: string) {
       doc.transact(() => {

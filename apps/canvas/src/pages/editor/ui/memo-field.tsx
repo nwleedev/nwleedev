@@ -8,9 +8,10 @@ type Props = {
   memoId: string
   updates: readonly MemoUpdate[]
   save: (update: MemoUpdate) => Promise<void>
+  preserve: (id: string, value: string) => void
 }
 
-export function MemoField({ memoId, updates, save }: Props) {
+export function MemoField({ memoId, updates, save, preserve }: Props) {
   const element = useRef<HTMLTextAreaElement>(null)
   const binding = useRef<ReturnType<typeof bindMemoInput> | null>(null)
   const [failed, setFailed] = useState(false)
@@ -20,10 +21,12 @@ export function MemoField({ memoId, updates, save }: Props) {
     const input = bindMemoInput(element.current, memoId, save, setFailed)
     binding.current = input
     return () => {
+      const unsaved = input.unsaved()
+      if (unsaved !== undefined) preserve(memoId, unsaved)
       binding.current = null
       input.dispose()
     }
-  }, [memoId, save])
+  }, [memoId, preserve, save])
 
   useLayoutEffect(() => {
     binding.current?.merge(updates)
