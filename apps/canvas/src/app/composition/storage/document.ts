@@ -223,6 +223,7 @@ export function documentStorage(
         for (const memo of memos) await tx.objectStore("memos").add(memo)
         for (const update of memoUpdates) await tx.objectStore("memoUpdates").add(update)
       })
+      publish({ projectId: project.id, revision: project.revision })
     },
 
     async readDocument(id: string): Promise<ProjectDocument | undefined> {

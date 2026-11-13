@@ -44,6 +44,10 @@ async function readCardPreview(id: string, signal: AbortSignal) {
 function ProjectListRoute() {
   const navigate = useNavigate()
   const saved = useLoaderData<typeof projects.list>()
+  useProjectRevalidation(projects.subscribe, ({ projectId, revision }) => {
+    const project = saved.find(({ id }) => id === projectId)
+    return project === undefined || revision > project.revision
+  })
   const creation = useFetcher<{ failed: true }>()
   const creating = creation.state !== "idle"
 
@@ -77,7 +81,9 @@ function ProjectRoute() {
     await projects.saveMemoUpdate(id, update)
     await revalidate()
   }, [id, revalidate])
-  useProjectRevalidation(document.project, projects.subscribe)
+  useProjectRevalidation(projects.subscribe, ({ projectId, revision }) =>
+    projectId === id && revision > document.project.revision,
+  )
 
   async function commit(operation: Promise<unknown>) {
     await operation

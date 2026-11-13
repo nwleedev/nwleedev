@@ -107,6 +107,7 @@ export function composeProjects(name = "canvas") {
     }
     const db = await database()
     await db.add("projects", project)
+    changes.publish({ projectId: project.id, revision: project.revision })
     return project
   }
 

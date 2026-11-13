@@ -1,15 +1,14 @@
 import { useEffect, useEffectEvent } from "react"
 import { useRevalidator } from "react-router"
 
-import type { Project, ProjectChange } from "@/entities/project"
+import type { ProjectChange } from "@/entities/project"
 
 type Subscribe = (listener: (change: ProjectChange) => void) => () => void
 
-export function useProjectRevalidation(project: Project, subscribe: Subscribe) {
+export function useProjectRevalidation(subscribe: Subscribe, isNewer: (change: ProjectChange) => boolean) {
   const { revalidate } = useRevalidator()
-  const projectId = project.id
   const receive = useEffectEvent((change: ProjectChange) => {
-    if (change.projectId === project.id && change.revision > project.revision) {
+    if (isNewer(change)) {
       void revalidate()
     }
   })
@@ -27,5 +26,5 @@ export function useProjectRevalidation(project: Project, subscribe: Subscribe) {
       unsubscribe()
       document.removeEventListener("visibilitychange", refreshVisible)
     }
-  }, [projectId, revalidate, subscribe])
+  }, [revalidate, subscribe])
 }
