@@ -2,6 +2,7 @@ import { useCallback, useState } from "react"
 import { Link } from "react-router"
 
 import type { Asset, MemoUpdate, PlacementGeometry, ProjectDocument } from "@/entities/project"
+import { imageSizeAtWidth } from "@/entities/project"
 
 import { CanvasStage } from "./canvas-stage"
 import { ImageUpload } from "./image-upload"
@@ -18,12 +19,23 @@ type Props = {
 
 export function EditorPage({ document, saveMemo, updatePlacement, addImage }: Props) {
   const [selected, select] = useState<string>()
-  const [moveFailed, setMoveFailed] = useState(false)
-  const selectedId = document.placements.find(({ id }) => id === selected)?.id ?? document.placements[0]?.id
+  const [placementFailed, setPlacementFailed] = useState(false)
+  const placement = document.placements.find(({ id }) => id === selected) ?? document.placements[0]
+  const selectedId = placement?.id
+  const original = document.assets.find(({ id }) => id === placement?.assetId)
   const [unsaved, setUnsaved] = useState<ReadonlyMap<string, string>>(() => new Map())
   const preserve = useCallback((id: string, value: string) => {
     setUnsaved((previous) => new Map(previous).set(id, value))
   }, [])
+
+  async function editPlacement(id: string, change: PlacementGeometry) {
+    try {
+      await updatePlacement(id, change)
+      setPlacementFailed(false)
+    } catch {
+      setPlacementFailed(true)
+    }
+  }
 
   return (
     <main>
@@ -34,16 +46,35 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage }: Pr
         select(image.id)
       }} />
       <div className="editor-workspace">
-        <CanvasStage document={document} selectedId={selectedId} onSelect={select} onMove={async (id, position) => {
-          try {
-            await updatePlacement(id, { kind: "position", ...position })
-            setMoveFailed(false)
-          } catch {
-            setMoveFailed(true)
-          }
-        }} />
+        <CanvasStage document={document} selectedId={selectedId} onSelect={select} onEdit={editPlacement} />
         <aside className="editor-inspector" aria-label="이미지 속성">
-          {moveFailed && <p role="alert">이미지 위치를 저장하지 못했습니다.</p>}
+          {placementFailed && <p role="alert">이미지 배치를 저장하지 못했습니다.</p>}
+          {placement && original && (
+            <label>
+              이미지 너비 (px)
+              <input
+                key={`${placement.id}:${placement.width}`}
+                type="number"
+                min={1}
+                max={original.originalWidth}
+                step="any"
+                defaultValue={placement.width}
+                onBlur={({ currentTarget }) => {
+                  const width = currentTarget.valueAsNumber
+                  if (!currentTarget.validity.valid || !Number.isFinite(width)) {
+                    currentTarget.value = String(placement.width)
+                    return
+                  }
+                  if (width !== placement.width) {
+                    void editPlacement(placement.id, { kind: "size", ...imageSizeAtWidth(original, width) })
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.currentTarget.blur()
+                }}
+              />
+            </label>
+          )}
           {document.memos.map(({ id, placementId }) => (
             <div key={id} hidden={placementId !== selectedId}>
               <MemoField

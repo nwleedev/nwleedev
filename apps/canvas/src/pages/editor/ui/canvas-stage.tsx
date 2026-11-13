@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Layer, Stage } from "react-konva"
 
-import { createMemoText, type Placement, type ProjectDocument, type Size } from "@/entities/project"
+import { createMemoText, type PlacementGeometry, type ProjectDocument, type Size } from "@/entities/project"
 
 import { CanvasAsset } from "./canvas-asset"
 
@@ -9,10 +9,10 @@ type Props = {
   document: ProjectDocument
   selectedId?: string
   onSelect: (id: string) => void
-  onMove: (id: string, position: Pick<Placement, "x" | "y">) => Promise<void>
+  onEdit: (id: string, change: PlacementGeometry) => Promise<void>
 }
 
-export function CanvasStage({ document, selectedId, onSelect, onMove }: Props) {
+export function CanvasStage({ document, selectedId, onSelect, onEdit }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState<Size>()
   const assets = new Map(document.assets.map((asset) => [asset.id, asset]))
@@ -62,7 +62,7 @@ export function CanvasStage({ document, selectedId, onSelect, onMove }: Props) {
                   memoBody={memo ? bodies.get(memo.id) ?? "" : ""}
                   selected={selectedId === placement.id}
                   onSelect={onSelect}
-                  onMove={onMove}
+                  onEdit={onEdit}
                 />
               )
             })}
