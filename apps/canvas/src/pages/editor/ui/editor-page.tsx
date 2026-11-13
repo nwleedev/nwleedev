@@ -1,16 +1,23 @@
 import { useCallback, useState } from "react"
 import { Link } from "react-router"
 
-import type { MemoUpdate, ProjectDocument } from "@/entities/project"
+import type { MemoUpdate, PlacementGeometry, ProjectDocument } from "@/entities/project"
 
+import { CanvasStage } from "./canvas-stage"
 import { MemoField } from "./memo-field"
+
+import "./editor-page.css"
 
 type Props = {
   document: ProjectDocument
   saveMemo: (update: MemoUpdate) => Promise<void>
+  updatePlacement: (id: string, change: PlacementGeometry) => Promise<void>
 }
 
-export function EditorPage({ document, saveMemo }: Props) {
+export function EditorPage({ document, saveMemo, updatePlacement }: Props) {
+  const [selected, select] = useState<string>()
+  const [moveFailed, setMoveFailed] = useState(false)
+  const selectedId = document.placements.find(({ id }) => id === selected)?.id ?? document.placements[0]?.id
   const [unsaved, setUnsaved] = useState<ReadonlyMap<string, string>>(() => new Map())
   const preserve = useCallback((id: string, value: string) => {
     setUnsaved((previous) => new Map(previous).set(id, value))
@@ -20,15 +27,29 @@ export function EditorPage({ document, saveMemo }: Props) {
     <main>
       <Link to="/">프로젝트 목록</Link>
       <h1>{document.project.title}</h1>
-      {document.memos.map(({ id }) => (
-        <MemoField
-          key={id}
-          memoId={id}
-          updates={document.memoUpdates.filter((update) => update.memoId === id)}
-          save={saveMemo}
-          preserve={preserve}
-        />
-      ))}
+      <div className="editor-workspace">
+        <CanvasStage document={document} selectedId={selectedId} onSelect={select} onMove={async (id, position) => {
+          try {
+            await updatePlacement(id, { kind: "position", ...position })
+            setMoveFailed(false)
+          } catch {
+            setMoveFailed(true)
+          }
+        }} />
+        <aside className="editor-inspector" aria-label="이미지 속성">
+          {moveFailed && <p role="alert">이미지 위치를 저장하지 못했습니다.</p>}
+          {document.memos.map(({ id, placementId }) => (
+            <div key={id} hidden={placementId !== selectedId}>
+              <MemoField
+                memoId={id}
+                updates={document.memoUpdates.filter((update) => update.memoId === id)}
+                save={saveMemo}
+                preserve={preserve}
+              />
+            </div>
+          ))}
+        </aside>
+      </div>
       {Array.from(unsaved, ([id, value]) => (
         <label key={id}>
           저장하지 못한 메모

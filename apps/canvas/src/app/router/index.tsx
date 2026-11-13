@@ -1,7 +1,7 @@
-import { createBrowserRouter, data, isRouteErrorResponse, Link, redirect, useFetcher, useLoaderData, useRouteError } from "react-router"
+import { createBrowserRouter, data, isRouteErrorResponse, Link, redirect, useFetcher, useLoaderData, useRevalidator, useRouteError } from "react-router"
 import { useCallback } from "react"
 
-import type { MemoUpdate } from "@/entities/project"
+import type { MemoUpdate, PlacementGeometry } from "@/entities/project"
 
 import { EditorPage } from "@/pages/editor"
 import { ProjectsPage } from "@/pages/projects"
@@ -31,11 +31,15 @@ function ProjectListRoute() {
 }
 
 function ProjectRoute() {
+  const { revalidate } = useRevalidator()
   const document = useLoaderData() as Awaited<ReturnType<typeof readEditorDocument>>
   const { id } = document.project
   const saveMemo = useCallback((update: MemoUpdate) => projects.saveMemoUpdate(id, update), [id])
   useProjectRevalidation(document.project, projects.subscribe)
-  return <EditorPage key={id} document={document} saveMemo={saveMemo} />
+  return <EditorPage key={id} document={document} saveMemo={saveMemo} updatePlacement={async (placementId: string, change: PlacementGeometry) => {
+    await projects.updatePlacement(id, placementId, change)
+    await revalidate()
+  }} />
 }
 
 function PendingProjects() {
