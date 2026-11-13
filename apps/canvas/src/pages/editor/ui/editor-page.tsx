@@ -1,12 +1,22 @@
 import { Link } from "react-router"
 
-import type { Project } from "@/entities/project"
+import type { MemoUpdate, ProjectDocument } from "@/entities/project"
 
-export function EditorPage({ project }: { project: Project }) {
+import { MemoField } from "./memo-field"
+
+type Props = {
+  document: ProjectDocument
+  saveMemo: (update: MemoUpdate) => Promise<void>
+}
+
+export function EditorPage({ document, saveMemo }: Props) {
   return (
     <main>
       <Link to="/">프로젝트 목록</Link>
-      <h1>{project.title}</h1>
+      <h1>{document.project.title}</h1>
+      {document.memos.map(({ id }) => (
+        <MemoField key={id} memoId={id} updates={document.memoUpdates.filter((update) => update.memoId === id)} save={saveMemo} />
+      ))}
     </main>
   )
 }

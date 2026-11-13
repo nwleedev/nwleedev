@@ -523,7 +523,7 @@ WebKit의 나머지 실패 세 건은 `temps/notes-webkit-u27`을 사용한 재�
 
 로컬 데이터 구조와 트랜잭션 검증은 [프로젝트 목록과 로컬 저장](docs/designs/image-annotation-canvas-2cb1ec/plan.md#프로젝트-목록과-로컬-저장)에 있다. [여러 탭에서 수정 반영](docs/designs/image-annotation-canvas-2cb1ec/plan.md#여러-탭에서-수정-반영)에 위치와 크기의 충돌 규칙, Yjs 변경분 저장, BroadcastChannel 알림과 누락 시 재조회 검증을 정리했다.
 
-IndexedDB v4에 메모 변경분을 저장하고 커밋을 다른 탭에 알린다. 이미지 위치와 크기 및 메모 크기 수정 명령도 같은 커밋 절차를 쓴다. 편집 라우터는 저장 알림과 화면 복귀 시 문서를 다시 읽는다. 두 탭의 저장과 조회 검증은 [여러 탭에서 수정 반영](docs/designs/image-annotation-canvas-2cb1ec/plan.md#여러-탭에서-수정-반영)에 있다. 편집 화면에서 메모 변경분을 생성하고 입력 상태를 유지하며 병합하는 작업이 남아 있다.
+IndexedDB v4에 메모 변경분을 저장하고 커밋을 다른 탭에 알린다. 편집 화면의 기존 메모 입력을 Yjs에 연결했다. 두 탭의 저장, 조회와 입력 병합 검증은 [여러 탭에서 수정 반영](docs/designs/image-annotation-canvas-2cb1ec/plan.md#여러-탭에서-수정-반영)에 있다. 다른 탭에서 메모를 삭제한 경우의 미저장 입력 회수와 실제 IME 검증이 남아 있다.
 
 캔버스 구현 계획의 각 절차에서 해결할 문제에 맞는 디자인 패턴을 조사한다. 계획에는 채택한 패턴과 이 서비스에서 활용할 지점, 선택 이유를 적는다. 기존 구조로 해결할 수 있는 절차는 그 근거를 적는다.
 

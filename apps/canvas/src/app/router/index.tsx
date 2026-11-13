@@ -1,4 +1,7 @@
 import { createBrowserRouter, data, isRouteErrorResponse, Link, redirect, useFetcher, useLoaderData, useRouteError } from "react-router"
+import { useCallback } from "react"
+
+import type { MemoUpdate } from "@/entities/project"
 
 import { EditorPage } from "@/pages/editor"
 import { ProjectsPage } from "@/pages/projects"
@@ -13,7 +16,6 @@ async function readEditorDocument(id: string | undefined) {
   if (!document) throw data(null, { status: 404 })
   return document
 }
-
 function ProjectListRoute() {
   const saved = useLoaderData<typeof projects.list>()
   const creation = useFetcher<{ failed: true }>()
@@ -29,9 +31,11 @@ function ProjectListRoute() {
 }
 
 function ProjectRoute() {
-  const { project } = useLoaderData<typeof readEditorDocument>()
-  useProjectRevalidation(project, projects.subscribe)
-  return <EditorPage project={project} />
+  const document = useLoaderData() as Awaited<ReturnType<typeof readEditorDocument>>
+  const { id } = document.project
+  const saveMemo = useCallback((update: MemoUpdate) => projects.saveMemoUpdate(id, update), [id])
+  useProjectRevalidation(document.project, projects.subscribe)
+  return <EditorPage key={id} document={document} saveMemo={saveMemo} />
 }
 
 function PendingProjects() {
