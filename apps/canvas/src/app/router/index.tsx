@@ -6,6 +6,8 @@ import type { MemoUpdate } from "@/entities/project"
 import { EditorPage } from "@/pages/editor"
 import { ProjectsPage } from "@/pages/projects"
 
+import { prepareArchive } from "../composition/archive/prepare-archive"
+import { readProjectArchive, UnsupportedArchiveVersion } from "../composition/archive/read-project"
 import { prepareExport } from "../composition/export/prepare-export"
 import { composeProjects } from "../composition/storage/projects"
 import { useProjectRevalidation } from "./use-project-revalidation"
@@ -29,7 +31,6 @@ function ProjectListRoute() {
       onCreate={creating ? undefined : () => creation.submit(null, { method: "post" })}
       createFailed={!creating && creation.data?.failed === true}
       readArchive={async (file, signal) => {
-        const { readProjectArchive, UnsupportedArchiveVersion } = await import("../composition/archive/read-project")
         try {
           return { project: await readProjectArchive(file, signal) }
         } catch (error) {
@@ -65,10 +66,7 @@ function ProjectRoute() {
       document={document}
       saveMemo={saveMemo}
       renderExport={prepareExport}
-      prepareArchive={async () => {
-        const { prepareArchive } = await import("../composition/archive/prepare-archive")
-        return prepareArchive(await readEditorDocument(id))
-      }}
+      prepareArchive={async () => prepareArchive(await readEditorDocument(id))}
       addImage={(image) => commit(projects.addImage(id, { ...image, projectId: id }))}
       updatePlacement={(placementId, change) => commit(projects.updatePlacement(id, placementId, change))}
       addMemo={(placementId) => commit(projects.addMemo(id, placementId))}

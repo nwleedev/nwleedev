@@ -1,7 +1,9 @@
 import type { ProjectDocument } from "@/entities/project"
 
+import ArchiveWorker from "./archive-worker?worker&inline"
+
 export async function prepareArchive(document: ProjectDocument) {
-  const worker = new Worker(new URL("./archive-worker.ts", import.meta.url), { type: "module" })
+  const worker = new ArchiveWorker()
   try {
     return await new Promise<Blob>((resolve, reject) => {
       function failed() {
