@@ -543,6 +543,8 @@ IndexedDB v4에 메모 변경분을 저장하고 커밋을 다른 탭에 알린�
 
 [캔버스 화면 이동과 확대](docs/designs/image-annotation-canvas-2cb1ec/plan.md#캔버스-화면-이동과-확대)를 구현하고 Chromium에서 입력 동작을 확인했다. 실제 기기 조작과 편집 화면 렌더링의 측정 조건은 [화면 통합과 배포 확인](docs/designs/image-annotation-canvas-2cb1ec/plan.md#화면-통합과-배포-확인)에 있다.
 
+[이미지 편집 후 프레임 공백](docs/designs/image-annotation-canvas-2cb1ec/references/edit-rendering-performance.md)에 전후 수치와 대안 비교를 기록했다. 추가 성능 검증에서는 [정량 개선 기록](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#정량-개선-기록)을 따른다.
+
 ## HTML 시안 검토
 
 [목록 헤더와 불러오기](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#로컬-프로젝트-관리), [내보내기 패널](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#이미지-파일로-저장)의 최신 기준을 시안에 적용한다. 새 프로젝트와 불러오기 아이콘은 도움말을 열기 전에 각 동작을 구별할 수 있는지 확인한다. 전체 내보내기 시안에서는 여백 0px와 24px의 미리보기를 비교한다.
