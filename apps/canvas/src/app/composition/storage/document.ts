@@ -1,7 +1,7 @@
 import type { IDBPDatabase, IDBPTransaction } from "idb"
 
 import { applyPlacementGeometry, resizeMemo, validatePlacementGeometry, validateSize } from "@/entities/project"
-import type { Asset, MemoUpdate, PlacementGeometry, Project, ProjectChange, ProjectDocument, Size } from "@/entities/project"
+import type { Asset, Memo, MemoUpdate, PlacementGeometry, Project, ProjectChange, ProjectDocument, Size } from "@/entities/project"
 
 import type { Schema } from "./schema"
 
@@ -10,6 +10,9 @@ const minimumQuality = 0
 const maximumQuality = 100
 const initialInset = 24
 const insetSteps = 5
+const initialMemoHeight = 72
+const minimumMemoWidth = 120
+const memoSides = ["top", "right", "bottom", "left"] as const
 
 type WriteTransaction = IDBPTransaction<Schema, typeof stores, "readwrite">
 
@@ -72,7 +75,7 @@ function validateDocument(document: ProjectDocument) {
   for (const memo of memos) {
     if (
       !placementIds.has(memo.placementId) ||
-      !["top", "right", "bottom", "left"].includes(memo.side)
+      !memoSides.includes(memo.side)
     ) throw new Error("Invalid memo")
     validateSize(memo)
   }
@@ -158,6 +161,37 @@ export function documentStorage(
         const next = applyPlacementGeometry(placement, change)
         validatePlacementGeometry(next, asset)
         await placements.put(next)
+        return true
+      })
+    },
+
+    async addMemo(projectId: string, placementId: string) {
+      await commitEdit(projectId, async (tx) => {
+        const placement = await tx.objectStore("placements").get(placementId)
+        if (placement?.projectId !== projectId) throw new Error("Placement no longer exists")
+        const memos = tx.objectStore("memos")
+        if (await memos.index("placement").getKey(placementId) !== undefined) return false
+
+        await memos.add({
+          id: crypto.randomUUID(),
+          placementId,
+          side: "bottom",
+          width: Math.max(minimumMemoWidth, placement.width),
+          height: initialMemoHeight,
+        })
+        return true
+      })
+    },
+
+    async updateMemoSide(projectId: string, memoId: string, side: Memo["side"]) {
+      if (!memoSides.includes(side)) throw new Error("Invalid memo side")
+      await commitEdit(projectId, async (tx) => {
+        const memos = tx.objectStore("memos")
+        const memo = await memos.get(memoId)
+        const placement = memo && await tx.objectStore("placements").get(memo.placementId)
+        if (!memo || placement?.projectId !== projectId) throw new Error("Memo no longer exists")
+        if (memo.side === side) return false
+        await memos.put({ ...memo, side })
         return true
       })
     },

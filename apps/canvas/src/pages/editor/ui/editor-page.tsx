@@ -1,11 +1,12 @@
 import { useCallback, useState } from "react"
 import { Link } from "react-router"
 
-import type { Asset, MemoUpdate, PlacementGeometry, ProjectDocument } from "@/entities/project"
+import type { Asset, Memo, MemoUpdate, PlacementGeometry, ProjectDocument } from "@/entities/project"
 import { imageSizeAtWidth } from "@/entities/project"
 
 import { CanvasStage } from "./canvas-stage"
 import { ImageUpload } from "./image-upload"
+import { MemoAttachment } from "./memo-attachment"
 import { MemoField } from "./memo-field"
 
 import "./editor-page.css"
@@ -15,13 +16,16 @@ type Props = {
   saveMemo: (update: MemoUpdate) => Promise<void>
   updatePlacement: (id: string, change: PlacementGeometry) => Promise<void>
   addImage: (image: Omit<Asset, "projectId">) => Promise<void>
+  addMemo: (placementId: string) => Promise<void>
+  updateMemoSide: (memoId: string, side: Memo["side"]) => Promise<void>
 }
 
-export function EditorPage({ document, saveMemo, updatePlacement, addImage }: Props) {
+export function EditorPage({ document, saveMemo, updatePlacement, addImage, addMemo, updateMemoSide }: Props) {
   const [selected, select] = useState<string>()
   const [placementFailed, setPlacementFailed] = useState(false)
   const placement = document.placements.find(({ id }) => id === selected) ?? document.placements[0]
   const selectedId = placement?.id
+  const memo = document.memos.find(({ placementId }) => placementId === selectedId)
   const original = document.assets.find(({ id }) => id === placement?.assetId)
   const [unsaved, setUnsaved] = useState<ReadonlyMap<string, string>>(() => new Map())
   const preserve = useCallback((id: string, value: string) => {
@@ -74,6 +78,14 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage }: Pr
                 }}
               />
             </label>
+          )}
+          {placement && (
+            <MemoAttachment
+              key={placement.id}
+              memo={memo}
+              onAdd={() => addMemo(placement.id)}
+              onChange={updateMemoSide}
+            />
           )}
           {document.memos.map(({ id, placementId }) => (
             <div key={id} hidden={placementId !== selectedId}>
