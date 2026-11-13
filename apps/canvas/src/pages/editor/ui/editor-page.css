@@ -59,6 +59,17 @@
   gap: 0.375rem;
 }
 
+.editor-header button {
+  font: inherit;
+}
+
+.editor-file-actions button {
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  min-block-size: 24px;
+}
+
 .editor-zoom output {
   min-inline-size: 4ch;
   text-align: center;
@@ -160,7 +171,7 @@
   max-width: calc(100% - 1rem);
 }
 
-.image-export-trigger {
+.editor-file-actions .image-export-trigger {
   color: var(--accent-ink, var(--text));
   background: transparent;
   border: 0;

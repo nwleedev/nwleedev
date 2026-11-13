@@ -27,7 +27,7 @@ export function ImageUpload({ add }: { add: (image: Omit<Asset, "projectId">) =>
   return (
     <div>
       <button className="editor-image-upload" type="button" aria-label="이미지 추가" title="이미지 추가" disabled={pending} onClick={() => picker.current?.click()}>
-        <svg viewBox="0 0 24 24" aria-hidden="true">
+        <svg viewBox="1.5 -1 24 24" aria-hidden="true">
           <path d="M14 5H4v14h16v-7M4 16l5-5 4 4 2-2 5 5M19 3v8m-4-4h8" />
         </svg>
       </button>
