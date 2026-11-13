@@ -66,6 +66,11 @@ function ProjectRoute() {
       document={document}
       saveMemo={saveMemo}
       renderExport={prepareExport}
+      readSavedRevision={async () => {
+        const saved = await projects.read(id)
+        if (!saved) throw data(null, { status: 404 })
+        return saved.revision
+      }}
       prepareArchive={async () => prepareArchive(await readEditorDocument(id))}
       addImage={(image) => commit(projects.addImage(id, { ...image, projectId: id }))}
       updatePlacement={(placementId, change) => commit(projects.updatePlacement(id, placementId, change))}

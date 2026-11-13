@@ -24,11 +24,15 @@ type Props = {
   updateMemoSide: (memoId: string, side: Memo["side"]) => Promise<void>
   updateMemoSize: (memoId: string, size: Size) => Promise<void>
   prepareArchive: () => Promise<Blob>
+  readSavedRevision: () => Promise<number>
   renderExport: RenderExport
 }
 
-export function EditorPage({ document, saveMemo, updatePlacement, addImage, addMemo, updateMemoSide, updateMemoSize, prepareArchive, renderExport }: Props) {
-  const [exporting, setExporting] = useState(false)
+export function EditorPage({ document, saveMemo, updatePlacement, addImage, addMemo, updateMemoSide, updateMemoSize, prepareArchive, readSavedRevision, renderExport }: Props) {
+  const [exportRevision, setExportRevision] = useState<number>()
+  const exporting = exportRevision !== undefined && document.project.revision >= exportRevision
+  const [openingExport, setOpeningExport] = useState(false)
+  const [exportOpenFailed, setExportOpenFailed] = useState(false)
   const [zoomHost, setZoomHost] = useState<HTMLDivElement | null>(null)
   const [scope, setScope] = useState<"all" | Region["kind"]>("all")
   const [region, setRegion] = useState<Region>()
@@ -49,6 +53,27 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
   const preserve = useCallback((id: string, value: string) => {
     setUnsaved((previous) => new Map(previous).set(id, value))
   }, [])
+
+  async function flushMemos() {
+    await Promise.all(Array.from(memoFlushes.current.values(), (flush) => flush()))
+  }
+
+  async function toggleExport() {
+    if (exporting) {
+      setExportRevision(undefined)
+      return
+    }
+    setOpeningExport(true)
+    setExportOpenFailed(false)
+    try {
+      await flushMemos()
+      setExportRevision(await readSavedRevision())
+    } catch {
+      setExportOpenFailed(true)
+    } finally {
+      setOpeningExport(false)
+    }
+  }
 
   async function editPlacement(id: string, change: PlacementGeometry) {
     try {
@@ -72,15 +97,16 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
         }} />
         <div className="editor-file-actions">
           <ProjectDownload title={document.project.title} prepare={async () => {
-            await Promise.all(Array.from(memoFlushes.current.values(), (flush) => flush()))
+            await flushMemos()
             return prepareArchive()
           }} />
           <div className="editor-output-actions">
             <div ref={setZoomHost} />
-            <button className="image-export-trigger" type="button" aria-expanded={exporting} onClick={() => setExporting(!exporting)}>이미지 내보내기</button>
+            <button className="image-export-trigger" type="button" aria-expanded={exporting} disabled={openingExport || (exportRevision !== undefined && !exporting)} onClick={() => void toggleExport()}>이미지 내보내기</button>
           </div>
         </div>
       </header>
+      {exportOpenFailed && <p role="alert">메모를 저장하지 못했습니다. 이미지 내보내기를 다시 시도해 주세요.</p>}
       <div className="editor-workspace">
         <CanvasStage
           document={document}
@@ -108,7 +134,7 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
             setScope(next)
           }}
           render={renderExport}
-          close={() => setExporting(false)}
+          close={() => setExportRevision(undefined)}
         /> : <aside className="editor-inspector" aria-label="이미지 속성">
           {original && (
             <div className="editor-selection">
