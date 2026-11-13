@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import type { ProjectDocument } from "@/entities/project"
 
 type Props = {
-  read: (file: File) => Promise<ProjectDocument>
+  read: (file: File, signal: AbortSignal) => Promise<ProjectDocument>
   restore: (project: ProjectDocument) => Promise<void>
 }
 
@@ -39,7 +39,7 @@ export function ProjectImport({ read, restore }: Props) {
     setStatus("reading")
     dialog.current?.showModal()
     try {
-      const inspected = await read(file)
+      const inspected = await read(file, attempt.signal)
       if (attempt.signal.aborted) return
       setProject(inspected)
       setStatus("ready")

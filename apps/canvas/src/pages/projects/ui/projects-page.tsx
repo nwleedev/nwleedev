@@ -17,7 +17,7 @@ type ProjectCard = {
 type Props = {
   projects?: readonly ProjectCard[]
   onCreate?: () => void
-  readArchive: (file: File) => Promise<ProjectDocument>
+  readArchive: (file: File, signal: AbortSignal) => Promise<ProjectDocument>
   restore: (project: ProjectDocument) => Promise<void>
   createFailed?: boolean
 }

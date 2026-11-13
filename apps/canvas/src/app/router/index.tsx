@@ -27,9 +27,9 @@ function ProjectListRoute() {
       projects={saved.map((project) => ({ ...project, href: `/projects/${project.id}` }))}
       onCreate={creating ? undefined : () => creation.submit(null, { method: "post" })}
       createFailed={!creating && creation.data?.failed === true}
-      readArchive={async (file) => {
+      readArchive={async (file, signal) => {
         const { readProjectArchive } = await import("../composition/archive/read-project")
-        return readProjectArchive(file)
+        return readProjectArchive(file, signal)
       }}
       restore={async (document) => {
         await projects.addDocument(document)

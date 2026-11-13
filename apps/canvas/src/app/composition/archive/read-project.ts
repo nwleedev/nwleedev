@@ -6,11 +6,13 @@ import { validateDocument } from "../validate-document"
 import { format, manifestName, originalEntry, version } from "./manifest"
 import { parseManifest } from "./parse-manifest"
 
-export async function readProjectArchive(file: Blob): Promise<ProjectDocument> {
+export async function readProjectArchive(file: Blob, signal?: AbortSignal): Promise<ProjectDocument> {
+  signal?.throwIfAborted()
   const reader = new ZipReader(new BlobReader(file))
   try {
     const entries = new Map<string, Awaited<ReturnType<typeof reader.getEntries>>[number]>()
     for await (const entry of reader.getEntriesGenerator()) {
+      signal?.throwIfAborted()
       if (entry.directory || entry.encrypted || entries.has(entry.filename)) {
         throw new Error("Invalid archive entry")
       }
@@ -18,7 +20,10 @@ export async function readProjectArchive(file: Blob): Promise<ProjectDocument> {
     }
     const header = entries.get(manifestName)
     if (!header || header.directory) throw new Error("Missing manifest")
-    const raw: unknown = JSON.parse(await header.getData(new TextWriter(), { checkSignature: true }))
+    const options = { checkSignature: true, signal }
+    const manifestText = await header.getData(new TextWriter(), options)
+    signal?.throwIfAborted()
+    const raw: unknown = JSON.parse(manifestText)
     const manifest = parseManifest(raw, format, version)
     if (entries.size !== manifest.assets.length + 1) throw new Error("Unexpected archive entries")
 
@@ -27,22 +32,31 @@ export async function readProjectArchive(file: Blob): Promise<ProjectDocument> {
     const placementIds = new Map(manifest.placements.map(({ id }) => [id, crypto.randomUUID()]))
     const assets: ProjectDocument["assets"][number][] = []
     for (const [index, asset] of manifest.assets.entries()) {
+      signal?.throwIfAborted()
       const entry = entries.get(originalEntry(index))
       if (!entry || entry.directory) throw new Error("Missing original image")
-      const original = await entry.getData(new BlobWriter(asset.mimeType), { checkSignature: true })
+      const original = await entry.getData(new BlobWriter(asset.mimeType), options)
+      signal?.throwIfAborted()
       const url = URL.createObjectURL(original)
+      const image = new Image()
+      function stopDecode() {
+        image.removeAttribute("src")
+      }
+      signal?.addEventListener("abort", stopDecode, { once: true })
       try {
-        const image = new Image()
         image.src = url
         await image.decode()
+        signal?.throwIfAborted()
         if (image.naturalWidth !== asset.originalWidth || image.naturalHeight !== asset.originalHeight) {
           throw new Error("Image dimensions do not match")
         }
       } finally {
+        signal?.removeEventListener("abort", stopDecode)
         URL.revokeObjectURL(url)
       }
       assets.push({ ...asset, id: mapped(assetIds, asset.id), projectId, original })
     }
+    signal?.throwIfAborted()
     const placements = manifest.placements.map((placement) => ({
       ...placement, id: mapped(placementIds, placement.id), projectId,
       assetId: mapped(assetIds, placement.assetId),
