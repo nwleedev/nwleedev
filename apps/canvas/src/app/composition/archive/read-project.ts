@@ -6,6 +6,8 @@ import { validateDocument } from "../validate-document"
 import { format, manifestName, originalEntry, version } from "./manifest"
 import { parseManifest } from "./parse-manifest"
 
+export { UnsupportedArchiveVersion } from "./parse-manifest"
+
 export async function readProjectArchive(file: Blob, signal?: AbortSignal): Promise<ProjectDocument> {
   signal?.throwIfAborted()
   const reader = new ZipReader(new BlobReader(file))

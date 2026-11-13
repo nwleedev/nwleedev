@@ -2,8 +2,12 @@ import { useEffect, useRef, useState } from "react"
 
 import type { ProjectDocument } from "@/entities/project"
 
+export type ReadArchive = (file: File, signal: AbortSignal) => Promise<
+  { project: ProjectDocument } | { issue: "unsupported-version" }
+>
+
 type Props = {
-  read: (file: File, signal: AbortSignal) => Promise<ProjectDocument>
+  read: ReadArchive
   restore: (project: ProjectDocument) => Promise<void>
 }
 
@@ -26,7 +30,7 @@ export function ProjectImport({ read, restore }: Props) {
   const request = useRef<AbortController | null>(null)
   const [name, setName] = useState("")
   const [project, setProject] = useState<ProjectDocument>()
-  const [status, setStatus] = useState<"reading" | "ready" | "saving" | "invalid" | "failed">("reading")
+  const [status, setStatus] = useState<"reading" | "ready" | "saving" | "invalid" | "unsupported-version" | "failed">("reading")
 
   useEffect(() => () => request.current?.abort(), [])
 
@@ -41,7 +45,11 @@ export function ProjectImport({ read, restore }: Props) {
     try {
       const inspected = await read(file, attempt.signal)
       if (attempt.signal.aborted) return
-      setProject(inspected)
+      if ("issue" in inspected) {
+        setStatus(inspected.issue)
+        return
+      }
+      setProject(inspected.project)
       setStatus("ready")
     } catch {
       if (!attempt.signal.aborted) setStatus("invalid")
@@ -84,6 +92,7 @@ export function ProjectImport({ read, restore }: Props) {
         <p>{name}</p>
         {status === "reading" && <p role="status">파일을 확인하는 중입니다.</p>}
         {status === "invalid" && <p role="alert">편집 파일을 읽을 수 없습니다.</p>}
+        {status === "unsupported-version" && <p role="alert">이 버전의 편집 파일은 열 수 없습니다.</p>}
         {status === "failed" && <p role="alert">프로젝트를 저장하지 못했습니다. 다시 시도해 주세요.</p>}
         {project && (
           <div className="project-preview">

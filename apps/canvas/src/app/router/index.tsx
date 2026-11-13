@@ -28,8 +28,13 @@ function ProjectListRoute() {
       onCreate={creating ? undefined : () => creation.submit(null, { method: "post" })}
       createFailed={!creating && creation.data?.failed === true}
       readArchive={async (file, signal) => {
-        const { readProjectArchive } = await import("../composition/archive/read-project")
-        return readProjectArchive(file, signal)
+        const { readProjectArchive, UnsupportedArchiveVersion } = await import("../composition/archive/read-project")
+        try {
+          return { project: await readProjectArchive(file, signal) }
+        } catch (error) {
+          if (error instanceof UnsupportedArchiveVersion) return { issue: "unsupported-version" }
+          throw error
+        }
       }}
       restore={async (document) => {
         await projects.addDocument(document)

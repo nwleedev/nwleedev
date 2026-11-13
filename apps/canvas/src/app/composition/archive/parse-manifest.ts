@@ -25,10 +25,13 @@ function unique(values: readonly string[]) {
   if (new Set(values).size !== values.length) throw new Error("Duplicate manifest identifier")
 }
 
+export class UnsupportedArchiveVersion extends Error {}
+
 export function parseManifest(value: unknown, format: Manifest["format"], version: Manifest["version"]): Manifest {
   const root = fields(value)
   if (root.format !== format) throw new Error("Invalid project format")
-  if (root.version !== version) throw new Error("Unsupported project version")
+  if (!Number.isSafeInteger(root.version)) throw new Error("Invalid project version")
+  if (root.version !== version) throw new UnsupportedArchiveVersion()
 
   const assets = records(root.assets).map((asset) => ({
     id: string(asset.id),

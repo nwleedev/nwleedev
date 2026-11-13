@@ -2,7 +2,7 @@ import { Link } from "react-router"
 
 import type { ProjectDocument } from "@/entities/project"
 
-import { ProjectImport } from "./project-import"
+import { ProjectImport, type ReadArchive } from "./project-import"
 
 import "./projects-page.css"
 
@@ -17,7 +17,7 @@ type ProjectCard = {
 type Props = {
   projects?: readonly ProjectCard[]
   onCreate?: () => void
-  readArchive: (file: File, signal: AbortSignal) => Promise<ProjectDocument>
+  readArchive: ReadArchive
   restore: (project: ProjectDocument) => Promise<void>
   createFailed?: boolean
 }
