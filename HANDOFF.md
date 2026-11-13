@@ -511,6 +511,18 @@ WebKit의 나머지 실패 세 건은 `temps/notes-webkit-u27`을 사용한 재�
 
 ## 후속 설계에서 확인할 항목
 
+기능 코드를 작성하기 전에 [ESLint 설정 절차](docs/designs/image-annotation-canvas-2cb1ec/plan.md#구현-전-eslint-설정)를 진행한다. 모듈 책임, React 합성과 상태에 대한 검토는 [코드 구조 요구사항](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#코드-구조)을 따른다.
+
+[캔버스 구현 계획](docs/designs/image-annotation-canvas-2cb1ec/plan.md)을 작업 순서와 절차별 검증의 기준으로 사용한다. [FSD 파일 구성과 의존성 조립](docs/designs/image-annotation-canvas-2cb1ec/plan.md#fsd-파일-구성과-의존성-조립)에 파일 배치와 브라우저 구현 연결 기준이 있다. 아직 결정이 필요한 항목과 진행할 수 있는 작업은 계획의 진행 조건에 있다.
+
+구현 계획에는 [캔버스 편집과 ZIP 처리 라이브러리 결정](docs/designs/image-annotation-canvas-2cb1ec/decisions/canvas-and-zip-libraries.md)을 적용한다.
+
+로컬 저장 구현에서 필드나 인덱스를 추가할 때는 [저장 스키마](docs/designs/image-annotation-canvas-2cb1ec/references/local-storage-schema.md)에 정의된 관계와 변경 기준을 확인한다.
+
+[로컬 프로젝트 화면의 라우팅 결정](docs/designs/image-annotation-canvas-2cb1ec/decisions/browser-routing.md)을 바탕으로 프로젝트 목록과 편집 화면을 설계한다. 목록과 편집 화면의 전환, 프로젝트 조회 실패, 브라우저 저장 실패의 화면을 확인한다.
+
+로컬 데이터 구조와 트랜잭션 검증은 [프로젝트 목록과 로컬 저장](docs/designs/image-annotation-canvas-2cb1ec/plan.md#프로젝트-목록과-로컬-저장)에 있다. 위치와 크기의 동시 수정 규칙과 검증 시나리오는 [여러 탭에서 수정 반영](docs/designs/image-annotation-canvas-2cb1ec/plan.md#여러-탭에서-수정-반영)을 따른다. 메모 본문의 변경 저장 방식은 구현 전에 정한다.
+
 캔버스 구현 계획의 각 절차에서 해결할 문제에 맞는 디자인 패턴을 조사한다. 계획에는 채택한 패턴과 이 서비스에서 활용할 지점, 선택 이유를 적는다. 기존 구조로 해결할 수 있는 절차는 그 근거를 적는다.
 
 각 절차에서 TDD 필요 여부와 이유를 밝힌다. TDD가 필요한 절차에 한해 검증할 시나리오를 고르고, 테스트 수준과 작성 방식을 조사해 계획에 적는다. 시나리오마다 입력과 초기 상태, 수행할 조작, 관찰할 결과와 구현 전 실패해야 할 이유를 명시한다. 테스트 케이스는 계획에 명시한 시나리오를 검증하되 테스트 코드에서 계획 파일을 읽거나 참조하지 않는다.
@@ -524,6 +536,8 @@ WebKit의 나머지 실패 세 건은 `temps/notes-webkit-u27`을 사용한 재�
 - 편집 이력을 제공할지, 제공한다면 어떤 변경을 기록할지 정한다. 오프라인에서 앱을 처음 여는 경우와 다시 여는 경우에 각각 어떤 동작을 제공할지도 정한다.
 
 ## HTML 시안 검토
+
+[목록 헤더와 불러오기](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#로컬-프로젝트-관리), [내보내기 패널](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#이미지-파일로-저장)의 최신 기준을 시안에 적용한다. 새 프로젝트와 불러오기 아이콘은 도움말을 열기 전에 각 동작을 구별할 수 있는지 확인한다. 전체 내보내기 시안에서는 여백 0px와 24px의 미리보기를 비교한다.
 
 데스크톱 화면은 [캔버스 요구사항의 UI 기준](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#ui-디자인과-시안-검토)을 따른다. 이전 시안의 메모 방향 표시 띠와 배경이 채워진 내보내기 버튼은 이 기준과 다르다. 시안을 검토할 때는 선택한 이미지를 보여 주는 썸네일, 위치와 품질을 조절하는 요소, 헤더의 아이콘과 글자가 각자의 역할을 시각적으로 전달하는지 확인한다.
 
