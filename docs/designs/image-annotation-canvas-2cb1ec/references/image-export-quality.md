@@ -8,7 +8,7 @@
 
 ## 통합 이미지의 초기 한도
 
-초기 한도는 [이미지 저장 요구사항](../requirements.md#이미지-파일로-저장)에 둔다. 브라우저 내 합성 성능은 아직 측정하지 않았으므로 아래 계산과 상용 도구 사례는 초기값을 정하는 근거로 사용한다.
+초기 한도는 [이미지 저장 요구사항](../requirements.md#이미지-파일로-저장)에 둔다. 아래 계산과 상용 도구 사례를 초기값을 정하는 근거로 사용했다.
 
 - Figma REST API의 이미지 렌더링은 3,200만 픽셀보다 큰 결과를 자동으로 줄인다. 플러그인 API에서는 배율, 지정 너비와 높이, 색 프로필을 각각 지정한다. API에서 적용하는 출력 정책을 브라우저 로컬 처리 성능으로 해석할 수는 없다. [Figma 렌더링 API](https://developers.figma.com/docs/rest-api/file-endpoints/#get-image) [Figma 플러그인 ExportSettings](https://developers.figma.com/docs/plugins/api/ExportSettings/) (2026-11-13 확인)
 - Canva Connect의 PNG 내보내기 작업은 너비와 높이 입력에 각각 25,000px 상한을 둔다. Photopea 유지보수자는 특정 환경에서 8,192px를 넘는 GPU 텍스처 문제를 보고받아 WebGL을 끄고 비교하도록 안내했다. Adobe Photoshop UXP Imaging API도 픽셀 요청 크기를 줄이고 사용이 끝난 이미지 데이터를 해제하도록 안내한다. [Canva Connect 내보내기 API](https://www.canva.dev/docs/apps/rest-apis/reference/exports/create-design-export-job/) [Photopea 유지보수자 답변](https://github.com/photopea/photopea/issues/5888) [Photoshop UXP Imaging API](https://developer.adobe.com/photoshop/uxp/2022/ps-reference/media/imaging) (2026-11-13 확인)
@@ -33,3 +33,24 @@ Chromium 156은 CPU를 12.1배 느리게 설정했고, WebKit 27.2는 CPU 제한
 Chromium 156과 WebKit 27.2의 영구 프로필에서 각 표본을 원본 크기로 배치하고 PNG를 다운로드했다. EXIF 방향 값이 6인 80×40 JPEG는 두 브라우저에서 모두 40×80 PNG로 저장됐고 빨간색이 위, 파란색이 아래에 놓였다. 회전을 반영해 디코딩한 원본과 출력 PNG의 픽셀 값이 일치했다.
 
 완전 투명 영역과 알파 25%, 75% 영역을 담은 80×40 PNG도 두 브라우저에서 치수와 투명 영역을 유지했다. 원본과 출력 파일을 각각 흰색과 검은색 배경에 합성해 전체 픽셀을 비교했을 때 두 배경 모두 채널별 최대 차이는 0이었다. 두 표본에서 확인한 결과다.
+
+## 1080p 이미지 10장의 배치 비교
+
+두 브라우저에서 5열 2행 배치의 PNG와 SVG 미리보기가 초기 한도에 들어왔다. 세로 한 줄은 높이 한도, 간격을 넓힌 5열 2행은 총 픽셀 한도를 초과했다.
+
+사진을 잘라 만든 1,920×1,080 PNG 10장을 사용했다. 그중 5장에는 왼쪽 절반에 무작위 색상 무늬를 더했다. 모든 이미지 아래에 높이 200px의 빈 메모 상자를 붙이고 외곽 여백을 24px로 설정했다. 각 브라우저에서 원본을 인코딩한 뒤 같은 원본의 배치만 바꿨다. Chromium 156은 CPU 12.1배 제한, WebKit 27.2는 CPU 제한 없이 영구 프로필을 사용했다. 두 브라우저 모두 1,440×1,000 화면에서 조합별 한 번 측정했다.
+
+| 배치 | 내보내기 치수 | 두 브라우저에서 확인한 동작 |
+| --- | ---: | --- |
+| 5열 2행, 간격 64px | 9,904×2,672px | PNG와 SVG 미리보기 표시. JPG는 투명 영역 경고로 차단 |
+| 세로 한 줄, 간격 64px | 1,968×13,424px | 세 형식 모두 높이 한도에서 차단 |
+| 5열 2행, 가로 간격 580px, 세로 간격 320px | 11,968×2,928px | 세 형식 모두 총 픽셀 한도에서 차단 |
+
+5열 2행에서 형식 선택 직전부터 미리보기 디코딩 또는 경고 표시까지 걸린 시간과 패널의 예상 용량을 확인했다.
+
+| 브라우저 | PNG | SVG | JPG 경고 |
+| --- | --- | --- | --- |
+| Chromium | 1.28초, 41.57 MiB | 0.85초, 55.09 MiB | 1.23초 |
+| WebKit | 2.12초, 38.48 MiB | 0.79초, 51.05 MiB | 1.09초 |
+
+같은 구간에서 프레임 콜백의 최대 간격은 Chromium에서 PNG 183.3ms, SVG 16.8ms, JPG 경고 750ms였다. WebKit에서는 각각 325ms, 19ms, 309ms였다. 실제 입력부터 화면 표시까지의 지연과 최대 메모리는 측정하지 않았다. CPU 설정과 원본 PNG 인코더가 달라 두 엔진의 속도와 용량을 직접 비교할 수 없다.
