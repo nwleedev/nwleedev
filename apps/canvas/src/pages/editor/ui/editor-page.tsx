@@ -118,8 +118,27 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
           )}
           {placementFailed && <p role="alert">이미지 배치를 저장하지 못했습니다.</p>}
           {memoResizeFailed && <p role="alert">메모 크기를 저장하지 못했습니다.</p>}
+          {placement && (
+            <MemoAttachment
+              key={placement.id}
+              memo={memo}
+              onAdd={() => addMemo(placement.id)}
+              onChange={updateMemoSide}
+            />
+          )}
+          {document.memos.map(({ id, placementId }) => (
+            <div key={id} hidden={placementId !== selectedId}>
+              <MemoField
+                memoId={id}
+                updates={document.memoUpdates.filter((update) => update.memoId === id)}
+                save={saveMemo}
+                preserve={preserve}
+                registerFlush={registerFlush}
+              />
+            </div>
+          ))}
           {placement && original && (
-            <label>
+            <label className="editor-image-width">
               이미지 너비 (px)
               <input
                 key={`${placement.id}:${placement.width}`}
@@ -144,25 +163,6 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
               />
             </label>
           )}
-          {placement && (
-            <MemoAttachment
-              key={placement.id}
-              memo={memo}
-              onAdd={() => addMemo(placement.id)}
-              onChange={updateMemoSide}
-            />
-          )}
-          {document.memos.map(({ id, placementId }) => (
-            <div key={id} hidden={placementId !== selectedId}>
-              <MemoField
-                memoId={id}
-                updates={document.memoUpdates.filter((update) => update.memoId === id)}
-                save={saveMemo}
-                preserve={preserve}
-                registerFlush={registerFlush}
-              />
-            </div>
-          ))}
         </aside>}
       </div>
       {Array.from(unsaved, ([id, value]) => (

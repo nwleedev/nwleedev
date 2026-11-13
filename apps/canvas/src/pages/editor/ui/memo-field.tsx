@@ -36,8 +36,11 @@ export function MemoField({ memoId, updates, save, preserve, registerFlush }: Pr
   }, [memoId, save, updates])
 
   return (
-    <div>
-      <textarea ref={element} aria-label="메모" />
+    <div className="editor-memo-field">
+      <label>
+        메모
+        <textarea ref={element} />
+      </label>
       {failed && <button type="button" onClick={() => void binding.current?.persist()}>메모 저장 다시 시도</button>}
     </div>
   )
