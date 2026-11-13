@@ -126,6 +126,8 @@ TDD를 적용한다. 편집 화면을 연결하기 전에는 같은 브라우저
 
 ## 캔버스 편집과 메모 부착
 
+상태: 이미지 배치 너비를 원본 비율과 크기 상한에 맞춰 계산한다. 메모는 선택한 이미지 변의 중앙에 맞춰 배치한다. 두 이미지 비율과 네 부착 방향에서 이동과 크기 변경 뒤 메모가 이미지에 닿는지 검사했다. Konva 화면, 드래그와 속성 패널 연결은 남아 있다.
+
 Konva 화면과 속성 패널은 `pages/editor/ui/`에 둔다. 현재 선택과 편집 조작은 `pages/editor/model/`에서 관리한다. 저장과 불러오기에서도 유지해야 하는 이미지 크기와 메모 부착 규칙은 `entities/project/model/`에서 관리한다.
 
 [이미지 배치](requirements.md#이미지-배치), [메모 부착](requirements.md#이미지에-붙이는-메모), [속성 조작](requirements.md#속성-조작-방식)을 구현한다. 편집 문서를 상태의 기준으로 두고 Konva 화면과 우측 속성 패널이 같은 선택 및 배치 정보를 사용한다. 메모 입력은 브라우저의 텍스트 입력을 사용한다. 드래그로 바뀌는 값과 숫자로 정확히 지정할 값을 나눠 데스크톱과 모바일에서 확인한다. [Konva 저장 지침](https://konvajs.org/docs/data_and_serialization/Best_Practices.html), [속성별 조작 조사](references/property-controls.md)

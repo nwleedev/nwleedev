@@ -3,6 +3,7 @@ import type { Asset, Memo, Placement } from "./records"
 const aspectRatioTolerance = 1e-9
 
 export type Size = Pick<Placement, "width" | "height">
+export type Rect = Pick<Placement, "x" | "y"> & Size
 
 export type PlacementGeometry =
   | ({ kind: "position" } & Pick<Placement, "x" | "y">)
@@ -23,6 +24,27 @@ export function validatePlacementGeometry(placement: Placement, asset: Asset) {
     width > asset.originalWidth || height > asset.originalHeight ||
     Math.abs(height - expectedHeight) > expectedHeight * aspectRatioTolerance
   ) throw new Error("Invalid placement geometry")
+}
+
+export function imageSizeAtWidth(original: Pick<Asset, "originalWidth" | "originalHeight">, requestedWidth: number): Size {
+  if (!Number.isFinite(requestedWidth) || requestedWidth <= 0) throw new Error("Invalid image width")
+  const width = Math.min(requestedWidth, original.originalWidth)
+  const height = (width / original.originalWidth) * original.originalHeight
+  const size = { width, height }
+  validateSize(size)
+  return size
+}
+
+export function attachedMemoRect(image: Rect, memo: Size & Pick<Memo, "side">): Rect {
+  const { width, height } = memo
+  const centerX = image.x + (image.width - width) / 2
+  const centerY = image.y + (image.height - height) / 2
+  switch (memo.side) {
+    case "top": return { x: centerX, y: image.y - height, width, height }
+    case "right": return { x: image.x + image.width, y: centerY, width, height }
+    case "bottom": return { x: centerX, y: image.y + image.height, width, height }
+    case "left": return { x: image.x - width, y: centerY, width, height }
+  }
 }
 
 export function applyPlacementGeometry(placement: Placement, change: PlacementGeometry): Placement {

@@ -1,8 +1,8 @@
 import type { Asset, Memo, Placement } from "./model/records"
 
 export type { Asset, Memo, Placement } from "./model/records"
-export { applyPlacementGeometry, resizeMemo, validatePlacementGeometry, validateSize } from "./model/geometry"
-export type { PlacementGeometry, Size } from "./model/geometry"
+export { applyPlacementGeometry, attachedMemoRect, imageSizeAtWidth, resizeMemo, validatePlacementGeometry, validateSize } from "./model/geometry"
+export type { PlacementGeometry, Rect, Size } from "./model/geometry"
 export { createMemoText } from "./model/memo-text"
 
 export type Project = {
