@@ -59,17 +59,23 @@ export function EditorPage({ document, saveMemo, updatePlacement, addImage, addM
 
   return (
     <main>
-      <Link to="/">프로젝트 목록</Link>
-      <h1>{document.project.title}</h1>
-      <button className="image-export-trigger" type="button" aria-expanded={exporting} onClick={() => setExporting(!exporting)}>이미지 내보내기</button>
-      <ProjectDownload title={document.project.title} prepare={async () => {
-        await Promise.all(Array.from(memoFlushes.current.values(), (flush) => flush()))
-        return prepareArchive()
-      }} />
-      <ImageUpload add={async (image) => {
-        await addImage(image)
-        select(image.id)
-      }} />
+      <header className="editor-header">
+        <div className="editor-document">
+          <Link to="/">프로젝트 목록</Link>
+          <h1>{document.project.title}</h1>
+        </div>
+        <ImageUpload add={async (image) => {
+          await addImage(image)
+          select(image.id)
+        }} />
+        <div className="editor-file-actions">
+          <ProjectDownload title={document.project.title} prepare={async () => {
+            await Promise.all(Array.from(memoFlushes.current.values(), (flush) => flush()))
+            return prepareArchive()
+          }} />
+          <button className="image-export-trigger" type="button" aria-expanded={exporting} onClick={() => setExporting(!exporting)}>이미지 내보내기</button>
+        </div>
+      </header>
       <div className="editor-workspace">
         <CanvasStage
           document={document}

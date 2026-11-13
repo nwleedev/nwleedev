@@ -1,3 +1,36 @@
+.editor-header,
+.editor-document,
+.editor-file-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.editor-header {
+  padding: 0.375rem 1rem;
+  min-height: 2.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.editor-document {
+  min-width: 0;
+}
+
+.editor-document h1 {
+  margin: 0;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.editor-document a {
+  color: var(--muted);
+}
+
+.editor-file-actions {
+  margin-inline-start: auto;
+}
+
 .editor-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(15rem, 20rem);
