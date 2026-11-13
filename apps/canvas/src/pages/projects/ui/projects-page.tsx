@@ -6,7 +6,7 @@ type ProjectCard = {
   id: string
   href: string
   title: string
-  updatedAt: string
+  updatedAt: number
   previewUrl?: string
 }
 
@@ -50,7 +50,7 @@ export function ProjectsPage({ projects = [], onCreate, onImport, createFailed }
                     {previewUrl && <img src={previewUrl} alt="" loading="lazy" />}
                   </div>
                   <h2>{title}</h2>
-                  <time dateTime={updatedAt}>{dateFormat.format(new Date(updatedAt))}</time>
+                  <time dateTime={new Date(updatedAt).toISOString()}>{dateFormat.format(new Date(updatedAt))}</time>
                 </Link>
               </li>
             ))}

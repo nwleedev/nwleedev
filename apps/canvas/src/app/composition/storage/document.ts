@@ -103,7 +103,7 @@ export function documentStorage(
         }
         await projects.put({
           ...validateProject(project),
-          updatedAt: new Date().toISOString(),
+          updatedAt: Date.now(),
           revision: project.revision + 1,
         })
         return true

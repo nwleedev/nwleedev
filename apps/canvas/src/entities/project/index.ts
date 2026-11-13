@@ -1,7 +1,7 @@
 export type Project = {
   id: string
   title: string
-  updatedAt: string
+  updatedAt: number
   revision: number
 }
 

@@ -3,7 +3,7 @@ import type { DBSchema } from "idb"
 import type { Asset, Memo, Placement, Project } from "@/entities/project"
 
 export interface Schema extends DBSchema {
-  projects: { key: string; value: Project; indexes: { updatedAt: string } }
+  projects: { key: string; value: Project; indexes: { updatedAt: number } }
   assets: { key: [string, string]; value: Asset }
   placements: {
     key: string

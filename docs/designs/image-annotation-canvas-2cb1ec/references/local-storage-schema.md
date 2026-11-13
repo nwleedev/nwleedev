@@ -6,7 +6,7 @@
 CREATE TABLE projects (
   id uuid PRIMARY KEY,
   title text NOT NULL,
-  updated_at timestamptz NOT NULL,
+  updated_at bigint NOT NULL,
   revision bigint NOT NULL DEFAULT 0 CHECK (revision >= 0)
 );
 
@@ -55,6 +55,8 @@ CREATE TABLE memo_updates (
 DDL은 배치당 메모 하나를 가정한다. `memo_updates`는 동시 입력을 병합하는 설계 후보다. 변경분의 바이너리 형식과 본문 복원 및 변경분 정리 방식은 동시 편집 도구를 결정할 때 확정한다. [Yjs 변경분 형식](https://docs.yjs.dev/api/document-updates)
 
 ## 필드와 인덱스 변경 기준
+
+- 프로젝트 수정 시각은 밀리초 단위 Unix 타임스탬프로 저장한다. IndexedDB v3에서 기존 ISO 문자열을 변환하고 목록 정렬을 유지한다. HTML의 `datetime` 값은 표시할 때 ISO 문자열로 변환한다.
 
 - 필드를 추가할 때는 값을 쓰고 읽는 동작, 다시 열었을 때 복원해야 하는 이유와 값을 저장할 레코드를 명시한다. 원본 대비 배율은 배치 너비와 원본 너비로 계산한다. 선택 상태와 드래그 미리보기는 편집 화면에서 관리한다.
 - 인덱스는 조회 조건과 정렬 순서에 맞춰 정의한다. 배치는 프로젝트와 겹침 순서로 조회하고, 원본을 정리하기 전에는 프로젝트와 원본 식별자로 남은 배치를 찾는다.
