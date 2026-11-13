@@ -543,6 +543,8 @@ IndexedDB v4에 메모 변경분을 저장하고 커밋을 다른 탭에 알린�
 
 [캔버스 화면 이동과 확대](docs/designs/image-annotation-canvas-2cb1ec/plan.md#캔버스-화면-이동과-확대)를 구현하고 Chromium에서 입력 동작을 확인했다. 실제 기기 조작과 편집 화면 렌더링의 측정 조건은 [화면 통합과 배포 확인](docs/designs/image-annotation-canvas-2cb1ec/plan.md#화면-통합과-배포-확인)에 있다.
 
+사각형 PNG 내보내기에서 화면 높이에 따라 1px 차이가 관측됐다. [내보내기 절차](docs/designs/image-annotation-canvas-2cb1ec/plan.md#이미지-내보내기와-여백)의 재현 조건을 사용해 확대 중심, 실제 포인터 좌표와 내보내기 좌표를 대조한다.
+
 [이미지 편집 후 프레임 공백](docs/designs/image-annotation-canvas-2cb1ec/references/edit-rendering-performance.md)에 전후 수치와 대안 비교를 기록했다. 추가 성능 검증에서는 [정량 개선 기록](docs/designs/image-annotation-canvas-2cb1ec/requirements.md#정량-개선-기록)을 따른다.
 
 ## HTML 시안 검토
