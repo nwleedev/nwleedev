@@ -19,17 +19,17 @@ async function deletePlacementRecords(tx: WriteTransaction, placementId: string)
   await tx.objectStore("placements").delete(placementId)
 }
 
-async function remove(
+async function commitWrite<Result>(
   tx: WriteTransaction,
-  operation: () => Promise<boolean>,
-) {
+  operation: () => Promise<Result>,
+): Promise<Result> {
   const completion = tx.done
   // Observe rejection while individual requests are still pending.
   void completion.catch(() => undefined)
   try {
-    const removed = await operation()
+    const result = await operation()
     await completion
-    return removed
+    return result
   } catch (error) {
     try {
       tx.abort()
@@ -89,7 +89,7 @@ export function documentStorage(
     async deletePlacement(projectId: string, placementId: string) {
       const db = await database()
       const tx = db.transaction(stores, "readwrite")
-      return remove(tx, async () => {
+      return commitWrite(tx, async () => {
         const projects = tx.objectStore("projects")
         const placements = tx.objectStore("placements")
         const project = await projects.get(projectId)
@@ -113,7 +113,7 @@ export function documentStorage(
     async deleteDocument(id: string) {
       const db = await database()
       const tx = db.transaction(stores, "readwrite")
-      return remove(tx, async () => {
+      return commitWrite(tx, async () => {
         const projects = tx.objectStore("projects")
         if (await projects.getKey(id) === undefined) return false
 
@@ -133,18 +133,12 @@ export function documentStorage(
       const db = await database()
       const tx = db.transaction(stores, "readwrite")
 
-      const writes: Promise<unknown>[] = [tx.done]
-      try {
-        writes.push(tx.objectStore("projects").add(project))
-        for (const asset of assets) writes.push(tx.objectStore("assets").add(asset))
-        for (const placement of placements) writes.push(tx.objectStore("placements").add(placement))
-        for (const memo of memos) writes.push(tx.objectStore("memos").add(memo))
-      } catch (error) {
-        tx.abort()
-        await Promise.allSettled(writes)
-        throw error
-      }
-      await Promise.all(writes)
+      await commitWrite(tx, async () => {
+        await tx.objectStore("projects").add(project)
+        for (const asset of assets) await tx.objectStore("assets").add(asset)
+        for (const placement of placements) await tx.objectStore("placements").add(placement)
+        for (const memo of memos) await tx.objectStore("memos").add(memo)
+      })
     },
 
     async readDocument(id: string): Promise<ProjectDocument | undefined> {
