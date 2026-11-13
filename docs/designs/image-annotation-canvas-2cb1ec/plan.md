@@ -238,6 +238,8 @@ JPG는 Worker에서 흰색 배경을 먼저 칠하고 선택 모양으로 이미
 
 [흰색 배경 JPG의 10장 저장](references/image-export-quality.md#흰색-배경-jpg의-10장-저장)에서 Chromium의 5열 2행 결과를 저장했다. 전체 품질 100%에서 27,288,917바이트였고 최대 프레임 콜백 간격은 100~383ms였다. Worker에서 최종 JPG를 디코딩해 축소한 실험은 미리보기 준비 시간이 늘었고 최대 프레임 공백 개선이 일관되지 않아 기존 방식을 유지했다.
 
+[JPG 생성 중 클릭 지연과 메모리](references/image-export-quality.md#jpg-생성-중-클릭-지연과-메모리)에서 실제 브라우저 클릭과 프로세스 RSS를 관측했다. 반복 생성에서 시작 RSS가 늘었고 클릭 표시까지 최대 656ms가 걸렸다. 메모리 회수 여부와 지연 구간의 작업을 추적한다.
+
 ## 화면 통합과 배포 확인
 
 목록에서 작업 열기, 메모 편집, 이미지 내보내기, ZIP으로 다시 열기를 이어서 확인한다. 정적 배포에서 편집 주소로 직접 진입하거나 새로고침할 때 앱이 열리고 Worker 파일을 로드하는지 확인한다. TDD는 적용하지 않는다. 앞 절차의 동작 검사를 통과한 운영 빌드를 대상으로 화면과 배포 환경을 확인한다. [Vite Worker 지원](https://vite.dev/guide/features#web-workers), [React Router SPA 배포](https://reactrouter.com/how-to/spa)
