@@ -1,10 +1,47 @@
-import type { IDBPDatabase } from "idb"
+import type { IDBPDatabase, IDBPTransaction } from "idb"
 
 import type { Project, ProjectDocument } from "@/entities/project"
 
 import type { Schema } from "./schema"
 
 const stores = ["projects", "assets", "placements", "memos"] as const
+
+type WriteTransaction = IDBPTransaction<Schema, typeof stores, "readwrite">
+
+function projectRange(id: string) {
+  return IDBKeyRange.bound([id], [id, []], false, true)
+}
+
+async function deletePlacementRecords(tx: WriteTransaction, placementId: string) {
+  const memos = tx.objectStore("memos")
+  const memoId = await memos.index("placement").getKey(placementId)
+  if (memoId !== undefined) await memos.delete(memoId)
+  await tx.objectStore("placements").delete(placementId)
+}
+
+async function remove(
+  tx: WriteTransaction,
+  operation: () => Promise<boolean>,
+) {
+  const completion = tx.done
+  // Observe rejection while individual requests are still pending.
+  void completion.catch(() => undefined)
+  try {
+    const removed = await operation()
+    await completion
+    return removed
+  } catch (error) {
+    try {
+      tx.abort()
+    } catch (abortError) {
+      if (!(abortError instanceof DOMException && abortError.name === "InvalidStateError")) {
+        throw abortError
+      }
+    }
+    await completion.catch(() => undefined)
+    throw error
+  }
+}
 
 function validateDocument(document: ProjectDocument) {
   const { project, assets, placements, memos } = document
@@ -49,6 +86,46 @@ export function documentStorage(
   validateProject: (value: unknown) => Project,
 ) {
   return {
+    async deletePlacement(projectId: string, placementId: string) {
+      const db = await database()
+      const tx = db.transaction(stores, "readwrite")
+      return remove(tx, async () => {
+        const projects = tx.objectStore("projects")
+        const placements = tx.objectStore("placements")
+        const project = await projects.get(projectId)
+        const placement = await placements.get(placementId)
+        if (!project || placement?.projectId !== projectId) return false
+
+        const assetKey: [string, string] = [projectId, placement.assetId]
+        await deletePlacementRecords(tx, placementId)
+        if (await placements.index("asset").count(assetKey) === 0) {
+          await tx.objectStore("assets").delete(assetKey)
+        }
+        await projects.put({
+          ...validateProject(project),
+          updatedAt: new Date().toISOString(),
+          revision: project.revision + 1,
+        })
+        return true
+      })
+    },
+
+    async deleteDocument(id: string) {
+      const db = await database()
+      const tx = db.transaction(stores, "readwrite")
+      return remove(tx, async () => {
+        const projects = tx.objectStore("projects")
+        if (await projects.getKey(id) === undefined) return false
+
+        const range = projectRange(id)
+        const placements = await tx.objectStore("placements").index("projectOrder").getAllKeys(range)
+        for (const placementId of placements) await deletePlacementRecords(tx, placementId)
+        await tx.objectStore("assets").delete(range)
+        await projects.delete(id)
+        return true
+      })
+    },
+
     async addDocument(document: ProjectDocument) {
       const { project, assets, placements, memos } = document
       validateProject(project)
@@ -73,7 +150,7 @@ export function documentStorage(
     async readDocument(id: string): Promise<ProjectDocument | undefined> {
       const db = await database()
       const tx = db.transaction(stores)
-      const range = IDBKeyRange.bound([id], [id, []], false, true)
+      const range = projectRange(id)
       const project = await tx.objectStore("projects").get(id)
 
       if (!project) {
