@@ -3,6 +3,7 @@ import { BlobReader, BlobWriter, TextWriter, ZipReader } from "@zip.js/zip.js"
 import { createMemoText, type ProjectDocument } from "@/entities/project"
 
 import { validateDocument } from "../validate-document"
+import { checkExtractedSize, checkOriginals, checkZipSize, maxOriginals } from "./limits"
 import { format, manifestName, originalEntry, version } from "./manifest"
 import { parseManifest } from "./parse-manifest"
 
@@ -10,14 +11,19 @@ export { UnsupportedArchiveVersion } from "./parse-manifest"
 
 export async function readProjectArchive(file: Blob, signal?: AbortSignal): Promise<ProjectDocument> {
   signal?.throwIfAborted()
+  checkZipSize(file.size)
   const reader = new ZipReader(new BlobReader(file))
   try {
     const entries = new Map<string, Awaited<ReturnType<typeof reader.getEntries>>[number]>()
+    let extractedBytes = 0
     for await (const entry of reader.getEntriesGenerator()) {
       signal?.throwIfAborted()
       if (entry.directory || entry.encrypted || entries.has(entry.filename)) {
         throw new Error("Invalid archive entry")
       }
+      if (entries.size >= maxOriginals + 1) throw new Error("Too many archive entries")
+      extractedBytes += entry.uncompressedSize
+      checkExtractedSize(extractedBytes)
       entries.set(entry.filename, entry)
     }
     const header = entries.get(manifestName)
@@ -27,6 +33,7 @@ export async function readProjectArchive(file: Blob, signal?: AbortSignal): Prom
     signal?.throwIfAborted()
     const raw: unknown = JSON.parse(manifestText)
     const manifest = parseManifest(raw, format, version)
+    checkOriginals(manifest.assets)
     if (entries.size !== manifest.assets.length + 1) throw new Error("Unexpected archive entries")
 
     const projectId = crypto.randomUUID()
