@@ -21,9 +21,24 @@
     "lead": "I analyze when and why problems occur in web services and design solutions that fit the requirements and existing systems.",
     "supporting": "When large API responses caused the screen to freeze, I moved JSON parsing and data transformation to a Web Worker. For notes edited in multiple tabs, I designed the app to merge edits from each tab and preserve the input.",
     "links": [
-      { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "Code and open source contributions", "icon": "github" },
-      { "label": "Blog", "href": "https://blog.nwlee.com", "context": "Technical notes and problem-solving process", "icon": "article" },
-      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "Professional profile", "icon": "linkedin" }
+      {
+        "label": "GitHub",
+        "href": "https://github.com/nwleedev",
+        "context": "Code and open source contributions",
+        "icon": "github"
+      },
+      {
+        "label": "Blog",
+        "href": "https://blog.nwlee.com",
+        "context": "Technical notes and problem-solving process",
+        "icon": "article"
+      },
+      {
+        "label": "LinkedIn",
+        "href": "https://www.linkedin.com/in/nowon-lee/",
+        "context": "Professional profile",
+        "icon": "linkedin"
+      }
     ]
   },
   "experience": {
@@ -117,8 +132,16 @@
         "summary": "A URL could incorrectly match a route when it supplied an optional parameter without the preceding slash. I changed matching so patterns without a suffix could omit the optional parameter and its slash together. For patterns with a file extension, the parameter value can be omitted while the slash stays in place.",
         "verification": "I added tests for incorrectly matched URLs and existing file-extension patterns. The fix shipped in v7.13.1.",
         "links": [
-          { "label": "PR #14689", "href": "https://github.com/remix-run/react-router/pull/14689", "context": "Change and review history" },
-          { "label": "v7.13.1 release", "href": "https://github.com/remix-run/react-router/releases/tag/react-router@7.13.1", "context": "Official release" }
+          {
+            "label": "PR #14689",
+            "href": "https://github.com/remix-run/react-router/pull/14689",
+            "context": "Change and review history"
+          },
+          {
+            "label": "v7.13.1 release",
+            "href": "https://github.com/remix-run/react-router/releases/tag/react-router@7.13.1",
+            "context": "Official release"
+          }
         ]
       },
       {
@@ -127,8 +150,16 @@
         "summary": "Delete and Backspace could not remove the final character before an inline image in a regular paragraph or table cell. To preserve normal text and selection deletion, I applied a separate rule only when deleting a single remaining character immediately before an image with no text selected.",
         "verification": "The fix restored deletion of the final character before an image and shipped in v1.2.0.",
         "links": [
-          { "label": "PR #10759", "href": "https://github.com/outline/outline/pull/10759", "context": "Change and review history" },
-          { "label": "v1.2.0 release", "href": "https://github.com/outline/outline/releases/tag/v1.2.0", "context": "Official release" }
+          {
+            "label": "PR #10759",
+            "href": "https://github.com/outline/outline/pull/10759",
+            "context": "Change and review history"
+          },
+          {
+            "label": "v1.2.0 release",
+            "href": "https://github.com/outline/outline/releases/tag/v1.2.0",
+            "context": "Official release"
+          }
         ]
       }
     ]
@@ -194,8 +225,16 @@
     "id": "background",
     "title": "Background",
     "items": [
-      { "title": "Dankook University", "detail": "Applied Computer Engineering", "period": "2016 — 2022" },
-      { "title": "Engineer Information Processing", "detail": "Human Resources Development Service of Korea", "period": "2022" },
+      {
+        "title": "Dankook University",
+        "detail": "Applied Computer Engineering",
+        "period": "2016 — 2022"
+      },
+      {
+        "title": "Engineer Information Processing",
+        "detail": "Human Resources Development Service of Korea",
+        "period": "2022"
+      },
       { "title": "TOEIC Speaking", "detail": "IH", "period": "2025" }
     ]
   },
@@ -203,14 +242,30 @@
     "id": "contact",
     "title": "Contact",
     "links": [
-      { "label": "Email", "href": "mailto:nw.lee@outlook.com", "context": "Send an email" },
-      { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "Code and open source contributions" },
-      { "label": "Blog", "href": "https://blog.nwlee.com", "context": "Technical notes and problem-solving process" },
-      { "label": "LinkedIn", "href": "https://www.linkedin.com/in/nowon-lee/", "context": "Professional profile" }
+      {
+        "label": "Email",
+        "href": "mailto:nw.lee@outlook.com",
+        "context": "Send an email"
+      },
+      {
+        "label": "GitHub",
+        "href": "https://github.com/nwleedev",
+        "context": "Code and open source contributions"
+      },
+      {
+        "label": "Blog",
+        "href": "https://blog.nwlee.com",
+        "context": "Technical notes and problem-solving process"
+      },
+      {
+        "label": "LinkedIn",
+        "href": "https://www.linkedin.com/in/nowon-lee/",
+        "context": "Professional profile"
+      }
     ]
   },
   "showcase": {
-    "title": "Use Better Terms",
+    "title": "Terms",
     "description": "Improve the wording in AI-written documents to make it more natural and easier to understand.",
     "homeLabel": "Go to home",
     "articleLabel": "Wording improvement example",
