@@ -8,7 +8,6 @@ export type {
   Project,
   LanguageLink,
   Locale,
-  Metadata,
   OpenSourceContribution,
   ProfileIconName,
   ProfileLink,

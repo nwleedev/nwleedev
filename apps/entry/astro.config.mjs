@@ -3,7 +3,8 @@ import { defineConfig } from "astro/config";
 
 export default defineConfig({
   redirects: {
-    "/better-terms": "/projects/use-better-terms",
+    "/better-terms": "/projects/terms",
+    "/projects/use-better-terms": "/projects/terms",
   },
   vite: {
     plugins: [tailwindcss()],

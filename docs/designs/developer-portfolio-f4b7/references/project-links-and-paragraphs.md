@@ -68,7 +68,7 @@ Offline Translation Web App도 같은 표시 방식을 사용하되, 문단을 �
 
 ## 연결할 자료
 
-AI Agent Workflow의 문구 개선 사례는 현재 사이트의 `/projects/use-better-terms`에 있다. 두 언어의 홈페이지에서 같은 [사례 페이지](../../../../apps/entry/src/pages/projects/use-better-terms.astro)로 연결되며, 사례 본문은 한국어다. 이번 링크 추가에 영어 사례 페이지 제작까지 포함하지 않는다.
+AI Agent Workflow의 문구 개선 사례는 `/projects/terms`에 있다. 두 언어의 홈페이지에서 같은 [사례 페이지](../../../../apps/entry/src/pages/projects/terms.astro)로 연결되며, 사례 본문은 한국어다. 이번 링크 추가에 영어 사례 페이지 제작까지 포함하지 않는다.
 
 AI Agent Workflow의 저장소 링크는 [Docs System](https://github.com/nwleedev/docs-system)이다. 외부에서 열람할 수 있으며, README에는 에이전트 지침, 설계 문서와 개발 지침을 관리하는 스킬 및 `use-better-terms`가 소개되어 있다. 홈페이지에서 소개한 규칙과 문구 검사 도구를 살펴볼 수 있다. [Docs System README](https://github.com/nwleedev/docs-system#readme)
 

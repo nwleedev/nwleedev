@@ -1,6 +1,5 @@
 ---
 import type { Contribution } from "@/shared/terms";
-import { MetadataLine } from "@/shared/ui";
 
 interface Props {
   contribution: Contribution;
@@ -17,11 +16,5 @@ const { contribution } = Astro.props;
     {contribution.paragraphs.map((paragraph) => (
       <p class="text-base leading-7 text-text-secondary">{paragraph}</p>
     ))}
-  </div>
-  <div class="mt-6">
-    <MetadataLine
-      period={contribution.metadata.period}
-      technologies={contribution.metadata.technologies}
-    />
   </div>
 </article>

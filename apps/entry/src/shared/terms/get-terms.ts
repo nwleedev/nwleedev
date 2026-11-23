@@ -94,18 +94,10 @@ function isIdentityProfileLinks(value: unknown): value is ProfileLink[] {
   );
 }
 
-function isMetadata(value: unknown): boolean {
-  return (
-    isString(field(value, "period")) &&
-    isStringArray(field(value, "technologies"))
-  );
-}
-
 function isContribution(value: unknown): boolean {
   return (
     isString(field(value, "title")) &&
-    isNonEmptyStringArray(field(value, "paragraphs")) &&
-    isMetadata(field(value, "metadata"))
+    isNonEmptyStringArray(field(value, "paragraphs"))
   );
 }
 

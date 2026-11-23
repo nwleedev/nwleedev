@@ -22,15 +22,9 @@ export type ProfileLink = ExternalLink & {
   icon: ProfileIconName;
 };
 
-export type Metadata = {
-  period: string;
-  technologies: readonly string[];
-};
-
 export type Contribution = {
   title: string;
   paragraphs: readonly string[];
-  metadata: Metadata;
 };
 
 export type CompanyExperience = {

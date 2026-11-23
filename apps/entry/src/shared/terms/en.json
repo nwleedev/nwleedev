@@ -18,8 +18,8 @@
   "identity": {
     "name": "Nowon Lee",
     "role": "Frontend Engineer",
-    "lead": "I observe how services behave, trace problems to their causes, and fix them. I want to help make web services easier to use and their information more accurate.",
-    "supporting": "In TypeScript and React services, I have improved real-time updates, progress reporting during document generation, and dashboard accuracy, and resolved authentication issues. I continue to check the user experience after deployment.",
+    "lead": "I analyze when and why problems occur in web services and design solutions that fit the requirements and existing systems.",
+    "supporting": "When large API responses caused the screen to freeze, I moved JSON parsing and data transformation to a Web Worker. For notes edited in multiple tabs, I designed the app to merge edits from each tab and preserve the input.",
     "links": [
       { "label": "GitHub", "href": "https://github.com/nwleedev", "context": "Code and open source contributions", "icon": "github" },
       { "label": "Blog", "href": "https://blog.nwlee.com", "context": "Technical notes and problem-solving process", "icon": "article" },
@@ -32,63 +32,50 @@
     "companies": [
       {
         "company": "AI Factory",
-        "period": "2025 — Present",
+        "period": "Aug 2025 — Present",
         "role": "Frontend Engineer",
-        "summary": "I handled frontend development for public-sector web services. I improved information accuracy, progress updates during document generation, interface responsiveness while processing API responses, and deployment reliability.",
+        "summary": "I developed the front end for the execution history detail view, server usage dashboard, and AI document generation service. I addressed freezes caused by large API responses and reduced the total data transferred by the server resource API. I designed a screen for reviewing drafts and generation details before download and coordinated the API response fields needed to display them.",
         "contributions": [
           {
-            "title": "Fixing incorrect dashboard values and improving transfer efficiency",
+            "title": "Reducing rendering delays in the execution history detail view",
             "paragraphs": [
-              "I fixed missing and incorrect measurements over time so dashboard users could accurately check server status. I aligned metric names and labels with actual responses and corrected ratio calculations. I also traced why measurements that should stay separate were being combined and updated how they are identified.",
-              "I changed queries to fetch only values after the previous request time, reducing data transferred over 10 minutes from 96.5 MB to 41 KB. I designed and implemented a Next.js API so the browser would not call Prometheus directly. I compared the deployed dashboard with actual responses to verify the displayed values."
-            ],
-            "metadata": {
-              "period": "Verified in production",
-              "technologies": ["Next.js", "Prometheus", "Recharts"]
-            }
+              "Users reported that the screen froze when they opened certain execution records. I identified affected records from one week of execution history and used Chrome DevTools’ Network and Performance panels to inspect API request and response processing times. For responses of 300 MB or more, converting the responses into display values took time.",
+              "To reuse a worker across APIs, I considered passing a page-defined conversion function through Comlink or generating API-specific modules with code generation. The Comlink approach could run the conversion on the main thread. Generating a module for each API was unnecessary to resolve the freeze. I moved the detail view’s API request, JSON parsing, and display value conversion into a Web Worker and returned only the converted values to the page.",
+              "I saved a response that caused a freeze as a JSON file and ran three measurements before and three after introducing the Web Worker. The displayed values stayed the same, and rendering delay fell from about 360 ms to 50 ms or less."
+            ]
           },
           {
-            "title": "Improving progress updates and status displays during document generation",
+            "title": "Designing page modules around host routing and query caches",
             "paragraphs": [
-              "I designed the frontend so users could keep track of the current stage and elapsed time during document generation, which takes 5–10 minutes. I added a confirmation step before leaving the page or canceling generation.",
-              "After SSE events, the client checks the server status again so the page reflects the actual state even if events arrive out of order or the connection fails. I reduced API requests to check document generation status from 150–200 to 30 or fewer. After deployment, I verified that generation and cancellation states matched the progress shown on the page."
-            ],
-            "metadata": {
-              "period": "For 5–10 minute tasks",
-              "technologies": ["React", "SSE", "Next.js"]
-            }
+              "Our front end had to integrate as a library into a project that included another team’s service. The host team needed to control routing, and we could neither change its code nor provide a separate layout. I packaged the UI and behavior as page modules that the host could import without extra setup. The pages shared the host’s QueryClient when available and used a shared QueryClient from the package otherwise. This kept cached values and cache reset rules consistent across pages for the same query key.",
+              "After deployment, I found that styles defined outside CSS layers could override the package styles inside Tailwind CSS layers. I changed the package to load Tailwind’s theme, base styles, and utilities without assigning them to layers."
+            ]
           },
           {
-            "title": "Improving responsiveness during large API responses and keeping real-time charts continuous",
+            "title": "Improving Docker image request intake and parallel execution",
             "paragraphs": [
-              "For API responses of up to 330 MB, I reduced the maximum interval between frame updates from 1,316.6 ms to 16.8 ms. I designed a module that moves API requests, JSON parsing, and display-value conversion into a Web Worker and applied it across multiple pages to keep them responsive while processing responses.",
-              "I merged historical values loaded after refresh with new streamed values on the same time basis, keeping the chart continuous without duplicates. I recombined split JSON fragments with the next chunk so real-time updates could continue."
-            ],
-            "metadata": {
-              "period": "Response size and format retained",
-              "technologies": ["Web Worker", "REST", "Server Sent Event"]
-            }
+              "The message service could not consume the next Kafka request until the running task finished. We considered committing the Kafka offset immediately after receiving a message. Keeping pending requests only in memory could lose them on restart, so I designed the intake sequence to store the request and its status in the database before committing the offset.",
+              "The service retrieved pending tasks from the database and assigned one task to each available Pod from a pre-created pool. I addressed issues encountered when building the task engine as a Docker image so the Pods could be prepared in advance. Pending tasks remained available after a restart, and multiple Pods could run tasks concurrently. I also designed chart tabs and tab selection in the execution history list so users could see resource usage for each Pod."
+            ]
           },
           {
-            "title": "Validating 70+ key flows with consistent authentication recovery",
+            "title": "Showing document drafts and generation details before download",
             "paragraphs": [
-              "I made more than 70 key authenticated-user flows repeatably testable before release. This coverage surfaced a mismatch between credentials retained in the browser and an expired server session.",
-              "I applied the same recovery behavior before users accessed pages that require login and when authentication failed during use, so users received a consistent response. I handled root-cause analysis and deployed the shared recovery behavior to the QA environment."
-            ],
-            "metadata": {
-              "period": "Pre-deployment verification",
-              "technologies": ["Playwright", "Authentication", "QA"]
-            }
+              "User feedback showed that reviewing an AI-generated document required downloading it first. I evaluated a library for rendering HWPX files. Integrating it posed risks for the project, and it could not show document generation details. Based on the feedback, I identified the response fields needed to show the document and its generation details, discussed them with the document generation API owner, and designed the screen and a Java proxy API.",
+              "Users could then view each section’s drafting status, the draft, and generation details before downloading. The detail page link and download button became available as soon as the completion event arrived, even while the detail status API response was still pending."
+            ]
           },
           {
-            "title": "Packaging the frontend as a library for integration into another app",
+            "title": "Reducing document generation status requests",
             "paragraphs": [
-              "I configured a Vite library build so a previously standalone frontend could be used in another app. I organized type declarations, CSS, and provider integration to keep the UI and behavior consistent in the host app."
-            ],
-            "metadata": {
-              "period": "Integration into another app",
-              "technologies": ["Vite", "TypeScript", "React", "CSS"]
-            }
+              "With periodic polling, short intervals made extra calls to the detail API even when the status had not changed. Long intervals could delay the progress shown on screen. The existing SSE API sent events only when the generation stage changed. I designed the page to fetch details after each stage-change event and update the screen from the response. Detail API requests fell from 150–200 to 30 per document."
+            ]
+          },
+          {
+            "title": "Reducing data transferred by the dashboard",
+            "paragraphs": [
+              "I changed the dashboard to request only values newer than the previous request timestamp. Over 10 minutes, the amount of data transferred fell from 96.5 MB to 41 KB. I designed and implemented a Next.js API so the browser would no longer query Prometheus directly. I checked the values shown on the deployed dashboard against the API responses."
+            ]
           }
         ]
       },
@@ -102,31 +89,19 @@
             "title": "Showing requested changes immediately and accurately",
             "paragraphs": [
               "I made the page respond to user requests immediately, without waiting for a server response. I addressed mismatches between information on the page and server values, and reduced the request count by removing duplicate requests."
-            ],
-            "metadata": {
-              "period": "Production service",
-              "technologies": ["React", "TypeScript", "Optimistic Update"]
-            }
+            ]
           },
           {
             "title": "Shortening initial load and sharing a reusable setup",
             "paragraphs": [
               "I reduced the time it took for pages to become visible to users. I documented the steps so other frontend projects could apply the same improvements."
-            ],
-            "metadata": {
-              "period": "Service delivery",
-              "technologies": ["Vite", "React", "Lazy Loading"]
-            }
+            ]
           },
           {
             "title": "Restoring real-time information updates",
             "paragraphs": [
               "I used Chrome DevTools to find and fix intermittent WebSocket disconnections that stopped real-time information from updating."
-            ],
-            "metadata": {
-              "period": "Production service",
-              "technologies": ["WebSocket", "Chrome DevTools"]
-            }
+            ]
           }
         ]
       }
@@ -139,21 +114,21 @@
       {
         "project": "React Router",
         "release": "v7.13.1",
-        "summary": "Fixed optional URL parameters incorrectly matching paths that lacked a `/` separator.",
-        "verification": "I added tests to check that URLs with a suffix beginning with \".\" still match as before.",
+        "summary": "A URL could incorrectly match a route when it supplied an optional parameter without the preceding slash. I changed matching so patterns without a suffix could omit the optional parameter and its slash together. For patterns with a file extension, the parameter value can be omitted while the slash stays in place.",
+        "verification": "I added tests for incorrectly matched URLs and existing file-extension patterns. The fix shipped in v7.13.1.",
         "links": [
           { "label": "PR #14689", "href": "https://github.com/remix-run/react-router/pull/14689", "context": "Change and review history" },
-          { "label": "Release v7.13.1", "href": "https://github.com/remix-run/react-router/releases/tag/react-router@7.13.1", "context": "Official release" }
+          { "label": "v7.13.1 release", "href": "https://github.com/remix-run/react-router/releases/tag/react-router@7.13.1", "context": "Official release" }
         ]
       },
       {
         "project": "Outline",
         "release": "v1.2.0",
-        "summary": "Fixed an editor defect that prevented Delete or Backspace from removing the final character before an inline image.",
-        "verification": "Verified deletion inside and outside tables while preserving regular text deletion.",
+        "summary": "Delete and Backspace could not remove the final character before an inline image in a regular paragraph or table cell. To preserve normal text and selection deletion, I applied a separate rule only when deleting a single remaining character immediately before an image with no text selected.",
+        "verification": "The fix restored deletion of the final character before an image and shipped in v1.2.0.",
         "links": [
           { "label": "PR #10759", "href": "https://github.com/outline/outline/pull/10759", "context": "Change and review history" },
-          { "label": "Release v1.2.0", "href": "https://github.com/outline/outline/releases/tag/v1.2.0", "context": "Official release" }
+          { "label": "v1.2.0 release", "href": "https://github.com/outline/outline/releases/tag/v1.2.0", "context": "Official release" }
         ]
       }
     ]
@@ -166,19 +141,19 @@
         "title": "AI Agent Workflow",
         "period": "2026 — Present",
         "paragraphs": [
-          "I created repository rules and skills that separate requirements, research findings, decisions, and plans so AI agents can check the evidence behind implementation and the reasons for changes. I applied them across multiple repositories.",
-          "I established a review process to find ambiguous Korean wording and revise it in context before documents are saved. The checker uses Unicode normalization to handle different Hangul representations and can inspect changed files, specified files, and standard input."
+          "I designed a review process that helps teammates identify what an AI-written document asks them to do and which part of the project it refers to. A script flags recurring informal phrases and wording whose meaning depends on context. The AI agent checks the project context before revising the sentence. For example, it replaced “document sharing boundaries” with an explanation of who can read a document under restricted sharing settings.",
+          "I designed a skill that checks existing requirements and code for the behavior to change and the conditions to preserve, so requests made in conversation are less likely to be missed or misread. When a choice affects who can use a feature or what it provides, the skill explains the difference and asks for confirmation. It continues unrelated research while waiting and records the agreed conditions and verification criteria. A document restructuring skill researches a structure suited to the document’s purpose, preserves the original wording while rearranging it, and leaves blanks where information is missing."
         ],
         "links": [
           {
-            "label": "GitHub repository",
+            "label": "AI Agent Workflow repository",
             "context": "AI Agent Workflow source code",
             "href": "https://github.com/nwleedev/docs-system"
           },
           {
-            "label": "View wording examples",
+            "label": "Wording improvement examples",
             "context": "AI Agent Workflow wording changes (in Korean)",
-            "href": "/projects/use-better-terms"
+            "href": "/projects/terms"
           }
         ],
         "technologies": ["Node.js", "Repository Rules", "Text Validation"]
@@ -187,8 +162,8 @@
         "title": "Personal Notes Workspace",
         "period": "2026 — Present",
         "paragraphs": [
-          "I started this project because I kept re-entering the same AI agent instructions and creating separate command notes for different execution parameters. Users can select the instructions they need from multiple notes, arrange them in order, and copy them together, or reuse a command by changing only values such as input filenames.",
-          "I designed data structures that let users change the text and order of items to copy while preserving the original notes. Using the app myself, I improved note and batch-copy reordering and separated copy and edit interactions so users could select and edit the text they need on their phones."
+          "I built a workspace for saving frequently used instructions and commands. Users can select content from several notes, arrange it, and copy it in one action. Editing a note in multiple tabs could leave only one tab’s changes. I considered asking users to choose a version, but that would interrupt editing and could discard edits they needed. I used Yjs Y.Text to merge insertions and deletions. To keep what tabs show consistent with what is stored, the app saves to IndexedDB before notifying other tabs through BroadcastChannel. Those tabs read the saved changes, and I designed an end-to-end test to check that edits from each tab appear.",
+          "I configured ESLint and JS Boundaries to check FSD layer imports and enforce separate server and browser entry points. I added arrow-key navigation to the batch-copy order menu using React Aria. Closing the menu returns focus to its trigger, and saving the order preserves focus in a note that is already being edited. I tested keyboard resizing and checked that bringing a note forward leaves the Tab order intact. I placed the IndexedDB provider at the app root, the batch-copy provider in the shared layout, and the editor provider on each editing page. Autosave tests can inject only what they need, and implementations can change without editing UI code."
         ],
         "serviceLink": {
           "context": "Open the notes app",
@@ -196,7 +171,7 @@
         },
         "links": [
           {
-            "label": "GitHub repository",
+            "label": "Personal Notes Workspace source code",
             "context": "Personal Notes Workspace source code",
             "href": "https://github.com/nwleedev/nwleedev/tree/main/apps/notes"
           }
