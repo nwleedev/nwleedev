@@ -448,6 +448,20 @@ function UserName({ user }: Props) {
 }
 ```
 
+#### 일반 컴포넌트에 필요한 Props만 전달
+
+표시에 필요한 값이 객체의 일부라면 호출하는 곳에서 그 값의 이름을 명시한다. 아래 미실행 예시의 `UserName`은 앞 절처럼 `name`만 사용한다. `<UserName {...account} />`를 사용하면 화면에 필요하지 않은 `email`도 전달된다. 계정 데이터에 필드가 추가돼도 표시 컴포넌트가 받는 값의 범위는 유지한다.
+
+```tsx
+type Account = { name: string; email: string };
+
+function AccountLabel({ account }: { account: Account }) {
+  return <UserName name={account.name} />;
+}
+```
+
+공식 `FormProvider`는 폼 메서드 전체를 입력으로 받아 하위 필드에 제공한다. 이 Provider에는 `<FormProvider {...form}>`으로 해당 폼의 메서드를 전달한다. 호출 예시는 [Form 객체의 Props 전달](#form-객체의-props-전달)을 참고한다.
+
 #### 의미적으로 응집된 객체 전달
 
 의미적으로 응집된 객체를 전달해야 하는 경우에는 객체를 Props로 전달할 수 있다.
@@ -575,7 +589,7 @@ function DeleteProduct({ productId }: Props) {
 
 화면의 구성은 `children` 기반 합성과 Compound Component 패턴으로 표현한다. JSX를 담는 임의의 Props를 추가해 UI 슬롯을 늘리지 않는다. 하위 컴포넌트와 Hook은 상위 컴포넌트의 렌더링 함수 밖에 정의한다.
 
-아래 컴포넌트 정의와 조건부 마크업 예시는 React 19 기준이며 미실행 상태다.
+아래 예시는 React 19 기준이며 미실행 상태다.
 
 #### 렌더링 중 생성한 하위 컴포넌트
 
@@ -621,6 +635,48 @@ function TitleInput({ showHint }: { showHint: boolean }) {
 
 function TitleEditor({ showHint }: { showHint: boolean }) {
   return <TitleInput showHint={showHint} />;
+}
+```
+
+#### JSX에서 하위 컴포넌트 렌더링
+
+`TitleInput({ showHint })`를 호출하면 React가 `TitleInput`을 별도 하위 컴포넌트로 식별할 수 없다. 나중에 `TitleInput`에 Hook이 추가되면 직접 호출할 때 부모의 Hook 호출 순서에 포함된다. 표시 여부에 따라 직접 호출을 건너뛰면 그 순서도 달라질 수 있다. JSX로 렌더링하면 React가 하위 컴포넌트의 State와 마운트 시점을 관리한다.
+
+```tsx
+function TitleEditor({
+  showInput,
+  showHint,
+}: {
+  showInput: boolean;
+  showHint: boolean;
+}) {
+  return <section>{showInput && <TitleInput showHint={showHint} />}</section>;
+}
+```
+
+#### 모듈 최상위에서 정의하는 사용자 정의 Hook
+
+여러 입력에서 레이블과 설명에 사용할 ID를 같은 방식으로 만들려면 모듈 최상위에 `useFieldIds`를 정의한다. 렌더링 중에 Hook을 새로 선언하면 렌더링마다 새 함수가 만들어지고 해당 컴포넌트 안에서만 접근할 수 있다. 모듈 최상위에서 선언한 Hook은 렌더링에 필요한 값을 인자로 받을 수 있고, 사용하는 컴포넌트가 호출 순서를 유지할 수 있도록 각 컴포넌트의 최상위에서 호출한다.
+
+```tsx
+import { useId } from "react";
+
+function useFieldIds() {
+  const inputId = useId();
+
+  return { inputId, hintId: inputId + "-hint" };
+}
+
+function ProjectTitleField() {
+  const { inputId, hintId } = useFieldIds();
+
+  return (
+    <div>
+      <label htmlFor={inputId}>프로젝트 제목</label>
+      <input id={inputId} name="title" aria-describedby={hintId} />
+      <p id={hintId}>검색 결과에 표시할 제목을 입력하세요.</p>
+    </div>
+  );
 }
 ```
 
@@ -683,6 +739,82 @@ Children 기반 합성을 활용하여 레이아웃이 서비스 기능에 대�
     <Cart />
   </Sidebar>
 </PageLayout>
+```
+
+#### 열림 상태를 공유하는 Compound Components
+
+레이아웃처럼 받은 요소를 배치하는 일만 맡으면 `children`으로 충분하다. 서로 다른 하위 요소가 같은 UI 상태로 동작하고 화면에서 배치를 구성해야 할 때는 Compound Components를 사용할 수 있다. 아래 예시는 버튼과 내용 영역의 배치를 호출하는 화면에 맡긴다. 루트의 열림 상태와 패널 ID를 React Context로 공유하므로 버튼의 `aria-expanded`와 내용 영역의 `hidden`을 같은 상태에서 결정할 수 있다.
+
+Render Props로 같은 구성을 작성하면 호출하는 화면이 콜백 매개변수에서 상태와 동작을 얻고, 각 요소에 연결하는 방법까지 알아야 한다. 하위 요소가 그 연결을 책임질 수 있다면 화면에서는 JSX로 하위 요소를 조합한다. 외부 라이브러리의 기존 API가 렌더 콜백으로 상태를 제공하는 경우에는 해당 API의 사용 조건을 따른다.
+
+```tsx
+import { createContext, useContext, useId, useState } from "react";
+import type { ReactNode } from "react";
+
+type DisclosureState = {
+  isOpen: boolean;
+  panelId: string;
+  toggle: () => void;
+};
+
+const DisclosureContext = createContext<DisclosureState | null>(null);
+
+function useDisclosure() {
+  const disclosure = useContext(DisclosureContext);
+  if (disclosure === null)
+    throw new Error("Disclosure 내부에서 사용해야 합니다.");
+
+  return disclosure;
+}
+
+function Disclosure({ children }: { children: ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const panelId = useId();
+
+  function toggle() {
+    setIsOpen((open) => !open);
+  }
+
+  return (
+    <DisclosureContext value={{ isOpen, panelId, toggle }}>
+      {children}
+    </DisclosureContext>
+  );
+}
+
+function DisclosureTrigger({ children }: { children: ReactNode }) {
+  const { isOpen, panelId, toggle } = useDisclosure();
+
+  return (
+    <button
+      type="button"
+      aria-expanded={isOpen}
+      aria-controls={panelId}
+      onClick={toggle}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DisclosurePanel({ children }: { children: ReactNode }) {
+  const { isOpen, panelId } = useDisclosure();
+
+  return (
+    <div id={panelId} hidden={!isOpen}>
+      {children}
+    </div>
+  );
+}
+
+function DeliveryInformation() {
+  return (
+    <Disclosure>
+      <DisclosureTrigger>배송 조건</DisclosureTrigger>
+      <DisclosurePanel>제주 지역은 배송이 하루 더 걸릴 수 있습니다.</DisclosurePanel>
+    </Disclosure>
+  );
+}
 ```
 
 ### Props과 Provider 기반 의존성 주입 활용
@@ -1087,7 +1219,7 @@ function TitleLength() {
 }
 ```
 
-#### 링크와 저장 완료 처리에서 화면 이동 결정
+#### 목적지가 정해진 이동을 표현하는 링크
 
 목적지가 정해진 이동은 링크로 표현한다. 이동하려고 State를 바꾼 뒤 Effect에서 `navigate()`나 `router.push()`를 호출하지 않는다. 링크를 사용하면 키보드 조작과 새 탭 열기 등 브라우저의 링크 동작을 유지할 수 있다.
 
@@ -1111,9 +1243,101 @@ function ProjectLink({ projectId }: { projectId: string }) {
 }
 ```
 
-React Router에서 저장 성공 뒤 이동해야 한다면 저장 완료를 확인한 이벤트 핸들러에서 `navigate()`를 호출한다.
+#### 저장에 성공한 뒤에만 화면 이동
 
-Next.js App Router에서 사용자 이벤트에 따라 이동할 때는 이벤트 핸들러에서 `router.push()` 또는 `router.replace()`를 호출한다.
+사용자가 저장한 뒤 이동해야 한다면 이벤트 핸들러에서 저장 결과를 기다린다. 아래 버튼은 이미 검증된 제목을 받아 저장하고, 실패하면 오류를 표시한 채 현재 화면에 남는다. 성공할 때만 `onSaved`를 호출한다. 이동 목적지는 버튼을 사용하는 화면이 정하므로 저장 기능을 이동 없이 사용하는 화면에서도 같은 구현을 쓸 수 있다. 아래 미실행 예시는 프로젝트 저장 Provider와 `QueryClientProvider`가 제공된 범위에서 사용한다.
+
+```tsx
+import { useMutation } from "@tanstack/react-query";
+
+import { useSaveProject } from "../model/save-project-context";
+
+type Props = {
+  projectId: string;
+  title: string;
+  onSaved?: () => void;
+};
+
+export function SaveProjectButton({ projectId, title, onSaved }: Props) {
+  const saveProject = useSaveProject();
+  const { mutateAsync, isError, isPending } = useMutation({
+    mutationFn: (nextTitle: string) => saveProject(projectId, nextTitle),
+  });
+
+  async function save() {
+    try {
+      await mutateAsync(title);
+    } catch {
+      return;
+    }
+
+    onSaved?.();
+  }
+
+  return (
+    <>
+      <button type="button" disabled={isPending} onClick={save}>
+        저장
+      </button>
+      {isError && <p role="alert">저장하지 못했습니다. 다시 시도하세요.</p>}
+    </>
+  );
+}
+```
+
+두 화면은 `SaveProjectButton`을 편집 기능의 공개 진입점에서 가져온다. React Router의 라우트에서는 `useNavigate`로 이동 함수를 얻어 저장 성공 콜백에 연결한다. 이동에는 미리 정한 내부 주소와 프로젝트 ID를 사용한다.
+
+```tsx
+import { useNavigate } from "react-router";
+
+import { SaveProjectButton } from "@/features/edit-project";
+
+export function ProjectSaveAction({
+  projectId,
+  title,
+}: {
+  projectId: string;
+  title: string;
+}) {
+  const navigate = useNavigate();
+
+  return (
+    <SaveProjectButton
+      projectId={projectId}
+      title={title}
+      onSaved={() => {
+        void navigate("/projects/" + encodeURIComponent(projectId));
+      }}
+    />
+  );
+}
+```
+
+Next.js App Router의 클라이언트에서 실행하는 화면에서는 `useRouter`가 제공하는 `router.push`로 같은 성공 콜백을 구성한다. 뒤로 가기에서 현재 화면을 건너뛰어야 하는 요구사항이 있으면 `router.replace`를 사용한다.
+
+```tsx
+import { useRouter } from "next/navigation";
+
+import { SaveProjectButton } from "@/features/edit-project";
+
+export function ProjectSaveAction({
+  projectId,
+  title,
+}: {
+  projectId: string;
+  title: string;
+}) {
+  const router = useRouter();
+
+  return (
+    <SaveProjectButton
+      projectId={projectId}
+      title={title}
+      onSaved={() => router.push("/projects/" + encodeURIComponent(projectId))}
+    />
+  );
+}
+```
 
 렌더링 본문에서 `navigate()`나 `router.push()`를 직접 호출하지 않는다. 외부 SDK 알림이나 타이머 때문에 이동해야 한다면 구독이 필요한지 먼저 판단하고, 알림을 받는 콜백에서 이동한다.
 
@@ -1429,6 +1653,27 @@ useState, useEffect 등을 사용해서 별도의 상태로 복사하는 코드�
 
 아래 예시는 TanStack Query 5.102.8을 기준으로 한다. 클라이언트 컴포넌트의 조회와 사전 조회는 같은 `QueryClientProvider`의 QueryClient를 사용한다.
 
+#### 브라우저 애플리케이션이 재사용하는 QueryClient
+
+브라우저에서만 실행하는 애플리케이션에서 하나의 쿼리 캐시를 사용한다면 `QueryClient`를 컴포넌트 밖에서 생성하고 애플리케이션 최상위의 `QueryClientProvider`에 제공한다. `QueryClient`가 캐시를 보관하므로 렌더링할 때마다 새 인스턴스를 생성하면 기존에 조회한 값을 이어서 사용할 수 없다. 아래 미실행 예시의 Provider를 거치는 조회와 사전 조회는 같은 인스턴스를 사용한다.
+
+```tsx
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
+
+const queryClient = new QueryClient();
+
+export function AppProviders({ children }: { children: ReactNode }) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      {children}
+    </QueryClientProvider>
+  );
+}
+```
+
+테스트에서는 이전 테스트의 조회 결과와 설정이 섞이지 않도록 테스트마다 새 인스턴스를 만든다. [프로필 폼 통합 테스트](#서버-오류-뒤-편집값을-유지하는-프로필-폼)에서 생성과 정리 방식을 확인할 수 있다.
+
 #### 공통 쿼리 옵션으로 직접 구독하는 서비스 컴포넌트
 
 같은 서버 데이터를 사용하는 컴포넌트는 공통 `queryOptions`로 각각 구독한다. 같은 QueryClient에서 쿼리 키가 같으면 하나의 캐시 항목을 사용하며, 재조회 시점은 각 구독의 설정과 캐시 상태에 따라 결정된다. 상위 컴포넌트가 조회 결과를 직접 사용하지 않으면 하위 컴포넌트에는 `exhibitionId`처럼 조회 대상을 식별하는 값만 전달한다.
@@ -1637,7 +1882,7 @@ export function ExhibitionActions({ exhibitionId }: { exhibitionId: string }) {
 
 Form 객체를 일반 하위 컴포넌트의 Props로 전달하지 않는다. 폼 생성과 기본값 설정은 상위 폼이 담당하고, 하위 필드는 `useFormContext`로 필요한 메서드에 접근한다. 같은 폼을 사용해야 하는 필드에서 별도의 `useForm`을 호출하면 입력 상태와 제출 대상이 분리된다.
 
-공식 `FormProvider`에 폼 메서드를 제공하는 것은 일반 컴포넌트에 Form 객체를 전달하거나 별도 DI Context에 다시 보관하는 것과 구분한다. 다음 예시는 제공할 메서드를 명시한다. `control`, `register`, `field`와 폼 상태를 Zustand나 다른 Context에 다시 복제하지 않는다. Compound Component의 하위 필드도 같은 공식 Context를 사용하고, 입력 연결과 무관한 API 요청이나 서비스 모듈 호출은 담당하지 않는다.
+공식 `FormProvider`는 `useForm`이 반환한 폼 메서드를 받는다. 아래 예시는 `FormProvider`에만 `form`을 펼쳐 제공하고, 하위 필드는 `useFormContext`로 필요한 메서드에 접근한다. `control`, `register`, `field`와 폼 상태를 Zustand나 다른 Context에 다시 복제하지 않는다. Compound Component의 하위 필드도 같은 공식 Context를 사용하고, 입력 연결과 무관한 API 요청이나 서비스 모듈 호출은 담당하지 않는다.
 
 ```tsx
 import { FormProvider, useForm, useFormContext } from "react-hook-form";
