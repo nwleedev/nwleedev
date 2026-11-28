@@ -33,7 +33,9 @@
 
 ### 41. Markdown 원문 주소 제공
 
-**상태** 미착수. 39단계의 기존 동작 기록과 40단계의 원문이 필요하다.
+**상태** 완료. Astro 정적 엔드포인트가 Vite `?raw`로 읽은 원문을 제공한다. 같은 원문을 상세 페이지에서 사용할 수 있게 Shared 진입점으로 내보냈다. 별도 원문 사본이나 서버 런타임이 필요하지 않다. [Vite 원문 가져오기](https://vite.dev/guide/assets.html#importing-asset-as-string)
+
+- 검토에서 원문을 읽는 부분이 한 곳에 있고 라우트가 Shared만 참조하는 것을 확인했다. 검사 35개 파일과 정적 빌드를 통과했다. 생성 파일, Astro 미리보기 HTTP 200과 Wrangler 로컬 HTTP 200의 본문이 원문과 바이트 단위로 일치했다. 응답 유형은 각각 `text/markdown`과 `text/markdown; charset=utf-8`이다.
 
 - **작업** `apps/entry`에서 전체 원문을 `/codes/frontend.md`로 제공한다. 상세 페이지에 사용할 문서와 이 주소의 파일은 저장소의 같은 원문에서 준비한다. Entry의 현재 빌드와 정적 호스팅에서 원문에 접근할 수 있는지 확인한다.
 - **리서치** 원문을 한 곳에서 관리하는 구성으로 Astro의 정적 파일 엔드포인트와 정적 자산 제공 방식을 비교한다. 문서가 Entry 패키지 밖에 있다는 점, 빌드 결과와 Cloudflare 응답에서 Markdown 형식이 어떻게 지정되는지 확인해 방식을 정한다. [Astro 정적 파일 엔드포인트](https://docs.astro.build/en/guides/endpoints/#static-file-endpoints), [Cloudflare Static Assets 응답 헤더](https://developers.cloudflare.com/workers/static-assets/headers/)
