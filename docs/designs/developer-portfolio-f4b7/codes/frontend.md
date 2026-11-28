@@ -6,7 +6,14 @@
 
 - 하나의 모듈은 하나의 역할만 담당해야 한다.
 - HTTP 클라이언트, 스토리지, 로그, 애널리틱스, 외부 SDK를 사용하는 모듈은 실행 환경이 달라지거나 테스트할 때 모듈 내부를 변경하지 않고 교체할 수 있어야 한다.
-- 폴더명, 파일명, 타입명은 상위 디렉터리에서 파악가능한 컨텍스트를 불필요하게 반복하지 않는다. 이름에 Feature, Entities, View, Controller와 같은 개념 용어를 그대로 사용하지 않는다.
+- 폴더명, 파일명, 타입명, 함수명, 클래스명, 변수명과 객체 속성명은 사용하는 위치에서 대상과 역할을 구별할 수 있게 정한다. 상위 디렉터리나 같은 파일의 선언으로 이미 확인할 수 있는 정보는 생략한다. 그 정보를 생략하면 사용하는 위치에서 대상이나 역할을 구별하기 어려운 경우에는 이름에 포함한다.
+- 폴더명과 파일명에 `Feature`, `Entities`, `View`, `Controller` 같은 구조 분류 용어를 사용하지 않는다.
+- import한 이름이 같은 파일의 다른 선언과 겹치면 대상을 구별하는 데 필요한 정보만 추가해 import 별칭을 지정할 수 있다.
+- 함수명에서 함수가 수행하는 동작과 반환값의 의미를 파악할 수 있게 한다.
+- 이름에서 전치사는 기본적으로 생략한다. 시나리오를 구별해야 하는 경우 매개변수를 어떻게 구성해야 할지부터 다시 구성한다. 매개변수 구성이라도 불가능할 때에만 전치사를 사용한다.
+- 값을 개별적으로 사용할 때는 각 변수명으로 값의 대상, 용도 또는 변환 여부를 구별한다. 변수명에서 반복되는 단어를 생략할 목적으로 여러 값을 하나의 객체에 포함하지 않는다.
+- 여러 값을 하나의 단위로 전달하거나 반환할 때는 객체명으로 값의 종류를 나타내고, 속성명으로 각 값의 용도나 변환 여부를 구별한다. 객체명에서 이미 확인할 수 있는 정보는 속성명에서 생략한다.
+- 컴포넌트의 Props 타입은 `컴포넌트명 + Props` 형식으로 정의한다.
 - FSD를 통해서 각 모듈의 관심사와 역할, 목적을 분명하게 구분할 수 있어야 한다.
   - app
   - pages
@@ -16,13 +23,13 @@
   - shared
 - 상위 모듈에서 서비스 기능 코드를 직접 작성하지 않는다. 하위 모듈을 조합하여 상위 모듈을 구성하는 방식으로 작업을 진행한다.하위 모듈이 상위 모듈을 호출하는 코드를 작성하지 않는다. 모듈이 다른 모듈을 사용할 때에는 Public API을 통해 호출한다.
 - Pages에서 사용하지 않는 기능 상태나 콜백을 하위 컴포넌트에 전달하기 위해 Pages에 Props를 추가하지 않는다. 입력 검증과 저장 재시도는 기능을 담당하는 하위 모듈에서 수행하고, 저장 진행 상태도 그 모듈에서 관리한다.
-- 모듈의 상하 관계는 FSD 계층과 import 방향을 기준으로 판단한다. 컴포넌트 트리에서 Provider는 자신이 감싸는 하위 컴포넌트에 Context를 제공한다.
+- 모듈의 상하 관계는 FSD 계층과 import 방향을 기준으로 판단한다. Provider는 컴포넌트 트리에서 자신의 하위에 렌더링된 컴포넌트에 Context 값을 제공한다.
 - 현재 기능이 간단하다는 이유만으로 Pages에 구현하지 않는다. 개발이 진행되면 기능에 검증이나 실패 시 재시도 같은 동작이 추가될 수 있다. 화면과 독립적으로 변경되는 동작을 파악하고 그 책임을 맡을 모듈에 배치한다.
 - 서비스에 대해서 하나의 컨테이너에 여러 가지의 모듈을 보관하지 않는다. UI 컴포넌트가 `useDependencies()`와 같은 방대한 컨테이너를 가져오는 코드를 작성하지 않는다. UI 컴포넌트는 자신에게 필요한 기능을 제공하는 모듈만 호출하도록 한다.
 - 컴포넌트 Props는 정말 필요한 값만 지정할 수 있다. Props를 금지하는 것은 아니다.
 - 특히 재사용해야 하는 컴포넌트의 경우 특정 기능에 의존하지 않도록 한다.
 - Spread Operator로 객체를 통째로 컴포넌트에 전달하지 않는다.
-- UI 구조를 확장성있게 구성하기 위해서는 `children`과 Compound Components를 우선 사용하고, 서비스 자체 컴포넌트에 새로운 Render Props 패턴을 기본 수단으로 도입하지 않는다. JSX를 일반 데이터처럼 임의의 Props에 전달하여 UI 슬롯을 계속 증가시키지 않는다.
+- UI 구조를 확장성있게 구성하기 위해서는 Children 기반 합성과 Compound Components를 우선 사용하고, 서비스 자체 컴포넌트에 새로운 Render Props 패턴을 기본 수단으로 도입하지 않는다. JSX를 일반 데이터처럼 임의의 Props에 전달하여 UI 슬롯을 계속 증가시키지 않는다.
 - 하위 컴포넌트는 별도로 분리해 상위 컴포넌트 밖에 정의한다. Hook도 다른 컴포넌트의 렌더링 중에 새로 정의하지 않는다. `useState`, `useMemo`, `useCallback` 등으로 렌더링 중 컴포넌트 타입을 동적으로 생성하지 않는다.
 - 컴포넌트 본문에서 JSX 마크업을 변수에 할당하지 않는다. 마크업은 반환하는 JSX에 작성하고, 분리해야 할 부분은 별도의 컴포넌트로 정의한다.
 - Component 함수는 JSX를 통해 React가 호출하게 하고 Component 함수를 일반 함수처럼 직접 호출하지 않는다.
@@ -47,8 +54,8 @@
 - 순환 모듈를 방치하는 대신 문제가 발생하는 코드를 별도의 모듈로 분할하는 방법을 리서치한다.
 - useEffect의 경우 반드시 필요한 경우에만 사용한다. 리액트 공식문서 You Might Not Need an Effect를 참고할 것.
 - useRef의 경우 용도가 맞는지 확인한다.
-- Props나 State에서 파생되는 값은 기본적으로 렌더링 중에 직접 계산한다. 같은 입력으로 비용이 큰 계산을 반복하거나 `memo`로 감싼 하위 컴포넌트에 전달하는 값의 참조를 유지해 불필요한 렌더링을 줄일 수 있을 때 `useMemo`를 검토한다.
-- 함수는 기본적으로 메모이제이션 없이 정의한다. 함수 참조를 유지해 `memo`로 감싼 하위 컴포넌트의 불필요한 렌더링을 줄이거나 다른 Hook의 불필요한 재실행을 줄일 수 있을 때 `useCallback`을 검토한다.
+- Props나 State에서 파생되는 값은 기본적으로 렌더링 중에 직접 계산한다. 같은 입력으로 비용이 큰 계산을 반복하거나 `memo`를 적용한 하위 컴포넌트에 전달하는 값의 참조를 유지해 불필요한 렌더링을 줄일 수 있을 때 `useMemo`를 검토한다.
+- 함수는 기본적으로 메모이제이션 없이 정의한다. 함수 참조를 유지해 `memo`를 적용한 하위 컴포넌트의 불필요한 렌더링을 줄이거나 다른 Hook의 불필요한 재실행을 줄일 수 있을 때 `useCallback`을 검토한다.
 - 기존 Props 또는 State에서 도출할 수 있는 값은 별도의 State로 관리하지 않는다
 - 사용자 이벤트를 Effect로 처리하지 않는다
 - Props 변경에 대해서 Effect로 상태 초기화를 하지 않는다
@@ -95,7 +102,7 @@
 - 저장이나 제출의 완료 여부는 저장된 값, 재조회한 값 또는 처리 결과가 반영된 화면에서 확인한다. 외부 요청 전송이 요구사항이면 요청 대상과 전달값을 검증한다. 요청 횟수는 중복 전송 방지처럼 횟수 자체가 요구사항일 때 검증한다.
 - `toHaveTextContent` 같은 텍스트 검증은 문구의 내용이나 표시 값이 요구사항일 때 사용한다. 안내 문구가 표시됐다는 사실만으로 저장, 제출과 같은 기능의 완료를 판단하지 않는다.
 - 정상 입력, 입력 범위의 경계값, 오류 처리, 상태 전이와 실패 이후의 복구 동작을 요구사항에 따라 검증한다. 복구 기능이 있으면 실패를 관찰한 뒤 재시도하거나 취소했을 때의 결과를 확인한다.
-- 기대값은 요구사항과 테스트가 준비한 입력에서 얻는다. 검증 대상 구현의 상수, 반환값이나 계산 로직을 기대값 산출에 재사용하지 않는다.
+- 기대값은 요구사항과 테스트가 준비한 입력을 기준으로 정한다. 검증 대상 구현의 상수, 반환값이나 계산 로직을 기대값 산출에 재사용하지 않는다.
 - React, TanStack Query와 React Hook Form의 연동을 검증하는 통합 테스트에서는 각 라이브러리의 실제 구현을 사용한다. 네트워크 실패 등을 재현해야 하면 외부 시스템에 연결하는 기존 인터페이스에서 응답을 제어한다.
 - 테스트마다 독립된 QueryClient 캐시, 저장소, 인증 상태와 테스트 데이터를 준비한다. 테스트 실행 순서와 병렬 실행 여부가 결과에 영향을 주지 않도록 한다.
 - 테스트 데이터는 같은 조건에서 재현할 수 있게 구성한다. 기대 결과에 영향을 주는 입력값, 시각과 난수 시드는 테스트 코드에서 확인할 수 있게 한다.
@@ -122,6 +129,8 @@
 
 아래 구조에서 `app`은 라우트와 애플리케이션 전체 설정을 조합한다. `pages`는 화면을 구성하고, `features`는 제목 편집을 담당한다. 여러 동작에서 공통으로 사용하는 프로젝트 자료와 도메인 규칙은 `entities`에 배치할 수 있다. 프로젝트 규칙에 의존하지 않는 공용 UI와 통신 기반은 `shared`에 둔다. 큰 화면 블록을 독립적으로 배치하거나 재사용할 경우 `widgets`를 사용한다. 예시의 제목 편집은 화면에서 바로 조합하므로 Widgets 계층 없이 구성한다.
 
+두 `ui/editor.tsx`는 각각 화면을 구성하는 `pages/project-edit`와 편집을 담당하는 `features/edit-project`에 속한다. 프로젝트가 편집 대상이라는 점은 폴더명으로 식별할 수 있으므로 `api/save.ts`와 `model/save-context.ts`로 요청과 Context의 역할을 구별한다.
+
 ```text
 src/
   app/
@@ -129,13 +138,13 @@ src/
   pages/
     project-edit/
       index.ts
-      ui/project-edit-page.tsx
+      ui/editor.tsx
   features/
     edit-project/
       index.ts
-      api/save-project.ts
-      model/save-project-context.ts
-      ui/project-editor.tsx
+      api/save.ts
+      model/save-context.ts
+      ui/editor.tsx
       ui/title-form.tsx
   entities/
     project/
@@ -152,17 +161,20 @@ src/
 
 Pages는 편집 대상과 화면을 구성하는 데 필요한 값을 전달한다. 저장 진행 상태, 오류와 재시도는 편집 모듈에서 관리한다. Pages가 이 값을 중계하는 구성에서는 편집 방식이 달라질 때마다 화면의 Props도 함께 바뀐다. 저장 후 이동처럼 화면마다 다른 동작이 있을 경우에는 화면이 결정한 콜백을 편집 모듈에 전달할 수 있다.
 
-`pages/project-edit/ui/project-edit-page.tsx`는 화면을 구성하고 편집할 대상과 초기 제목을 전달한다. `key`는 다른 편집 대상으로 이동했을 때 그 대상의 입력 상태를 시작하는 데 사용한다.
+`pages/project-edit/ui/editor.tsx`는 화면을 구성하고 편집할 대상과 초기 제목을 전달한다. `key`는 다른 편집 대상으로 이동했을 때 그 대상의 입력 상태를 시작하는 데 사용한다.
 
 ```tsx
 import { ProjectEditor } from "@/features/edit-project";
 
-type Props = {
+type ProjectEditPageProps = {
   projectId: string;
   initialTitle: string;
 };
 
-export function ProjectEditPage({ projectId, initialTitle }: Props) {
+export function ProjectEditPage({
+  projectId,
+  initialTitle,
+}: ProjectEditPageProps) {
   return (
     <main>
       <h1>프로젝트 제목 편집</h1>
@@ -183,12 +195,12 @@ import { useForm } from "react-hook-form";
 
 import { Button } from "@/shared/ui/button";
 
-import { useSaveProject } from "../model/save-project-context";
+import { useSaveProject } from "../model/save-context";
 
 type Fields = { title: string };
-type Props = { projectId: string; initialTitle: string };
+type TitleFormProps = { projectId: string; initialTitle: string };
 
-export function TitleForm({ projectId, initialTitle }: Props) {
+export function TitleForm({ projectId, initialTitle }: TitleFormProps) {
   const saveProject = useSaveProject();
   const {
     register,
@@ -237,9 +249,9 @@ export function TitleForm({ projectId, initialTitle }: Props) {
 
 #### 편집 컴포넌트가 선택하는 저장 구현
 
-Provider의 JSX 위치는 Context를 사용할 수 있는 컴포넌트를 정한다. 모듈의 상하 관계는 FSD 계층과 import 방향으로 판단한다. 예시에서는 Pages가 Features의 `ProjectEditor`를 가져오고, `ProjectEditor`가 같은 슬라이스의 `TitleForm`을 감싼다. 폼은 저장 함수의 인터페이스와 Hook에 의존한다. 실제 HTTP 함수는 편집 컴포넌트가 선택하므로 저장 구현을 교체할 때 폼 코드를 수정할 필요가 없다. [React Context](https://react.dev/reference/react/useContext)
+Provider의 JSX 위치는 Context를 사용할 수 있는 컴포넌트를 정한다. 모듈의 상하 관계는 FSD 계층과 import 방향으로 판단한다. 예시에서는 Pages가 Features의 `ProjectEditor`를 import한다. `ProjectEditor`는 같은 슬라이스의 `TitleForm`을 `SaveProjectContext` Provider 하위에 렌더링한다. 폼은 저장 함수의 인터페이스와 Hook에 의존한다. 실제 HTTP 함수는 편집 컴포넌트가 선택하므로 저장 구현을 교체할 때 폼 코드를 수정할 필요가 없다. [React Context](https://react.dev/reference/react/useContext)
 
-`model/save-project-context.ts`는 저장 함수와 그 함수에 접근하는 Hook을 정의한다. 이 Context에는 편집값이나 제출 상태를 저장하지 않는다. 구현을 교체하는 조건과 테스트에서의 제공 방식은 [의존성 주입과 제어 역전](#의존성-주입과-제어-역전)을 참고한다.
+`model/save-context.ts`는 저장 함수와 그 함수에 접근하는 Hook을 정의한다. 이 Context에는 편집값이나 제출 상태를 저장하지 않는다. 구현을 교체하는 조건과 테스트에서의 제공 방식은 [의존성 주입과 제어 역전](#의존성-주입과-제어-역전)을 참고한다.
 
 ```ts
 import { createContext, useContext } from "react";
@@ -256,10 +268,10 @@ export function useSaveProject(): SaveProject {
 }
 ```
 
-`api/save-project.ts`는 저장 요청을 실행하고 실패 응답을 오류로 전달한다. 오류를 표시할 시점은 폼이 결정한다.
+`api/save.ts`는 저장 요청을 실행하고 실패 응답을 오류로 전달한다. 오류를 표시할 시점은 폼이 결정한다.
 
 ```ts
-import type { SaveProject } from "../model/save-project-context";
+import type { SaveProject } from "../model/save-context";
 
 export const saveProject: SaveProject = async (projectId, title) => {
   const response = await fetch(
@@ -275,17 +287,17 @@ export const saveProject: SaveProject = async (projectId, title) => {
 };
 ```
 
-`ui/project-editor.tsx`는 운영 환경의 저장 함수를 제공한다. 아래 Context의 JSX 문법은 React 19 기준이다. 저장 함수가 필요한 컴포넌트는 편집 모듈의 Context를 읽으며 Pages를 import하지 않는다.
+`ui/editor.tsx`는 운영 환경의 저장 함수를 제공한다. 아래 Context의 JSX 문법은 React 19 기준이다. 저장 함수가 필요한 컴포넌트는 편집 모듈의 Context를 읽으며 Pages를 import하지 않는다.
 
 ```tsx
-import { saveProject } from "../api/save-project";
-import { SaveProjectContext } from "../model/save-project-context";
+import { saveProject } from "../api/save";
+import { SaveProjectContext } from "../model/save-context";
 
 import { TitleForm } from "./title-form";
 
-type Props = { projectId: string; initialTitle: string };
+type ProjectEditorProps = { projectId: string; initialTitle: string };
 
-export function ProjectEditor({ projectId, initialTitle }: Props) {
+export function ProjectEditor({ projectId, initialTitle }: ProjectEditorProps) {
   return (
     <SaveProjectContext value={saveProject}>
       <TitleForm projectId={projectId} initialTitle={initialTitle} />
@@ -296,15 +308,15 @@ export function ProjectEditor({ projectId, initialTitle }: Props) {
 
 #### 다른 슬라이스가 사용하는 공개 진입점
 
-다른 슬라이스는 허용된 하위 계층의 공개 진입점에서 필요한 선언을 가져온다. 같은 계층의 서로 다른 슬라이스는 기본적으로 서로 가져오지 않는다. 같은 슬라이스 안에서는 선언을 정의한 파일을 상대 경로로 가져온다. import 별칭이나 재수출을 사용하더라도 실제 선언이 속한 계층을 확인한다. [FSD 공개 API 지침](https://feature-sliced.design/docs/reference/public-api)
+다른 슬라이스의 선언을 사용하려면 해당 슬라이스가 허용된 하위 계층에 속하는지 확인하고 공개 진입점에서 import한다. 같은 계층의 서로 다른 슬라이스는 기본적으로 서로 import하지 않는다. 같은 슬라이스 안에서는 선언을 정의한 파일을 상대 경로로 import한다. import 별칭이나 재수출을 사용하더라도 실제 선언이 속한 계층을 확인한다. [FSD 공개 API 지침](https://feature-sliced.design/docs/reference/public-api)
 
 `features/edit-project/index.ts`는 Pages가 사용하는 `ProjectEditor`만 내보낸다. 저장 함수와 폼은 편집 슬라이스 안에서 직접 사용한다. 외부가 내부 파일에 의존하지 않으면 파일을 옮겨도 Pages의 import를 유지할 수 있다.
 
 ```ts
-export { ProjectEditor } from "./ui/project-editor";
+export { ProjectEditor } from "./ui/editor";
 ```
 
-`pages/project-edit/ui/project-edit-page.tsx`는 아래 진입점을 사용한다. `@/features/edit-project/ui/project-editor`를 직접 가져오면 Pages가 편집 모듈 내부의 파일 위치에 의존한다. 계층과 진입점을 검사하는 도구로 이 두 import를 구별할 수 있는지 확인한다.
+`pages/project-edit/ui/editor.tsx`는 편집 기능의 공개 진입점에서 `ProjectEditor`를 import한다. `@/features/edit-project/ui/editor`를 직접 import하면 Pages가 편집 모듈 내부의 파일 위치에 의존한다. 계층과 진입점을 검사하는 도구가 공개 진입점과 내부 파일을 참조하는 import를 구별하는지 확인한다.
 
 ```tsx
 import { ProjectEditor } from "@/features/edit-project";
@@ -317,11 +329,11 @@ import { ProjectEditor } from "@/features/edit-project";
 `features/edit-project/index.ts`
 
 ```ts
-export { ProjectEditor } from "./ui/project-editor";
+export { ProjectEditor } from "./ui/editor";
 export { TitleForm } from "./ui/title-form";
 ```
 
-`features/edit-project/ui/project-editor.tsx`의 피해야 할 import다.
+`features/edit-project/ui/editor.tsx`의 피해야 할 import다.
 
 ```tsx
 import { TitleForm } from "../index";
@@ -339,9 +351,9 @@ import { TitleForm } from "./title-form";
 
 #### 필요한 모듈을 제공하는 Context
 
-기능 구현을 여러 컴포넌트를 거쳐 Props로 전달하면 중간 컴포넌트도 전달할 Props를 선언해야 한다. 전달하는 Props의 이름이나 타입을 바꾸면 중간 컴포넌트의 선언과 전달 코드도 수정해야 한다.
+상위 컴포넌트가 하위 컴포넌트에서 호출할 함수를 여러 단계에 걸쳐 Props로 전달하는 경우, 중간 컴포넌트도 그 함수를 받을 Props를 선언하고 다음 하위 컴포넌트에 같은 함수를 전달해야 한다. 전달 경로에 있는 Props의 이름이나 타입을 바꾸면 중간 컴포넌트의 선언과 전달 코드도 수정해야 한다.
 
-Provider로 기능을 사용하는 컴포넌트가 포함된 영역을 감싼다. 기능을 사용하는 컴포넌트는 Context에서 구현을 얻는다.
+기능을 사용하는 컴포넌트가 Provider의 하위에 렌더링되도록 배치한다. 각 컴포넌트는 기능별 Hook을 호출하고, Hook은 Provider가 Context에 전달한 함수를 반환한다.
 
 모든 서비스의 구현을 한곳에서 조회하는 전역 `useServices()`, `useDependencies()`, `container.get()`과 같은 Service Locator를 사용하지 않는다.
 
@@ -380,7 +392,7 @@ export function useUpdateUserName() {
 
 `http.ts`에는 브라우저에서 호출할 수 있는 HTTP 함수만 정의한다.
 
-운영용 `ProfileProvider`가 프로필 조회와 이름 변경에 사용할 HTTP 함수를 연결한다. 상위 화면은 프로필 조회나 이름 변경을 사용하는 영역을 Provider로 감싼다. 하위 컴포넌트는 `useGetUser`나 `useUpdateUserName`으로 필요한 함수를 얻는다. `ProfileActions`에 정의한 입력과 반환 형식을 유지하면 HTTP 구현을 교체해도 기존 기능별 Hook을 같은 방식으로 사용할 수 있다.
+운영용 `ProfileProvider`는 프로필 조회와 이름 변경에 사용할 HTTP 함수를 `ProfileContext`의 값으로 전달한다. 상위 화면은 두 기능 중 하나를 사용하는 컴포넌트를 `ProfileProvider`의 하위에 렌더링한다. `useGetUser`는 프로필 조회 함수를, `useUpdateUserName`은 이름 변경 함수를 반환한다. `ProfileActions`에 정의한 입력과 반환 형식을 유지하면 HTTP 구현을 교체해도 기존 기능별 Hook을 같은 방식으로 사용할 수 있다.
 
 ```tsx
 // provider.tsx
@@ -393,7 +405,9 @@ const actions = {
   updateUserName,
 } satisfies ProfileActions;
 
-export function ProfileProvider({ children }: { children: ReactNode }) {
+type ProfileProviderProps = { children: ReactNode };
+
+export function ProfileProvider({ children }: ProfileProviderProps) {
   return <ProfileContext value={actions}>{children}</ProfileContext>;
 }
 ```
@@ -407,8 +421,10 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 import type { ReactNode } from "react";
 import { ProfileContext, type ProfileActions } from "./context";
 
+type TestProfileProviderProps = { children: ReactNode };
+
 export function createTestProfileProvider(actions: ProfileActions) {
-  return function TestProfileProvider({ children }: { children: ReactNode }) {
+  return function TestProfileProvider({ children }: TestProfileProviderProps) {
     return <ProfileContext value={actions}>{children}</ProfileContext>;
   };
 }
@@ -423,11 +439,11 @@ export function createTestProfileProvider(actions: ProfileActions) {
 사용하지 않는 정보까지 전달하지 않는다.
 
 ```tsx
-type Props = {
+type UserNameProps = {
   name: string;
 };
 
-function UserName({ name }: Props) {
+function UserName({ name }: UserNameProps) {
   return <span>{name}</span>;
 }
 ```
@@ -437,13 +453,13 @@ function UserName({ name }: Props) {
 다음 코드는 조직 정보와 권한 정보까지 인터페이스에 포함하고 있기 때문에 따르지 않도록 한다.
 
 ```tsx
-interface Props {
+interface UserNameProps {
   user: User;
   organization: Organization;
   permissions: Permission[];
 }
 
-function UserName({ user }: Props) {
+function UserName({ user }: UserNameProps) {
   return <span>{user.name}</span>;
 }
 ```
@@ -455,7 +471,9 @@ function UserName({ user }: Props) {
 ```tsx
 type Account = { name: string; email: string };
 
-function AccountLabel({ account }: { account: Account }) {
+type AccountLabelProps = { account: Account };
+
+function AccountLabel({ account }: AccountLabelProps) {
   return <UserName name={account.name} />;
 }
 ```
@@ -472,11 +490,11 @@ type Money = Readonly<{
   currency: string;
 }>;
 
-type Props = {
+type ProductPriceProps = {
   price: Money;
 };
 
-function ProductPrice({ price }: Props) {
+function ProductPrice({ price }: ProductPriceProps) {
   const formatted = new Intl.NumberFormat("ko-KR", {
     style: "currency",
     currency: price.currency,
@@ -523,7 +541,9 @@ function ProductPrice({ price }: Props) {
 `EditProductButton`은 `useCanEditProduct`로 상품의 수정 가능 여부를 확인한다. 수정할 수 없으면 `disabled`를 `true`로 전달한다. 권한 정책이 바뀌어도 공용 `Button`은 `disabled`로 비활성 상태를 표시한다. 다른 권한 정책을 적용하는 화면에서도 같은 `Button`을 사용할 수 있다.
 
 ```tsx
-function EditProductButton({ productId }: Props) {
+type EditProductButtonProps = { productId: string };
+
+function EditProductButton({ productId }: EditProductButtonProps) {
   const canEdit = useCanEditProduct(productId);
 
   return <Button disabled={!canEdit}>수정</Button>;
@@ -535,7 +555,7 @@ function EditProductButton({ productId }: Props) {
 다음 코드의 경우 버튼 UI 외에도 삭제 기능, 캐시 갱신, 알림 기능 등을 담당하고 있다. 의존성을 Props로 주입해도 책임 분리가 제대로 되어있지 않다.
 
 ```tsx
-type Props = {
+type DeleteButtonProps = {
   productId: string;
   deleteProduct: (id: string) => Promise<void>;
   invalidateQueries: () => Promise<void>;
@@ -547,7 +567,7 @@ function DeleteButton({
   deleteProduct,
   invalidateQueries,
   showToast,
-}: Props) {
+}: DeleteButtonProps) {
   async function handleClick() {
     await deleteProduct(productId);
     await invalidateQueries();
@@ -563,12 +583,12 @@ function DeleteButton({
 UI 컴포넌트는 외부에서 어떤 기능 또는 시나리오가 발생하는지 파악할 필요가 없어야 한다.
 
 ```tsx
-type Props = {
+type DeleteButtonProps = {
   disabled?: boolean;
   onDelete: () => void;
 };
 
-function DeleteButton({ disabled, onDelete }: Props) {
+function DeleteButton({ disabled, onDelete }: DeleteButtonProps) {
   return (
     <button disabled={disabled} onClick={onDelete}>
       삭제
@@ -576,7 +596,9 @@ function DeleteButton({ disabled, onDelete }: Props) {
   );
 }
 
-function DeleteProduct({ productId }: Props) {
+type DeleteProductProps = { productId: string };
+
+function DeleteProduct({ productId }: DeleteProductProps) {
   const { remove, isPending } = useDeleteProduct();
 
   return (
@@ -587,7 +609,7 @@ function DeleteProduct({ productId }: Props) {
 
 ### 컴포넌트 구조 & 분할
 
-화면의 구성은 `children` 기반 합성과 Compound Component 패턴으로 표현한다. JSX를 담는 임의의 Props를 추가해 UI 슬롯을 늘리지 않는다. 하위 컴포넌트와 Hook은 상위 컴포넌트의 렌더링 함수 밖에 정의한다.
+화면의 구성은 Children 기반 합성과 Compound Component 패턴으로 표현한다. JSX를 담는 임의의 Props를 추가해 UI 슬롯을 늘리지 않는다. 하위 컴포넌트와 Hook은 상위 컴포넌트의 렌더링 함수 밖에 정의한다.
 
 아래 예시는 React 19 기준이며 미실행 상태다.
 
@@ -600,7 +622,9 @@ React는 같은 위치의 컴포넌트 타입과 `key`를 비교해 이전 상�
 ```tsx
 import { useCallback } from "react";
 
-function TitleEditor({ showHint }: { showHint: boolean }) {
+type TitleEditorProps = { showHint: boolean };
+
+function TitleEditor({ showHint }: TitleEditorProps) {
   const TitleInput = useCallback(
     function TitleInput() {
       return (
@@ -623,7 +647,9 @@ function TitleEditor({ showHint }: { showHint: boolean }) {
 하위 컴포넌트를 모듈 최상위에 정의하고, 렌더링마다 달라지는 값은 Props로 전달한다. 동일한 위치에서 같은 `TitleInput`을 렌더링하면 안내 문구만 바뀌어도 입력 요소가 유지된다.
 
 ```tsx
-function TitleInput({ showHint }: { showHint: boolean }) {
+type TitleInputProps = { showHint: boolean };
+
+function TitleInput({ showHint }: TitleInputProps) {
   return (
     <label>
       제목
@@ -633,7 +659,9 @@ function TitleInput({ showHint }: { showHint: boolean }) {
   );
 }
 
-function TitleEditor({ showHint }: { showHint: boolean }) {
+type TitleEditorProps = { showHint: boolean };
+
+function TitleEditor({ showHint }: TitleEditorProps) {
   return <TitleInput showHint={showHint} />;
 }
 ```
@@ -643,13 +671,12 @@ function TitleEditor({ showHint }: { showHint: boolean }) {
 `TitleInput({ showHint })`를 호출하면 React가 `TitleInput`을 별도 하위 컴포넌트로 식별할 수 없다. 나중에 `TitleInput`에 Hook이 추가되면 직접 호출할 때 부모의 Hook 호출 순서에 포함된다. 표시 여부에 따라 직접 호출을 건너뛰면 그 순서도 달라질 수 있다. JSX로 렌더링하면 React가 하위 컴포넌트의 State와 마운트 시점을 관리한다.
 
 ```tsx
-function TitleEditor({
-  showInput,
-  showHint,
-}: {
+type TitleEditorProps = {
   showInput: boolean;
   showHint: boolean;
-}) {
+};
+
+function TitleEditor({ showInput, showHint }: TitleEditorProps) {
   return <section>{showInput && <TitleInput showHint={showHint} />}</section>;
 }
 ```
@@ -689,7 +716,9 @@ function ProjectTitleField() {
 ```tsx
 type Product = Readonly<{ id: string; name: string }>;
 
-function ProductResults({ products }: { products: readonly Product[] }) {
+type ProductResultsProps = { products: readonly Product[] };
+
+function ProductResults({ products }: ProductResultsProps) {
   return (
     <section>
       <h2>상품 검색 결과</h2>
@@ -721,7 +750,7 @@ function ProductResults({ products }: { products: readonly Product[] }) {
 />
 ```
 
-#### `children` 기반 레이아웃 합성
+#### Children 기반 레이아웃 합성
 
 레이아웃이 하위 요소의 배치만 담당할 때는 호출부가 `children`으로 각 영역의 콘텐츠를 전달한다. 레이아웃을 수정하지 않고도 헤더, 본문과 사이드바에 배치할 기능 컴포넌트를 교체할 수 있다.
 
@@ -743,7 +772,7 @@ function ProductResults({ products }: { products: readonly Product[] }) {
 
 #### 열림 상태를 공유하는 Compound Components
 
-레이아웃처럼 하위 요소의 배치만 담당하면 `children`으로 충분하다. 여러 하위 요소가 UI 상태를 공유하고 호출부에서 각 요소의 위치를 정해야 할 때는 Compound Components를 사용할 수 있다. 아래 예시에서 호출부는 버튼과 내용 영역의 배치를 정한다. 루트 컴포넌트가 열림 상태와 패널 ID를 React Context로 제공하고, 하위 요소는 이 값으로 버튼의 `aria-expanded`와 내용 영역의 `hidden`을 결정한다.
+하위 요소가 UI 상태를 공유하지 않고 레이아웃이 배치만 담당하면 호출부가 `children`으로 요소를 전달한다. 여러 하위 요소가 UI 상태를 공유하고 호출부에서 각 요소의 위치를 정해야 할 때는 Compound Components를 사용할 수 있다. 아래 예시에서 호출부는 버튼과 내용 영역의 배치를 정한다. 루트 컴포넌트가 열림 상태와 패널 ID를 React Context로 제공한다. 버튼은 열림 상태를 `aria-expanded`에 반영하고, 내용 영역은 닫힌 상태에만 `hidden` 속성을 설정한다.
 
 Render Props로 같은 구성을 작성하면 호출부가 콜백에서 받은 상태와 이벤트 처리 함수를 각 요소에 연결한다. 하위 컴포넌트가 상태와 이벤트 처리 함수를 연결할 수 있다면 호출부에서는 JSX로 하위 요소를 조합한다. 외부 라이브러리가 렌더 콜백으로 상태를 제공하는 경우에는 라이브러리 API의 사용 조건을 따른다.
 
@@ -767,7 +796,9 @@ function useDisclosure() {
   return disclosure;
 }
 
-function Disclosure({ children }: { children: ReactNode }) {
+type DisclosureProps = { children: ReactNode };
+
+function Disclosure({ children }: DisclosureProps) {
   const [isOpen, setIsOpen] = useState(false);
   const panelId = useId();
 
@@ -782,7 +813,9 @@ function Disclosure({ children }: { children: ReactNode }) {
   );
 }
 
-function DisclosureTrigger({ children }: { children: ReactNode }) {
+type DisclosureTriggerProps = { children: ReactNode };
+
+function DisclosureTrigger({ children }: DisclosureTriggerProps) {
   const { isOpen, panelId, toggle } = useDisclosure();
 
   return (
@@ -797,7 +830,9 @@ function DisclosureTrigger({ children }: { children: ReactNode }) {
   );
 }
 
-function DisclosurePanel({ children }: { children: ReactNode }) {
+type DisclosurePanelProps = { children: ReactNode };
+
+function DisclosurePanel({ children }: DisclosurePanelProps) {
   const { isOpen, panelId } = useDisclosure();
 
   return (
@@ -811,7 +846,9 @@ function DeliveryInformation() {
   return (
     <Disclosure>
       <DisclosureTrigger>배송 조건</DisclosureTrigger>
-      <DisclosurePanel>제주 지역은 배송이 하루 더 걸릴 수 있습니다.</DisclosurePanel>
+      <DisclosurePanel>
+        제주 지역은 배송이 하루 더 걸릴 수 있습니다.
+      </DisclosurePanel>
     </Disclosure>
   );
 }
@@ -858,7 +895,11 @@ import type { ReactNode } from "react";
 import { RemoveProductContext } from "./context";
 import { removeProduct } from "./http";
 
-export function RemoveProductProvider({ children }: { children: ReactNode }) {
+type RemoveProductProviderProps = { children: ReactNode };
+
+export function RemoveProductProvider({
+  children,
+}: RemoveProductProviderProps) {
   return (
     <RemoveProductContext value={removeProduct}>
       {children}
@@ -904,11 +945,11 @@ export function useDeleteProduct() {
 import { Button } from "@/shared/ui/button";
 import { useDeleteProduct } from "../model/use-delete-product";
 
-type Props = {
+type DeleteProductProps = {
   productId: string;
 };
 
-export function DeleteProduct({ productId }: Props) {
+export function DeleteProduct({ productId }: DeleteProductProps) {
   const { remove, isPending, isError } = useDeleteProduct();
 
   return (
@@ -934,14 +975,14 @@ import { useQuery } from "@tanstack/react-query";
 
 import { useGetProduct } from "../model/context";
 
-type Props = {
+type ProductDetailsProps = {
   productId: string;
 };
 
-export function ProductDetails({ productId }: Props) {
+export function ProductDetails({ productId }: ProductDetailsProps) {
   const getProduct = useGetProduct();
 
-  const { data, isPending, isError } = useQuery({
+  const { data: product, isPending, isError } = useQuery({
     queryKey: ["products", productId],
 
     queryFn: ({ signal }) => getProduct(productId, signal),
@@ -957,8 +998,8 @@ export function ProductDetails({ productId }: Props) {
 
   return (
     <section>
-      <h2>{data.name}</h2>
-      <p>{data.description}</p>
+      <h2>{product.name}</h2>
+      <p>{product.description}</p>
     </section>
   );
 }
@@ -987,13 +1028,13 @@ export type UploadFile = (input: {
 컴포넌트 예시이다.
 
 ```tsx
-type Props = {
+type FileUploadProps = {
   targetId: string;
   accept?: string;
   onSuccess?: (file: UploadedFile) => void;
 };
 
-export function FileUpload({ targetId, accept, onSuccess }: Props) {
+export function FileUpload({ targetId, accept, onSuccess }: FileUploadProps) {
   const uploadFile = useUploadFile();
 
   const mutation = useMutation({
@@ -1061,16 +1102,16 @@ Effect 코드를 사용자 정의 Hook으로 분리하거나 `useLayoutEffect`, 
 
 #### Props와 State에서 계산할 수 있는 값
 
-현재 Props와 State로 계산할 수 있는 값을 Effect에서 별도 State에 저장하면, 입력이 바뀌었을 때 이전 계산값으로 렌더링한 뒤 State 갱신으로 다시 렌더링한다. 원본과 복사본의 값도 계속 일치시켜야 한다. 렌더링 중 직접 계산하면 같은 렌더링에서 변경된 입력에 맞는 값을 얻을 수 있다. 계산 시간이 화면 응답을 지연시키는 경우 `useMemo`를 검토한다.
+현재 Props와 State로 계산할 수 있는 값을 Effect에서 별도 State에 저장하면, 입력이 바뀌었을 때 이전 계산값으로 렌더링한 뒤 State 갱신으로 다시 렌더링한다. 원본과 복사본의 값도 계속 일치시켜야 한다. 렌더링 중 직접 계산하면 같은 렌더링에서 변경된 입력을 반영할 수 있다. 계산 시간이 화면 응답을 지연시키는 경우 `useMemo`를 검토한다.
 
 다음 코드는 합계를 별도의 State로 저장하므로 작성하지 않는다.
 
 ```tsx
 import { useEffect, useState } from "react";
 
-type Props = { subtotal: number; deliveryFee: number };
+type TotalProps = { subtotal: number; deliveryFee: number };
 
-function Total({ subtotal, deliveryFee }: Props) {
+function Total({ subtotal, deliveryFee }: TotalProps) {
   const [total, setTotal] = useState(subtotal + deliveryFee);
 
   useEffect(() => {
@@ -1084,9 +1125,9 @@ function Total({ subtotal, deliveryFee }: Props) {
 같은 입력으로 합계를 계산하는 코드는 다음과 같다.
 
 ```tsx
-type Props = { subtotal: number; deliveryFee: number };
+type TotalProps = { subtotal: number; deliveryFee: number };
 
-function Total({ subtotal, deliveryFee }: Props) {
+function Total({ subtotal, deliveryFee }: TotalProps) {
   const total = subtotal + deliveryFee;
   return <output>{total}</output>;
 }
@@ -1099,9 +1140,9 @@ function Total({ subtotal, deliveryFee }: Props) {
 ```tsx
 import { useEffect, useState } from "react";
 
-type Props = { onAdd: () => void };
+type AddButtonProps = { onAdd: () => void };
 
-function AddButton({ onAdd }: Props) {
+function AddButton({ onAdd }: AddButtonProps) {
   const [requested, setRequested] = useState(false);
 
   useEffect(() => {
@@ -1119,9 +1160,9 @@ function AddButton({ onAdd }: Props) {
 다음 버튼은 클릭할 때 `onAdd`를 호출한다. 비동기 저장 명령은 이벤트 핸들러에서 완료를 기다리고 성공과 실패를 구분한다. 저장 성공 뒤의 알림과 이동도 저장 완료를 확인한 함수에서 실행한다.
 
 ```tsx
-type Props = { onAdd: () => void };
+type AddButtonProps = { onAdd: () => void };
 
-function AddButton({ onAdd }: Props) {
+function AddButton({ onAdd }: AddButtonProps) {
   return (
     <button type="button" onClick={onAdd}>
       추가
@@ -1139,7 +1180,9 @@ function AddButton({ onAdd }: Props) {
 ```tsx
 import { useEffect, useState } from "react";
 
-function ProjectDetails({ projectId }: { projectId: string }) {
+type ProjectDetailsProps = { projectId: string };
+
+function ProjectDetails({ projectId }: ProjectDetailsProps) {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
@@ -1166,11 +1209,15 @@ function ProjectDetails({ projectId }: { projectId: string }) {
 ```tsx
 import { useState } from "react";
 
-function ProjectDetails({ projectId }: { projectId: string }) {
+type ProjectDetailsProps = { projectId: string };
+
+function ProjectDetails({ projectId }: ProjectDetailsProps) {
   return <Details key={projectId} projectId={projectId} />;
 }
 
-function Details({ projectId }: { projectId: string }) {
+type DetailsProps = { projectId: string };
+
+function Details({ projectId }: DetailsProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -1228,7 +1275,9 @@ React Router에서 프로젝트 카드의 이동은 다음처럼 표현한다.
 ```tsx
 import { Link } from "react-router";
 
-function ProjectLink({ projectId }: { projectId: string }) {
+type ProjectLinkProps = { projectId: string };
+
+function ProjectLink({ projectId }: ProjectLinkProps) {
   return <Link to={`/projects/${projectId}`}>프로젝트 열기</Link>;
 }
 ```
@@ -1238,7 +1287,9 @@ Next.js에서도 일반 이동은 `next/link`를 사용한다.
 ```tsx
 import Link from "next/link";
 
-function ProjectLink({ projectId }: { projectId: string }) {
+type ProjectLinkProps = { projectId: string };
+
+function ProjectLink({ projectId }: ProjectLinkProps) {
   return <Link href={`/projects/${projectId}`}>프로젝트 열기</Link>;
 }
 ```
@@ -1250,15 +1301,19 @@ function ProjectLink({ projectId }: { projectId: string }) {
 ```tsx
 import { useMutation } from "@tanstack/react-query";
 
-import { useSaveProject } from "../model/save-project-context";
+import { useSaveProject } from "../model/save-context";
 
-type Props = {
+type SaveProjectButtonProps = {
   projectId: string;
   title: string;
   onSaved?: () => void;
 };
 
-export function SaveProjectButton({ projectId, title, onSaved }: Props) {
+export function SaveProjectButton({
+  projectId,
+  title,
+  onSaved,
+}: SaveProjectButtonProps) {
   const saveProject = useSaveProject();
   const { mutateAsync, isError, isPending } = useMutation({
     mutationFn: (nextTitle: string) => saveProject(projectId, nextTitle),
@@ -1285,20 +1340,22 @@ export function SaveProjectButton({ projectId, title, onSaved }: Props) {
 }
 ```
 
-두 화면은 `SaveProjectButton`을 편집 기능의 공개 진입점에서 가져온다. React Router의 라우트에서는 `useNavigate`로 이동 함수를 얻어 저장 성공 콜백에 연결한다. 이동에는 미리 정한 내부 주소와 프로젝트 ID를 사용한다.
+두 화면은 `SaveProjectButton`을 편집 기능의 공개 진입점에서 가져온다. React Router의 라우트에서는 `useNavigate`가 반환한 이동 함수를 저장 성공 콜백에서 호출한다. 이동에는 미리 정한 내부 주소와 프로젝트 ID를 사용한다.
 
 ```tsx
 import { useNavigate } from "react-router";
 
 import { SaveProjectButton } from "@/features/edit-project";
 
+type ProjectSaveActionProps = {
+  projectId: string;
+  title: string;
+};
+
 export function ProjectSaveAction({
   projectId,
   title,
-}: {
-  projectId: string;
-  title: string;
-}) {
+}: ProjectSaveActionProps) {
   const navigate = useNavigate();
 
   return (
@@ -1320,13 +1377,15 @@ import { useRouter } from "next/navigation";
 
 import { SaveProjectButton } from "@/features/edit-project";
 
+type ProjectSaveActionProps = {
+  projectId: string;
+  title: string;
+};
+
 export function ProjectSaveAction({
   projectId,
   title,
-}: {
-  projectId: string;
-  title: string;
-}) {
+}: ProjectSaveActionProps) {
   const router = useRouter();
 
   return (
@@ -1511,18 +1570,18 @@ ESLint는 외부 시스템과 동기화할 필요가 있는지, 연결이 실제
 
 #### 직접 계산하는 파생값과 일반 이벤트 핸들러
 
-간단한 연산으로 얻을 수 있는 값은 렌더링 중에 직접 계산한다. 함수가 일반 DOM 요소의 이벤트 핸들러로만 사용된다면 렌더링마다 새 함수가 생성되어도 그 이유만으로 `useCallback`을 추가하지 않는다.
+계산 비용이 낮은 파생값은 렌더링 중에 직접 계산한다. 함수가 일반 DOM 요소의 이벤트 핸들러로만 사용된다면 렌더링마다 새 함수가 생성되어도 그 이유만으로 `useCallback`을 추가하지 않는다.
 
 아래 예시에서 합계는 곱셈 한 번으로 계산한다. 버튼은 클릭한 시점의 수량을 `onConfirm`에 전달한다.
 
 ```tsx
-type Props = {
+type OrderSummaryProps = {
   unitPrice: number;
   quantity: number;
   onConfirm: (quantity: number) => void;
 };
 
-function OrderSummary({ unitPrice, quantity, onConfirm }: Props) {
+function OrderSummary({ unitPrice, quantity, onConfirm }: OrderSummaryProps) {
   const total = unitPrice * quantity;
 
   function handleConfirm() {
@@ -1542,7 +1601,7 @@ function OrderSummary({ unitPrice, quantity, onConfirm }: Props) {
 
 #### 검색 결과와 상품 열기 함수의 재사용
 
-상품 수가 많아 검색과 정렬에 드는 시간이 화면 응답에 영향을 주고, 상품 배열과 검색어가 그대로인 렌더링이 반복되면 `useMemo`를 검토한다. 아래 예시에서 `useMemo`는 계산을 생략할 수 있게 하며, `memo`로 감싼 목록에 같은 배열 참조를 전달한다.
+상품 수가 많아 검색과 정렬에 드는 시간이 화면 응답에 영향을 주고, 상품 배열과 검색어가 그대로인 렌더링이 반복되면 `useMemo`를 검토한다. 아래 예시에서 `useMemo`는 계산을 생략할 수 있게 하며, `memo`를 적용한 목록에 같은 배열 참조를 전달한다.
 
 목록에는 상품 ID만 받는 열기 함수를 전달한다. `useCallback`을 사용하면 `collectionId`와 `onOpenProduct`가 유지될 때 같은 함수 참조를 전달할 수 있다. `memo`는 목록이 받는 Props 중 하나라도 바뀌면 Props 비교만으로 렌더링을 건너뛸 수 없다. 상위 컴포넌트가 상품 배열이나 열기 함수를 매번 새로 생성한다면 어느 참조가 바뀌는지부터 확인한다.
 
@@ -1663,11 +1722,11 @@ import type { ReactNode } from "react";
 
 const queryClient = new QueryClient();
 
-export function AppProviders({ children }: { children: ReactNode }) {
+type AppProvidersProps = { children: ReactNode };
+
+export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 }
 ```
@@ -1708,7 +1767,9 @@ export function exhibitionOptions(exhibitionId: string) {
 import { ArtworkCount } from "./artwork-count";
 import { ExhibitionHeading } from "./exhibition-heading";
 
-export function ExhibitionPanel({ exhibitionId }: { exhibitionId: string }) {
+type ExhibitionPanelProps = { exhibitionId: string };
+
+export function ExhibitionPanel({ exhibitionId }: ExhibitionPanelProps) {
   return (
     <section>
       <ExhibitionHeading exhibitionId={exhibitionId} />
@@ -1729,14 +1790,23 @@ import { useQuery } from "@tanstack/react-query";
 
 import { exhibitionOptions } from "./exhibition-options";
 
-function ExhibitionTitle({ title }: { title: string }) {
+type ExhibitionTitleProps = { title: string };
+
+function ExhibitionTitle({ title }: ExhibitionTitleProps) {
   return <h2>{title}</h2>;
 }
 
-export function ExhibitionHeading({ exhibitionId }: { exhibitionId: string }) {
-  const { data, isError } = useQuery(exhibitionOptions(exhibitionId));
+type ExhibitionHeadingProps = { exhibitionId: string };
 
-  if (data !== undefined) return <ExhibitionTitle title={data.title} />;
+export function ExhibitionHeading({ exhibitionId }: ExhibitionHeadingProps) {
+  const { data: exhibition, isError } = useQuery(
+    exhibitionOptions(exhibitionId),
+  );
+
+  if (exhibition !== undefined) {
+    return <ExhibitionTitle title={exhibition.title} />;
+  }
+
   if (isError) return <p role="alert">전시 정보를 불러오지 못했습니다.</p>;
   return <p role="status">전시 정보를 불러오는 중입니다.</p>;
 }
@@ -1758,7 +1828,9 @@ function selectArtworkCount(exhibition: Exhibition) {
   return exhibition.artworks.length;
 }
 
-export function ArtworkCount({ exhibitionId }: { exhibitionId: string }) {
+type ArtworkCountProps = { exhibitionId: string };
+
+export function ArtworkCount({ exhibitionId }: ArtworkCountProps) {
   const { data: count } = useQuery({
     ...exhibitionOptions(exhibitionId),
     select: selectArtworkCount,
@@ -1780,11 +1852,13 @@ import { useState } from "react";
 import { exhibitionOptions } from "./exhibition-options";
 import { ExhibitionPanel } from "./exhibition-panel";
 
+type ExhibitionDisclosureProps = {
+  exhibitionId: string;
+};
+
 export function ExhibitionDisclosure({
   exhibitionId,
-}: {
-  exhibitionId: string;
-}) {
+}: ExhibitionDisclosureProps) {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -1825,7 +1899,9 @@ import { useState } from "react";
 
 import { exhibitionOptions } from "./exhibition-options";
 
-export function ExhibitionActions({ exhibitionId }: { exhibitionId: string }) {
+type ExhibitionActionsProps = { exhibitionId: string };
+
+export function ExhibitionActions({ exhibitionId }: ExhibitionActionsProps) {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const options = exhibitionOptions(exhibitionId);
@@ -2034,7 +2110,9 @@ import { useFormContext } from "react-hook-form";
 
 type Fields = { title: string };
 
-function CopyTitleButton({ onCopy }: { onCopy: (title: string) => void }) {
+type CopyTitleButtonProps = { onCopy: (title: string) => void };
+
+function CopyTitleButton({ onCopy }: CopyTitleButtonProps) {
   const { getValues } = useFormContext<Fields>();
 
   function copyTitle() {
@@ -2144,12 +2222,14 @@ import type { ReactNode } from "react";
 import { GetProjectContext } from "./context";
 import { getProject } from "./http";
 
-export function ProjectProvider({ children }: { children: ReactNode }) {
+type ProjectProviderProps = { children: ReactNode };
+
+export function ProjectProvider({ children }: ProjectProviderProps) {
   return <GetProjectContext value={getProject}>{children}</GetProjectContext>;
 }
 ```
 
-`use-project-query-options.ts`는 Provider에서 조회 함수를 얻어 쿼리 옵션을 구성한다. React 컴포넌트에서 사용하는 옵션이므로 조회 함수를 별도 매개변수로 받는 함수를 추가하지 않는다. Hook은 최상위에서 호출하고, 나중에 실행되는 `queryFn`은 이미 얻은 함수를 사용한다. 쿼리 함수나 비동기 `defaultValues` 안에서 Context Hook을 호출하지 않는다.
+`use-project-query-options.ts`는 `useGetProject`를 호출해 Provider가 Context에 제공한 조회 함수를 쿼리 옵션에 연결한다. React 컴포넌트에서 사용하는 옵션이므로 조회 함수를 별도 매개변수로 받는 함수를 추가하지 않는다. `useGetProject`는 최상위에서 호출한다. 나중에 실행되는 `queryFn`은 `useGetProject`가 반환한 조회 함수를 호출한다. 쿼리 함수나 비동기 `defaultValues` 안에서 Context Hook을 호출하지 않는다.
 
 ```ts
 import { queryOptions } from "@tanstack/react-query";
@@ -2180,7 +2260,9 @@ import { useProjectQueryOptions } from "./use-project-query-options";
 
 type Fields = Pick<Project, "title">;
 
-export function ProjectEditor({ projectId }: { projectId: string }) {
+type ProjectEditorProps = { projectId: string };
+
+export function ProjectEditor({ projectId }: ProjectEditorProps) {
   return (
     <ProjectProvider>
       <ProjectEditorContent projectId={projectId} />
@@ -2188,7 +2270,9 @@ export function ProjectEditor({ projectId }: { projectId: string }) {
   );
 }
 
-function ProjectEditorContent({ projectId }: { projectId: string }) {
+type ProjectEditorContentProps = { projectId: string };
+
+function ProjectEditorContent({ projectId }: ProjectEditorContentProps) {
   const options = useProjectQueryOptions(projectId);
   const { data, isPending } = useQuery(options);
 
@@ -2199,7 +2283,9 @@ function ProjectEditorContent({ projectId }: { projectId: string }) {
   return <ProjectForm key={projectId} projectId={projectId} />;
 }
 
-function ProjectForm({ projectId }: { projectId: string }) {
+type ProjectFormProps = { projectId: string };
+
+function ProjectForm({ projectId }: ProjectFormProps) {
   const queryClient = useQueryClient();
   const options = useProjectQueryOptions(projectId);
   const {
@@ -2271,7 +2357,9 @@ import { useFormContext } from "react-hook-form";
 
 type Fields = { title: string; description: string };
 
-function TitleResetButtons({ savedTitle }: { savedTitle: string }) {
+type TitleResetButtonsProps = { savedTitle: string };
+
+function TitleResetButtons({ savedTitle }: TitleResetButtonsProps) {
   const { resetField } = useFormContext<Fields>();
 
   return (
@@ -2301,7 +2389,12 @@ import { useFormContext } from "react-hook-form";
 
 type Fields = { title: string; description: string };
 
-function ApplyTemplateButtons({ title, description }: Fields) {
+type ApplyTemplateButtonsProps = Fields;
+
+function ApplyTemplateButtons({
+  title,
+  description,
+}: ApplyTemplateButtonsProps) {
   const { setValue, setValues } = useFormContext<Fields>();
 
   return (
@@ -2365,7 +2458,9 @@ function MemberFields() {
   );
 }
 
-function MemberNameField({ index }: { index: number }) {
+type MemberNameFieldProps = { index: number };
+
+function MemberNameField({ index }: MemberNameFieldProps) {
   const { register } = useFormContext<Fields>();
   const input = register(`members.${index}.name` as const);
 
@@ -2394,7 +2489,9 @@ import { useFormContext } from "react-hook-form";
 
 type Fields = { members: { name: string }[] };
 
-function ApplyMyNameButton({ name }: { name: string }) {
+type ApplyMyNameButtonProps = { name: string };
+
+function ApplyMyNameButton({ name }: ApplyMyNameButtonProps) {
   const { getValues, setValue } = useFormContext<Fields>();
 
   function applyMyName() {
@@ -2443,22 +2540,22 @@ test("댓글 이메일 알림을 끄면 배포 이메일 알림은 유지된다"
     name: "배포 알림",
     exact: true,
   });
-  const commentsByEmail = comments.getByRole("checkbox", {
+  const commentsToggle = comments.getByRole("checkbox", {
     name: "이메일",
     exact: true,
   });
-  const deploymentsByEmail = deployments.getByRole("checkbox", {
+  const deploymentsToggle = deployments.getByRole("checkbox", {
     name: "이메일",
     exact: true,
   });
 
-  await expect(commentsByEmail).toBeChecked();
-  await expect(deploymentsByEmail).toBeChecked();
+  await expect(commentsToggle).toBeChecked();
+  await expect(deploymentsToggle).toBeChecked();
 
-  await commentsByEmail.uncheck();
+  await commentsToggle.uncheck();
 
-  await expect(commentsByEmail).not.toBeChecked();
-  await expect(deploymentsByEmail).toBeChecked();
+  await expect(commentsToggle).not.toBeChecked();
+  await expect(deploymentsToggle).toBeChecked();
 });
 ```
 
@@ -2466,7 +2563,7 @@ test("댓글 이메일 알림을 끄면 배포 이메일 알림은 유지된다"
 
 새 주소로 입력란을 채운 뒤에는 사용자가 편집한 값과 서버에 저장된 값을 각각 확인할 수 있다. 입력값이나 성공 안내만 검사하면 저장 요청을 생략해도 테스트가 통과할 수 있다. 서버 저장이 요구사항인 이 예시는 실제 테스트 서버의 주문 조회 API에서 주소를 다시 읽는다. `expect.poll`에는 읽기 요청만 두고 저장 조작은 한 번 실행한다.
 
-`orders` fixture는 서로 다른 주문과 인증된 브라우저 컨텍스트를 테스트마다 준비한다. 주문 조회 API는 화면과 같은 쿠키 인증을 사용하고 저장된 값을 반환한다. 기대 주소는 테스트가 선택한 입력값에서 얻는다.
+`orders` fixture는 서로 다른 주문과 인증된 브라우저 컨텍스트를 테스트마다 준비한다. 주문 조회 API는 화면과 같은 쿠키 인증을 사용하고 저장된 값을 반환한다. 기대 주소로 테스트가 선택한 입력값을 사용한다.
 
 ```ts
 import { expect } from "@playwright/test";
@@ -2647,20 +2744,31 @@ test("발표 종료 직전까지 진행 중으로 표시하고 종료 시각에 
 
 #### 기준 금액에서 배송비가 바뀌는지 검증
 
-주문 금액이 50,000원 이상이면 배송비가 0원이고 그보다 낮으면 3,000원이라는 요구사항을 가정한다. 기대값은 이 규칙에서 얻는다. 구현의 금액 상수나 비교식을 테스트에서 다시 호출하지 않는다. 기준보다 1원 낮은 금액, 기준과 같은 금액, 기준보다 1원 높은 금액을 비교하면 어느 조건에서 결과가 달라지는지 테스트 이름에서 확인할 수 있다. 예시의 `shipping-fee.ts`는 주문 금액을 원 단위 정수로 받아 배송비를 반환한다.
+주문 금액이 50,000원 이상이면 배송비가 0원이고 그보다 낮으면 3,000원이라는 요구사항을 가정한다. 테스트의 기대 배송비는 이 규칙을 기준으로 정한다. 구현의 금액 상수나 비교식을 테스트에서 다시 사용하지 않는다. 기준보다 1원 낮은 금액, 기준과 같은 금액, 기준보다 1원 높은 금액을 비교하면 어느 조건에서 결과가 달라지는지 테스트 이름에서 확인할 수 있다.
+
+`shipping-fee.ts`의 기본 선택 기준은 주문 금액이다. 주문 금액은 원 단위, 배송물 무게는 그램 단위로 전달한다. 무게 기준에서는 2,000g 이하의 배송비를 2,500원, 그보다 무거운 경우의 배송비를 4,000원으로 가정한다.
 
 ```ts
-export function calculateShippingFee(orderTotal: number): number {
-  return orderTotal >= 50_000 ? 0 : 3_000;
+type ShippingFeeBasis = "orderTotal" | "weight";
+
+export function selectShippingFee(
+  value: number,
+  basis: ShippingFeeBasis = "orderTotal",
+): number {
+  if (basis === "weight") {
+    return value <= 2_000 ? 2_500 : 4_000;
+  }
+
+  return value >= 50_000 ? 0 : 3_000;
 }
 ```
 
-테스트는 공개 함수의 반환값을 요구사항에 명시된 배송비와 비교한다. 같은 형식의 입력과 기대값으로 세 사례를 개별 실행한다.
+테스트는 기준 인자를 생략한 호출이 주문 금액 기준의 배송비를 반환하는지 검증한다. 같은 형식의 입력과 기대값으로 경계값 전후의 세 사례를 개별 실행한다.
 
 ```ts
 import { expect, test } from "vitest";
 
-import { calculateShippingFee } from "./shipping-fee";
+import { selectShippingFee } from "./shipping-fee";
 
 test.each([
   { orderTotal: 49_999, expectedFee: 3_000 },
@@ -2669,7 +2777,7 @@ test.each([
 ])(
   "주문 금액이 $orderTotal원이면 배송비는 $expectedFee원이다",
   ({ orderTotal, expectedFee }) => {
-    expect(calculateShippingFee(orderTotal)).toBe(expectedFee);
+    expect(selectShippingFee(orderTotal)).toBe(expectedFee);
   },
 );
 ```
@@ -2679,17 +2787,17 @@ test.each([
 코드 커버리지는 실행되지 않은 줄과 분기를 찾는 데 사용한다. 무료와 유료 분기를 모두 실행해도 기준 금액의 기대값이 빠져 있으면 아래 변경을 검출하지 못할 수 있다. 뮤테이션 테스트로 비교 연산자를 임시 변경하면 주문 금액 50,000원 사례에서 배송비 기대값 0원과 실제 값 3,000원이 달라져야 한다. 정상 구현의 통과와 변이 구현의 실패를 같은 테스트로 확인한다. 변이가 계산 결과를 바꾸는지 확인한 뒤 부족한 입력 사례를 보완한다.
 
 ```diff
-- return orderTotal >= 50_000 ? 0 : 3_000;
-+ return orderTotal > 50_000 ? 0 : 3_000;
+- return value >= 50_000 ? 0 : 3_000;
++ return value > 50_000 ? 0 : 3_000;
 ```
 
 ### 네이밍
 
-폴더명, 파일명과 타입명은 이름을 사용하는 곳에서 대상과 역할을 구별할 수 있도록 정한다. 상위 디렉터리나 같은 파일에서 알 수 있는 단어는 대상을 구별하는 데 필요할 때만 이름에 남긴다.
+폴더명, 파일명과 타입명은 이름을 사용하는 곳에서 대상과 역할을 구별할 수 있도록 정한다. 상위 디렉터리나 같은 파일에서 이미 확인할 수 있는 정보는 이름만으로 대상을 구별하는 데 필요할 때만 반복한다.
 
 #### 슬라이스가 맡는 기능을 나타내는 폴더명
 
-`features`와 `entities`는 FSD 계층을 나타낸다. 각 슬라이스에는 그 슬라이스가 담당하는 기능이나 대상을 이름에 적는다. `features` 아래의 `change-delivery-address-feature`에서 `feature`는 상위 디렉터리의 정보를 반복한다. `change-delivery-address`와 `remove-delivery-address`는 같은 배송지를 다루면서도 사용자가 할 수 있는 두 가지 동작을 구별한다.
+`features`와 `entities`는 FSD 계층을 나타낸다. 슬라이스 이름으로 사용자 동작이나 도메인 대상을 식별할 수 있어야 한다. `features` 아래의 `change-delivery-address-feature`에서 `feature`는 상위 디렉터리의 계층명을 반복한다. `change-delivery-address`는 배송지 변경을, `remove-delivery-address`는 배송지 삭제를 나타낸다.
 
 ```text
 features/
@@ -2701,7 +2809,7 @@ entities/
 
 #### 슬라이스 안에서 역할을 구별하는 파일명
 
-`Feature`, `Entities`, `View`, `Controller`, `Adapter`, `Port`와 같은 분류 용어를 파일이나 폴더의 이름에 그대로 붙이지 않는다. 배송지 변경 슬라이스의 `ui`에 변경 폼이 하나라면 `form.tsx`로 그 파일을 찾을 수 있다. `api/update.ts`와 `api/check-deliverability.ts`는 각각 주소 변경과 배송 가능 여부 확인을 맡는 파일이다. `delivery-address-controller.ts`라는 이름만으로는 어느 요청을 처리하는지 알 수 없다.
+`Feature`, `Entities`, `View`, `Controller`, `Adapter`, `Port`와 같이 구조를 분류하는 용어를 파일명이나 폴더명의 일부로 사용하지 않는다. 배송지 변경 슬라이스의 `ui`에 변경 폼이 하나라면 `form.tsx`로 식별할 수 있다. `api/update.ts`는 주소를 변경하는 요청을, `api/check-deliverability.ts`는 배송 가능 여부를 확인하는 요청을 실행한다. `delivery-address-controller.ts`라는 이름만으로는 두 요청 중 어느 쪽을 실행하는지 구별할 수 없다.
 
 ```text
 features/
@@ -2714,17 +2822,20 @@ features/
       check-deliverability.ts
 ```
 
-#### 한 컴포넌트에서만 사용하는 Props 타입
+#### 컴포넌트 이름으로 Props 타입 식별
 
-`ui/summary.tsx`의 `AddressSummary`만 사용하는 Props 타입은 같은 파일에서 `Props`로 정의할 수 있다. 타입을 사용하는 함수 선언에서 어느 컴포넌트의 입력인지 확인할 수 있기 때문이다. 같은 파일에 입력 타입이 여러 개라면 각 입력을 받는 컴포넌트나 역할을 타입 이름에 드러낸다.
+`AddressSummaryProps`의 컴포넌트명은 입력을 받는 대상을 식별하고 `Props` 접미사는 타입의 역할을 나타낸다. 같은 파일에서만 사용하는 경우에도 이 형식을 적용한다. 다른 모듈에서 컴포넌트만 사용한다면 입력 타입은 컴포넌트와 같은 파일에 선언하면 된다.
 
 ```tsx
-type Props = {
+type AddressSummaryProps = {
   postalCode: string;
   streetAddress: string;
 };
 
-export function AddressSummary({ postalCode, streetAddress }: Props) {
+export function AddressSummary({
+  postalCode,
+  streetAddress,
+}: AddressSummaryProps) {
   return (
     <p>
       {postalCode} {streetAddress}
@@ -2735,7 +2846,7 @@ export function AddressSummary({ postalCode, streetAddress }: Props) {
 
 #### 다른 슬라이스에서 사용하는 타입 이름
 
-다른 슬라이스에서 타입을 사용해야 할 때는 import 문 밖에서도 그 타입이 가리키는 대상을 구별할 수 있게 이름을 정한다. `entities/delivery-address`가 내보내는 `DeliveryAddress`를 배송지 변경 슬라이스에서 사용하면, 같은 파일에서 청구지 주소를 함께 다뤄도 각 타입의 용도를 이름으로 구별할 수 있다. 이 타입은 사용하는 슬라이스에서 내부 파일 위치를 알 필요가 없도록 공개 진입점에서 내보낸다.
+다른 슬라이스에서 타입을 사용해야 할 때는 import 문 밖에서도 그 타입이 가리키는 대상을 구별할 수 있게 이름을 정한다. 배송지 변경 슬라이스의 같은 파일에서 `DeliveryAddress`와 청구지 주소 타입을 함께 import하더라도, 타입 이름으로 배송지와 청구지를 구별할 수 있다. `DeliveryAddress`를 사용하는 슬라이스가 내부 파일 위치에 의존하지 않도록 `entities/delivery-address`의 공개 진입점에서 타입을 내보낸다.
 
 `entities/delivery-address/model/address.ts`
 
@@ -2761,4 +2872,114 @@ export type ChangeRequest = {
   orderId: string;
   nextAddress: DeliveryAddress;
 };
+```
+
+### 코드 식별자 네이밍
+
+함수, 클래스, 변수와 객체 속성은 선언과 사용 위치를 함께 확인해 이름을 정한다. 같은 파일에서 이미 파악할 수 있는 표현을 생략한 뒤 이름을 사용하는 쪽에서도 대상을 구별할 수 있는지 확인한다. 객체 속성명은 객체명과 함께 확인한다.
+
+아래 예시는 슬라이스 사이의 import와 객체 및 함수의 이름을 정하는 기준을 보여 준다.
+
+#### 이름이 겹치는 import의 별칭
+
+배송지 슬라이스에 주소 포매터가 하나라면 클래스는 `Formatter`로 식별할 수 있다. 결제 요약 위젯은 청구지와 배송지를 화면에 표시할 문자열로 변환한다. 아래 예시는 두 슬라이스가 각각 주소 타입과 `Formatter.format`을 제공하는 클래스를 공개 진입점에서 내보내는 경우다. 주소만 포맷하는 파일에서는 `BillingFormatter`와 `DeliveryFormatter`로 용도를 구별한다. 청구 금액을 포맷하는 클래스도 같은 파일에서 사용한다면 `BillingAddressFormatter`와 같이 주소를 변환하는 클래스임을 명시한다.
+
+`widgets/checkout-summary/model/format-addresses.ts`
+
+```ts
+import {
+  Formatter as BillingFormatter,
+  type BillingAddress,
+} from "@/entities/billing-address";
+import {
+  Formatter as DeliveryFormatter,
+  type DeliveryAddress,
+} from "@/entities/delivery-address";
+
+export function formatAddresses(
+  billing: BillingAddress,
+  delivery: DeliveryAddress,
+) {
+  return {
+    billing: BillingFormatter.format(billing),
+    delivery: DeliveryFormatter.format(delivery),
+  };
+}
+```
+
+#### 용도로 구별하는 변수
+
+주소 확인 API가 연락처, 배송지와 청구지의 우편번호를 한 요청에서 받는다면 세 우편번호만 전달한다. 내부 코드에서는 `postalCodes`가 값의 종류를 나타내고, 속성명은 용도를 구별한다. 요청 본문을 구성할 때 우편번호별 용도를 나타내는 API 필드명으로 변환한다. 이미 사용하는 주소에서 값 하나만 필요하다면 `deliveryAddress.postalCode`처럼 접근한다.
+
+```ts
+type PostalCodes = {
+  contact: string;
+  delivery: string;
+  billing: string;
+};
+
+function createAddressCheckPayload(postalCodes: PostalCodes) {
+  return {
+    contact_postal_code: postalCodes.contact,
+    delivery_postal_code: postalCodes.delivery,
+    billing_postal_code: postalCodes.billing,
+  };
+}
+```
+
+#### 원본과 정규화된 우편번호 구별
+
+우편번호 미리보기는 입력 원본과 제출할 값을 서로 다른 위치에 표시한다. 각 위치에서 사용하는 값을 `postalCode`와 `normalizedPostalCode`로 각각 선언한다. 두 이름에 `PostalCode`를 사용하면 각 변수가 우편번호를 나타내고, `normalized`는 앞뒤 공백을 제거한 값을 구별한다.
+
+```tsx
+type PostalCodePreviewProps = { value: string };
+
+function PostalCodePreview({ value }: PostalCodePreviewProps) {
+  const postalCode = value;
+  const normalizedPostalCode = postalCode.trim();
+
+  return (
+    <dl>
+      <dt>입력한 우편번호</dt>
+      <dd>
+        <pre>{postalCode}</pre>
+      </dd>
+      <dt>제출할 우편번호</dt>
+      <dd>{normalizedPostalCode}</dd>
+    </dl>
+  );
+}
+```
+
+#### 선택과 합산을 구별하는 함수명
+
+주문 금액에 따라 정해진 배송비를 선택하는 함수는 `selectShippingFee`로 표현한다. [배송비 테스트 예시](#기준-금액에서-배송비가-바뀌는지-검증)는 기준 금액 전후에서 어느 요율을 선택하는지 확인한다. 여러 배송 건의 요금을 더하는 함수에는 `sumShippingFees`를 사용한다. 아래 예시에서 `shipment`는 배송 건을, `fee`는 그 배송 건에 부과되는 요금을 나타낸다.
+
+```ts
+type Shipment = { fee: number };
+
+function sumShippingFees(shipments: readonly Shipment[]): number {
+  return shipments.reduce((total, shipment) => total + shipment.fee, 0);
+}
+```
+
+#### 매개변수로 배송비 선택 기준 구별
+
+배송비 선택처럼 실행 목적이 같고 적용할 기준이 다르면 기준과 그에 필요한 값을 매개변수로 표현할 수 있는지 먼저 확인한다. 함수명은 여러 호출이 공통으로 수행하는 동작을 나타낸다. 매개변수로 시나리오를 구별할 수 없을 때만 함수명에 전치사를 사용한다.
+
+배송비 비교 화면은 [같은 `selectShippingFee` 함수](#기준-금액에서-배송비가-바뀌는지-검증)를 두 번 호출한다. 첫 번째 호출은 주문 금액 50,000원에 `"orderTotal"`을, 두 번째 호출은 배송물 무게 2,000g에 `"weight"`를 지정한다. 주문 금액은 기본 기준이지만 비교 화면에서는 두 호출에서 기준을 직접 확인할 수 있도록 모두 명시한다. 화면은 두 반환값 중 낮은 배송비를 표시한다.
+
+```tsx
+import { selectShippingFee } from "./shipping-fee";
+
+function ShippingFeeComparison() {
+  const lowestFee = Math.min(
+    selectShippingFee(50_000, "orderTotal"),
+    selectShippingFee(2_000, "weight"),
+  );
+
+  return (
+    <p>두 정책 중 낮은 배송비는 {lowestFee.toLocaleString("ko-KR")}원입니다.</p>
+  );
+}
 ```

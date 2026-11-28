@@ -6,12 +6,15 @@ const topics = [
   {
     id: "composition",
     excerpts: [
-      ["#### `children` 기반 레이아웃 합성", "### Props과 Provider 기반 의존성 주입 활용"],
+      ["#### Children 기반 레이아웃 합성", "### Props과 Provider 기반 의존성 주입 활용"],
     ],
   },
   {
     id: "naming",
-    excerpts: [["### 네이밍"]],
+    excerpts: [
+      ["### 네이밍"],
+      ["#### 이름이 겹치는 import의 별칭", "#### 용도로 구별하는 변수"],
+    ],
   },
   {
     id: "fsd",
