@@ -55,7 +55,9 @@
 
 ### 43. 한국어와 영어 홈페이지에 Guides 연결
 
-**상태** 미착수. 41단계와 42단계의 주소를 확인한 뒤 진행한다.
+**상태** 완료. 한국어 화면을 브라우저에서 확인한 뒤 영어 문구를 추가했다. 두 홈페이지에서 같은 Guides 컴포넌트가 문구 JSON과 기존 영역 제목을 사용한다.
+
+- 검토에서 링크 두 개의 표시 방식은 한 곳에 두고, 기존 외부 링크 UI와 Guides의 주소 이동은 각 컴포넌트에 유지했다. 검사 42개 파일과 정적 빌드를 통과했다. 브라우저에서 두 언어의 섹션 순서, 한 개의 Frontend 항목, 링크 순서와 키보드 포커스를 확인했다. 두 링크를 Enter로 열었고 상세 페이지와 원문 모두 Wrangler 로컬 주소에서 HTTP 200을 반환했다.
 
 - **작업** 두 홈페이지가 사용하는 `apps/entry/src/_pages/home/ui/HomePage.astro`에 Guides를 추가한다. 해당 문구는 `apps/entry/src/shared/terms/` 아래의 한국어, 영어 JSON과 문구 타입 및 검사에 반영한다. Guides는 Projects와 Background 사이에 배치한다. 한국어에는 요구사항의 문구를 사용하고 화면을 먼저 확인한다. 영어 문구는 같은 의미로 작성한다. Frontend 한 항목에 상세 페이지와 Markdown 원문으로 가는 링크를 각각 둔다.
 - **리서치** 기존 홈페이지의 컴포넌트 합성과 문구 분리 방식을 유지할 수 있는지 Astro 문서에서 확인한다. 항목 안에서 두 링크의 목적을 각 링크 이름으로 식별할 수 있는지 접근성 기준을 확인한다. [Astro 컴포넌트와 슬롯](https://docs.astro.build/en/basics/astro-components/#slots), [W3C 링크 목적](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html)

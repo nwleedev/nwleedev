@@ -1,0 +1,33 @@
+---
+import type { HomeTerms } from "@/shared/terms";
+import { SectionHeader } from "@/shared/ui";
+
+interface Props {
+  guides: HomeTerms["guides"];
+}
+
+const { guides } = Astro.props;
+const { frontend } = guides;
+const links = [
+  { href: "/codes/frontend", label: frontend.detailsLabel },
+  { href: "/codes/frontend.md", label: frontend.markdownLabel },
+];
+---
+
+<section aria-labelledby="guides" class="pb-16 md:pb-24">
+  <SectionHeader id="guides" title={guides.title} />
+  <p class="mt-8 text-base leading-7 text-text-secondary">{guides.description}</p>
+  <ul class="mt-8">
+    <li>
+      <h3 class="text-item font-semibold text-text-primary">{frontend.title}</h3>
+      <p class="mt-4 text-base leading-7 text-text-secondary">{frontend.description}</p>
+      <div class="mt-4 flex flex-wrap gap-x-6 gap-y-3">
+        {links.map(({ href, label }) => (
+          <a href={href} hreflang="ko" class="inline-flex min-h-6 items-center font-semibold text-brand-strong underline">
+            {label}
+          </a>
+        ))}
+      </div>
+    </li>
+  </ul>
+</section>

@@ -4,6 +4,7 @@ import { BaseLayout, PageFooter, SkipLink } from "@/shared/ui";
 import BackgroundSection from "./BackgroundSection.astro";
 import ContactSection from "./ContactSection.astro";
 import ExperienceSection from "./ExperienceSection.astro";
+import GuidesSection from "./GuidesSection.astro";
 import IdentityBlock from "./IdentityBlock.astro";
 import ProjectsSection from "./ProjectsSection.astro";
 import OpenSourceSection from "./OpenSourceSection.astro";
@@ -47,6 +48,7 @@ const terms = getTerms(locale, { resumeUrl: parsedResumeUrl.href });
     <ExperienceSection experience={terms.experience} />
     <OpenSourceSection openSource={terms.openSource} />
     <ProjectsSection projects={terms.projects} />
+    <GuidesSection guides={terms.guides} />
     <BackgroundSection background={terms.background} />
     <ContactSection contact={terms.contact} />
   </main>

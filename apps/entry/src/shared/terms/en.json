@@ -230,6 +230,16 @@
       }
     ]
   },
+  "guides": {
+    "title": "Guides",
+    "description": "I maintain guides that AI agents can use to plan and carry out their work.",
+    "frontend": {
+      "title": "Frontend",
+      "description": "Coding rules for frontend development and component organization",
+      "detailsLabel": "Guide details",
+      "markdownLabel": "Markdown source"
+    }
+  },
   "background": {
     "id": "background",
     "title": "Background",

@@ -142,6 +142,7 @@ function isHomeTerms(value: unknown): value is HomeTerms {
   const experience = field(value, "experience");
   const openSource = field(value, "openSource");
   const projects = field(value, "projects");
+  const guides = field(value, "guides");
   const background = field(value, "background");
   const contact = field(value, "contact");
   const footer = field(value, "footer");
@@ -161,6 +162,13 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     isArrayOf(field(openSource, "contributions"), isOpenSourceContribution) &&
     hasStrings(projects, ["id", "title"]) &&
     isArrayOf(field(projects, "items"), isProject) &&
+    hasStrings(guides, ["title", "description"]) &&
+    hasStrings(field(guides, "frontend"), [
+      "title",
+      "description",
+      "detailsLabel",
+      "markdownLabel",
+    ]) &&
     hasStrings(background, ["id", "title"]) &&
     isArrayOf(field(background, "items"), isBackgroundItem) &&
     hasStrings(contact, ["id", "title"]) &&

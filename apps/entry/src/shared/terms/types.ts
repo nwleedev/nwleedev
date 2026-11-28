@@ -94,6 +94,16 @@ export type HomeTerms = {
     title: string;
     items: readonly Project[];
   };
+  guides: {
+    title: string;
+    description: string;
+    frontend: {
+      title: string;
+      description: string;
+      detailsLabel: string;
+      markdownLabel: string;
+    };
+  };
   background: {
     id: string;
     title: string;

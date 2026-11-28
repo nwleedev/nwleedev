@@ -230,6 +230,16 @@
       }
     ]
   },
+  "guides": {
+    "title": "Guides",
+    "description": "AI가 플랜을 세우고 작업을 진행하는데 사용할 수 있는 가이드를 지속적으로 관리하고 있습니다.",
+    "frontend": {
+      "title": "Frontend",
+      "description": "프론트엔드, 컴포넌트 관리 관련 코드 규칙",
+      "detailsLabel": "상세 페이지",
+      "markdownLabel": "Markdown 원문"
+    }
+  },
   "background": {
     "id": "background",
     "title": "Background",
