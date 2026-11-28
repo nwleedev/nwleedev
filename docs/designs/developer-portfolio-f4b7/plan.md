@@ -43,11 +43,11 @@
 
 ### 42. Frontend 상세 페이지 구성
 
-**상태** 미착수. 40단계의 원문과 41단계의 원문 주소가 필요하다.
+**상태** 진행 중. 40단계의 원문과 41단계의 원문 주소로 HTML을 생성했다. 표시할 문구와 원문 일치는 [상세 페이지의 작성 기준](requirements.md#코드-가이드-원문과-작성-기준)에 따라 확인한다.
 
-- **작업** `/codes/frontend`의 페이지 제목 아래에 [요구사항의 소개 문구](requirements.md#frontend-상세-페이지)를 표시한다. Provider 기반 의존성 주입, `children` 기반 합성과 Compound Components 사용, 네이밍, FSD 순서로 배치한다. 각 주제에서 판단에 필요한 원문을 고르고 적용 조건과 이유가 예시 앞에 오게 배치한다. 제목과 본문, 코드 예시는 기존 단일 칼럼과 글자 체계를 따른다.
+- **작업** `/codes/frontend`의 페이지 제목 아래에 [요구사항의 소개 문구](requirements.md#frontend-상세-페이지)를 표시한다. Provider 기반 의존성 주입, `children` 기반 합성과 Compound Components 사용, 네이밍, FSD 순서로 배치한다. 각 주제에서 판단에 필요한 원문을 고르고 적용 조건과 이유가 예시 앞에 오게 배치한다. 표시할 문구에서 대상, 행동과 적용 조건이 모호한 표현을 검토하고 교정이 필요한 문장만 원문에서 다듬는다. 제목과 본문, 코드 예시는 기존 단일 칼럼과 글자 체계를 따른다.
 - **리서치** 원문과 표시 책임을 분리할 수 있도록 Astro의 Markdown 렌더링과 제목 구조를 확인한다. Provider로 기능 구현을 전달하는 방식과 Context가 적용되는 범위, `children`을 통한 합성과 Compound Components의 상태 공유, 이름이 모듈의 역할을 설명하는 방식, FSD의 계층과 import 규칙을 원문 사례와 대조한다. [Astro Markdown 렌더링](https://docs.astro.build/en/reference/content-loader-reference/#loadercontextrendermarkdown), [React `useContext`](https://react.dev/reference/react/useContext), [React의 `children`](https://react.dev/learn/passing-props-to-a-component#passing-jsx-as-children), [Radix Collapsible](https://www.radix-ui.com/primitives/docs/components/collapsible), [FSD Slices and Segments](https://feature-sliced.design/docs/reference/slices-segments), [FSD Layers](https://feature-sliced.design/docs/reference/layers), [W3C WAI 제목 구조](https://www.w3.org/WAI/tutorials/page-structure/headings/)
-- **통과 기준** 요청한 주소에 직접 접속할 수 있다. 페이지 제목 아래의 소개 문구는 요구사항과 일치하고, 이어지는 네 주제의 제목은 지정된 순서로 표시된다. 의존성 주입 절에서는 Provider가 기능 구현을 전달하는 방식을, FSD 절에서는 모듈 배치와 import 방향을 설명한다. 선택한 규칙 본문과 코드가 원문과 일치하며, 발췌 부분에 포함된 링크와 문서 내 이동이 동작한다. 320px 너비에서도 본문이 잘리거나 페이지 전체가 가로로 넘치지 않는다.
+- **통과 기준** 요청한 주소에 직접 접속할 수 있다. 페이지 제목 아래의 소개 문구는 요구사항과 일치하고, 이어지는 네 주제의 제목은 지정된 순서로 표시된다. 의존성 주입 절에서는 Provider가 기능 구현을 전달하는 방식을, FSD 절에서는 모듈 배치와 import 방향을 설명한다. 선택한 규칙 본문과 코드가 원문과 일치하며, 문장에서 규칙의 대상, 행동과 적용 조건을 구별할 수 있다. 발췌 부분에 포함된 링크와 문서 내 이동이 동작한다. 320px 너비에서도 본문이 잘리거나 페이지 전체가 가로로 넘치지 않는다.
 
 ### 43. 한국어와 영어 홈페이지에 Guides 연결
 
@@ -61,7 +61,7 @@
 
 **상태** 미착수. 39~43단계 결과를 적용한다.
 
-- **작업** `pnpm entry:check`와 `pnpm entry:build`를 실행한다. 39단계와 같은 조건에서 두 홈페이지, 쇼케이스와 두 이전 주소를 비교한다. 두 새 주소의 직접 요청, 상세 페이지의 소개 문구와 주제 순서, 발췌문과 원문의 일치, Markdown 응답의 바이트 일치를 확인한다. 지원 환경에서 320px, 390px, 1440px 너비, 키보드와 터치, 200% 글자 확대와 움직임 감소 설정을 확인한다. 새 링크의 명암비와 포커스 표시도 확인한다.
+- **작업** `pnpm entry:check`와 `pnpm entry:build`를 실행한다. 39단계와 같은 조건에서 두 홈페이지, 쇼케이스와 두 이전 주소를 비교한다. 두 새 주소의 직접 요청, 상세 페이지의 소개 문구와 주제 순서, 발췌문과 원문의 일치, Markdown 응답의 바이트 일치를 확인한다. 상세 페이지에 표시된 문장과 제목을 작성 기준에 대조한다. 지원 환경에서 320px, 390px, 1440px 너비, 키보드와 터치, 200% 글자 확대와 움직임 감소 설정을 확인한다. 새 링크의 명암비와 포커스 표시도 확인한다.
 - **리서치** 구현과 독립적으로 화면과 URL을 대조하는 회귀 검증을 적용한다. 브라우저의 글자 확대와 뷰포트 너비 변경을 각각 확인한다. 기존 이동 주소의 로컬 빌드 결과와 호스팅에서의 응답을 판단할 기준도 확인한다. [Playwright 권장 사항](https://playwright.dev/docs/best-practices#test-user-visible-behavior), [W3C 글자 확대](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html), [W3C Reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html), [Cloudflare HTML 처리](https://developers.cloudflare.com/workers/static-assets/routing/advanced/html-handling/)
 - **통과 기준** 승인된 위치와 주소에 새 내용이 있고, 기존 페이지의 문구, 메타데이터, 탐색 동작과 반응형 배치가 기준과 일치한다. 두 홈페이지에 브라우저 스크립트가 추가되지 않는다. 기존 문제와 새 문제를 구분하고, 실행할 수 없었던 검사는 해당 환경과 제한을 기록한다. 뜻하지 않은 기존 동작 변화가 확인되면 발생시킨 단계로 돌아가 수정한 뒤 관련 검사를 다시 실행한다.
 
