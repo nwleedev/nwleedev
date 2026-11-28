@@ -150,7 +150,7 @@ function isHomeTerms(value: unknown): value is HomeTerms {
 
   return (
     hasStrings(meta, ["title", "description"]) &&
-    isString(field(value, "skipLink")) &&
+    hasStrings(value, ["skipLink", "homeLabel"]) &&
     hasStrings(linkLabels, ["resume", "resumeContext"]) &&
     isString(field(language, "label")) &&
     isLanguageLinks(field(language, "links")) &&
@@ -166,7 +166,6 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     hasStrings(field(guides, "frontend"), [
       "title",
       "description",
-      "detailsLabel",
       "markdownLabel",
     ]) &&
     hasStrings(background, ["id", "title"]) &&
@@ -177,7 +176,6 @@ function isHomeTerms(value: unknown): value is HomeTerms {
     hasStrings(showcase, [
       "title",
       "description",
-      "homeLabel",
       "articleLabel",
       "toggleLabel",
       "changesTitle",
@@ -231,15 +229,15 @@ export function getTerms(locale: Locale, runtimeTerms: RuntimeTerms): HomeTerms 
 
 export function getShowcaseTerms(): Pick<
   HomeTerms,
-  "showcase" | "footer" | "skipLink"
+  "showcase" | "footer" | "skipLink" | "homeLabel"
 > {
-  const { showcase, footer, skipLink } = termsByLocale.ko;
+  const { showcase, footer, skipLink, homeLabel } = termsByLocale.ko;
 
-  return { showcase, footer, skipLink };
+  return { showcase, footer, skipLink, homeLabel };
 }
 
 export function getFrontendGuideTerms() {
-  const { skipLink, footer } = termsByLocale.ko;
+  const { skipLink, footer, homeLabel } = termsByLocale.ko;
 
-  return { ...ko.frontendGuide, footer, skipLink };
+  return { ...ko.frontendGuide, footer, skipLink, homeLabel };
 }

@@ -1,28 +1,23 @@
 ---
 import { getShowcaseTerms } from "@/shared/terms";
-import { BaseLayout, PageFooter, SkipLink } from "@/shared/ui";
-import House from "phosphor-astro/House.astro";
+import { BaseLayout, PageFooter, PageHeading, SkipLink } from "@/shared/ui";
 import { examples } from "../model/article";
 import { groups } from "../model/changes";
 import { sourceParts } from "../model/source";
 import SourceTokens from "./SourceTokens.astro";
 
-const { showcase, footer, skipLink } = getShowcaseTerms();
+const { showcase, footer, skipLink, homeLabel } = getShowcaseTerms();
 const groupedExamples = groups.map((group) => ({
   ...group,
   examples: examples.filter((example) => example.section.groupId === group.id),
 }));
 ---
 
-<BaseLayout locale="ko" title={showcase.title} description={showcase.description}>
+<BaseLayout locale="ko" title={showcase.title} description={showcase.description} wide>
   <SkipLink label={skipLink} />
-  <div class="showcase-page">
   <main id="main-content" class="mx-auto max-w-page px-(--page-gutter)" tabindex="-1" data-showcase>
     <header class="pt-16">
-      <a class="home-link inline-flex size-10 rounded-xl items-center justify-center" href="/" aria-label={showcase.homeLabel}>
-        <House aria-hidden="true" class="size-6" />
-      </a>
-      <h1 class="mt-4 text-display font-semibold text-text-primary">{showcase.title}</h1>
+      <PageHeading title={showcase.title} homeLabel={homeLabel} />
       <p class="mt-4 text-base text-text-secondary">{showcase.description}</p>
     </header>
 
@@ -96,25 +91,9 @@ const groupedExamples = groups.map((group) => ({
     </section>
   </main>
   <PageFooter text={footer.text} topLabel={footer.topLabel} />
-  </div>
 </BaseLayout>
 
 <style>
-  .showcase-page {
-    --container-page: var(--container-showcase);
-  }
-
-  .home-link {
-    color: var(--color-brand-strong);
-  }
-
-  @media (hover: hover) {
-    .home-link:hover {
-      background: var(--color-brand-strong);
-      color: var(--color-surface-default);
-    }
-  }
-
   .change-example {
     overflow-wrap: anywhere;
   }

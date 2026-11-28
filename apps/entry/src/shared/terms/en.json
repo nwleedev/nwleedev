@@ -4,6 +4,7 @@
     "description": "Technical profile of frontend engineer Nowon Lee, focused on information accuracy, document generation progress, interface responsiveness, and service reliability"
   },
   "skipLink": "Skip to main content",
+  "homeLabel": "Go to home",
   "linkLabels": {
     "resume": "Résumé",
     "resumeContext": "Resume"
@@ -236,8 +237,7 @@
     "frontend": {
       "title": "Frontend",
       "description": "Coding rules for frontend development and component organization",
-      "detailsLabel": "Guide details",
-      "markdownLabel": "Markdown source"
+      "markdownLabel": "Frontend Markdown source"
     }
   },
   "background": {
@@ -286,7 +286,6 @@
   "showcase": {
     "title": "Terms",
     "description": "Improve the wording in AI-written documents to make it more natural and easier to understand.",
-    "homeLabel": "Go to home",
     "articleLabel": "Wording improvement example",
     "toggleLabel": "Show all revisions",
     "changesTitle": "Changes and reasons",

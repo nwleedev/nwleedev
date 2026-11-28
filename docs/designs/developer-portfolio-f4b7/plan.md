@@ -49,7 +49,7 @@
 - 검사 41개 파일과 정적 빌드를 통과했다. Chromium에서 소개 문구, 네 주제의 제목 순서, 본문과 코드 및 링크를 원문과 대조했다. 320px에서 가로 넘침 없이 표시되고 키보드로 본문에 이동했다. 코드 예시의 글자와 배경 대비는 4.5:1 이상이다.
 - Wrangler의 정적 HTML 주소 처리에 맞춰 상세 주소의 두 형태를 설정했다. 로컬에서 `/codes/frontend`는 HTTP 200, 끝 슬래시가 있는 주소는 지정 주소로 HTTP 301을 반환했다. [Cloudflare 정적 주소 규칙](https://developers.cloudflare.com/workers/static-assets/redirects/#proxying)
 
-- **작업** `/codes/frontend`의 페이지 제목 아래에 [요구사항의 소개 문구](requirements.md#frontend-상세-페이지)를 표시한다. Provider 기반 의존성 주입, `children` 기반 합성과 Compound Components 사용, 네이밍, FSD 순서로 배치한다. 각 주제에서 판단에 필요한 원문을 고르고 적용 조건과 이유가 예시 앞에 오게 배치한다. 표시할 문구에서 대상, 행동과 적용 조건이 모호한 표현을 검토하고 교정이 필요한 문장만 원문에서 다듬는다. 제목과 본문, 코드 예시는 기존 단일 칼럼과 글자 체계를 따른다.
+- **작업** `/codes/frontend`의 페이지 제목 아래에 [요구사항의 소개 문구](requirements.md#frontend-상세-페이지)를 표시한다. Provider 기반 의존성 주입, Children 기반 합성과 Compound Components 사용, 네이밍, FSD 순서로 배치한다. 각 주제에서 판단에 필요한 원문을 고르고 적용 조건과 이유가 예시 앞에 오게 배치한다. 표시할 문구에서 대상, 행동과 적용 조건이 모호한 표현을 검토하고 교정이 필요한 문장만 원문에서 다듬는다. 제목과 본문, 코드 예시는 기존 단일 칼럼과 글자 체계를 따른다.
 - **리서치** 원문과 표시 책임을 분리할 수 있도록 Astro의 Markdown 렌더링과 제목 구조를 확인한다. Provider로 기능 구현을 전달하는 방식과 Context가 적용되는 범위, `children`을 통한 합성과 Compound Components의 상태 공유, 이름이 모듈의 역할을 설명하는 방식, FSD의 계층과 import 규칙을 원문 사례와 대조한다. [Astro Markdown 렌더링](https://docs.astro.build/en/reference/content-loader-reference/#loadercontextrendermarkdown), [React `useContext`](https://react.dev/reference/react/useContext), [React의 `children`](https://react.dev/learn/passing-props-to-a-component#passing-jsx-as-children), [Radix Collapsible](https://www.radix-ui.com/primitives/docs/components/collapsible), [FSD Slices and Segments](https://feature-sliced.design/docs/reference/slices-segments), [FSD Layers](https://feature-sliced.design/docs/reference/layers), [W3C WAI 제목 구조](https://www.w3.org/WAI/tutorials/page-structure/headings/)
 - **통과 기준** 요청한 주소에 직접 접속할 수 있다. 페이지 제목 아래의 소개 문구는 요구사항과 일치하고, 이어지는 네 주제의 제목은 지정된 순서로 표시된다. 의존성 주입 절에서는 Provider가 기능 구현을 전달하는 방식을, FSD 절에서는 모듈 배치와 import 방향을 설명한다. 선택한 규칙 본문과 코드가 원문과 일치하며, 문장에서 규칙의 대상, 행동과 적용 조건을 구별할 수 있다. 발췌 부분에 포함된 링크와 문서 내 이동이 동작한다. 320px 너비에서도 본문이 잘리거나 페이지 전체가 가로로 넘치지 않는다.
 
@@ -80,6 +80,52 @@
 - 전체 규칙을 읽는 용도에는 `/codes/frontend.md` 주소를 사용한다. 브라우저와 HTTP 요청에서 같은 Markdown 본문을 확인했다.
 - 작업 종류에 따라 관련 규칙을 찾아 적용하고 검증하는 절차가 반복되면 스킬로 구성할 수 있다. 스킬에는 적용 절차를 두고 규칙은 Markdown 원문을 참조한다. [OpenAI 스킬 문서](https://learn.chatgpt.com/docs/build-skills)
 - 여러 가이드에서 주제나 버전별 조회를 제공해야 하면 MCP의 리소스 목록과 URI 조회를 검토한다. 클라이언트별 리소스 지원 범위와 서버 연결 설정을 확인해야 한다. 현재 제공 범위는 Markdown 주소 한 곳으로 충족한다. [MCP 리소스 명세](https://modelcontextprotocol.io/specification/2025-11-25/server/resources), [OpenAI MCP 연결 문서](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
+
+### 45. Frontend 제목과 Markdown 아이콘으로 탐색
+
+**상태** 완료. 두 홈페이지에서 밑줄이 있는 Frontend 제목과 오른쪽의 파란색 Markdown 아이콘으로 연결한다. 아이콘에는 44px 조작 영역과 언어별 이름을 제공한다.
+
+- **작업** [Guides 요구사항](requirements.md#guides)에 따라 두 홈페이지의 공통 Guides 컴포넌트에서 제목을 상세 페이지 링크로 사용한다. 제목과 Markdown 아이콘을 Flex 행에 배치하고 아이콘 링크의 이름은 각 언어의 JSON에서 제공한다.
+- **리서치** 링크의 목적을 보조 기술에서 확인할 수 있게 이름을 제공하고, 제목의 밑줄과 마우스를 올린 상태의 색을 확인한다. [W3C 링크 목적](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html), [W3C 기능 이미지](https://www.w3.org/WAI/tutorials/images/functional/), [Tailwind CSS 정렬](https://tailwindcss.com/docs/justify-content)
+- **통과 기준** 제목과 아이콘이 한 행의 양끝에서 세로 중앙에 맞고 각 주소를 연다. 제목은 기본 상태에서 밑줄이 보이고 마우스를 올리면 글자와 밑줄이 빨간색으로 바뀐다. 아이콘 링크는 두 언어에서 이름과 키보드 포커스를 제공한다.
+- **검증** Entry 검사 42개 파일과 정적 빌드를 통과했다. Chromium에서 두 홈페이지의 320px, 390px, 1440px 화면 배치와 색상, 마우스 및 키보드 이동과 모바일 터치를 확인했다. Wrangler 로컬 환경에서 Markdown 응답이 원문과 바이트 단위로 일치했다.
+
+### 46. 상세 페이지 용어와 첫 주제 제목 수정
+
+**상태** 완료. 문장에서 컴포넌트 배치와 함수 반환을 구체적으로 설명하고 Children 표기를 적용했다. 상세 페이지의 첫 구분선과 위쪽 여백을 제거했다.
+
+- **작업** Provider의 하위 컴포넌트, Context에 전달하는 함수와 Hook이 반환하는 함수를 원문 문장에서 명시한다. 일반 텍스트의 패턴 이름은 Children으로 표기하고 Props 이름과 코드 예시의 `children` 표기를 보존한다. 소개와 첫 주제 사이의 구분선과 그 선에 연결된 위쪽 여백을 제거한다.
+- **리서치** 제목 계층과 섹션 사이의 여백으로 주제를 구별하는 방법을 검토한다. [W3C 제목 구조](https://www.w3.org/WAI/tutorials/page-structure/headings/), [Carbon 여백](https://www.carbondesignsystem.com/building-blocks/foundations/spacing/overview), [GOV.UK 제목](https://design-system.service.gov.uk/styles/headings/)
+- **통과 기준** 상세 페이지의 제목과 발췌문이 작성 기준과 원문에 일치한다. 첫 주제 제목 위에는 구분선과 위쪽 여백이 없으며 홈페이지의 섹션 제목은 기존 표시를 유지한다.
+- **검증** Entry 검사 42개 파일과 정적 빌드를 통과했다. 개발 서버 재시작 후 상세 페이지에서 Children 표기와 첫 구분선 제거를 확인했다. Chromium의 320px 및 1440px 화면에서 가로 넘침이 없었다. 두 홈페이지의 Guides 제목과 상세 페이지 후속 주제에는 기존 구분선이 표시된다. Markdown 응답은 원문과 바이트 단위로 일치하고 코드 블록은 변경 전과 일치한다.
+- **추가 교정** Props 전달에 참여하는 컴포넌트와 전달할 함수, 이름으로 식별할 동작과 도메인 대상, FSD 공개 진입점에서 import할 대상을 명시했다. Entry 검사 43개 파일과 정적 빌드를 통과했다. 개발 서버에서 수정 문장과 Markdown 원문을 확인했고 코드 블록은 변경 전과 일치했다.
+
+### 47. 상세 페이지 주제 제목으로 직접 이동
+
+**상태** 완료. 네 주제 제목을 문서 내 링크로 표시하고 구분선을 제거했다. 제목에 기존 브랜드 강조색을 적용했다.
+
+- **작업** [Frontend 상세 페이지 요구사항](requirements.md#frontend-상세-페이지)에 따라 네 주제 제목을 각 제목 ID로 연결한다. 제목에 기존 브랜드 강조색을 적용하고 마우스를 올렸을 때 밑줄을 표시한다. 네 주제 사이에는 여백을 사용한다.
+- **리서치** 브라우저의 문서 내 링크 동작, 제목 계층과 섹션 여백을 대조한다. [HTML의 문서 내 이동](https://html.spec.whatwg.org/multipage/browsing-the-web.html#scroll-to-the-fragment), [W3C 제목 구조](https://www.w3.org/WAI/tutorials/page-structure/headings/), [GOV.UK 섹션 간격](https://design-system.service.gov.uk/styles/section-break/)
+- **통과 기준** 제목 링크를 선택하면 브라우저가 URL 끝에 제목 ID를 추가하고 해당 제목으로 스크롤한다. 제목의 기본 색상과 마우스를 올렸을 때의 밑줄을 확인한다. 네 제목 위에 구분선이 없고, 홈페이지의 섹션 제목에는 기존 구분선이 표시된다.
+- **검증** Entry 검사 42개 파일과 정적 빌드를 통과했다. Chromium에서 네 링크의 클릭, 특정 제목 주소로 직접 접속, 키보드 포커스와 Enter 이동을 확인했다. 320px 화면에서 주제 간격은 64px, 1440px 화면에서는 96px이었다. 두 홈페이지의 Guides 제목에는 기존 구분선이 표시됐다.
+
+### 48. Frontend와 Terms의 본문 폭과 제목 배치 통일
+
+**상태** 완료. 두 페이지가 공통 60rem 폭과 제목 행을 사용한다. 1440px 화면에서 변경 전 Frontend 최대 너비는 672px, Terms는 960px이었다.
+
+- **작업** [Frontend 상세 페이지](requirements.md#frontend-상세-페이지)와 [Terms 요구사항](../better-terms-showcase-6e2/requirements.md)에 따라 60rem 본문 폭과 홈 아이콘이 있는 제목 행을 두 페이지에서 사용한다.
+- **리서치** 본문 폭을 나타내는 디자인 토큰, Flex 중앙 정렬과 아이콘 링크에 접근 가능한 이름을 제공하는 방식을 확인한다. [Tailwind CSS 최대 너비](https://tailwindcss.com/docs/max-width), [Tailwind CSS 가로 정렬](https://tailwindcss.com/docs/justify-content), [Tailwind CSS 세로 정렬](https://tailwindcss.com/docs/align-items), [W3C 기능 이미지](https://www.w3.org/WAI/tutorials/images/functional/)
+- **통과 기준** 같은 화면 너비에서 두 페이지의 본문과 하단 영역 폭이 일치한다. 홈 아이콘과 제목은 가로 및 세로 중앙에 정렬되며, 아이콘에 포커스를 이동해 Enter를 누르면 홈페이지로 이동한다.
+- **검증** Entry 검사 43개 파일과 정적 빌드를 통과했다. Chromium에서 320px, 390px, 1440px 화면의 두 페이지 본문과 하단 영역 폭이 각각 320px, 390px, 960px로 일치했다. 홈 아이콘과 제목의 중앙 정렬, Tab과 Enter를 사용한 홈페이지 이동, Terms 전환 버튼과 Frontend 주제 링크를 확인했다.
+
+### 49. Frontend와 Terms의 홈 아이콘 오른쪽 배치
+
+**상태** 완료. 두 페이지의 본문과 하단 영역은 최대 너비 60rem을 사용한다. 공통 제목 행에서 제목은 왼쪽에, 홈 아이콘은 오른쪽에 배치했다.
+
+- **작업** 두 페이지에서 60rem 최대 너비와 공통 제목 행을 사용한다. 제목 행에 `justify-content: space-between`과 `align-items: center`를 적용한다.
+- **리서치** 공통 컴포넌트의 합성과 Flex 정렬, 아이콘 링크의 접근 가능한 이름을 확인한다. [Astro 컴포넌트](https://docs.astro.build/en/basics/astro-components/), [Tailwind CSS 가로 정렬](https://tailwindcss.com/docs/justify-content), [Tailwind CSS 세로 정렬](https://tailwindcss.com/docs/align-items), [W3C 기능 이미지](https://www.w3.org/WAI/tutorials/images/functional/)
+- **통과 기준** 두 페이지의 본문과 하단 영역 폭이 일치한다. 홈 아이콘이 제목 오른쪽에 놓이고 두 요소의 세로 중심이 일치한다. 키보드와 마우스로 홈 아이콘을 선택하면 `/`로 이동한다.
+- **검증** Entry 검사 43개 파일과 정적 빌드를 통과했다. Chromium에서 320px, 390px, 1440px 화면의 두 페이지 본문과 하단 영역 폭이 각각 320px, 390px, 960px로 일치했다. 각 화면에서 제목과 홈 아이콘의 좌우 위치 및 세로 중심을 확인했다. 마우스와 키보드로 홈페이지에 이동했고, Terms 전환 버튼과 Frontend 주제 링크도 확인했다.
 
 ## 홈페이지 문구 변경 기록
 

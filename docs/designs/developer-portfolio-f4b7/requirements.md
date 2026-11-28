@@ -138,10 +138,10 @@ React Router와 Outline 기여를 회사 경력과 구분된 외부 확인 자�
 
 ### Frontend
 
-- 항목의 제목은 `Frontend`로 표시한다.
+- 항목 제목 `Frontend`는 `/codes/frontend`로 연결하는 링크로 표시한다. 제목에 밑줄을 표시하고 마우스를 올리면 제목과 밑줄이 브랜드 빨간색으로 바뀐다.
 - 한국어 항목 설명은 “프론트엔드, 컴포넌트 관리 관련 코드 규칙”으로 표시한다.
-- 상세 페이지 링크는 `/codes/frontend`로 연결한다.
-- Markdown 원문 링크는 `/codes/frontend.md`로 연결한다. 이 주소에서 [frontend.md](codes/frontend.md) 전체를 하나의 Markdown 파일로 제공한다.
+- 제목은 왼쪽에, Markdown 원문 아이콘은 오른쪽에 배치한다. 두 요소를 포함하는 Flex 행에 `justify-content: space-between`과 `align-items: center`를 적용한다.
+- 오른쪽의 파란색 Markdown 아이콘은 `/codes/frontend.md`로 연결한다. 아이콘 링크의 이름은 보조 기술에 제공한다. 이 주소에서 [frontend.md](codes/frontend.md) 전체를 하나의 Markdown 파일로 제공한다.
 
 ## Background와 Contact
 
@@ -241,7 +241,7 @@ Drawer, modal, toast, table, tab, filter, search, pagination, carousel, tooltip,
 
 ## 디자인 체계와 제작 순서
 
-현재 Astro와 Tailwind CSS 기반의 한국어 및 영어 정적 페이지가 있다. 이번 배치 변경은 기존 FSD 구성, JSON 문구 관리, 자체 제공 Pretendard와 정적 제공 방식을 유지한다. 모바일 프로필의 네 SVG에 한해 Astro 빌드 시점 컴포넌트인 `phosphor-astro`를 사용하며 UI 컴포넌트 모음과 클라이언트 런타임은 추가하지 않는다.
+현재 Astro와 Tailwind CSS 기반의 한국어 및 영어 정적 페이지가 있다. 이번 배치 변경은 기존 FSD 구성, JSON 문구 관리, 자체 제공 Pretendard와 정적 제공 방식을 유지한다. 모바일 프로필의 네 SVG와 Guides의 Markdown 아이콘은 Astro 빌드 시점 컴포넌트인 `phosphor-astro`를 사용한다. UI 컴포넌트 모음과 클라이언트 런타임은 추가하지 않는다.
 
 저장소 최상위 `DESIGN.md`에는 적용할 시각 규칙과 현재 구현에 반영했는지를 구분해 기록한다. 변경 플랜은 기존 컴포넌트와 타입을 교체 및 제거할 위치를 명시한다. 문서만 바뀐 상태를 화면 구현 완료로 표시하지 않는다.
 
@@ -259,8 +259,9 @@ Drawer, modal, toast, table, tab, filter, search, pagination, carousel, tooltip,
 - 한국어와 영어에서 AI Agent Workflow는 두 문단, Personal Notes Workspace는 다섯 문단으로 표시하며, 같은 목적과 기여 사실을 전달한다. Personal Notes Workspace에서 여러 탭의 편집 내용을 보존한 방법과 확인 범위를 파악할 수 있고, AI Agent Workflow에서 문구 검사와 문맥에 따른 수정의 관계를 이해할 수 있다.
 - Personal Notes Workspace의 제목과 외부 링크 아이콘을 누르면 실제 메모 앱이 열린다. AI Agent Workflow의 저장소와 문구 개선 사례, Personal Notes Workspace의 저장소는 설명 아래에서 열 수 있다. `#projects`에서 Projects로 바로 이동할 수 있다.
 - 한국어와 영어 홈페이지에서 `Projects`, `Guides`, `Background` 순서로 표시된다. `Guides`에는 소개 문구와 `Frontend` 항목 하나가 표시된다.
-- `Frontend` 항목의 두 링크에서 `/codes/frontend` 상세 페이지와 `/codes/frontend.md` Markdown 원문을 각각 열 수 있다.
+- `Frontend` 제목에서 상세 페이지를, 같은 행 오른쪽의 파란색 아이콘에서 Markdown 원문을 열 수 있다. 제목에는 기본 밑줄이 표시되고 마우스를 올리면 글자와 밑줄이 빨간색으로 바뀐다. 두 링크에는 별도 표시용 문구 없이 키보드로 이동할 수 있다.
 - `Frontend` 상세 페이지에 지정된 소개 문구가 표시되고, [Frontend 상세 페이지](#frontend-상세-페이지)에 정한 순서대로 네 주제를 읽을 수 있다. 각 주제는 컴포넌트의 배치와 구성 사례에서 설명한다.
+- Frontend와 Terms 상세 페이지의 본문 폭이 일치한다. 두 페이지에서 홈 아이콘과 제목이 같은 행의 가로 및 세로 중앙에 정렬되고, 아이콘을 선택하면 홈페이지로 이동한다.
 - 상세 페이지 본문은 원문의 서술 방식과 코드 예시를 보존한다. 화면 문구에서 규칙의 대상, 행동과 적용 조건을 구별할 수 있다.
 - 네비게이션 바와 다중 칼럼이 없고, 숫자와 소개 문구를 대형 글자로 강조하지 않는다.
 - Experience와 Open Source 제목 다음에 편집 방식을 설명하는 도입 문구, 첫 항목 구분선과 그 자리를 대신하는 빈 여백이 없다.
@@ -420,12 +421,16 @@ IndexedDB Provider는 서비스 최상위에, 일괄 복사 Provider는 관련 �
 
 > 프론트엔드 프로젝트에서 컴포넌트를 어떻게 조직하고 관리할지에 대해서 지속적으로 리서치 및 규칙화하고 있습니다.
 
+본문과 하단 영역은 [Terms 쇼케이스](../better-terms-showcase-6e2/requirements.md)와 같은 최대 너비 60rem과 좌우 여백을 사용한다. 제목은 왼쪽에, 홈 아이콘은 오른쪽에 배치한다. 두 요소를 포함하는 Flex 행에 `justify-content: space-between`과 `align-items: center`를 적용한다. 아이콘을 선택하면 `/`로 이동한다.
+
 소개 문구 뒤에 다음 순서로 네 주제를 배치한다.
 
 1. **Provider 기반 의존성 주입.** 기능 구현을 Provider를 통해 전달하는 조건과, 기능을 사용하는 컴포넌트가 Context를 읽을 수 있도록 Provider를 배치하는 기준을 설명한다.
-2. **`children` 기반 합성과 Compound Components 사용.** `children`으로 여러 컴포넌트를 조합하는 방법과 하위 컴포넌트들이 UI 상태를 공유할 때 Compound Components를 사용하는 기준을 설명한다.
+2. **Children 기반 합성과 Compound Components 사용.** `children`으로 여러 컴포넌트를 조합하는 방법과 하위 컴포넌트들이 UI 상태를 공유할 때 Compound Components를 사용하는 기준을 설명한다.
 3. **네이밍.** 폴더명, 파일명과 타입명으로 컴포넌트와 모듈의 역할을 식별하는 기준을 설명한다.
 4. **FSD.** FSD 계층에 따라 모듈을 배치하고 모듈 간 import 방향을 판단하는 기준을 설명한다.
+
+네 주제 제목을 각각 같은 페이지의 해당 위치로 연결하는 링크로 표시한다. 제목에는 기존 브랜드 강조색을 사용하고, 제목에 마우스를 올리면 밑줄을 표시한다. 제목 위의 구분선은 제거하고 주제 사이의 여백으로 구분한다.
 
 ### 코드 가이드 원문과 작성 기준
 
@@ -440,6 +445,8 @@ IndexedDB Provider는 서비스 최상위에, 일괄 복사 Provider는 관련 �
 웹에 표시할 항목을 원문에서 선택하고, 화면 구성에 맞춰 항목을 나누거나 재배치할 수 있다. 선택한 규칙의 본문과 코드 예시는 원문을 유지한다.
 
 상세 페이지는 `frontend.md`처럼 코드 예시 앞에 적용 조건과 이유를 설명한다. 규칙의 의미와 서술 방식을 보존한다. 방문자에게 표시하는 본문과 제목에는 일상 표현이나 대상, 행동 또는 적용 조건이 모호한 문구를 사용하지 않는다. 선택한 문구에 교정이 필요하면 원문에서 뜻을 확인해 표현을 다듬고 같은 문구를 화면에 표시한다.
+
+Provider를 설명할 때는 Provider의 하위에 배치하는 컴포넌트, Context에 전달하는 값과 Hook이 반환하는 값을 각각 명시한다. 제목과 일반 본문에서 합성 방식을 가리킬 때는 Children으로 표기한다. React의 Props 이름을 가리키는 인라인 코드와 코드 예시는 `children` 표기를 유지한다.
 
 코드 예시 조사와 작성 기준은 다음과 같다.
 

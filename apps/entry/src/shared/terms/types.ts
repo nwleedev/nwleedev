@@ -64,6 +64,7 @@ export type HomeTerms = {
     description: string;
   };
   skipLink: string;
+  homeLabel: string;
   linkLabels: {
     resume: string;
     resumeContext: string;
@@ -100,7 +101,6 @@ export type HomeTerms = {
     frontend: {
       title: string;
       description: string;
-      detailsLabel: string;
       markdownLabel: string;
     };
   };
@@ -121,7 +121,6 @@ export type HomeTerms = {
   showcase: {
     title: string;
     description: string;
-    homeLabel: string;
     articleLabel: string;
     toggleLabel: string;
     changesTitle: string;

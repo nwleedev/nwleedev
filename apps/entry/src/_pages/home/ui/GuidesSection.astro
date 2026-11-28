@@ -1,6 +1,7 @@
 ---
 import type { HomeTerms } from "@/shared/terms";
 import { SectionHeader } from "@/shared/ui";
+import MarkdownLogo from "phosphor-astro/MarkdownLogo.astro";
 
 interface Props {
   guides: HomeTerms["guides"];
@@ -8,10 +9,6 @@ interface Props {
 
 const { guides } = Astro.props;
 const { frontend } = guides;
-const links = [
-  { href: "/codes/frontend", label: frontend.detailsLabel },
-  { href: "/codes/frontend.md", label: frontend.markdownLabel },
-];
 ---
 
 <section aria-labelledby="guides" class="pb-16 md:pb-24">
@@ -19,15 +16,22 @@ const links = [
   <p class="mt-8 text-base leading-7 text-text-secondary">{guides.description}</p>
   <ul class="mt-8">
     <li>
-      <h3 class="text-item font-semibold text-text-primary">{frontend.title}</h3>
-      <p class="mt-4 text-base leading-7 text-text-secondary">{frontend.description}</p>
-      <div class="mt-4 flex flex-wrap gap-x-6 gap-y-3">
-        {links.map(({ href, label }) => (
-          <a href={href} hreflang="ko" class="inline-flex min-h-6 items-center font-semibold text-brand-strong underline">
-            {label}
+      <div class="flex items-center justify-between gap-4">
+        <h3 class="text-item font-semibold text-text-primary">
+          <a href="/codes/frontend" hreflang="ko" class="block underline decoration-current">
+            {frontend.title}
           </a>
-        ))}
+        </h3>
+        <a
+          href="/codes/frontend.md"
+          hreflang="ko"
+          aria-label={frontend.markdownLabel}
+          class="inline-flex size-11 shrink-0 items-center justify-center"
+        >
+          <MarkdownLogo aria-hidden="true" class="size-6 text-guide-source" />
+        </a>
       </div>
+      <p class="mt-4 text-base leading-7 text-text-secondary">{frontend.description}</p>
     </li>
   </ul>
 </section>

@@ -4,6 +4,7 @@
     "description": "서비스의 정보 정확성, 문서 생성 상태 안내, 화면 반응성과 운영 안정성을 개선해 온 프론트엔드 엔지니어 이노원의 기술 프로필"
   },
   "skipLink": "본문으로 이동",
+  "homeLabel": "홈으로 이동",
   "linkLabels": {
     "resume": "Résumé",
     "resumeContext": "이력서"
@@ -236,8 +237,7 @@
     "frontend": {
       "title": "Frontend",
       "description": "프론트엔드, 컴포넌트 관리 관련 코드 규칙",
-      "detailsLabel": "상세 페이지",
-      "markdownLabel": "Markdown 원문"
+      "markdownLabel": "Frontend Markdown 원문"
     }
   },
   "background": {
@@ -288,7 +288,7 @@
     "description": "프론트엔드 프로젝트에서 컴포넌트를 어떻게 조직하고 관리할지에 대해서 지속적으로 리서치 및 규칙화하고 있습니다.",
     "topics": {
       "provider": "Provider 기반 의존성 주입",
-      "composition": "children 기반 합성과 Compound Components 사용",
+      "composition": "Children 기반 합성과 Compound Components 사용",
       "naming": "네이밍",
       "fsd": "FSD"
     }
@@ -296,7 +296,6 @@
   "showcase": {
     "title": "Terms",
     "description": "AI가 작성한 문서의 표현을 더 자연스럽고 이해하기 쉽게 개선할 수 있습니다.",
-    "homeLabel": "홈으로 이동",
     "articleLabel": "문구 개선 예시",
     "toggleLabel": "전체 수정본 보기",
     "changesTitle": "수정한 부분과 이유",

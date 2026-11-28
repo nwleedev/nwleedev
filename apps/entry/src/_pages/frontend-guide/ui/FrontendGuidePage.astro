@@ -1,9 +1,9 @@
 ---
 import { getCollection, render } from "astro:content";
 import { getFrontendGuideTerms } from "@/shared/terms";
-import { BaseLayout, PageFooter, SectionHeader, SkipLink } from "@/shared/ui";
+import { BaseLayout, PageFooter, PageHeading, SkipLink } from "@/shared/ui";
 
-const { title, description, footer, skipLink } = getFrontendGuideTerms();
+const { title, description, footer, skipLink, homeLabel } = getFrontendGuideTerms();
 const entries = await getCollection("frontendTopics");
 const sections = await Promise.all(
   entries.toSorted((left, right) => left.data.order - right.data.order).map(async (entry) => {
@@ -13,16 +13,18 @@ const sections = await Promise.all(
 );
 ---
 
-<BaseLayout locale="ko" title={title} description={description}>
+<BaseLayout locale="ko" title={title} description={description} wide>
   <SkipLink label={skipLink} />
   <main id="main-content" class="mx-auto max-w-page px-(--page-gutter)" tabindex="-1">
     <header class="pb-16 pt-16">
-      <h1 class="text-display font-semibold">{title}</h1>
+      <PageHeading title={title} homeLabel={homeLabel} />
       <p class="mt-4 text-text-secondary">{description}</p>
     </header>
     {sections.map(({ id, title, Content }) => (
       <section aria-labelledby={id} class="pb-16 md:pb-24">
-        <SectionHeader id={id} title={title} />
+        <h2 id={id} class="text-section font-semibold">
+          <a href={`#${id}`} class="topic-link">{title}</a>
+        </h2>
         <div class="excerpt mt-8 space-y-4 text-text-secondary">
           <Content />
         </div>
@@ -33,6 +35,15 @@ const sections = await Promise.all(
 </BaseLayout>
 
 <style>
+  .topic-link {
+    color: var(--color-brand-strong);
+  }
+
+  .topic-link:hover,
+  .topic-link:focus-visible {
+    text-decoration-line: underline;
+  }
+
   .excerpt :global(h3) {
     margin-block-start: 2rem;
     color: var(--color-text-primary);

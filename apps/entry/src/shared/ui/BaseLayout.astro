@@ -5,9 +5,10 @@ interface Props {
   locale: "ko" | "en";
   title: string;
   description: string;
+  wide?: boolean;
 }
 
-const { locale, title, description } = Astro.props;
+const { locale, title, description, wide = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -25,7 +26,7 @@ const { locale, title, description } = Astro.props;
     />
     <title>{title}</title>
   </head>
-  <body id="top">
+  <body id="top" class:list={{ "article-page": wide }}>
     <slot />
   </body>
 </html>

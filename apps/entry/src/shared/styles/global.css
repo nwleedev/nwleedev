@@ -16,6 +16,7 @@
   --color-brand-hover: #b4233c;
   --color-brand-subtle: #fff1f3;
   --color-brand-subtle-strong: #fde4e8;
+  --color-guide-source: #1d4ed8;
   --color-surface-default: #ffffff;
   --color-surface-subtle: #f7f7f8;
   --color-text-primary: #18181b;
@@ -36,7 +37,7 @@
   --text-lead--line-height: 1.75;
 
   --container-page: 42rem;
-  --container-showcase: 60rem;
+  --container-article: 60rem;
 }
 
 :root {
@@ -57,6 +58,10 @@ body {
   background: var(--color-surface-default);
   font-size: 1rem;
   line-height: 1.75;
+}
+
+.article-page {
+  --container-page: var(--container-article);
 }
 
 *,
