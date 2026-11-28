@@ -505,7 +505,7 @@ WebKit의 나머지 실패 세 건은 `temps/notes-webkit-u27`을 사용한 재�
 
 # Guides와 Frontend 상세 페이지
 
-[Guides 실행 플랜](docs/designs/developer-portfolio-f4b7/plan.md#guides와-frontend-상세-페이지-추가)의 39단계에 변경 전 화면과 Wrangler 로컬 응답을 기록했다. 40단계의 [네이밍 상세 지침](docs/designs/developer-portfolio-f4b7/codes/frontend.md#네이밍)도 작성했다.
+[Guides 실행 플랜](docs/designs/developer-portfolio-f4b7/plan.md#guides와-frontend-상세-페이지-추가)의 39~44단계가 완료됐다. 두 홈페이지에서 상세 페이지와 Markdown 원문으로 연결된다. 상세 페이지 본문과 Markdown 응답의 기준 문서는 [frontend.md](docs/designs/developer-portfolio-f4b7/codes/frontend.md)다. 배포 전 확인에 사용할 로컬 검증 결과는 [44단계](docs/designs/developer-portfolio-f4b7/plan.md#44-변경-전후-통합-확인)에 기록했다.
 
 # 이미지와 메모를 배치하는 캔버스
 

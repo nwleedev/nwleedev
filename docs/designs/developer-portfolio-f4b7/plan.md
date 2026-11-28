@@ -65,11 +65,21 @@
 
 ### 44. 변경 전후 통합 확인
 
-**상태** 미착수. 39~43단계 결과를 적용한다.
+**상태** 완료. 검사 42개 파일과 정적 빌드를 통과했다. 두 홈페이지의 기존 본문, 링크, 메타데이터와 Footer는 39단계의 결과와 일치했다. 이전 쇼케이스의 키보드 전환과 네 리다이렉트의 HTTP 301 응답도 유지됐다.
+
+- Astro 미리보기와 Wrangler 로컬 환경에서 상세 페이지와 Markdown 주소가 HTTP 200을 반환했다. 생성 파일과 두 응답의 Markdown 본문은 원문과 바이트 단위로 일치했다. 상세 페이지의 네 주제 순서와 소개 문구를 확인하고 선택한 문단과 코드 예시를 원문과 대조했다.
+- Chromium에서 두 홈페이지와 상세 페이지의 320px, 390px, 1440px 너비와 브라우저 확대 200%, 움직임 감소를 확인했다. Firefox와 WebKit에서도 세 화면을 320px로 표시했다. 두 홈페이지의 새 링크는 키보드와 터치로 열렸고 포커스 표시와 명암비는 요구사항을 충족했다.
+- 최종 검토에서 동일한 본문 바로가기, 영역 제목과 문구 접근 로직의 재사용을 확인했다. 상세 주소와 Markdown 주소에는 각각 HTML 렌더링과 원문 응답을 유지했다. 기존 `/favicon.ico` 404가 재현됐으며 운영 환경의 응답은 이번 로컬 검증과 구분한다.
 
 - **작업** `pnpm entry:check`와 `pnpm entry:build`를 실행한다. 39단계와 같은 조건에서 두 홈페이지, 쇼케이스와 두 이전 주소를 비교한다. 두 새 주소의 직접 요청, 상세 페이지의 소개 문구와 주제 순서, 발췌문과 원문의 일치, Markdown 응답의 바이트 일치를 확인한다. 상세 페이지에 표시된 문장과 제목을 작성 기준에 대조한다. 지원 환경에서 320px, 390px, 1440px 너비, 키보드와 터치, 200% 글자 확대와 움직임 감소 설정을 확인한다. 새 링크의 명암비와 포커스 표시도 확인한다.
 - **리서치** 구현과 독립적으로 화면과 URL을 대조하는 회귀 검증을 적용한다. 브라우저의 글자 확대와 뷰포트 너비 변경을 각각 확인한다. 기존 이동 주소의 로컬 빌드 결과와 호스팅에서의 응답을 판단할 기준도 확인한다. [Playwright 권장 사항](https://playwright.dev/docs/best-practices#test-user-visible-behavior), [W3C 글자 확대](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html), [W3C Reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html), [Cloudflare HTML 처리](https://developers.cloudflare.com/workers/static-assets/routing/advanced/html-handling/)
 - **통과 기준** 승인된 위치와 주소에 새 내용이 있고, 기존 페이지의 문구, 메타데이터, 탐색 동작과 반응형 배치가 기준과 일치한다. 두 홈페이지에 브라우저 스크립트가 추가되지 않는다. 기존 문제와 새 문제를 구분하고, 실행할 수 없었던 검사는 해당 환경과 제한을 기록한다. 뜻하지 않은 기존 동작 변화가 확인되면 발생시킨 단계로 돌아가 수정한 뒤 관련 검사를 다시 실행한다.
+
+#### 에이전트가 가이드를 읽는 방식
+
+- 전체 규칙을 읽는 용도에는 `/codes/frontend.md` 주소를 사용한다. 브라우저와 HTTP 요청에서 같은 Markdown 본문을 확인했다.
+- 작업 종류에 따라 관련 규칙을 찾아 적용하고 검증하는 절차가 반복되면 스킬로 구성할 수 있다. 스킬에는 적용 절차를 두고 규칙은 Markdown 원문을 참조한다. [OpenAI 스킬 문서](https://learn.chatgpt.com/docs/build-skills)
+- 여러 가이드에서 주제나 버전별 조회를 제공해야 하면 MCP의 리소스 목록과 URI 조회를 검토한다. 클라이언트별 리소스 지원 범위와 서버 연결 설정을 확인해야 한다. 현재 제공 범위는 Markdown 주소 한 곳으로 충족한다. [MCP 리소스 명세](https://modelcontextprotocol.io/specification/2025-11-25/server/resources), [OpenAI MCP 연결 문서](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
 
 ## 홈페이지 문구 변경 기록
 
