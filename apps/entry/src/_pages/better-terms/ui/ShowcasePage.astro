@@ -1,6 +1,6 @@
 ---
 import { getShowcaseTerms } from "@/shared/terms";
-import { BaseLayout, PageFooter } from "@/shared/ui";
+import { BaseLayout, PageFooter, SkipLink } from "@/shared/ui";
 import House from "phosphor-astro/House.astro";
 import { examples } from "../model/article";
 import { groups } from "../model/changes";
@@ -15,12 +15,7 @@ const groupedExamples = groups.map((group) => ({
 ---
 
 <BaseLayout locale="ko" title={showcase.title} description={showcase.description}>
-  <a
-    href="#main-content"
-    class="fixed start-4 top-4 z-50 -translate-y-24 bg-text-primary px-4 py-2 text-surface-default focus:translate-y-0"
-  >
-    {skipLink}
-  </a>
+  <SkipLink label={skipLink} />
   <div class="showcase-page">
   <main id="main-content" class="mx-auto max-w-page px-(--page-gutter)" tabindex="-1" data-showcase>
     <header class="pt-16">

@@ -1,0 +1,65 @@
+---
+import { getCollection, render } from "astro:content";
+import { getFrontendGuideTerms } from "@/shared/terms";
+import { BaseLayout, PageFooter, SectionHeader, SkipLink } from "@/shared/ui";
+
+const { title, description, footer, skipLink } = getFrontendGuideTerms();
+const entries = await getCollection("frontendTopics");
+const sections = await Promise.all(
+  entries.toSorted((left, right) => left.data.order - right.data.order).map(async (entry) => {
+    const { Content } = await render(entry);
+    return { id: entry.id, title: entry.data.title, Content };
+  }),
+);
+---
+
+<BaseLayout locale="ko" title={title} description={description}>
+  <SkipLink label={skipLink} />
+  <main id="main-content" class="mx-auto max-w-page px-(--page-gutter)" tabindex="-1">
+    <header class="pb-16 pt-16">
+      <h1 class="text-display font-semibold">{title}</h1>
+      <p class="mt-4 text-text-secondary">{description}</p>
+    </header>
+    {sections.map(({ id, title, Content }) => (
+      <section aria-labelledby={id} class="pb-16 md:pb-24">
+        <SectionHeader id={id} title={title} />
+        <div class="excerpt mt-8 space-y-4 text-text-secondary">
+          <Content />
+        </div>
+      </section>
+    ))}
+  </main>
+  <PageFooter text={footer.text} topLabel={footer.topLabel} />
+</BaseLayout>
+
+<style>
+  .excerpt :global(h3) {
+    margin-block-start: 2rem;
+    color: var(--color-text-primary);
+    font-size: var(--text-item);
+    font-weight: 600;
+    line-height: var(--text-item--line-height);
+  }
+
+  .excerpt :global(a) {
+    color: var(--color-brand-strong);
+    text-decoration-line: underline;
+  }
+
+  .excerpt :global(a:hover) {
+    color: var(--color-brand-hover);
+  }
+
+  .excerpt :global(code) {
+    overflow-wrap: anywhere;
+  }
+
+  .excerpt :global(pre) {
+    border: 1px solid var(--color-border-default);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    font-size: var(--text-sm);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+</style>

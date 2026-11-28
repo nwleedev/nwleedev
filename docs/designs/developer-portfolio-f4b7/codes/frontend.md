@@ -118,7 +118,7 @@
 
 #### 화면에서 독립적으로 바뀌는 편집 기능
 
-제목의 검증 규칙이나 저장 실패 후 다시 제출하는 동작을 변경하면 편집 모듈을 수정한다. 편집 대상 선택이나 저장 후 이동처럼 화면에 따라 달라지는 동작은 화면의 Pages 슬라이스에서 정한다. 첫 화면에서만 사용하고 코드가 짧아도 편집 규칙이 화면과 독립적으로 바뀐다면 Features에 배치할 수 있다. 여러 화면에서 같은 동작을 사용하는 경우에도 Features 배치를 검토한다. [FSD 계층 지침](https://feature-sliced.design/docs/reference/layers)
+제목의 검증 규칙이나 저장 실패 후 다시 제출하는 동작을 변경하면 편집 모듈을 수정한다. 편집 대상 선택이나 저장 후 이동처럼 화면에 따라 달라지는 동작은 화면의 Pages 슬라이스에서 정한다. 한 화면에서만 사용하는 편집 기능도 검증이나 재시도 규칙이 화면 구성과 독립적으로 바뀐다면 Features에 배치할 수 있다. 여러 화면에서 같은 동작을 사용하는 경우에도 Features 배치를 검토한다. [FSD 계층 지침](https://feature-sliced.design/docs/reference/layers)
 
 아래 구조에서 `app`은 라우트와 애플리케이션 전체 설정을 조합한다. `pages`는 화면을 구성하고, `features`는 제목 편집을 담당한다. 여러 동작에서 공통으로 사용하는 프로젝트 자료와 도메인 규칙은 `entities`에 배치할 수 있다. 프로젝트 규칙에 의존하지 않는 공용 UI와 통신 기반은 `shared`에 둔다. 큰 화면 블록을 독립적으로 배치하거나 재사용할 경우 `widgets`를 사용한다. 예시의 제목 편집은 화면에서 바로 조합하므로 Widgets 계층 없이 구성한다.
 
@@ -335,15 +335,15 @@ import { TitleForm } from "./title-form";
 
 ### 의존성 주입과 제어 역전
 
-하나의 모듈을 여러 컴포넌트에서 재사용하기 위해서 Provider를 사용할 수 있다.
+여러 컴포넌트가 같은 기능 구현을 사용할 때 Provider로 구현을 제공할 수 있다.
 
 #### 필요한 모듈을 제공하는 Context
 
-Props로 모듈을 제공하는 방식은 단순하다. 하지만 필요한 컴포넌트에 모듈을 제공하기 위해서 여러 컴포넌트에 Props을 정의해야 한다. 그리고 모듈에 변경사항이 발생하면 모듈을 Props로 제공받고 전달하는 모든 컴포넌트를 전부 수정해야 한다.
+기능 구현을 여러 컴포넌트를 거쳐 Props로 전달하면 중간 컴포넌트도 전달할 Props를 선언해야 한다. 전달하는 Props의 이름이나 타입을 바꾸면 중간 컴포넌트의 선언과 전달 코드도 수정해야 한다.
 
-모듈을 사용해야 하는 컴포넌트만 모듈을 제공할 수 있도록 Provider 기반의 의존성 주입을 사용할 수 있다.
+Provider로 기능을 사용하는 컴포넌트가 포함된 영역을 감싼다. 기능을 사용하는 컴포넌트는 Context에서 구현을 얻는다.
 
-모든 서비스를 노출하는 전역 `useServices()`, `useDependencies()`, `container.get()` 및 유사한 Service Locator를 만들지 않는다.
+모든 서비스의 구현을 한곳에서 조회하는 전역 `useServices()`, `useDependencies()`, `container.get()`과 같은 Service Locator를 사용하지 않는다.
 
 ```tsx
 // context.tsx
@@ -376,11 +376,11 @@ export function useUpdateUserName() {
 
 #### 구현체를 연결하는 Provider
 
-모듈을 제공하는 Provider는 구현체를 props로 받지 않는다.
+모듈을 제공하는 운영용 Provider에서 사용할 구현을 선택한다.
 
-`http.ts`는 브라우저에서 사용 가능한 함수만 정의해야 한다.
+`http.ts`에는 브라우저에서 호출할 수 있는 HTTP 함수만 정의한다.
 
-운영용 `ProfileProvider`가 프로필 조회와 이름 변경에 사용할 HTTP 함수를 연결한다. 상위 화면은 필요한 영역을 Provider로 감싸고, 하위 컴포넌트는 `useGetUser`나 `useUpdateUserName`으로 필요한 함수를 얻는다. `ProfileActions`에 정의한 입력과 반환 형식을 유지하면 HTTP 구현을 교체해도 기존 기능별 Hook을 같은 방식으로 사용할 수 있다.
+운영용 `ProfileProvider`가 프로필 조회와 이름 변경에 사용할 HTTP 함수를 연결한다. 상위 화면은 프로필 조회나 이름 변경을 사용하는 영역을 Provider로 감싼다. 하위 컴포넌트는 `useGetUser`나 `useUpdateUserName`으로 필요한 함수를 얻는다. `ProfileActions`에 정의한 입력과 반환 형식을 유지하면 HTTP 구현을 교체해도 기존 기능별 Hook을 같은 방식으로 사용할 수 있다.
 
 ```tsx
 // provider.tsx
@@ -721,9 +721,9 @@ function ProductResults({ products }: { products: readonly Product[] }) {
 />
 ```
 
-#### Children 기반 레이아웃 합성
+#### `children` 기반 레이아웃 합성
 
-Children 기반 합성을 활용하여 레이아웃이 서비스 기능에 대해서 몰라도 작동할 수 있도록 한다.
+레이아웃이 하위 요소의 배치만 담당할 때는 호출부가 `children`으로 각 영역의 콘텐츠를 전달한다. 레이아웃을 수정하지 않고도 헤더, 본문과 사이드바에 배치할 기능 컴포넌트를 교체할 수 있다.
 
 ```tsx
 <PageLayout>
@@ -743,9 +743,9 @@ Children 기반 합성을 활용하여 레이아웃이 서비스 기능에 대�
 
 #### 열림 상태를 공유하는 Compound Components
 
-레이아웃처럼 받은 요소를 배치하는 일만 맡으면 `children`으로 충분하다. 서로 다른 하위 요소가 같은 UI 상태로 동작하고 화면에서 배치를 구성해야 할 때는 Compound Components를 사용할 수 있다. 아래 예시는 버튼과 내용 영역의 배치를 호출하는 화면에 맡긴다. 루트의 열림 상태와 패널 ID를 React Context로 공유하므로 버튼의 `aria-expanded`와 내용 영역의 `hidden`을 같은 상태에서 결정할 수 있다.
+레이아웃처럼 하위 요소의 배치만 담당하면 `children`으로 충분하다. 여러 하위 요소가 UI 상태를 공유하고 호출부에서 각 요소의 위치를 정해야 할 때는 Compound Components를 사용할 수 있다. 아래 예시에서 호출부는 버튼과 내용 영역의 배치를 정한다. 루트 컴포넌트가 열림 상태와 패널 ID를 React Context로 제공하고, 하위 요소는 이 값으로 버튼의 `aria-expanded`와 내용 영역의 `hidden`을 결정한다.
 
-Render Props로 같은 구성을 작성하면 호출하는 화면이 콜백 매개변수에서 상태와 동작을 얻고, 각 요소에 연결하는 방법까지 알아야 한다. 하위 요소가 그 연결을 책임질 수 있다면 화면에서는 JSX로 하위 요소를 조합한다. 외부 라이브러리의 기존 API가 렌더 콜백으로 상태를 제공하는 경우에는 해당 API의 사용 조건을 따른다.
+Render Props로 같은 구성을 작성하면 호출부가 콜백에서 받은 상태와 이벤트 처리 함수를 각 요소에 연결한다. 하위 컴포넌트가 상태와 이벤트 처리 함수를 연결할 수 있다면 호출부에서는 JSX로 하위 요소를 조합한다. 외부 라이브러리가 렌더 콜백으로 상태를 제공하는 경우에는 라이브러리 API의 사용 조건을 따른다.
 
 ```tsx
 import { createContext, useContext, useId, useState } from "react";

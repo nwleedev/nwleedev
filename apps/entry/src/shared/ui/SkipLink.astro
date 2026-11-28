@@ -1,0 +1,14 @@
+---
+interface Props {
+  label: string;
+}
+
+const { label } = Astro.props;
+---
+
+<a
+  href="#main-content"
+  class="fixed start-4 top-4 z-50 -translate-y-24 bg-text-primary px-4 py-2 text-surface-default focus:translate-y-0"
+>
+  {label}
+</a>

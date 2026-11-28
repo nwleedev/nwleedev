@@ -229,3 +229,9 @@ export function getShowcaseTerms(): Pick<
 
   return { showcase, footer, skipLink };
 }
+
+export function getFrontendGuideTerms() {
+  const { skipLink, footer } = termsByLocale.ko;
+
+  return { ...ko.frontendGuide, footer, skipLink };
+}

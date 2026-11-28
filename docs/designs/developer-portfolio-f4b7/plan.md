@@ -43,7 +43,11 @@
 
 ### 42. Frontend 상세 페이지 구성
 
-**상태** 진행 중. 40단계의 원문과 41단계의 원문 주소로 HTML을 생성했다. 표시할 문구와 원문 일치는 [상세 페이지의 작성 기준](requirements.md#코드-가이드-원문과-작성-기준)에 따라 확인한다.
+**상태** 완료. Astro 콘텐츠 로더가 원문에서 네 주제를 선택하고 빌드에서 렌더링한다. [작성 기준](requirements.md#코드-가이드-원문과-작성-기준)에 따라 원문의 표현을 다듬었고 코드 예시는 그대로 유지했다.
+
+- 검토에서 홈, 쇼케이스와 상세 페이지가 같은 본문 바로가기를 사용하도록 통합했다. 라우트와 화면을 분리하고 원문을 한 곳에서 읽는 동작을 유지했다.
+- 검사 41개 파일과 정적 빌드를 통과했다. Chromium에서 소개 문구, 네 주제의 제목 순서, 본문과 코드 및 링크를 원문과 대조했다. 320px에서 가로 넘침 없이 표시되고 키보드로 본문에 이동했다. 코드 예시의 글자와 배경 대비는 4.5:1 이상이다.
+- Wrangler의 정적 HTML 주소 처리에 맞춰 상세 주소의 두 형태를 설정했다. 로컬에서 `/codes/frontend`는 HTTP 200, 끝 슬래시가 있는 주소는 지정 주소로 HTTP 301을 반환했다. [Cloudflare 정적 주소 규칙](https://developers.cloudflare.com/workers/static-assets/redirects/#proxying)
 
 - **작업** `/codes/frontend`의 페이지 제목 아래에 [요구사항의 소개 문구](requirements.md#frontend-상세-페이지)를 표시한다. Provider 기반 의존성 주입, `children` 기반 합성과 Compound Components 사용, 네이밍, FSD 순서로 배치한다. 각 주제에서 판단에 필요한 원문을 고르고 적용 조건과 이유가 예시 앞에 오게 배치한다. 표시할 문구에서 대상, 행동과 적용 조건이 모호한 표현을 검토하고 교정이 필요한 문장만 원문에서 다듬는다. 제목과 본문, 코드 예시는 기존 단일 칼럼과 글자 체계를 따른다.
 - **리서치** 원문과 표시 책임을 분리할 수 있도록 Astro의 Markdown 렌더링과 제목 구조를 확인한다. Provider로 기능 구현을 전달하는 방식과 Context가 적용되는 범위, `children`을 통한 합성과 Compound Components의 상태 공유, 이름이 모듈의 역할을 설명하는 방식, FSD의 계층과 import 규칙을 원문 사례와 대조한다. [Astro Markdown 렌더링](https://docs.astro.build/en/reference/content-loader-reference/#loadercontextrendermarkdown), [React `useContext`](https://react.dev/reference/react/useContext), [React의 `children`](https://react.dev/learn/passing-props-to-a-component#passing-jsx-as-children), [Radix Collapsible](https://www.radix-ui.com/primitives/docs/components/collapsible), [FSD Slices and Segments](https://feature-sliced.design/docs/reference/slices-segments), [FSD Layers](https://feature-sliced.design/docs/reference/layers), [W3C WAI 제목 구조](https://www.w3.org/WAI/tutorials/page-structure/headings/)

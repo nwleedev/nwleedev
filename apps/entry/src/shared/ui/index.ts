@@ -3,3 +3,4 @@ export { default as PageFooter } from "./PageFooter.astro";
 export { default as ExternalTextLink } from "./ExternalTextLink.astro";
 export { default as MetadataLine } from "./MetadataLine.astro";
 export { default as SectionHeader } from "./SectionHeader.astro";
+export { default as SkipLink } from "./SkipLink.astro";
