@@ -505,7 +505,9 @@ WebKit의 나머지 실패 세 건은 `temps/notes-webkit-u27`을 사용한 재�
 
 # Guides와 Frontend 상세 페이지
 
-[Guides 실행 플랜](docs/designs/developer-portfolio-f4b7/plan.md#guides와-frontend-상세-페이지-추가)의 39~49단계가 완료됐다. 두 홈페이지의 Frontend 제목은 상세 페이지로, 옆의 Markdown 아이콘은 원문으로 연결된다. 상세 페이지의 네 주제 제목은 각 위치로 이동하는 링크다. 상세 페이지와 Terms는 최대 너비 60rem과 홈 아이콘이 오른쪽에 있는 제목 행을 공유한다. 상세 페이지 본문과 Markdown 응답의 기준 문서는 [frontend.md](docs/designs/developer-portfolio-f4b7/codes/frontend.md)이며 화면 검증은 플랜의 44~49단계에 기록했다.
+[Guides 실행 플랜](docs/designs/developer-portfolio-f4b7/plan.md#guides와-frontend-상세-페이지-추가)의 39~49단계가 완료됐다. 두 홈페이지에서 Frontend 제목을 선택하면 상세 페이지로 이동하고 옆의 Markdown 아이콘을 선택하면 원문을 연다. 상세 페이지의 네 주제 제목을 선택하면 각각 같은 페이지의 제목 위치로 이동한다. Frontend와 Terms는 본문 최대 너비 60rem을 적용하고 제목 오른쪽에 홈 아이콘을 배치한다.
+
+상세 페이지의 발췌문과 Markdown 응답은 [frontend.md](docs/designs/developer-portfolio-f4b7/codes/frontend.md)를 기준으로 생성한다. 화면 검증 결과는 플랜의 44~49단계에 기록했다.
 
 # 이미지와 메모를 배치하는 캔버스
 

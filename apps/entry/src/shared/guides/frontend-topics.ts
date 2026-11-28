@@ -6,7 +6,7 @@ const topics = [
   {
     id: "composition",
     excerpts: [
-      ["#### Children 기반 레이아웃 합성", "### Props과 Provider 기반 의존성 주입 활용"],
+      ["#### Children 기반 레이아웃 합성", "### Props와 Provider 기반 의존성 주입"],
     ],
   },
   {

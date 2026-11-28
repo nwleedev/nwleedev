@@ -20,22 +20,22 @@
 - Wrangler의 로컬 정적 자산 환경에서 두 이전 주소 모두 끝 슬래시 유무에 관계없이 `/projects/terms`로 HTTP 301을 반환했다. 배포 응답은 확인 대상 환경과 구분한다.
 
 - **작업** 현재 사용 중인 도구 버전과 Entry 명령을 확인한다. `pnpm entry:check`와 `pnpm entry:build`를 실행하고, 동일한 HTTPS 이력서 테스트 주소를 변경 후 검사에도 사용한다. `/`와 `/en/`의 생성 HTML과 브라우저에서 기존 동작을 확인한다. `/projects/terms`와 이전 주소인 `/better-terms`, `/projects/use-better-terms`의 동작도 기록한다.
-- **리서치** Astro의 정적 빌드와 미리보기에서 확인할 수 있는 범위를 조사한다. 현재 동작을 기준으로 삼는 변경 전후 비교에서는 사용자가 읽는 콘텐츠와 실제 탐색 결과를 관찰한다. [Astro CLI](https://docs.astro.build/en/reference/cli-reference/), [Playwright 권장 사항](https://playwright.dev/docs/best-practices#test-user-visible-behavior)
+- **리서치** Astro의 정적 빌드와 미리보기에서 확인할 수 있는 범위를 조사한다. 변경 전후 비교에서는 화면에 표시되는 문구와 사용자가 링크를 선택했을 때의 목적지를 대조한다. [Astro CLI](https://docs.astro.build/en/reference/cli-reference/), [Playwright 권장 사항](https://playwright.dev/docs/best-practices#test-user-visible-behavior)
 - **통과 기준** 기존 페이지별 문구, 제목 순서, 링크 목적지와 키보드 이동을 비교할 수 있다. 320px, 390px, 1440px 너비에서 페이지 배치와 모바일 프로필 링크를 기록하고, 글자 확대와 움직임 감소 설정의 확인 여부를 표시한다. 이전 주소의 생성 결과와 실제 HTTP 응답은 환경을 명시해 기록한다. 빌드 실패로 비교 기준을 확보하지 못하면 환경이나 설정의 원인을 확인한 뒤 다음 단계로 진행한다.
 
 ### 40. 폴더명, 파일명과 타입명 상세 지침 작성
 
 **상태** 완료. 화면 변경과 독립적으로 네이밍 상세 절을 작성했다. TypeScript 6.0.3의 엄격 모드로 TypeScript와 JSX 예시 네 블록을 검사했다. 규칙 목록과 앞선 상세 절의 본문은 변경 전과 일치한다.
 
-- **작업** [frontend.md](codes/frontend.md)의 이름 짓기 상세 지침을 채운다. 상위 디렉터리가 제공하는 맥락, 파일이 수행하는 역할, 모듈 밖에서 타입 이름만 읽을 때 필요한 정보를 기준으로 사례를 고른다. 적용 조건과 이유를 코드 앞에 작성한다. 목록과 상세 절에 나열된 용어의 범위가 다른 부분은 기존 규칙이 요구하는 행동을 대조하고, 금지 범위의 변경이 필요하면 해당 항목을 보류한다.
-- **리서치** FSD의 Slice와 Segment 이름, 모듈 내부를 숨기는 Public API, React의 Props 타입 이름을 대조한다. 외부 저장소의 최근 유지보수 이력과 여러 코드 사례를 확인한다. 각 이름의 선언 위치와 사용 위치를 함께 보고, 디렉터리 문맥으로 충분한 경우와 모듈 밖에서도 역할을 알 수 있어야 하는 경우를 구분한다. [FSD Slices and Segments](https://feature-sliced.design/docs/reference/slices-segments), [FSD Public API](https://feature-sliced.design/docs/reference/public-api), [React TypeScript 안내](https://react.dev/learn/typescript), [Adobe React Aria Disclosure](https://github.com/adobe/react-spectrum/blob/b55427c9a59a0c8dae04ff68bb6d1ee4cf08e181/packages/react-aria-components/src/Disclosure.tsx), [Radix Collapsible](https://github.com/radix-ui/primitives/blob/6d5838b754ced22597b874aea58e4c28592abbeb/packages/react/collapsible/src/collapsible.tsx)
+- **작업** [frontend.md](codes/frontend.md)의 이름 짓기 상세 지침을 채운다. 상위 디렉터리가 제공하는 맥락, 파일이 수행하는 역할, 다른 모듈에서 타입 이름으로 선언의 대상을 식별하는 데 필요한 정보를 기준으로 사례를 고른다. 적용 조건과 이유를 코드 앞에 작성한다. 목록과 상세 절에 나열된 용어의 범위가 다른 부분은 기존 규칙이 요구하는 행동을 대조하고, 금지 범위의 변경이 필요하면 해당 항목을 보류한다.
+- **리서치** FSD의 Slice와 Segment 이름, 모듈 내부를 숨기는 Public API, React의 Props 타입 이름을 대조한다. 외부 저장소의 최근 유지보수 이력과 여러 코드 사례를 확인한다. 각 이름의 선언과 사용 위치를 대조한다. 디렉터리 이름으로 역할을 식별할 수 있는 경우와 다른 모듈의 호출부에서도 역할을 식별해야 하는 경우를 구분한다. [FSD Slices and Segments](https://feature-sliced.design/docs/reference/slices-segments), [FSD Public API](https://feature-sliced.design/docs/reference/public-api), [React TypeScript 안내](https://react.dev/learn/typescript), [Adobe React Aria Disclosure](https://github.com/adobe/react-spectrum/blob/b55427c9a59a0c8dae04ff68bb6d1ee4cf08e181/packages/react-aria-components/src/Disclosure.tsx), [Radix Collapsible](https://github.com/radix-ui/primitives/blob/6d5838b754ced22597b874aea58e4c28592abbeb/packages/react/collapsible/src/collapsible.tsx)
 - **통과 기준** 폴더명, 파일명과 타입명 각각에 대해 중복을 판단할 조건과 예시의 이유를 확인할 수 있다. 상위 디렉터리에서 정보를 얻는 이름과 외부에서 직접 사용하는 이름의 판단 기준이 드러난다. 이름 짓기 절의 빈 부분을 채우고, 규칙 목록과 다른 상세 절은 그대로 유지한다.
 
 ### 41. Markdown 원문 주소 제공
 
-**상태** 완료. Astro 정적 엔드포인트가 Vite `?raw`로 읽은 원문을 제공한다. 같은 원문을 상세 페이지에서 사용할 수 있게 Shared 진입점으로 내보냈다. 별도 원문 사본이나 서버 런타임이 필요하지 않다. [Vite 원문 가져오기](https://vite.dev/guide/assets.html#importing-asset-as-string)
+**상태** 완료. Astro 정적 엔드포인트는 Vite `?raw`로 불러온 Markdown 원문을 제공한다. Shared 진입점은 상세 페이지와 원문 응답에 사용할 Markdown을 내보낸다. 별도 원문 사본이나 서버 런타임이 필요하지 않다. [Vite 원문 가져오기](https://vite.dev/guide/assets.html#importing-asset-as-string)
 
-- 검토에서 원문을 읽는 부분이 한 곳에 있고 라우트가 Shared만 참조하는 것을 확인했다. 검사 35개 파일과 정적 빌드를 통과했다. 생성 파일, Astro 미리보기 HTTP 200과 Wrangler 로컬 HTTP 200의 본문이 원문과 바이트 단위로 일치했다. 응답 유형은 각각 `text/markdown`과 `text/markdown; charset=utf-8`이다.
+- Markdown을 불러오는 선언은 Shared 진입점 한 곳에 있으며 원문 라우트는 이 진입점을 참조한다. 검사 35개 파일과 정적 빌드를 통과했다. 생성 파일, Astro 미리보기 HTTP 200과 Wrangler 로컬 HTTP 200의 본문이 원문과 바이트 단위로 일치했다. 응답 유형은 각각 `text/markdown`과 `text/markdown; charset=utf-8`이다.
 
 - **작업** `apps/entry`에서 전체 원문을 `/codes/frontend.md`로 제공한다. 상세 페이지에 사용할 문서와 이 주소의 파일은 저장소의 같은 원문에서 준비한다. Entry의 현재 빌드와 정적 호스팅에서 원문에 접근할 수 있는지 확인한다.
 - **리서치** 원문을 한 곳에서 관리하는 구성으로 Astro의 정적 파일 엔드포인트와 정적 자산 제공 방식을 비교한다. 문서가 Entry 패키지 밖에 있다는 점, 빌드 결과와 Cloudflare 응답에서 Markdown 형식이 어떻게 지정되는지 확인해 방식을 정한다. [Astro 정적 파일 엔드포인트](https://docs.astro.build/en/guides/endpoints/#static-file-endpoints), [Cloudflare Static Assets 응답 헤더](https://developers.cloudflare.com/workers/static-assets/headers/)
@@ -45,7 +45,7 @@
 
 **상태** 완료. Astro 콘텐츠 로더가 원문에서 네 주제를 선택하고 빌드에서 렌더링한다. [작성 기준](requirements.md#코드-가이드-원문과-작성-기준)에 따라 원문의 표현을 다듬었고 코드 예시는 그대로 유지했다.
 
-- 검토에서 홈, 쇼케이스와 상세 페이지가 같은 본문 바로가기를 사용하도록 통합했다. 라우트와 화면을 분리하고 원문을 한 곳에서 읽는 동작을 유지했다.
+- 홈페이지, 쇼케이스와 Frontend 상세 페이지에서 공통 본문 바로가기를 사용하도록 통합했다. 라우트 선언과 화면 컴포넌트를 분리했고, Markdown 원문은 Shared 진입점에서 불러온다.
 - 검사 41개 파일과 정적 빌드를 통과했다. Chromium에서 소개 문구, 네 주제의 제목 순서, 본문과 코드 및 링크를 원문과 대조했다. 320px에서 가로 넘침 없이 표시되고 키보드로 본문에 이동했다. 코드 예시의 글자와 배경 대비는 4.5:1 이상이다.
 - Wrangler의 정적 HTML 주소 처리에 맞춰 상세 주소의 두 형태를 설정했다. 로컬에서 `/codes/frontend`는 HTTP 200, 끝 슬래시가 있는 주소는 지정 주소로 HTTP 301을 반환했다. [Cloudflare 정적 주소 규칙](https://developers.cloudflare.com/workers/static-assets/redirects/#proxying)
 
@@ -75,26 +75,26 @@
 - **리서치** 구현과 독립적으로 화면과 URL을 대조하는 회귀 검증을 적용한다. 브라우저의 글자 확대와 뷰포트 너비 변경을 각각 확인한다. 기존 이동 주소의 로컬 빌드 결과와 호스팅에서의 응답을 판단할 기준도 확인한다. [Playwright 권장 사항](https://playwright.dev/docs/best-practices#test-user-visible-behavior), [W3C 글자 확대](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html), [W3C Reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html), [Cloudflare HTML 처리](https://developers.cloudflare.com/workers/static-assets/routing/advanced/html-handling/)
 - **통과 기준** 승인된 위치와 주소에 새 내용이 있고, 기존 페이지의 문구, 메타데이터, 탐색 동작과 반응형 배치가 기준과 일치한다. 두 홈페이지에 브라우저 스크립트가 추가되지 않는다. 기존 문제와 새 문제를 구분하고, 실행할 수 없었던 검사는 해당 환경과 제한을 기록한다. 뜻하지 않은 기존 동작 변화가 확인되면 발생시킨 단계로 돌아가 수정한 뒤 관련 검사를 다시 실행한다.
 
-#### 에이전트가 가이드를 읽는 방식
+#### 에이전트가 가이드를 파악하는 방식
 
-- 전체 규칙을 읽는 용도에는 `/codes/frontend.md` 주소를 사용한다. 브라우저와 HTTP 요청에서 같은 Markdown 본문을 확인했다.
+- 에이전트는 `/codes/frontend.md`에서 전체 규칙을 확인한다. 브라우저에서 연 문서와 HTTP 요청으로 받은 Markdown 본문이 일치했다.
 - 작업 종류에 따라 관련 규칙을 찾아 적용하고 검증하는 절차가 반복되면 스킬로 구성할 수 있다. 스킬에는 적용 절차를 두고 규칙은 Markdown 원문을 참조한다. [OpenAI 스킬 문서](https://learn.chatgpt.com/docs/build-skills)
 - 여러 가이드에서 주제나 버전별 조회를 제공해야 하면 MCP의 리소스 목록과 URI 조회를 검토한다. 클라이언트별 리소스 지원 범위와 서버 연결 설정을 확인해야 한다. 현재 제공 범위는 Markdown 주소 한 곳으로 충족한다. [MCP 리소스 명세](https://modelcontextprotocol.io/specification/2025-11-25/server/resources), [OpenAI MCP 연결 문서](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)
 
 ### 45. Frontend 제목과 Markdown 아이콘으로 탐색
 
-**상태** 완료. 두 홈페이지에서 밑줄이 있는 Frontend 제목과 오른쪽의 파란색 Markdown 아이콘으로 연결한다. 아이콘에는 44px 조작 영역과 언어별 이름을 제공한다.
+**상태** 완료. 두 홈페이지의 Frontend 제목은 상세 페이지로 이동하며, 오른쪽 파란색 Markdown 아이콘은 원문을 연다. 아이콘 링크에는 44px 조작 영역과 언어별 접근 가능한 이름을 제공한다.
 
 - **작업** [Guides 요구사항](requirements.md#guides)에 따라 두 홈페이지의 공통 Guides 컴포넌트에서 제목을 상세 페이지 링크로 사용한다. 제목과 Markdown 아이콘을 Flex 행에 배치하고 아이콘 링크의 이름은 각 언어의 JSON에서 제공한다.
 - **리서치** 링크의 목적을 보조 기술에서 확인할 수 있게 이름을 제공하고, 제목의 밑줄과 마우스를 올린 상태의 색을 확인한다. [W3C 링크 목적](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html), [W3C 기능 이미지](https://www.w3.org/WAI/tutorials/images/functional/), [Tailwind CSS 정렬](https://tailwindcss.com/docs/justify-content)
-- **통과 기준** 제목과 아이콘이 한 행의 양끝에서 세로 중앙에 맞고 각 주소를 연다. 제목은 기본 상태에서 밑줄이 보이고 마우스를 올리면 글자와 밑줄이 빨간색으로 바뀐다. 아이콘 링크는 두 언어에서 이름과 키보드 포커스를 제공한다.
+- **통과 기준** 제목과 아이콘은 한 행의 양끝에 배치되고 세로 중앙에 정렬된다. 제목 링크는 상세 페이지를, 아이콘 링크는 Markdown 원문을 연다. 제목은 기본 상태에서 밑줄이 보이고 마우스를 올리면 글자와 밑줄이 빨간색으로 바뀐다. 아이콘 링크는 두 언어에서 이름과 키보드 포커스를 제공한다.
 - **검증** Entry 검사 42개 파일과 정적 빌드를 통과했다. Chromium에서 두 홈페이지의 320px, 390px, 1440px 화면 배치와 색상, 마우스 및 키보드 이동과 모바일 터치를 확인했다. Wrangler 로컬 환경에서 Markdown 응답이 원문과 바이트 단위로 일치했다.
 
 ### 46. 상세 페이지 용어와 첫 주제 제목 수정
 
 **상태** 완료. 문장에서 컴포넌트 배치와 함수 반환을 구체적으로 설명하고 Children 표기를 적용했다. 상세 페이지의 첫 구분선과 위쪽 여백을 제거했다.
 
-- **작업** Provider의 하위 컴포넌트, Context에 전달하는 함수와 Hook이 반환하는 함수를 원문 문장에서 명시한다. 일반 텍스트의 패턴 이름은 Children으로 표기하고 Props 이름과 코드 예시의 `children` 표기를 보존한다. 소개와 첫 주제 사이의 구분선과 그 선에 연결된 위쪽 여백을 제거한다.
+- **작업** Provider의 하위 컴포넌트, Context에 전달하는 함수와 Hook이 반환하는 함수를 원문 문장에서 명시한다. 일반 텍스트의 패턴 이름은 Children으로 표기하고 Props 이름과 코드 예시의 `children` 표기를 보존한다. 소개와 첫 주제 사이의 구분선 및 구분선을 위해 확보한 위쪽 여백을 제거한다.
 - **리서치** 제목 계층과 섹션 사이의 여백으로 주제를 구별하는 방법을 검토한다. [W3C 제목 구조](https://www.w3.org/WAI/tutorials/page-structure/headings/), [Carbon 여백](https://www.carbondesignsystem.com/building-blocks/foundations/spacing/overview), [GOV.UK 제목](https://design-system.service.gov.uk/styles/headings/)
 - **통과 기준** 상세 페이지의 제목과 발췌문이 작성 기준과 원문에 일치한다. 첫 주제 제목 위에는 구분선과 위쪽 여백이 없으며 홈페이지의 섹션 제목은 기존 표시를 유지한다.
 - **검증** Entry 검사 42개 파일과 정적 빌드를 통과했다. 개발 서버 재시작 후 상세 페이지에서 Children 표기와 첫 구분선 제거를 확인했다. Chromium의 320px 및 1440px 화면에서 가로 넘침이 없었다. 두 홈페이지의 Guides 제목과 상세 페이지 후속 주제에는 기존 구분선이 표시된다. Markdown 응답은 원문과 바이트 단위로 일치하고 코드 블록은 변경 전과 일치한다.
@@ -104,9 +104,9 @@
 
 **상태** 완료. 네 주제 제목을 문서 내 링크로 표시하고 구분선을 제거했다. 제목에 기존 브랜드 강조색을 적용했다.
 
-- **작업** [Frontend 상세 페이지 요구사항](requirements.md#frontend-상세-페이지)에 따라 네 주제 제목을 각 제목 ID로 연결한다. 제목에 기존 브랜드 강조색을 적용하고 마우스를 올렸을 때 밑줄을 표시한다. 네 주제 사이에는 여백을 사용한다.
+- **작업** [Frontend 상세 페이지 요구사항](requirements.md#frontend-상세-페이지)에 따라 네 주제 제목을 각 제목 ID로 이동하는 링크로 표시한다. 제목에 기존 브랜드 강조색을 적용하고 마우스를 올렸을 때 밑줄을 표시한다. 네 주제 사이에는 여백을 사용한다.
 - **리서치** 브라우저의 문서 내 링크 동작, 제목 계층과 섹션 여백을 대조한다. [HTML의 문서 내 이동](https://html.spec.whatwg.org/multipage/browsing-the-web.html#scroll-to-the-fragment), [W3C 제목 구조](https://www.w3.org/WAI/tutorials/page-structure/headings/), [GOV.UK 섹션 간격](https://design-system.service.gov.uk/styles/section-break/)
-- **통과 기준** 제목 링크를 선택하면 브라우저가 URL 끝에 제목 ID를 추가하고 해당 제목으로 스크롤한다. 제목의 기본 색상과 마우스를 올렸을 때의 밑줄을 확인한다. 네 제목 위에 구분선이 없고, 홈페이지의 섹션 제목에는 기존 구분선이 표시된다.
+- **통과 기준** 제목 링크를 선택하면 브라우저가 URL에 선택한 제목 ID를 프래그먼트로 추가하고 그 제목으로 스크롤한다. 제목의 기본 색상과 마우스를 올렸을 때의 밑줄을 확인한다. 네 제목 위에 구분선이 없고, 홈페이지의 섹션 제목에는 기존 구분선이 표시된다.
 - **검증** Entry 검사 42개 파일과 정적 빌드를 통과했다. Chromium에서 네 링크의 클릭, 특정 제목 주소로 직접 접속, 키보드 포커스와 Enter 이동을 확인했다. 320px 화면에서 주제 간격은 64px, 1440px 화면에서는 96px이었다. 두 홈페이지의 Guides 제목에는 기존 구분선이 표시됐다.
 
 ### 48. Frontend와 Terms의 본문 폭과 제목 배치 통일
@@ -115,7 +115,7 @@
 
 - **작업** [Frontend 상세 페이지](requirements.md#frontend-상세-페이지)와 [Terms 요구사항](../better-terms-showcase-6e2/requirements.md)에 따라 60rem 본문 폭과 홈 아이콘이 있는 제목 행을 두 페이지에서 사용한다.
 - **리서치** 본문 폭을 나타내는 디자인 토큰, Flex 중앙 정렬과 아이콘 링크에 접근 가능한 이름을 제공하는 방식을 확인한다. [Tailwind CSS 최대 너비](https://tailwindcss.com/docs/max-width), [Tailwind CSS 가로 정렬](https://tailwindcss.com/docs/justify-content), [Tailwind CSS 세로 정렬](https://tailwindcss.com/docs/align-items), [W3C 기능 이미지](https://www.w3.org/WAI/tutorials/images/functional/)
-- **통과 기준** 같은 화면 너비에서 두 페이지의 본문과 하단 영역 폭이 일치한다. 홈 아이콘과 제목은 가로 및 세로 중앙에 정렬되며, 아이콘에 포커스를 이동해 Enter를 누르면 홈페이지로 이동한다.
+- **통과 기준** 같은 화면 너비에서 두 페이지의 본문과 하단 영역 폭이 일치한다. 제목은 행의 왼쪽에, 홈 아이콘은 오른쪽에 배치한다. 두 요소의 세로 중심을 정렬하며, 아이콘에 포커스를 둔 상태에서 Enter를 누르면 홈페이지로 이동한다.
 - **검증** Entry 검사 43개 파일과 정적 빌드를 통과했다. Chromium에서 320px, 390px, 1440px 화면의 두 페이지 본문과 하단 영역 폭이 각각 320px, 390px, 960px로 일치했다. 홈 아이콘과 제목의 중앙 정렬, Tab과 Enter를 사용한 홈페이지 이동, Terms 전환 버튼과 Frontend 주제 링크를 확인했다.
 
 ### 49. Frontend와 Terms의 홈 아이콘 오른쪽 배치
@@ -163,7 +163,7 @@
 **상태** `ko.json`과 `en.json`에 최신 회사 기여 여섯 건을 원고 순서로 반영했다. REST API와 SSE 차트 항목을 제거하고 문서 초안 설명과 대시보드 전송량 수치를 반영했다. 생성 HTML과 화면 확인은 38단계에 기록했다.
 
 - [인공지능팩토리 원고](requirements.md#인공지능팩토리) 순서대로 두 JSON의 회사 기여를 맞춘다. 실행 이력 상세 화면의 렌더링 지연, 외부 서비스 페이지 모듈, 도커 이미지 실행 요청 및 실행 구조, 문서 초안과 생성 정보, 문서 생성 상태 조회, 대시보드 전송 효율 순이다.
-- REST API와 SSE를 연동한 차트 항목은 최신 기여 원고에서 빠졌다. 두 JSON의 기여 목록에서도 제거하고, 수정된 문서 초안 설명을 반영한다. HWPX 도입 위험은 원고에서 확인한 설명만 사용한다. 대시보드 전송 효율을 마지막 기여로 추가하고 본문에 비교 수치를 적는다. 회사 소개는 최신 원고에 있는 전송량 감소 설명을 유지한다.
+- REST API와 SSE를 연동한 차트 항목은 최신 기여 원고에서 빠졌다. 두 JSON의 기여 목록에서도 제거하고, 수정된 문서 초안 설명을 반영한다. HWPX 도입 위험은 원고에서 확인한 설명만 사용한다. 대시보드 전송 효율을 마지막 기여로 추가하고 본문에 변경 전후 전송량을 명시한다. 회사 소개는 최신 원고에 있는 전송량 감소 설명을 유지한다.
 - 한국어와 영어 화면에 여섯 건이 같은 순서로 표시되고 세 지표의 단위와 조건이 일치하면 통과한다. 렌더링 지연은 동일 응답으로 적용 전후 각각 세 차례 측정한 약 360 ms에서 50 ms 이하, 문서 생성 상세 API 조회는 문서 한 건당 150~200회에서 30회, 대시보드 전송량은 10분 동안 96.5 MB에서 41 KB다. [완료 기준](requirements.md#완료-기준)
 
 ### 37. 오픈소스와 지정 프로젝트 문구 갱신
@@ -502,7 +502,7 @@ Background는 제목과 첫 항목 사이가 32px이며 첫 항목의 위쪽 구
 적용 기준은 [Projects](requirements.md#projects), [한 페이지의 정보 순서](requirements.md#한-페이지의-정보-순서)와 [글과 언어 관리](requirements.md#글과-언어-관리)다. [배치 조사](references/project-links-and-paragraphs.md)에는 실제 서비스 세 곳의 배치 비교, 제목 링크의 접근성 조건과 연결할 자료를 정리했다. Notes 제목에는 외부 링크 아이콘을 표시하고, 앱 링크를 설명 아래에 반복하지 않는다. AI Agent Workflow와 Offline Translation Web App의 제목은 일반 제목으로 유지한다.
 
 - 수정: `requirements.md`, `decisions/project-availability.md`, `references/homepage-copy.md`와 `references/project-links-and-paragraphs.md`.
-- 확인: 제목 변경과 링크 목적이 문서마다 일치하고, 기존 설명의 목적과 기여를 문단을 나눈 뒤에도 그대로 읽을 수 있는지 확인한다.
+- 확인: 제목 변경과 링크 목적이 문서마다 일치하고, 문단을 나눈 뒤에도 기존 설명의 목적과 기여 내용이 유지되는지 확인한다.
 - 다음 시작: 단위 23에서 제목과 문단 표시를 준비한 뒤 단위 24에서 정해진 자료를 연결한다.
 
 ### 23. 프로젝트 문구와 여러 문단 표시
@@ -533,7 +533,7 @@ AI Agent Workflow의 설명 아래에는 Docs System 저장소와 기존 문구 
 
 ### 25. 두 언어 화면과 링크 확인
 
-상태: 완료. `pnpm entry:check`는 오류, 경고와 안내 없이 통과했고 `pnpm entry:build`는 한국어와 영어 정적 페이지를 생성했다. 두 언어에서 Projects 제목, `#projects` 직접 이동과 프로젝트마다 두 문단이 표시되는 것을 확인했다. 저장소 두 곳, 메모 앱과 기존 한국어 사례 페이지도 링크를 눌러 열었다.
+상태: 완료. `pnpm entry:check`는 오류, 경고와 안내 없이 통과했고 `pnpm entry:build`는 한국어와 영어 정적 페이지를 생성했다. 두 언어에서 Projects 제목, `#projects` 직접 이동과 프로젝트마다 두 문단이 표시되는 것을 확인했다. 저장소 두 곳, 메모 앱과 기존 한국어 사례 페이지 링크의 목적지도 확인했다.
 
 320px, 390px, 768px와 1440px에서 페이지의 가로 넘침이 없었으며, 문단 사이는 16px이었다. Notes 제목과 아이콘은 한 링크이고 아이콘은 마지막 단어와 같은 줄에 있었다. 자료 링크는 28px 높이, 제목 링크는 24px 높이였다. 두 언어의 Tab 이동 순서와 2px 포커스 표시, 프로젝트를 구분하는 접근 가능한 이름도 확인했다. 새 브라우저 스크립트는 없다.
 
@@ -559,7 +559,7 @@ AI Agent Workflow의 설명 아래에는 Docs System 저장소와 기존 문구 
 - 추가: `references/profile-content-evidence.md`. 메모 앱의 반복 입력 문제, 작업 사본, 템플릿과 기기별 사용을 기존 평가 및 현재 코드와 대조하고 공식 문서 비교를 기록한다. 새 애플리케이션 코드는 없다.
 - 수정 및 통합: `requirements.md`, `decisions/featured-cases.md`, `decisions/project-availability.md`, `references/homepage-copy.md`와 이 플랜에 필요한 사실을 각 문서의 역할에 맞춰 반영한다. 기존 메모 앱 항목의 소개를 보강하며 중복 항목을 만들지 않는다.
 - 제거: 현재 기준과 충돌하는 네 기여 제한, 이전 화면 정지 제목과 조회 수치의 현행 적용 지시. 과거 구현 완료 기록과 이전 자료 자체는 보존한다. 파일 삭제는 없다.
-- 완료 근거: 문서의 현재 수치와 다섯 기여 선정이 일치하고, 초안의 메모 앱 설명에서 불편, 선택과 사용상의 이점을 읽을 수 있다. 문서의 필수 정보, 링크와 표현은 마지막 문서 검토 한 번에서 확인한다. TDD와 테스트 코드 작성은 적용하지 않는다.
+- 완료 근거: 문서의 현재 수치와 다섯 기여 선정이 일치하고, 메모 앱 초안에서 기존 사용의 불편, 선택한 방식과 사용자에게 어떤 이점이 생기는지 파악할 수 있다. 문서의 필수 정보, 링크와 표현은 마지막 문서 검토 한 번에서 확인한다. TDD와 테스트 코드 작성은 적용하지 않는다.
 
 ### 27. 화면 반응성과 문서 생성 조회 수치 갱신
 
@@ -607,7 +607,7 @@ AI Agent Workflow의 설명 아래에는 Docs System 저장소와 기존 문구 
 - 수정 및 추가: 두 JSON의 AI Agent Workflow `paragraphs`에 요구사항, 조사, 결정과 계획을 구분하는 목적, 여러 저장소 적용, Unicode 정규화와 변경 파일 및 지정 파일과 표준 입력 검사를 반영한다. 언어별로 같은 사실을 전달하되 문장을 기계적으로 옮기지 않는다.
 - 제거: 새 설명과 중복되는 추상적인 작업 진행 및 검사 소개 문장을 교체한다. 효과를 측정한 것처럼 표현하거나 검사기가 문서를 자동으로 수정한다고 쓰지 않는다. 기존 링크는 제거하지 않는다.
 - 통합: 기존 프로젝트 항목과 `ProjectsSection.astro`의 문단 배열 표시를 사용한다. 검사기 코드, CLI 실행 예시, 기능별 카드, 번역 라이브러리와 새 JSON 필드를 추가하지 않는다.
-- 완료 근거: 작업 규칙의 목적과 검사기의 구체적인 기능을 구분해 읽을 수 있고, 저장소 및 문구 개선 사례 링크와 기간 및 기술 정보가 유지된다. 내용 대조는 단위 32에 포함하며 TDD와 새 테스트는 적용하지 않는다.
+- 완료 근거: 작업 규칙의 목적과 검사기가 검사하는 항목을 구별할 수 있고, 저장소 및 문구 개선 사례 링크와 기간 및 기술 정보가 유지된다. 내용 대조는 단위 32에 포함하며 TDD와 새 테스트는 적용하지 않는다.
 
 ### 31. Personal Notes Workspace 소개를 사용 목적과 판단 중심으로 보강
 
