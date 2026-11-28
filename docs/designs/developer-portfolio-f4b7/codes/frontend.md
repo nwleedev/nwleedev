@@ -2685,14 +2685,80 @@ test.each([
 
 ### 네이밍
 
-`<공란: 간략한 설명>`
+폴더명, 파일명과 타입명은 이름을 사용하는 곳에서 대상과 역할을 구별할 수 있도록 정한다. 상위 디렉터리나 같은 파일에서 알 수 있는 단어는 대상을 구별하는 데 필요할 때만 이름에 남긴다.
 
-#### 폴더명, 파일명과 타입명 구성
+#### 슬라이스가 맡는 기능을 나타내는 폴더명
 
-폴더명, 파일명, 타입명 등은 상위 디렉터리에서 파악할 수 있는 컨텍스트를 불필요하게 반복하지 않는다.
+`features`와 `entities`는 FSD 계층을 나타낸다. 각 슬라이스에는 그 슬라이스가 담당하는 기능이나 대상을 이름에 적는다. `features` 아래의 `change-delivery-address-feature`에서 `feature`는 상위 디렉터리의 정보를 반복한다. `change-delivery-address`와 `remove-delivery-address`는 같은 배송지를 다루면서도 사용자가 할 수 있는 두 가지 동작을 구별한다.
 
-이름에 Adapter, Port, Entities, View, Controller와 같은 개념 용어를 그대로 사용하지 않는다.
+```text
+features/
+  change-delivery-address/
+  remove-delivery-address/
+entities/
+  delivery-address/
+```
 
-`<공란: 이유>`
+#### 슬라이스 안에서 역할을 구별하는 파일명
 
-`<공란: 코드 예시>`
+`Feature`, `Entities`, `View`, `Controller`, `Adapter`, `Port`와 같은 분류 용어를 파일이나 폴더의 이름에 그대로 붙이지 않는다. 배송지 변경 슬라이스의 `ui`에 변경 폼이 하나라면 `form.tsx`로 그 파일을 찾을 수 있다. `api/update.ts`와 `api/check-deliverability.ts`는 각각 주소 변경과 배송 가능 여부 확인을 맡는 파일이다. `delivery-address-controller.ts`라는 이름만으로는 어느 요청을 처리하는지 알 수 없다.
+
+```text
+features/
+  change-delivery-address/
+    ui/
+      form.tsx
+      summary.tsx
+    api/
+      update.ts
+      check-deliverability.ts
+```
+
+#### 한 컴포넌트에서만 사용하는 Props 타입
+
+`ui/summary.tsx`의 `AddressSummary`만 사용하는 Props 타입은 같은 파일에서 `Props`로 정의할 수 있다. 타입을 사용하는 함수 선언에서 어느 컴포넌트의 입력인지 확인할 수 있기 때문이다. 같은 파일에 입력 타입이 여러 개라면 각 입력을 받는 컴포넌트나 역할을 타입 이름에 드러낸다.
+
+```tsx
+type Props = {
+  postalCode: string;
+  streetAddress: string;
+};
+
+export function AddressSummary({ postalCode, streetAddress }: Props) {
+  return (
+    <p>
+      {postalCode} {streetAddress}
+    </p>
+  );
+}
+```
+
+#### 다른 슬라이스에서 사용하는 타입 이름
+
+다른 슬라이스에서 타입을 사용해야 할 때는 import 문 밖에서도 그 타입이 가리키는 대상을 구별할 수 있게 이름을 정한다. `entities/delivery-address`가 내보내는 `DeliveryAddress`를 배송지 변경 슬라이스에서 사용하면, 같은 파일에서 청구지 주소를 함께 다뤄도 각 타입의 용도를 이름으로 구별할 수 있다. 이 타입은 사용하는 슬라이스에서 내부 파일 위치를 알 필요가 없도록 공개 진입점에서 내보낸다.
+
+`entities/delivery-address/model/address.ts`
+
+```ts
+export type DeliveryAddress = {
+  postalCode: string;
+  streetAddress: string;
+};
+```
+
+`entities/delivery-address/index.ts`
+
+```ts
+export type { DeliveryAddress } from "./model/address";
+```
+
+`features/change-delivery-address/model/change-request.ts`
+
+```ts
+import type { DeliveryAddress } from "@/entities/delivery-address";
+
+export type ChangeRequest = {
+  orderId: string;
+  nextAddress: DeliveryAddress;
+};
+```

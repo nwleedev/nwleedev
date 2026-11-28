@@ -1,5 +1,70 @@
 # 단일 칼럼 개발자 소개 웹사이트 변경 플랜
 
+`apps/entry`의 두 홈페이지에 Guides를 추가한다. `/codes/frontend`는 소개 문구와 함께 컴포넌트와 모듈의 배치 및 조합 기준을 네 주제로 설명하고, `/codes/frontend.md`는 Markdown 원문 전체를 제공한다. 기존 홈페이지 동작을 기록한 뒤 가이드 주소와 Guides 영역을 추가한다.
+
+## Guides와 Frontend 상세 페이지 추가
+
+**요구사항 기준** [Guides](requirements.md#guides)와 [한 페이지의 정보 순서](requirements.md#한-페이지의-정보-순서)는 홈페이지의 배치와 링크를 정한다. [Frontend 상세 페이지](requirements.md#frontend-상세-페이지)와 [코드 가이드 원문과 작성 기준](requirements.md#코드-가이드-원문과-작성-기준)은 제공할 내용과 원문 사용 방식을 정한다. [글과 언어 관리](requirements.md#글과-언어-관리), [접근성](requirements.md#접근성)과 [완료 기준](requirements.md#완료-기준)은 화면 확인에 적용한다. 커밋 전에는 검토한 작업본을 기준으로 삼는다.
+
+**수정 범위** [frontend.md](codes/frontend.md)의 이름 짓기 상세 지침과 `apps/entry`의 두 가이드 주소, 두 홈페이지의 Guides 영역을 대상으로 한다. 상세 페이지는 별도 목차 없이 소개 문구와 네 주제를 한 칼럼에 표시한다. `/codes` 목록 페이지와 MCP 또는 스킬로 가이드를 제공하는 방안은 [가이드 확장](requirements.md#가이드-확장)에서 후속으로 검토한다. [디자인 체계](../../../DESIGN.md)와 [Astro, FSD와 Tailwind CSS 개발 지침](../../dev/frontend/astro-fsd-tailwind.md)을 적용한다.
+
+**기존 동작 기준** 소개와 프로젝트의 문구와 순서, 페이지 메타데이터, 언어 전환, 프로필과 이력서 링크, 본문 바로가기, 프로젝트 앵커, 쇼케이스와 이전 주소에서의 이동을 유지한다. 두 홈페이지는 브라우저 스크립트 없이 동작한다. 변경 전부터 확인되는 문제는 재현 조건을 기록하고, 변경 후에 새로 나타난 문제는 발생시킨 변경 단계에서 해결한다.
+
+**진행 기준** 각 단계에서 작업 전에 관련 공식 문서의 동작 조건과 현재 기술 버전을 대조한다. 적용할 설계 패턴과 선택 이유, 확인한 결과를 해당 단계에 기록한다. 한 작업 단위의 검토는 한 번 진행하고, 오류를 수정하면 해당 검사를 다시 실행한다. 기존 기능을 바꿔야 하거나 적용할 규칙의 의미를 확정할 수 없는 경우에는 영향을 받는 단계에서 멈춘다. 테스트 코드를 먼저 쓰는 방식이 필요한 단위는 현재 계획에서 확인되지 않았다. 패키지의 기존 검사와 관찰 가능한 결과로 검증한다.
+
+### 39. 변경 전 홈페이지와 쇼케이스 동작 기록
+
+**상태** 완료. Entry 검사 33개 파일과 정적 빌드를 통과했다. 두 언어 홈페이지와 쇼케이스에서 본문과 메타데이터, 링크 목적지, 본문 바로가기, 언어 전환, 프로젝트 앵커와 쇼케이스 키보드 전환을 확인했다.
+
+- Chromium에서 320px, 390px, 1440px, 움직임 감소와 브라우저 확대 200%를 확인했다. 두 홈페이지에 가로 넘침이나 스크립트가 없고, 모바일 프로필 링크는 네 개 모두 44px에 16px 간격이다. 기존 `/favicon.ico` 요청은 404다.
+- Wrangler의 로컬 정적 자산 환경에서 두 이전 주소 모두 끝 슬래시 유무에 관계없이 `/projects/terms`로 HTTP 301을 반환했다. 배포 응답은 확인 대상 환경과 구분한다.
+
+- **작업** 현재 사용 중인 도구 버전과 Entry 명령을 확인한다. `pnpm entry:check`와 `pnpm entry:build`를 실행하고, 동일한 HTTPS 이력서 테스트 주소를 변경 후 검사에도 사용한다. `/`와 `/en/`의 생성 HTML과 브라우저에서 기존 동작을 확인한다. `/projects/terms`와 이전 주소인 `/better-terms`, `/projects/use-better-terms`의 동작도 기록한다.
+- **리서치** Astro의 정적 빌드와 미리보기에서 확인할 수 있는 범위를 조사한다. 현재 동작을 기준으로 삼는 변경 전후 비교에서는 사용자가 읽는 콘텐츠와 실제 탐색 결과를 관찰한다. [Astro CLI](https://docs.astro.build/en/reference/cli-reference/), [Playwright 권장 사항](https://playwright.dev/docs/best-practices#test-user-visible-behavior)
+- **통과 기준** 기존 페이지별 문구, 제목 순서, 링크 목적지와 키보드 이동을 비교할 수 있다. 320px, 390px, 1440px 너비에서 페이지 배치와 모바일 프로필 링크를 기록하고, 글자 확대와 움직임 감소 설정의 확인 여부를 표시한다. 이전 주소의 생성 결과와 실제 HTTP 응답은 환경을 명시해 기록한다. 빌드 실패로 비교 기준을 확보하지 못하면 환경이나 설정의 원인을 확인한 뒤 다음 단계로 진행한다.
+
+### 40. 폴더명, 파일명과 타입명 상세 지침 작성
+
+**상태** 완료. 화면 변경과 독립적으로 네이밍 상세 절을 작성했다. TypeScript 6.0.3의 엄격 모드로 TypeScript와 JSX 예시 네 블록을 검사했다. 규칙 목록과 앞선 상세 절의 본문은 변경 전과 일치한다.
+
+- **작업** [frontend.md](codes/frontend.md)의 이름 짓기 상세 지침을 채운다. 상위 디렉터리가 제공하는 맥락, 파일이 수행하는 역할, 모듈 밖에서 타입 이름만 읽을 때 필요한 정보를 기준으로 사례를 고른다. 적용 조건과 이유를 코드 앞에 작성한다. 목록과 상세 절에 나열된 용어의 범위가 다른 부분은 기존 규칙이 요구하는 행동을 대조하고, 금지 범위의 변경이 필요하면 해당 항목을 보류한다.
+- **리서치** FSD의 Slice와 Segment 이름, 모듈 내부를 숨기는 Public API, React의 Props 타입 이름을 대조한다. 외부 저장소의 최근 유지보수 이력과 여러 코드 사례를 확인한다. 각 이름의 선언 위치와 사용 위치를 함께 보고, 디렉터리 문맥으로 충분한 경우와 모듈 밖에서도 역할을 알 수 있어야 하는 경우를 구분한다. [FSD Slices and Segments](https://feature-sliced.design/docs/reference/slices-segments), [FSD Public API](https://feature-sliced.design/docs/reference/public-api), [React TypeScript 안내](https://react.dev/learn/typescript), [Adobe React Aria Disclosure](https://github.com/adobe/react-spectrum/blob/b55427c9a59a0c8dae04ff68bb6d1ee4cf08e181/packages/react-aria-components/src/Disclosure.tsx), [Radix Collapsible](https://github.com/radix-ui/primitives/blob/6d5838b754ced22597b874aea58e4c28592abbeb/packages/react/collapsible/src/collapsible.tsx)
+- **통과 기준** 폴더명, 파일명과 타입명 각각에 대해 중복을 판단할 조건과 예시의 이유를 확인할 수 있다. 상위 디렉터리에서 정보를 얻는 이름과 외부에서 직접 사용하는 이름의 판단 기준이 드러난다. 이름 짓기 절의 빈 부분을 채우고, 규칙 목록과 다른 상세 절은 그대로 유지한다.
+
+### 41. Markdown 원문 주소 제공
+
+**상태** 미착수. 39단계의 기존 동작 기록과 40단계의 원문이 필요하다.
+
+- **작업** `apps/entry`에서 전체 원문을 `/codes/frontend.md`로 제공한다. 상세 페이지에 사용할 문서와 이 주소의 파일은 저장소의 같은 원문에서 준비한다. Entry의 현재 빌드와 정적 호스팅에서 원문에 접근할 수 있는지 확인한다.
+- **리서치** 원문을 한 곳에서 관리하는 구성으로 Astro의 정적 파일 엔드포인트와 정적 자산 제공 방식을 비교한다. 문서가 Entry 패키지 밖에 있다는 점, 빌드 결과와 Cloudflare 응답에서 Markdown 형식이 어떻게 지정되는지 확인해 방식을 정한다. [Astro 정적 파일 엔드포인트](https://docs.astro.build/en/guides/endpoints/#static-file-endpoints), [Cloudflare Static Assets 응답 헤더](https://developers.cloudflare.com/workers/static-assets/headers/)
+- **통과 기준** 생성된 파일의 내용이 한글과 줄바꿈을 포함해 원문과 바이트 단위로 일치한다. 미리보기의 해당 주소가 인증 없이 HTTP 200과 원문 본문을 반환한다. 정적 호스팅 환경에서 UTF-8 Markdown으로 처리되는지 확인하고 환경을 명시한다. 빌드 산출물과 응답을 각 환경에서 구분해 기록한다.
+
+### 42. Frontend 상세 페이지 구성
+
+**상태** 미착수. 40단계의 원문과 41단계의 원문 주소가 필요하다.
+
+- **작업** `/codes/frontend`의 페이지 제목 아래에 [요구사항의 소개 문구](requirements.md#frontend-상세-페이지)를 표시한다. Provider 기반 의존성 주입, `children` 기반 합성과 Compound Components 사용, 네이밍, FSD 순서로 배치한다. 각 주제에서 판단에 필요한 원문을 고르고 적용 조건과 이유가 예시 앞에 오게 배치한다. 제목과 본문, 코드 예시는 기존 단일 칼럼과 글자 체계를 따른다.
+- **리서치** 원문과 표시 책임을 분리할 수 있도록 Astro의 Markdown 렌더링과 제목 구조를 확인한다. Provider로 기능 구현을 전달하는 방식과 Context가 적용되는 범위, `children`을 통한 합성과 Compound Components의 상태 공유, 이름이 모듈의 역할을 설명하는 방식, FSD의 계층과 import 규칙을 원문 사례와 대조한다. [Astro Markdown 렌더링](https://docs.astro.build/en/reference/content-loader-reference/#loadercontextrendermarkdown), [React `useContext`](https://react.dev/reference/react/useContext), [React의 `children`](https://react.dev/learn/passing-props-to-a-component#passing-jsx-as-children), [Radix Collapsible](https://www.radix-ui.com/primitives/docs/components/collapsible), [FSD Slices and Segments](https://feature-sliced.design/docs/reference/slices-segments), [FSD Layers](https://feature-sliced.design/docs/reference/layers), [W3C WAI 제목 구조](https://www.w3.org/WAI/tutorials/page-structure/headings/)
+- **통과 기준** 요청한 주소에 직접 접속할 수 있다. 페이지 제목 아래의 소개 문구는 요구사항과 일치하고, 이어지는 네 주제의 제목은 지정된 순서로 표시된다. 의존성 주입 절에서는 Provider가 기능 구현을 전달하는 방식을, FSD 절에서는 모듈 배치와 import 방향을 설명한다. 선택한 규칙 본문과 코드가 원문과 일치하며, 발췌 부분에 포함된 링크와 문서 내 이동이 동작한다. 320px 너비에서도 본문이 잘리거나 페이지 전체가 가로로 넘치지 않는다.
+
+### 43. 한국어와 영어 홈페이지에 Guides 연결
+
+**상태** 미착수. 41단계와 42단계의 주소를 확인한 뒤 진행한다.
+
+- **작업** 두 홈페이지가 사용하는 `apps/entry/src/_pages/home/ui/HomePage.astro`에 Guides를 추가한다. 해당 문구는 `apps/entry/src/shared/terms/` 아래의 한국어, 영어 JSON과 문구 타입 및 검사에 반영한다. Guides는 Projects와 Background 사이에 배치한다. 한국어에는 요구사항의 문구를 사용하고 화면을 먼저 확인한다. 영어 문구는 같은 의미로 작성한다. Frontend 한 항목에 상세 페이지와 Markdown 원문으로 가는 링크를 각각 둔다.
+- **리서치** 기존 홈페이지의 컴포넌트 합성과 문구 분리 방식을 유지할 수 있는지 Astro 문서에서 확인한다. 항목 안에서 두 링크의 목적을 각 링크 이름으로 식별할 수 있는지 접근성 기준을 확인한다. [Astro 컴포넌트와 슬롯](https://docs.astro.build/en/basics/astro-components/#slots), [W3C 링크 목적](https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html)
+- **통과 기준** 두 홈페이지에서 Projects, Guides, Background가 지정 순서로 표시된다. Frontend만 목록에 있고, 한국어 문구는 요구사항과 일치한다. 키보드로 두 링크를 구분하고 열 수 있으며, 둘 다 같은 빌드의 지정 주소로 이동한다. Guides 앞뒤 기존 영역의 내용과 링크 목적지는 39단계와 일치한다.
+
+### 44. 변경 전후 통합 확인
+
+**상태** 미착수. 39~43단계 결과를 적용한다.
+
+- **작업** `pnpm entry:check`와 `pnpm entry:build`를 실행한다. 39단계와 같은 조건에서 두 홈페이지, 쇼케이스와 두 이전 주소를 비교한다. 두 새 주소의 직접 요청, 상세 페이지의 소개 문구와 주제 순서, 발췌문과 원문의 일치, Markdown 응답의 바이트 일치를 확인한다. 지원 환경에서 320px, 390px, 1440px 너비, 키보드와 터치, 200% 글자 확대와 움직임 감소 설정을 확인한다. 새 링크의 명암비와 포커스 표시도 확인한다.
+- **리서치** 구현과 독립적으로 화면과 URL을 대조하는 회귀 검증을 적용한다. 브라우저의 글자 확대와 뷰포트 너비 변경을 각각 확인한다. 기존 이동 주소의 로컬 빌드 결과와 호스팅에서의 응답을 판단할 기준도 확인한다. [Playwright 권장 사항](https://playwright.dev/docs/best-practices#test-user-visible-behavior), [W3C 글자 확대](https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html), [W3C Reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html), [Cloudflare HTML 처리](https://developers.cloudflare.com/workers/static-assets/routing/advanced/html-handling/)
+- **통과 기준** 승인된 위치와 주소에 새 내용이 있고, 기존 페이지의 문구, 메타데이터, 탐색 동작과 반응형 배치가 기준과 일치한다. 두 홈페이지에 브라우저 스크립트가 추가되지 않는다. 기존 문제와 새 문제를 구분하고, 실행할 수 없었던 검사는 해당 환경과 제한을 기록한다. 뜻하지 않은 기존 동작 변화가 확인되면 발생시킨 단계로 돌아가 수정한 뒤 관련 검사를 다시 실행한다.
+
+## 홈페이지 문구 변경 기록
+
 [텍스트 컨텐츠 구성](requirements.md#텍스트-컨텐츠-구성)에 따라 한국어 `/`와 영어 `/en/`의 자기소개, 인공지능팩토리 경력, 오픈소스와 지정 프로젝트 문구를 갱신한다. 34~37단계의 변경을 반영했고 38단계에서 정적 빌드와 브라우저 동작을 확인했다. 배포 환경의 HTTP 301과 브라우저 자체의 200% 글자 확대 옵션은 미확인 상태다.
 
 ## 수정 대상과 유지할 화면
@@ -9,7 +74,7 @@
 - 프로필 이름과 직무명, 페이지 메타 설명, 언어 전환, 프로필 링크, 프로젝트 기간과 기술 정보와 링크 위치를 유지한다. 문구 개선 사례 링크의 목적지는 `/projects/terms`다. `/projects/use-better-terms`와 `/better-terms`도 그 주소로 이동한다. 서비스 링크가 있는 메모 앱의 제목과 아이콘은 같은 링크로 동작한다. [한 페이지의 정보 순서](requirements.md#한-페이지의-정보-순서), [Projects](requirements.md#projects)
 - 기존 Astro와 Tailwind CSS 구성, 잠금 파일, 글꼴과 HTTPS 이력서 URL 설정을 사용한다. 기존 컴포넌트가 `apps/entry/src/shared/terms/`의 한국어와 영어 문구를 표시한다. 표시 기준은 [디자인 체계](../../../DESIGN.md)와 [Astro, FSD와 Tailwind CSS 지침](../../dev/frontend/astro-fsd-tailwind.md)을 따른다.
 
-## 현재 변경의 실행 순서
+## 홈페이지 문구 변경의 실행 순서
 
 36단계에서 경력 원고 차이를 반영한 뒤 37단계에서 오픈소스와 프로젝트 문구를 갱신한다. 38단계에서 두 언어의 생성 HTML과 브라우저 동작을 확인한다. 각 단계에 수정 파일, 검증 상태와 재개 지점을 기록한다. 검증을 마친 변경을 커밋한다. Git 권한으로 커밋할 수 없으면 작업본과 실패 사유를 기록한다.
 

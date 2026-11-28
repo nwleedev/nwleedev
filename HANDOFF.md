@@ -503,6 +503,10 @@ WebKit의 나머지 실패 세 건은 `temps/notes-webkit-u27`을 사용한 재�
 - 확대 단축키로 실제 200% 글자 확대를 적용했는지는 확인하지 못했다. 플랜 단위 25의 모바일 상단 프로필 링크 문제도 미해결 상태다. 두 항목은 이번 문구 변경에서 해결한 것으로 표시하지 않는다.
 - 표현 검사에서는 대시보드의 반복된 조사를 줄이고 시계열 값과 구분 기준을 직접 적었다. `데이터 기반 렌더링`은 `문구 자료로 화면 표시`도 검토했으나 적용 패턴을 식별하는 이름이라 유지했다. `조사 결과`는 `조사에서 확인한 사실`도 가능하지만 요구사항 및 결정과 구분하는 자료 이름을 유지했다. 과거 절차의 UI 이름과 교체 전 표현은 기록의 뜻을 보존했다.
 
+# Guides와 Frontend 상세 페이지
+
+[Guides 실행 플랜](docs/designs/developer-portfolio-f4b7/plan.md#guides와-frontend-상세-페이지-추가)의 39단계에 변경 전 화면과 Wrangler 로컬 응답을 기록했다. 40단계의 [네이밍 상세 지침](docs/designs/developer-portfolio-f4b7/codes/frontend.md#네이밍)도 작성했다.
+
 # 이미지와 메모를 배치하는 캔버스
 
 [캔버스 요구사항](docs/designs/image-annotation-canvas-2cb1ec/requirements.md)에는 이미지 배치, 메모 부착, 모바일 사용, 전체 이미지 저장과 다른 기기에서 편집을 재개하는 조건이 있다. 편집용 ZIP의 내부 구성과 버전 호환 정책은 [파일 형식 조사](docs/designs/image-annotation-canvas-2cb1ec/references/editable-file-format.md)를 바탕으로 정한다.
